@@ -31,6 +31,11 @@ npm run start:dev
 
 API should run at `http://localhost:3000`.
 
+## Troubleshooting
+- If Docker shows `dockerDesktopLinuxEngine` pipe errors, wait for Docker Desktop to finish starting or restart Docker Desktop.
+- If local Postgres is already installed, ensure `.env` has correct credentials and the target DB exists.
+- If local Redis is unavailable, the API can still boot, but `/health` will report Redis as down until Redis is reachable.
+
 ## Health Endpoint
 - `GET http://localhost:3000/health`
 - Returns `200` with:
