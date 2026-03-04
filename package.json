@@ -1,0 +1,13 @@
+{
+  "name": "emoto-fleet-os-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:stack:up": "docker compose up -d",
+    "dev:stack:down": "docker compose down",
+    "dev:stack:logs": "docker compose logs -f",
+    "dev:api": "npm --prefix apps/api run start:dev",
+    "lint": "npm --prefix apps/api run lint",
+    "format": "npm --prefix apps/api run format"
+  }
+}
