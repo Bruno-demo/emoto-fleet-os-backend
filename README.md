@@ -66,6 +66,9 @@ API should run at `http://localhost:3000`.
 ## Swagger
 - `http://localhost:3000/docs`
 
+## MQTT Contract
+- Contract and signing rules: `docs/mqtt-contract.md`
+
 ## Docker Ports
 - PostgreSQL: `5432`
 - Redis: `6379`
@@ -85,6 +88,7 @@ npm run db:migrate
 npm run db:deploy
 npm run db:seed
 npm run db:studio
+npm run mqtt:publish:sample
 npm run lint
 npm run format
 ```
@@ -108,6 +112,8 @@ REDIS_URL=redis://localhost:6379
 MQTT_HOST=localhost
 MQTT_PORT=1883
 MQTT_URL=mqtt://localhost:1883
+MQTT_SAMPLE_DEVICE_UID=DEV-SAMPLE-001
+MQTT_SAMPLE_DEVICE_SECRET=replace-with-provisioned-device-secret
 
 EMQX_DASHBOARD_PORT=18083
 EMQX_DASHBOARD_USERNAME=admin

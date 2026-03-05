@@ -26,17 +26,33 @@ export class RedisService implements OnModuleDestroy {
 
   // Sends a Redis PING command to verify connectivity.
   async ping(): Promise<string> {
-    if (this.client.status === 'wait') {
-      await this.client.connect();
-    }
+    await this.ensureConnected();
 
     return this.client.ping();
+  }
+
+  // Atomically sets a key with TTL only if it does not already exist.
+  async setIfNotExists(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    await this.ensureConnected();
+    const response = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+    return response === 'OK';
   }
 
   // Closes the Redis connection during app shutdown.
   async onModuleDestroy(): Promise<void> {
     if (this.client.status !== 'end' && this.client.status !== 'wait') {
       await this.client.quit();
+    }
+  }
+
+  // Lazily establishes the Redis connection for runtime operations.
+  private async ensureConnected(): Promise<void> {
+    if (this.client.status === 'wait') {
+      await this.client.connect();
     }
   }
 }
