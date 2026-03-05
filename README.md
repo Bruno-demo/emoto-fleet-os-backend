@@ -54,6 +54,15 @@ API should run at `http://localhost:3000`.
 }
 ```
 
+## Auth Endpoints
+- `POST /auth/login` with `email+password` or `phone+password`
+- `POST /auth/register` (OWNER/ADMIN only, disabled by default via env)
+- `GET /me` (requires JWT bearer token)
+- Demo seeded admin credentials:
+  - Email: `admin@demo.emoto`
+  - Phone: `+250700000001`
+  - Password: `ChangeMe123!`
+
 ## Swagger
 - `http://localhost:3000/docs`
 
@@ -106,4 +115,7 @@ EMQX_DASHBOARD_PASSWORD=public
 
 JWT_SECRET=change_me_change_me
 JWT_EXPIRES_IN=1h
+AUTH_REGISTER_ENABLED=false
+BCRYPT_SALT_ROUNDS=10
+SEED_ADMIN_PASSWORD=ChangeMe123!
 ```

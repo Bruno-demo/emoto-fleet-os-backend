@@ -1,4 +1,5 @@
 const { createHash } = require('crypto');
+const bcrypt = require('bcrypt');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
@@ -8,10 +9,18 @@ function hashSecret(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+// Hashes user passwords with bcrypt for login compatibility.
+async function hashPassword(password) {
+  const rounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS ?? '10', 10);
+  return bcrypt.hash(password, rounds);
+}
+
 // Seeds one demo fleet, admin, bike, and linked device for local development.
 async function seed() {
   const adminEmail = 'admin@demo.emoto';
+  const adminPhone = '+250700000001';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
+  const adminPasswordHash = await hashPassword(adminPassword);
 
   const fleet = await prisma.fleet.upsert({
     where: { id: '00000000-0000-0000-0000-000000000001' },
@@ -31,15 +40,17 @@ async function seed() {
       },
     },
     update: {
-      passwordHash: hashSecret(adminPassword),
+      passwordHash: adminPasswordHash,
       role: 'ADMIN',
+      phone: adminPhone,
       status: 'ACTIVE',
     },
     create: {
       fleetId: fleet.id,
       role: 'ADMIN',
       email: adminEmail,
-      passwordHash: hashSecret(adminPassword),
+      phone: adminPhone,
+      passwordHash: adminPasswordHash,
       status: 'ACTIVE',
     },
   });

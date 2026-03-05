@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const booleanString = z
+  .enum(['true', 'false'])
+  .default('false')
+  .transform((value) => value === 'true');
+
 export const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -10,6 +15,8 @@ export const envSchema = z.object({
   MQTT_URL: z.string().url(),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().min(2),
+  AUTH_REGISTER_ENABLED: booleanString,
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10),
 });
 
 export type Env = z.infer<typeof envSchema>;
