@@ -52,6 +52,12 @@ enum ScoreScope {
   FLEET
 }
 
+enum ZoneType {
+  SLOW
+  NO_GO
+  PARK
+}
+
 model Fleet {
   id             String         @id @default(uuid()) @db.Uuid
   name           String
@@ -63,6 +69,7 @@ model Fleet {
   events         Event[]
   trips          Trip[]
   scoreSummaries ScoreSummary[]
+  zones          GeofenceZone[]
 }
 
 model User {
@@ -210,4 +217,20 @@ model ScoreSummary {
   @@index([scope, refId])
   @@index([periodStart, periodEnd])
   @@index([fleetId, scope, periodStart, periodEnd])
+}
+
+model GeofenceZone {
+  id             String    @id @default(uuid()) @db.Uuid
+  fleetId        String    @db.Uuid
+  name           String
+  type           ZoneType
+  geojsonPolygon Json
+  speedLimitKph  Decimal?  @db.Decimal(6, 2)
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+  fleet          Fleet     @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
+  @@index([fleetId])
+  @@index([fleetId, active, type])
 }

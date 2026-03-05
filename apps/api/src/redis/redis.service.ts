@@ -75,6 +75,12 @@ export class RedisService implements OnModuleDestroy {
     return this.client.mget(keys);
   }
 
+  // Deletes a Redis key if it exists.
+  async del(key: string): Promise<void> {
+    await this.ensureConnected();
+    await this.client.del(key);
+  }
+
   // Closes the Redis connection during app shutdown.
   async onModuleDestroy(): Promise<void> {
     if (this.client.status !== 'end' && this.client.status !== 'wait') {

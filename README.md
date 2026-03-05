@@ -58,6 +58,27 @@ API should run at `http://localhost:3000`.
 - `GET http://localhost:3000/live/bikes`
 - Returns latest fleet bike states from Redis (requires JWT).
 
+## Zones and Events
+- `POST /zones` (ADMIN only) to create a geofence zone.
+- `GET /zones`, `GET /zones/:id`, `PATCH /zones/:id`, `DELETE /zones/:id` (ADMIN only).
+- `GET /events?from&to&type` to fetch fleet-scoped events.
+
+Zone types:
+- `SLOW` (with `speedLimitKph`)
+- `NO_GO`
+- `PARK`
+
+Rules engine emits:
+- `OVERSPEED`
+- `HARSH_BRAKE`, `HARSH_ACCEL`, `HARSH_CORNER`
+- `CRASH`
+- `THEFT_SUSPECTED`
+
+WebSocket stream:
+- Namespace: `/fleet-events`
+- Event: `event.created`
+- Subscribe message: `subscribeFleet` with `{ "fleetId": "..." }`
+
 ## Auth Endpoints
 - `POST /auth/login` with `email+password` or `phone+password`
 - `POST /auth/register` (OWNER/ADMIN only, disabled by default via env)

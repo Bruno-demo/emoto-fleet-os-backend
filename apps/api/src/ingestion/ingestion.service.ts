@@ -12,6 +12,7 @@ import {
   decryptDeviceSecret,
   hashDeviceSecret,
 } from '../crypto/device-secret.crypto';
+import { EventsService } from '../events/events.service';
 import {
   EventPayload,
   MqttValidationError,
@@ -27,6 +28,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { LiveBikeState } from './ingestion.types';
 import { LiveStateService } from './live-state.service';
+import { RulesEngineService } from './rules-engine.service';
 
 interface DeviceForIngestion {
   id: string;
@@ -50,6 +52,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
     private readonly liveStateService: LiveStateService,
+    private readonly rulesEngineService: RulesEngineService,
+    private readonly eventsService: EventsService,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -188,6 +192,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       const latestState = this.buildLiveBikeState(device, telemetryPayload);
       await this.liveStateService.setLatestBikeState(latestState);
     }
+
+    await this.rulesEngineService.evaluateTelemetry(device, telemetryPayload);
   }
 
   // Validates event payload, persists event row, and updates device last seen.
@@ -212,17 +218,6 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
 
     const eventTimestamp = new Date(eventPayload.ts);
     await this.prismaService.$transaction([
-      this.prismaService.event.create({
-        data: {
-          fleetId: device.fleetId,
-          bikeId: device.bikeId,
-          deviceId: device.id,
-          ts: eventTimestamp,
-          type: eventPayload.type,
-          severity: eventPayload.severity as EventSeverity,
-          metaJson: eventPayload.meta as Prisma.InputJsonValue,
-        },
-      }),
       this.prismaService.device.update({
         where: { id: device.id },
         data: {
@@ -230,6 +225,16 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
         },
       }),
     ]);
+
+    await this.eventsService.createFleetEvent({
+      fleetId: device.fleetId,
+      bikeId: device.bikeId,
+      deviceId: device.id,
+      ts: eventTimestamp,
+      type: eventPayload.type,
+      severity: eventPayload.severity as EventSeverity,
+      metaJson: eventPayload.meta as Prisma.InputJsonValue,
+    });
   }
 
   // Loads device security context by incoming MQTT device UID.
