@@ -18,21 +18,49 @@ interface TelemetryPayloadWithoutSig {
   nonce: string;
 }
 
+// Reads numeric value from env with fallback default.
+function envNumber(key: string, fallback: number): number {
+  const value = process.env[key];
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+// Reads boolean value from env with fallback default.
+function envBoolean(key: string, fallback: boolean): boolean {
+  const value = process.env[key];
+  if (!value) {
+    return fallback;
+  }
+
+  if (value.toLowerCase() === 'true') {
+    return true;
+  }
+  if (value.toLowerCase() === 'false') {
+    return false;
+  }
+
+  return fallback;
+}
+
 // Builds a sample telemetry payload used for local broker testing.
 function buildSamplePayload(): TelemetryPayloadWithoutSig {
   return {
     ts: new Date().toISOString(),
-    lat: -1.944,
-    lng: 30.061,
-    speedKph: 42.3,
-    heading: 120,
+    lat: envNumber('MQTT_SAMPLE_LAT', -1.944),
+    lng: envNumber('MQTT_SAMPLE_LNG', 30.061),
+    speedKph: envNumber('MQTT_SAMPLE_SPEED_KPH', 42.3),
+    heading: envNumber('MQTT_SAMPLE_HEADING', 120),
     accel: {
-      x: 0.1,
-      y: -0.2,
-      z: 9.7,
+      x: envNumber('MQTT_SAMPLE_ACCEL_X', 0.1),
+      y: envNumber('MQTT_SAMPLE_ACCEL_Y', -0.2),
+      z: envNumber('MQTT_SAMPLE_ACCEL_Z', 9.7),
     },
-    batteryV: 52.1,
-    ignition: true,
+    batteryV: envNumber('MQTT_SAMPLE_BATTERY_V', 52.1),
+    ignition: envBoolean('MQTT_SAMPLE_IGNITION', true),
     nonce: randomUUID(),
   };
 }

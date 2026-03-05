@@ -9,6 +9,8 @@ import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { ReportsModule } from './reports/reports.module';
+import { TripsModule } from './trips/trips.module';
 import { ZonesModule } from './zones/zones.module';
 
 @Module({
@@ -24,6 +26,8 @@ import { ZonesModule } from './zones/zones.module';
     DevicesModule,
     EventsModule,
     ZonesModule,
+    TripsModule,
+    ReportsModule,
     PrismaModule,
     RedisModule,
     HealthModule,

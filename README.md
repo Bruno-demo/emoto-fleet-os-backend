@@ -62,6 +62,9 @@ API should run at `http://localhost:3000`.
 - `POST /zones` (ADMIN only) to create a geofence zone.
 - `GET /zones`, `GET /zones/:id`, `PATCH /zones/:id`, `DELETE /zones/:id` (ADMIN only).
 - `GET /events?from&to&type` to fetch fleet-scoped events.
+- `GET /bikes/:id/trips?from&to` to list bike trips.
+- `GET /trips/:id` to fetch one trip details.
+- `GET /reports/weekly` to fetch fleet weekly summary.
 
 Zone types:
 - `SLOW` (with `speedLimitKph`)
@@ -152,6 +155,19 @@ BCRYPT_SALT_ROUNDS=10
 SEED_ADMIN_PASSWORD=ChangeMe123!
 SEED_DEVICE_UID=DEV-0001
 SEED_DEVICE_SECRET=device-secret-0001
+
+TRIP_START_SPEED_KPH=5
+TRIP_END_SPEED_KPH=5
+TRIP_START_MOVEMENT_SECONDS=30
+TRIP_END_IDLE_SECONDS=300
+TRIP_SCORE_MIN_DISTANCE_KM=1
+TRIP_SCORE_PENALTY_MULTIPLIER=20
+TRIP_SCORE_WEIGHT_OVERSPEED=1.2
+TRIP_SCORE_WEIGHT_HARSH_BRAKE=1
+TRIP_SCORE_WEIGHT_HARSH_ACCEL=0.8
+TRIP_SCORE_WEIGHT_HARSH_CORNER=0.8
+TRIP_SCORE_WEIGHT_CRASH=4
+TRIP_SCORE_WEIGHT_THEFT_SUSPECTED=3
 ```
 
 ## Telemetry Ingestion
@@ -162,3 +178,7 @@ SEED_DEVICE_SECRET=device-secret-0001
 ```bash
 npm run mqtt:publish:sample
 ```
+
+Trip lifecycle:
+- start when speed >= `TRIP_START_SPEED_KPH` for `TRIP_START_MOVEMENT_SECONDS` or ignition=true
+- end when speed < `TRIP_END_SPEED_KPH` for `TRIP_END_IDLE_SECONDS` or ignition=false with no movement

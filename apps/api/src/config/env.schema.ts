@@ -21,6 +21,18 @@ export const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(2),
   AUTH_REGISTER_ENABLED: booleanString,
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10),
+  TRIP_START_SPEED_KPH: z.coerce.number().positive().default(5),
+  TRIP_END_SPEED_KPH: z.coerce.number().positive().default(5),
+  TRIP_START_MOVEMENT_SECONDS: z.coerce.number().int().positive().default(30),
+  TRIP_END_IDLE_SECONDS: z.coerce.number().int().positive().default(300),
+  TRIP_SCORE_MIN_DISTANCE_KM: z.coerce.number().positive().default(1),
+  TRIP_SCORE_PENALTY_MULTIPLIER: z.coerce.number().positive().default(20),
+  TRIP_SCORE_WEIGHT_OVERSPEED: z.coerce.number().nonnegative().default(1.2),
+  TRIP_SCORE_WEIGHT_HARSH_BRAKE: z.coerce.number().nonnegative().default(1),
+  TRIP_SCORE_WEIGHT_HARSH_ACCEL: z.coerce.number().nonnegative().default(0.8),
+  TRIP_SCORE_WEIGHT_HARSH_CORNER: z.coerce.number().nonnegative().default(0.8),
+  TRIP_SCORE_WEIGHT_CRASH: z.coerce.number().nonnegative().default(4),
+  TRIP_SCORE_WEIGHT_THEFT_SUSPECTED: z.coerce.number().nonnegative().default(3),
 });
 
 export type Env = z.infer<typeof envSchema>;

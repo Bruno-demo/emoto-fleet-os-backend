@@ -29,6 +29,7 @@ import { RedisService } from '../redis/redis.service';
 import { LiveBikeState } from './ingestion.types';
 import { LiveStateService } from './live-state.service';
 import { RulesEngineService } from './rules-engine.service';
+import { TripBuilderService } from './trip-builder.service';
 
 interface DeviceForIngestion {
   id: string;
@@ -54,6 +55,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     private readonly liveStateService: LiveStateService,
     private readonly rulesEngineService: RulesEngineService,
     private readonly eventsService: EventsService,
+    private readonly tripBuilderService: TripBuilderService,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -194,6 +196,10 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.rulesEngineService.evaluateTelemetry(device, telemetryPayload);
+    await this.tripBuilderService.processTelemetryForTrips(
+      device,
+      telemetryPayload,
+    );
   }
 
   // Validates event payload, persists event row, and updates device last seen.
