@@ -7,8 +7,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { DeviceStatus, Prisma } from '@prisma/client';
+import { AuditActionType, DeviceStatus, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
+import { AuditService } from '../audit/audit.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+  getPaginationParams,
+} from '../common/pagination';
 import {
   encryptDeviceSecret,
   hashDeviceSecret,
@@ -59,6 +66,7 @@ export class DevicesService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
       'DEVICE_SECRET_MASTER_KEY',
@@ -66,21 +74,37 @@ export class DevicesService {
   }
 
   // Returns all devices in the caller fleet without exposing secret hashes.
-  async listDevicesForUser(user: AuthenticatedUser): Promise<PublicDevice[]> {
-    const devices = await this.prismaService.device.findMany({
-      where: { fleetId: user.fleetId },
-      include: {
-        bike: {
-          select: {
-            id: true,
-            label: true,
+  async listDevicesForUser(
+    user: AuthenticatedUser,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<PublicDevice>> {
+    const pagination = getPaginationParams(query);
+    const where: Prisma.DeviceWhereInput = { fleetId: user.fleetId };
+
+    const [devices, total] = await Promise.all([
+      this.prismaService.device.findMany({
+        where,
+        include: {
+          bike: {
+            select: {
+              id: true,
+              label: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prismaService.device.count({ where }),
+    ]);
 
-    return devices.map((device) => this.toPublicDevice(device));
+    return createPaginatedResponse(
+      devices.map((device) => this.toPublicDevice(device)),
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
   }
 
   // Loads a single device for caller fleet while omitting secret hash material.
@@ -229,6 +253,17 @@ export class DevicesService {
     this.logger.log(
       `Rotated secret for device ${this.truncateDeviceUid(device.deviceUid)}`,
     );
+
+    await this.auditService.createAuditLog({
+      fleetId: device.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.DEVICE_SECRET_ROTATED,
+      targetType: 'DEVICE',
+      targetId: device.id,
+      metaJson: {
+        deviceUid: this.truncateDeviceUid(device.deviceUid),
+      },
+    });
 
     return {
       deviceId: device.id,

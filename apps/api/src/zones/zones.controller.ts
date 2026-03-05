@@ -7,12 +7,15 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PaginatedResponse } from '../common/pagination';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
 import { FleetZone, ZonesService } from './zones.service';
@@ -28,8 +31,9 @@ export class ZonesController {
   @ApiOperation({ summary: 'List geofence zones for caller fleet' })
   async listZones(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<FleetZone[]> {
-    return this.zonesService.listZonesForUser(user);
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<FleetZone>> {
+    return this.zonesService.listZonesForUser(user, query);
   }
 
   @Post()

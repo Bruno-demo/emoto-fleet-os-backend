@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Event, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+  getPaginationParams,
+} from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListEventsDto } from './dto/list-events.dto';
 import { EventsGateway } from './events.gateway';
@@ -17,7 +22,7 @@ export class EventsService {
   async listEventsForUser(
     user: AuthenticatedUser,
     query: ListEventsDto,
-  ): Promise<FleetEvent[]> {
+  ): Promise<PaginatedResponse<FleetEvent>> {
     const where: Prisma.EventWhereInput = {
       fleetId: user.fleetId,
     };
@@ -36,13 +41,36 @@ export class EventsService {
       }
     }
 
-    const events = await this.prismaService.event.findMany({
-      where,
-      orderBy: { ts: 'desc' },
-      take: 1000,
-    });
+    if (query.severity) {
+      where.severity = query.severity;
+    }
 
-    return events.map((event) => this.toFleetEvent(event));
+    if (query.bikeId) {
+      where.bikeId = query.bikeId;
+    }
+
+    if (query.deviceId) {
+      where.deviceId = query.deviceId;
+    }
+
+    const pagination = getPaginationParams(query);
+
+    const [events, total] = await Promise.all([
+      this.prismaService.event.findMany({
+        where,
+        orderBy: { ts: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prismaService.event.count({ where }),
+    ]);
+
+    return createPaginatedResponse(
+      events.map((event) => this.toFleetEvent(event)),
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
   }
 
   // Persists an event and broadcasts it to fleet websocket subscribers.

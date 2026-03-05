@@ -5,12 +5,15 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PaginatedResponse } from '../common/pagination';
 import { AssignBikeDto } from './dto/assign-bike.dto';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { DevicesService, PublicDevice } from './devices.service';
@@ -26,8 +29,9 @@ export class DevicesController {
   @ApiOperation({ summary: 'List devices in caller fleet' })
   async listDevices(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<PublicDevice[]> {
-    return this.devicesService.listDevicesForUser(user);
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<PublicDevice>> {
+    return this.devicesService.listDevicesForUser(user, query);
   }
 
   @Post()

@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { PaginatedResponse } from '../common/pagination';
 import { ListTripsDto } from './dto/list-trips.dto';
 import { TripsService } from './trips.service';
 import { FleetTrip } from './trips.types';
@@ -21,7 +22,7 @@ export class TripsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) bikeId: string,
     @Query() query: ListTripsDto,
-  ): Promise<FleetTrip[]> {
+  ): Promise<PaginatedResponse<FleetTrip>> {
     return this.tripsService.listBikeTripsForUser(user, bikeId, query);
   }
 

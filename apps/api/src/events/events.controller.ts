@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { PaginatedResponse } from '../common/pagination';
 import { ListEventsDto } from './dto/list-events.dto';
 import { EventsService } from './events.service';
 import { FleetEvent } from './events.types';
@@ -20,7 +21,7 @@ export class EventsController {
   async listEvents(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListEventsDto,
-  ): Promise<FleetEvent[]> {
+  ): Promise<PaginatedResponse<FleetEvent>> {
     return this.eventsService.listEventsForUser(user, query);
   }
 }

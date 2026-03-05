@@ -5,6 +5,11 @@ import {
 } from '@nestjs/common';
 import { Prisma, Trip } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+  getPaginationParams,
+} from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListTripsDto } from './dto/list-trips.dto';
 import { normalizeTripEventCounts } from './trip-scoring.util';
@@ -19,7 +24,7 @@ export class TripsService {
     user: AuthenticatedUser,
     bikeId: string,
     query: ListTripsDto,
-  ): Promise<FleetTrip[]> {
+  ): Promise<PaginatedResponse<FleetTrip>> {
     const bike = await this.prismaService.bike.findUnique({
       where: { id: bikeId },
       select: {
@@ -48,13 +53,48 @@ export class TripsService {
       }
     }
 
-    const trips = await this.prismaService.trip.findMany({
-      where,
-      orderBy: { startTs: 'desc' },
-      take: 500,
-    });
+    if (query.minScore !== undefined || query.maxScore !== undefined) {
+      where.score = {};
+      if (query.minScore !== undefined) {
+        where.score.gte = query.minScore;
+      }
+      if (query.maxScore !== undefined) {
+        where.score.lte = query.maxScore;
+      }
+    }
 
-    return Promise.all(trips.map((trip) => this.toFleetTrip(trip)));
+    if (
+      query.minDistanceKm !== undefined ||
+      query.maxDistanceKm !== undefined
+    ) {
+      where.distanceKm = {};
+      if (query.minDistanceKm !== undefined) {
+        where.distanceKm.gte = query.minDistanceKm;
+      }
+      if (query.maxDistanceKm !== undefined) {
+        where.distanceKm.lte = query.maxDistanceKm;
+      }
+    }
+
+    const pagination = getPaginationParams(query);
+
+    const [trips, total] = await Promise.all([
+      this.prismaService.trip.findMany({
+        where,
+        orderBy: { startTs: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prismaService.trip.count({ where }),
+    ]);
+
+    const data = await Promise.all(trips.map((trip) => this.toFleetTrip(trip)));
+    return createPaginatedResponse(
+      data,
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
   }
 
   // Loads one trip by id after enforcing fleet isolation.

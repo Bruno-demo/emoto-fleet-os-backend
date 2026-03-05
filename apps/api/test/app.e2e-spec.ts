@@ -286,16 +286,23 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const body = response.body as Array<{
-      id: string;
-      deviceUid: string;
-      secretHash?: string;
-    }>;
-    const created = body.find((item) => item.id === provisionedDeviceId);
+    const body = response.body as {
+      data: Array<{
+        id: string;
+        deviceUid: string;
+        secretHash?: string;
+      }>;
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+    const created = body.data.find((item) => item.id === provisionedDeviceId);
 
     expect(created).toBeDefined();
     expect(created?.deviceUid).toBe(provisionedDeviceUid);
     expect(created?.secretHash).toBeUndefined();
+    expect(body.total).toBeGreaterThan(0);
   });
 
   it('assigns a device to a bike in the same fleet', async () => {

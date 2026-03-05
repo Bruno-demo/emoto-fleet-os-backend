@@ -7,13 +7,17 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Bike, UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PaginatedResponse } from '../common/pagination';
 import { CreateBikeDto } from './dto/create-bike.dto';
+import { LockActionDto } from './dto/lock-action.dto';
 import { UpdateBikeDto } from './dto/update-bike.dto';
 import { BikesService } from './bikes.service';
 
@@ -26,8 +30,11 @@ export class BikesController {
   @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
   @ApiOperation({ summary: 'List bikes in caller fleet' })
-  async listBikes(@CurrentUser() user: AuthenticatedUser): Promise<Bike[]> {
-    return this.bikesService.listBikesForUser(user);
+  async listBikes(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Bike>> {
+    return this.bikesService.listBikesForUser(user, query);
   }
 
   @Post()
@@ -70,5 +77,19 @@ export class BikesController {
   ): Promise<{ deleted: true }> {
     await this.bikesService.deleteBikeForUser(id, user);
     return { deleted: true };
+  }
+
+  @Post(':id/lock-actions')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({
+    summary:
+      'Request bike lock action (audit only until lock integration exists)',
+  })
+  async requestLockAction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: LockActionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ queued: false; message: string }> {
+    return this.bikesService.requestBikeLockAction(id, dto, user);
   }
 }

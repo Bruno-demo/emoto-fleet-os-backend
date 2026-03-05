@@ -1,4 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+  getPaginationParams,
+} from '../common/pagination';
 import { RedisService } from '../redis/redis.service';
 import { LiveBikeState } from './ingestion.types';
 
@@ -21,12 +27,21 @@ export class LiveStateService {
   }
 
   // Loads all latest bike states for a fleet from Redis cache.
-  async getFleetBikeStates(fleetId: string): Promise<LiveBikeState[]> {
+  async getFleetBikeStates(
+    fleetId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<LiveBikeState>> {
+    const pagination = getPaginationParams(query);
     const keys = await this.redisService.keys(
       this.buildFleetBikeKeyPattern(fleetId),
     );
     if (keys.length === 0) {
-      return [];
+      return createPaginatedResponse(
+        [],
+        0,
+        pagination.page,
+        pagination.pageSize,
+      );
     }
 
     const values = await this.redisService.mget(keys);
@@ -43,7 +58,18 @@ export class LiveStateService {
       }
     }
 
-    return parsedStates.sort((left, right) => right.ts.localeCompare(left.ts));
+    const sortedStates = parsedStates.sort((left, right) =>
+      right.ts.localeCompare(left.ts),
+    );
+    const start = pagination.skip;
+    const end = start + pagination.take;
+
+    return createPaginatedResponse(
+      sortedStates.slice(start, end),
+      sortedStates.length,
+      pagination.page,
+      pagination.pageSize,
+    );
   }
 
   // Creates the Redis key for storing latest fleet bike positions.

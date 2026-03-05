@@ -4,22 +4,51 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Bike, Prisma } from '@prisma/client';
+import { AuditActionType, Bike, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
+import { AuditService } from '../audit/audit.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+  getPaginationParams,
+} from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBikeDto } from './dto/create-bike.dto';
+import { LockActionDto } from './dto/lock-action.dto';
 import { UpdateBikeDto } from './dto/update-bike.dto';
 
 @Injectable()
 export class BikesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // Returns all bikes visible to the caller fleet.
-  async listBikesForUser(user: AuthenticatedUser): Promise<Bike[]> {
-    return this.prismaService.bike.findMany({
-      where: { fleetId: user.fleetId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listBikesForUser(
+    user: AuthenticatedUser,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Bike>> {
+    const pagination = getPaginationParams(query);
+    const where: Prisma.BikeWhereInput = { fleetId: user.fleetId };
+
+    const [bikes, total] = await Promise.all([
+      this.prismaService.bike.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prismaService.bike.count({ where }),
+    ]);
+
+    return createPaginatedResponse(
+      bikes,
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
   }
 
   // Creates a bike in the caller fleet.
@@ -100,6 +129,34 @@ export class BikesService {
     const bike = await this.loadBikeOrThrow(id);
     this.assertFleetAccess(bike.fleetId, user);
     await this.prismaService.bike.delete({ where: { id } });
+  }
+
+  // Audits lock/unlock control actions before lock integration is implemented.
+  async requestBikeLockAction(
+    id: string,
+    dto: LockActionDto,
+    user: AuthenticatedUser,
+  ): Promise<{ queued: false; message: string }> {
+    const bike = await this.loadBikeOrThrow(id);
+    this.assertFleetAccess(bike.fleetId, user);
+
+    await this.auditService.createAuditLog({
+      fleetId: bike.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.LOCK_ACTION_REQUESTED,
+      targetType: 'BIKE',
+      targetId: bike.id,
+      metaJson: {
+        action: dto.action,
+        reason: dto.reason ?? null,
+        implemented: false,
+      },
+    });
+
+    return {
+      queued: false,
+      message: 'Bike lock integration is not implemented yet; action audited.',
+    };
   }
 
   // Fetches a bike record by id or throws 404.

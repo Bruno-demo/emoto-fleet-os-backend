@@ -57,6 +57,7 @@ API should run at `http://localhost:3000`.
 ## Live Fleet Endpoint
 - `GET http://localhost:3000/live/bikes`
 - Returns latest fleet bike states from Redis (requires JWT).
+- Supports pagination: `?page=1&pageSize=20`.
 
 ## Zones and Events
 - `POST /zones` (ADMIN only) to create a geofence zone.
@@ -65,6 +66,14 @@ API should run at `http://localhost:3000`.
 - `GET /bikes/:id/trips?from&to` to list bike trips.
 - `GET /trips/:id` to fetch one trip details.
 - `GET /reports/weekly` to fetch fleet weekly summary.
+- `POST /bikes/:id/lock-actions` logs lock/unlock intent to audit log (lock integration pending).
+
+Pagination:
+- List endpoints support `?page` and `?pageSize` (max 100).
+
+Filtering:
+- `/events`: `from`, `to`, `type`, `severity`, `bikeId`, `deviceId`
+- `/bikes/:id/trips`: `from`, `to`, `minScore`, `maxScore`, `minDistanceKm`, `maxDistanceKm`
 
 Zone types:
 - `SLOW` (with `speedLimitKph`)
@@ -86,6 +95,9 @@ WebSocket stream:
 - `POST /auth/login` with `email+password` or `phone+password`
 - `POST /auth/register` (OWNER/ADMIN only, disabled by default via env)
 - `GET /me` (requires JWT bearer token)
+- Auth rate limits:
+  - `/auth/login`: 8 requests/minute per client
+  - `/auth/register`: 5 requests/minute per client
 - Demo seeded admin credentials:
   - Email: `admin@demo.emoto`
   - Phone: `+250700000001`
@@ -93,6 +105,12 @@ WebSocket stream:
 
 ## Swagger
 - `http://localhost:3000/docs`
+
+## Audit Logs
+- Admin control-plane actions are persisted in `AuditLog` table:
+  - Device secret rotations
+  - Zone create/update/delete
+  - Bike lock/unlock action requests
 
 ## MQTT Contract
 - Contract and signing rules: `docs/mqtt-contract.md`

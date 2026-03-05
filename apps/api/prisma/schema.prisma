@@ -58,6 +58,14 @@ enum ZoneType {
   PARK
 }
 
+enum AuditActionType {
+  DEVICE_SECRET_ROTATED
+  ZONE_CREATED
+  ZONE_UPDATED
+  ZONE_DELETED
+  LOCK_ACTION_REQUESTED
+}
+
 model Fleet {
   id             String         @id @default(uuid()) @db.Uuid
   name           String
@@ -70,6 +78,7 @@ model Fleet {
   trips          Trip[]
   scoreSummaries ScoreSummary[]
   zones          GeofenceZone[]
+  auditLogs      AuditLog[]
 }
 
 model User {
@@ -84,6 +93,7 @@ model User {
   updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
   fleet        Fleet      @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   trips        Trip[]     @relation("TripRider")
+  auditLogs    AuditLog[]
 
   @@index([fleetId])
   @@index([fleetId, role])
@@ -233,4 +243,21 @@ model GeofenceZone {
 
   @@index([fleetId])
   @@index([fleetId, active, type])
+}
+
+model AuditLog {
+  id          BigInt          @id @default(autoincrement())
+  fleetId     String          @db.Uuid
+  actorUserId String?         @db.Uuid
+  actionType  AuditActionType
+  targetType  String
+  targetId    String?
+  metaJson    Json
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  fleet       Fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  actorUser   User?           @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([fleetId, createdAt])
+  @@index([actorUserId])
+  @@index([actionType])
 }

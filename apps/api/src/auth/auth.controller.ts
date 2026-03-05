@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
@@ -17,6 +18,9 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(200)
+  @Throttle({
+    default: { limit: 8, ttl: 60_000 },
+  })
   @ApiOperation({ summary: 'Login with email/password or phone/password' })
   async login(@Body() dto: LoginDto): Promise<{
     accessToken: string;
@@ -29,6 +33,9 @@ export class AuthController {
   @Post('register')
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Throttle({
+    default: { limit: 5, ttl: 60_000 },
+  })
   @ApiOperation({
     summary: 'Register a user in the caller fleet (disabled by default)',
   })

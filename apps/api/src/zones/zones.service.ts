@@ -4,8 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ZoneType } from '@prisma/client';
+import { AuditActionType, Prisma, ZoneType } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { AuditService } from '../audit/audit.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+  getPaginationParams,
+} from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
@@ -37,16 +44,35 @@ export interface FleetZone {
 
 @Injectable()
 export class ZonesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // Lists geofence zones for the caller fleet.
-  async listZonesForUser(user: AuthenticatedUser): Promise<FleetZone[]> {
-    const zones = await this.prismaService.geofenceZone.findMany({
-      where: { fleetId: user.fleetId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listZonesForUser(
+    user: AuthenticatedUser,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<FleetZone>> {
+    const pagination = getPaginationParams(query);
+    const where: Prisma.GeofenceZoneWhereInput = { fleetId: user.fleetId };
 
-    return zones.map((zone) => this.toFleetZone(zone));
+    const [zones, total] = await Promise.all([
+      this.prismaService.geofenceZone.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prismaService.geofenceZone.count({ where }),
+    ]);
+
+    return createPaginatedResponse(
+      zones.map((zone) => this.toFleetZone(zone)),
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
   }
 
   // Creates a new geofence zone under the caller fleet.
@@ -65,6 +91,18 @@ export class ZonesService {
         geojsonPolygon,
         speedLimitKph: dto.speedLimitKph,
         active: dto.active ?? true,
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.ZONE_CREATED,
+      targetType: 'ZONE',
+      targetId: zone.id,
+      metaJson: {
+        zoneType: zone.type,
+        speedLimitKph: zone.speedLimitKph?.toNumber() ?? null,
       },
     });
 
@@ -110,6 +148,18 @@ export class ZonesService {
       },
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.ZONE_UPDATED,
+      targetType: 'ZONE',
+      targetId: updatedZone.id,
+      metaJson: {
+        zoneType: updatedZone.type,
+        speedLimitKph: updatedZone.speedLimitKph?.toNumber() ?? null,
+      },
+    });
+
     return this.toFleetZone(updatedZone);
   }
 
@@ -117,6 +167,18 @@ export class ZonesService {
   async deleteZoneForUser(id: string, user: AuthenticatedUser): Promise<void> {
     const zone = await this.loadZoneOrThrow(id);
     this.assertFleetAccess(zone.fleetId, user);
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.ZONE_DELETED,
+      targetType: 'ZONE',
+      targetId: zone.id,
+      metaJson: {
+        zoneType: zone.type,
+      },
+    });
+
     await this.prismaService.geofenceZone.delete({ where: { id: zone.id } });
   }
 

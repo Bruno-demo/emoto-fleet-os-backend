@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BikesModule } from './bikes/bikes.module';
 import { envSchema } from './config/env.schema';
@@ -21,6 +24,14 @@ import { ZonesModule } from './zones/zones.module';
       // Validates required environment variables before booting the app.
       validate: (env) => envSchema.parse(env),
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 1_000,
+      },
+    ]),
+    AuditModule,
     AuthModule,
     BikesModule,
     DevicesModule,
@@ -32,6 +43,12 @@ import { ZonesModule } from './zones/zones.module';
     RedisModule,
     HealthModule,
     IngestionModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
