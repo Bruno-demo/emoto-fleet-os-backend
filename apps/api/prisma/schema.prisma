@@ -59,6 +59,7 @@ model Fleet {
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
   users          User[]
   bikes          Bike[]
+  devices        Device[]
   events         Event[]
   trips          Trip[]
   scoreSummaries ScoreSummary[]
@@ -107,6 +108,7 @@ model Bike {
 
 model Device {
   id         String       @id @default(uuid()) @db.Uuid
+  fleetId    String       @db.Uuid
   imei       String?
   deviceUid  String       @unique
   bikeId     String?      @db.Uuid
@@ -116,10 +118,13 @@ model Device {
   status     DeviceStatus @default(ACTIVE)
   createdAt  DateTime     @default(now()) @db.Timestamptz(6)
   updatedAt  DateTime     @updatedAt @db.Timestamptz(6)
+  fleet      Fleet        @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   bike       Bike?        @relation(fields: [bikeId], references: [id], onDelete: SetNull)
   telemetry  TelemetryPoint[]
   events     Event[]
 
+  @@index([fleetId])
+  @@index([fleetId, status])
   @@index([bikeId])
   @@unique([imei])
 }

@@ -79,11 +79,13 @@ async function seed() {
       deviceUid: 'DEV-0001',
     },
     update: {
+      fleetId: fleet.id,
       bikeId: bike.id,
       status: 'ACTIVE',
       secretHash: hashSecret('device-secret-0001'),
     },
     create: {
+      fleetId: fleet.id,
       deviceUid: 'DEV-0001',
       bikeId: bike.id,
       secretHash: hashSecret('device-secret-0001'),

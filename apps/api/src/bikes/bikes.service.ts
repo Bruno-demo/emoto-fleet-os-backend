@@ -1,18 +1,109 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Bike } from '@prisma/client';
+import { Bike, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateBikeDto } from './dto/create-bike.dto';
+import { UpdateBikeDto } from './dto/update-bike.dto';
 
 @Injectable()
 export class BikesService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  // Returns all bikes visible to the caller fleet.
+  async listBikesForUser(user: AuthenticatedUser): Promise<Bike[]> {
+    return this.prismaService.bike.findMany({
+      where: { fleetId: user.fleetId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Creates a bike in the caller fleet.
+  async createBikeForUser(
+    dto: CreateBikeDto,
+    user: AuthenticatedUser,
+  ): Promise<Bike> {
+    try {
+      return await this.prismaService.bike.create({
+        data: {
+          fleetId: user.fleetId,
+          label: dto.label,
+          plate: dto.plate,
+          serial: dto.serial,
+          model: dto.model,
+          status: dto.status ?? 'ACTIVE',
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Bike label, plate, or serial already exists',
+        );
+      }
+
+      throw error;
+    }
+  }
+
   // Loads a bike by id and enforces fleet isolation on access.
   async getBikeForUser(id: string, user: AuthenticatedUser): Promise<Bike> {
+    const bike = await this.loadBikeOrThrow(id);
+
+    this.assertFleetAccess(bike.fleetId, user);
+
+    return bike;
+  }
+
+  // Updates a bike if it belongs to the caller fleet.
+  async updateBikeForUser(
+    id: string,
+    dto: UpdateBikeDto,
+    user: AuthenticatedUser,
+  ): Promise<Bike> {
+    const bike = await this.loadBikeOrThrow(id);
+    this.assertFleetAccess(bike.fleetId, user);
+
+    try {
+      return await this.prismaService.bike.update({
+        where: { id },
+        data: {
+          label: dto.label,
+          plate: dto.plate,
+          serial: dto.serial,
+          model: dto.model,
+          status: dto.status,
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Bike label, plate, or serial already exists',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Deletes a bike if it belongs to the caller fleet.
+  async deleteBikeForUser(id: string, user: AuthenticatedUser): Promise<void> {
+    const bike = await this.loadBikeOrThrow(id);
+    this.assertFleetAccess(bike.fleetId, user);
+    await this.prismaService.bike.delete({ where: { id } });
+  }
+
+  // Fetches a bike record by id or throws 404.
+  private async loadBikeOrThrow(id: string): Promise<Bike> {
     const bike = await this.prismaService.bike.findUnique({
       where: { id },
     });
@@ -21,10 +112,13 @@ export class BikesService {
       throw new NotFoundException('Bike not found');
     }
 
-    if (bike.fleetId !== user.fleetId) {
+    return bike;
+  }
+
+  // Validates caller fleet ownership against the target fleet id.
+  private assertFleetAccess(fleetId: string, user: AuthenticatedUser): void {
+    if (fleetId !== user.fleetId) {
       throw new ForbiddenException('Fleet access violation');
     }
-
-    return bike;
   }
 }

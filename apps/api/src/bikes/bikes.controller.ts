@@ -1,9 +1,20 @@
-import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Bike, UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { CreateBikeDto } from './dto/create-bike.dto';
+import { UpdateBikeDto } from './dto/update-bike.dto';
 import { BikesService } from './bikes.service';
 
 @ApiTags('bikes')
@@ -11,6 +22,23 @@ import { BikesService } from './bikes.service';
 @Controller('bikes')
 export class BikesController {
   constructor(private readonly bikesService: BikesService) {}
+
+  @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({ summary: 'List bikes in caller fleet' })
+  async listBikes(@CurrentUser() user: AuthenticatedUser): Promise<Bike[]> {
+    return this.bikesService.listBikesForUser(user);
+  }
+
+  @Post()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({ summary: 'Create bike in caller fleet' })
+  async createBike(
+    @Body() dto: CreateBikeDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<Bike> {
+    return this.bikesService.createBikeForUser(dto, user);
+  }
 
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
@@ -20,5 +48,27 @@ export class BikesController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Bike> {
     return this.bikesService.getBikeForUser(id, user);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({ summary: 'Update bike in caller fleet' })
+  async updateBike(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateBikeDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<Bike> {
+    return this.bikesService.updateBikeForUser(id, dto, user);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({ summary: 'Delete bike in caller fleet' })
+  async deleteBike(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ deleted: true }> {
+    await this.bikesService.deleteBikeForUser(id, user);
+    return { deleted: true };
   }
 }
