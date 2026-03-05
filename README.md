@@ -54,6 +54,10 @@ API should run at `http://localhost:3000`.
 }
 ```
 
+## Live Fleet Endpoint
+- `GET http://localhost:3000/live/bikes`
+- Returns latest fleet bike states from Redis (requires JWT).
+
 ## Auth Endpoints
 - `POST /auth/login` with `email+password` or `phone+password`
 - `POST /auth/register` (OWNER/ADMIN only, disabled by default via env)
@@ -112,16 +116,28 @@ REDIS_URL=redis://localhost:6379
 MQTT_HOST=localhost
 MQTT_PORT=1883
 MQTT_URL=mqtt://localhost:1883
-MQTT_SAMPLE_DEVICE_UID=DEV-SAMPLE-001
-MQTT_SAMPLE_DEVICE_SECRET=replace-with-provisioned-device-secret
+MQTT_SAMPLE_DEVICE_UID=DEV-0001
+MQTT_SAMPLE_DEVICE_SECRET=device-secret-0001
 
 EMQX_DASHBOARD_PORT=18083
 EMQX_DASHBOARD_USERNAME=admin
 EMQX_DASHBOARD_PASSWORD=public
 
+DEVICE_SECRET_MASTER_KEY=change_me_device_secret_master_key_32chars
 JWT_SECRET=change_me_change_me
 JWT_EXPIRES_IN=1h
 AUTH_REGISTER_ENABLED=false
 BCRYPT_SALT_ROUNDS=10
 SEED_ADMIN_PASSWORD=ChangeMe123!
+SEED_DEVICE_UID=DEV-0001
+SEED_DEVICE_SECRET=device-secret-0001
+```
+
+## Telemetry Ingestion
+- API subscribes to:
+  - `v1/devices/+/telemetry`
+  - `v1/devices/+/event`
+- Publish a signed sample message:
+```bash
+npm run mqtt:publish:sample
 ```

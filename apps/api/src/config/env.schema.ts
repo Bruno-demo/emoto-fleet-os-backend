@@ -13,6 +13,10 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   MQTT_URL: z.string().url(),
+  DEVICE_SECRET_MASTER_KEY: z
+    .string()
+    .min(32)
+    .default('change_me_device_secret_master_key_32chars'),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().min(2),
   AUTH_REGISTER_ENABLED: booleanString,

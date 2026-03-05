@@ -5,9 +5,14 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { createHash, randomBytes } from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 import { DeviceStatus, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
+import {
+  encryptDeviceSecret,
+  hashDeviceSecret,
+} from '../crypto/device-secret.crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssignBikeDto } from './dto/assign-bike.dto';
 import { CreateDeviceDto } from './dto/create-device.dto';
@@ -49,8 +54,16 @@ export interface PublicDevice {
 @Injectable()
 export class DevicesService {
   private readonly logger = new Logger(DevicesService.name);
+  private readonly deviceSecretMasterKey: string;
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
+      'DEVICE_SECRET_MASTER_KEY',
+    );
+  }
 
   // Returns all devices in the caller fleet without exposing secret hashes.
   async listDevicesForUser(user: AuthenticatedUser): Promise<PublicDevice[]> {
@@ -86,7 +99,11 @@ export class DevicesService {
     user: AuthenticatedUser,
   ): Promise<{ device: PublicDevice; deviceSecret: string }> {
     const deviceSecret = this.generateSecret();
-    const secretHash = this.hashSecret(deviceSecret);
+    const secretHash = hashDeviceSecret(deviceSecret);
+    const secretEncrypted = encryptDeviceSecret(
+      deviceSecret,
+      this.deviceSecretMasterKey,
+    );
 
     try {
       const device = await this.prismaService.device.create({
@@ -96,6 +113,7 @@ export class DevicesService {
           imei: dto.imei,
           fwVersion: dto.fwVersion,
           secretHash,
+          secretEncrypted,
           status: 'ACTIVE',
         },
         include: {
@@ -194,12 +212,17 @@ export class DevicesService {
     this.assertFleetAccess(device.fleetId, user);
 
     const deviceSecret = this.generateSecret();
-    const secretHash = this.hashSecret(deviceSecret);
+    const secretHash = hashDeviceSecret(deviceSecret);
+    const secretEncrypted = encryptDeviceSecret(
+      deviceSecret,
+      this.deviceSecretMasterKey,
+    );
 
     await this.prismaService.device.update({
       where: { id: device.id },
       data: {
         secretHash,
+        secretEncrypted,
       },
     });
 
@@ -262,11 +285,6 @@ export class DevicesService {
   // Generates a one-time secret string returned only during provisioning operations.
   private generateSecret(): string {
     return randomBytes(32).toString('base64url');
-  }
-
-  // Hashes plaintext secrets prior to database persistence.
-  private hashSecret(secret: string): string {
-    return createHash('sha256').update(secret).digest('hex');
   }
 
   // Produces a truncated device identifier safe for operational logs.

@@ -42,6 +42,39 @@ export class RedisService implements OnModuleDestroy {
     return response === 'OK';
   }
 
+  // Sets a string value with optional TTL in seconds.
+  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    await this.ensureConnected();
+    if (ttlSeconds && ttlSeconds > 0) {
+      await this.client.set(key, value, 'EX', ttlSeconds);
+      return;
+    }
+
+    await this.client.set(key, value);
+  }
+
+  // Reads a string value by key.
+  async get(key: string): Promise<string | null> {
+    await this.ensureConnected();
+    return this.client.get(key);
+  }
+
+  // Lists keys for a pattern; intended for small fleet-scoped datasets.
+  async keys(pattern: string): Promise<string[]> {
+    await this.ensureConnected();
+    return this.client.keys(pattern);
+  }
+
+  // Fetches multiple values in one Redis roundtrip.
+  async mget(keys: string[]): Promise<Array<string | null>> {
+    await this.ensureConnected();
+    if (keys.length === 0) {
+      return [];
+    }
+
+    return this.client.mget(keys);
+  }
+
   // Closes the Redis connection during app shutdown.
   async onModuleDestroy(): Promise<void> {
     if (this.client.status !== 'end' && this.client.status !== 'wait') {

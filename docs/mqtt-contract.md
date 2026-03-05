@@ -59,6 +59,7 @@ For `v1/devices/{deviceUid}/event`, use:
 ## Signing
 
 Each device has a provisioning secret (`deviceSecret`) returned one-time by the API.
+Server stores it as `secretHash` + `secretEncrypted` (AES-GCM with `DEVICE_SECRET_MASTER_KEY`) for verification.
 
 Compute signature as:
 

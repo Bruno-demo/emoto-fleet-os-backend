@@ -5,6 +5,7 @@ import { BikesModule } from './bikes/bikes.module';
 import { envSchema } from './config/env.schema';
 import { DevicesModule } from './devices/devices.module';
 import { HealthModule } from './health/health.module';
+import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 
@@ -22,6 +23,7 @@ import { RedisModule } from './redis/redis.module';
     PrismaModule,
     RedisModule,
     HealthModule,
+    IngestionModule,
   ],
 })
 export class AppModule {}

@@ -113,6 +113,7 @@ model Device {
   deviceUid  String       @unique
   bikeId     String?      @db.Uuid
   secretHash String
+  secretEncrypted String?
   lastSeenAt DateTime?    @db.Timestamptz(6)
   fwVersion  String?
   status     DeviceStatus @default(ACTIVE)

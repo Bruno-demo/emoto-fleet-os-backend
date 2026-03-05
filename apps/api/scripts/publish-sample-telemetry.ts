@@ -49,7 +49,7 @@ function truncateDeviceUid(deviceUid: string): string {
 // Connects to EMQX, publishes one signed telemetry message, and exits.
 async function main(): Promise<void> {
   const mqttUrl = process.env.MQTT_URL ?? 'mqtt://localhost:1883';
-  const deviceUid = process.env.MQTT_SAMPLE_DEVICE_UID ?? 'DEV-SAMPLE-001';
+  const deviceUid = process.env.MQTT_SAMPLE_DEVICE_UID ?? 'DEV-0001';
   const deviceSecret = process.env.MQTT_SAMPLE_DEVICE_SECRET;
 
   if (!deviceSecret) {
