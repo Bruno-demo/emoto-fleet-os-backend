@@ -1,5 +1,5 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import {
   HealthChecks,
@@ -10,7 +10,7 @@ import {
 @Injectable()
 export class HealthService {
   constructor(
-    private readonly dataSource: DataSource,
+    private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -23,7 +23,7 @@ export class HealthService {
     const errors: HealthErrorResponse['errors'] = {};
 
     try {
-      await this.dataSource.query('SELECT 1');
+      await this.prismaService.$queryRaw`SELECT 1`;
       checks.db = 'up';
     } catch (error: unknown) {
       errors.db = this.getErrorMessage(error);

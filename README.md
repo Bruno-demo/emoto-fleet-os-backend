@@ -22,7 +22,12 @@ cp .env.example .env
 ```bash
 docker compose up -d
 ```
-3. Start API:
+3. Run Prisma migration + seed:
+```bash
+npm run db:migrate
+npm run db:seed
+```
+4. Start API:
 ```bash
 cd apps/api
 npm install
@@ -66,6 +71,11 @@ npm run dev:stack:up
 npm run dev:stack:down
 npm run dev:stack:logs
 npm run dev:api
+npm run db:generate
+npm run db:migrate
+npm run db:deploy
+npm run db:seed
+npm run db:studio
 npm run lint
 npm run format
 ```

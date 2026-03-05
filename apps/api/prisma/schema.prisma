@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FleetType {
+  COOP
+  DELIVERY
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  DISPATCHER
+  TECH
+  INSURER
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum BikeStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+  RETIRED
+}
+
+enum EventSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ScoreScope {
+  RIDER
+  BIKE
+  FLEET
+}
+
+model Fleet {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String
+  type           FleetType
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  users          User[]
+  bikes          Bike[]
+  events         Event[]
+  trips          Trip[]
+  scoreSummaries ScoreSummary[]
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  fleetId      String     @db.Uuid
+  role         UserRole
+  phone        String?
+  email        String?
+  passwordHash String
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
+  fleet        Fleet      @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  trips        Trip[]     @relation("TripRider")
+
+  @@index([fleetId])
+  @@index([fleetId, role])
+  @@unique([fleetId, email])
+  @@unique([fleetId, phone])
+}
+
+model Bike {
+  id        String     @id @default(uuid()) @db.Uuid
+  fleetId   String     @db.Uuid
+  label     String
+  plate     String?
+  serial    String?
+  model     String?
+  status    BikeStatus @default(ACTIVE)
+  createdAt DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(6)
+  fleet     Fleet      @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  devices   Device[]
+  events    Event[]
+  trips     Trip[]
+
+  @@index([fleetId])
+  @@index([fleetId, status])
+  @@unique([fleetId, label])
+  @@unique([fleetId, plate])
+  @@unique([serial])
+}
+
+model Device {
+  id         String       @id @default(uuid()) @db.Uuid
+  imei       String?
+  deviceUid  String       @unique
+  bikeId     String?      @db.Uuid
+  secretHash String
+  lastSeenAt DateTime?    @db.Timestamptz(6)
+  fwVersion  String?
+  status     DeviceStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime     @updatedAt @db.Timestamptz(6)
+  bike       Bike?        @relation(fields: [bikeId], references: [id], onDelete: SetNull)
+  telemetry  TelemetryPoint[]
+  events     Event[]
+
+  @@index([bikeId])
+  @@unique([imei])
+}
+
+model TelemetryPoint {
+  id        BigInt    @id @default(autoincrement())
+  deviceId  String    @db.Uuid
+  ts        DateTime  @db.Timestamptz(6)
+  lat       Decimal   @db.Decimal(9, 6)
+  lng       Decimal   @db.Decimal(9, 6)
+  speedKph  Decimal   @db.Decimal(6, 2)
+  heading   Decimal?  @db.Decimal(6, 2)
+  accelX    Decimal?  @db.Decimal(8, 4)
+  accelY    Decimal?  @db.Decimal(8, 4)
+  accelZ    Decimal?  @db.Decimal(8, 4)
+  batteryV  Decimal?  @db.Decimal(8, 3)
+  ignition  Boolean?
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  device    Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([ts])
+  @@index([deviceId, ts])
+}
+
+model Event {
+  id        BigInt        @id @default(autoincrement())
+  fleetId   String        @db.Uuid
+  bikeId    String?       @db.Uuid
+  deviceId  String        @db.Uuid
+  ts        DateTime      @db.Timestamptz(6)
+  type      String
+  severity  EventSeverity
+  metaJson  Json
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+  fleet     Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  bike      Bike?         @relation(fields: [bikeId], references: [id], onDelete: SetNull)
+  device    Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([fleetId])
+  @@index([deviceId])
+  @@index([ts])
+  @@index([fleetId, ts])
+  @@index([deviceId, ts])
+}
+
+model Trip {
+  id          String    @id @default(uuid()) @db.Uuid
+  fleetId     String    @db.Uuid
+  bikeId      String    @db.Uuid
+  riderId     String?   @db.Uuid
+  startTs     DateTime  @db.Timestamptz(6)
+  endTs       DateTime? @db.Timestamptz(6)
+  distanceKm  Decimal   @db.Decimal(10, 3)
+  durationSec Int
+  score       Decimal   @db.Decimal(5, 2)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  fleet       Fleet     @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  bike        Bike      @relation(fields: [bikeId], references: [id], onDelete: Cascade)
+  rider       User?     @relation("TripRider", fields: [riderId], references: [id], onDelete: SetNull)
+
+  @@index([fleetId])
+  @@index([bikeId])
+  @@index([startTs])
+  @@index([fleetId, startTs])
+  @@index([bikeId, startTs])
+}
+
+model ScoreSummary {
+  id            String     @id @default(uuid()) @db.Uuid
+  fleetId       String     @db.Uuid
+  scope         ScoreScope
+  refId         String?    @db.Uuid
+  periodStart   DateTime   @db.Timestamptz(6)
+  periodEnd     DateTime   @db.Timestamptz(6)
+  score         Decimal    @db.Decimal(5, 2)
+  breakdownJson Json
+  createdAt     DateTime   @default(now()) @db.Timestamptz(6)
+  fleet         Fleet      @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
+  @@index([fleetId])
+  @@index([scope, refId])
+  @@index([periodStart, periodEnd])
+  @@index([fleetId, scope, periodStart, periodEnd])
+}

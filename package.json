@@ -7,6 +7,11 @@
     "dev:stack:down": "docker compose down",
     "dev:stack:logs": "docker compose logs -f",
     "dev:api": "npm --prefix apps/api run start:dev",
+    "db:generate": "npm --prefix apps/api run db:generate",
+    "db:migrate": "npm --prefix apps/api run db:migrate",
+    "db:deploy": "npm --prefix apps/api run db:deploy",
+    "db:seed": "npm --prefix apps/api run db:seed",
+    "db:studio": "npm --prefix apps/api run db:studio",
     "lint": "npm --prefix apps/api run lint",
     "format": "npm --prefix apps/api run format"
   }

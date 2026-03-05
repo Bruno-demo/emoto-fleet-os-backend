@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { envSchema } from './config/env.schema';
 import { HealthModule } from './health/health.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 
 @Module({
@@ -13,16 +13,7 @@ import { RedisModule } from './redis/redis.module';
       // Validates required environment variables before booting the app.
       validate: (env) => envSchema.parse(env),
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      // Configures the database client from validated runtime environment values.
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        url: configService.getOrThrow<string>('DATABASE_URL'),
-        autoLoadEntities: true,
-        synchronize: false,
-      }),
-    }),
+    PrismaModule,
     RedisModule,
     HealthModule,
   ],
