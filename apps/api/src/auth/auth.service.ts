@@ -126,20 +126,23 @@ export class AuthService {
 
   // Returns the current authenticated user profile.
   async me(userId: string): Promise<AuthenticatedUser> {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        fleetId: true,
-        role: true,
-        email: true,
-        phone: true,
-        status: true,
-      },
-    });
+    return this.loadUserOrThrow(userId);
+  }
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+  // Verifies an access token and returns the active user identity.
+  async authenticateAccessToken(
+    accessToken: string,
+  ): Promise<AuthenticatedUser> {
+    let payload: JwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(accessToken);
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    const user = await this.loadUserOrThrow(payload.sub);
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('User is not active');
     }
 
     return user;
@@ -190,5 +193,26 @@ export class AuthService {
     if (!email && !phone) {
       throw new BadRequestException('Provide either email or phone');
     }
+  }
+
+  // Loads a user identity projection or throws unauthorized when missing.
+  private async loadUserOrThrow(userId: string): Promise<AuthenticatedUser> {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fleetId: true,
+        role: true,
+        email: true,
+        phone: true,
+        status: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
   }
 }

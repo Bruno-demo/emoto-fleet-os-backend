@@ -5,6 +5,7 @@ import {
   createPaginatedResponse,
   getPaginationParams,
 } from '../common/pagination';
+import { EventsGateway } from '../events/events.gateway';
 import { RedisService } from '../redis/redis.service';
 import { LiveBikeState } from './ingestion.types';
 
@@ -14,7 +15,10 @@ const LIVE_STATE_TTL_SECONDS = 60 * 60;
 export class LiveStateService {
   private readonly logger = new Logger(LiveStateService.name);
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   // Stores the latest bike state in Redis with fleet-scoped key and expiration.
   async setLatestBikeState(state: LiveBikeState): Promise<void> {
@@ -24,6 +28,7 @@ export class LiveStateService {
       JSON.stringify(state),
       LIVE_STATE_TTL_SECONDS,
     );
+    this.eventsGateway.emitBikeState(state);
   }
 
   // Loads all latest bike states for a fleet from Redis cache.

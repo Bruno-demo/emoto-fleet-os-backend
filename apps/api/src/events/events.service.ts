@@ -88,7 +88,7 @@ export class EventsService {
     });
 
     const fleetEvent = this.toFleetEvent(event);
-    this.eventsGateway.broadcastFleetEvent(input.fleetId, fleetEvent);
+    this.eventsGateway.emitNewEvent(input.fleetId, fleetEvent);
     return fleetEvent;
   }
 

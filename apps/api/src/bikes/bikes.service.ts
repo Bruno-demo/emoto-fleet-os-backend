@@ -13,6 +13,7 @@ import {
   createPaginatedResponse,
   getPaginationParams,
 } from '../common/pagination';
+import { EventsGateway } from '../events/events.gateway';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBikeDto } from './dto/create-bike.dto';
 import { LockActionDto } from './dto/lock-action.dto';
@@ -23,6 +24,7 @@ export class BikesService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly auditService: AuditService,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   // Returns all bikes visible to the caller fleet.
@@ -151,6 +153,15 @@ export class BikesService {
         reason: dto.reason ?? null,
         implemented: false,
       },
+    });
+
+    this.eventsGateway.emitCommandStatus(bike.fleetId, {
+      commandId: `lock:${bike.id}:${Date.now()}`,
+      status: 'NOT_IMPLEMENTED',
+      ts: new Date().toISOString(),
+      bikeId: bike.id,
+      action: dto.action,
+      message: 'Bike lock integration is not implemented yet',
     });
 
     return {

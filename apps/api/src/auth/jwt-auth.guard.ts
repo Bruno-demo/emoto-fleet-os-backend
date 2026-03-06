@@ -4,18 +4,16 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../prisma/prisma.service';
+import { AuthService } from './auth.service';
 import { IS_PUBLIC_KEY } from './public.decorator';
-import { AuthenticatedRequest, JwtPayload } from './auth.types';
+import { AuthenticatedRequest } from './auth.types';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly jwtService: JwtService,
-    private readonly prismaService: PrismaService,
+    private readonly authService: AuthService,
   ) {}
 
   // Resolves and validates bearer tokens and attaches the authenticated user to the request.
@@ -39,30 +37,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Missing bearer token');
     }
 
-    let payload: JwtPayload;
-    try {
-      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
-    } catch {
-      throw new UnauthorizedException('Invalid token');
-    }
-
-    const user = await this.prismaService.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        fleetId: true,
-        role: true,
-        email: true,
-        phone: true,
-        status: true,
-      },
-    });
-
-    if (!user || user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('User is not active');
-    }
-
-    request.user = user;
+    request.user = await this.authService.authenticateAccessToken(token);
     return true;
   }
 }

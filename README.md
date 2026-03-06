@@ -88,8 +88,9 @@ Rules engine emits:
 
 WebSocket stream:
 - Namespace: `/fleet-events`
-- Event: `event.created`
-- Subscribe message: `subscribeFleet` with `{ "fleetId": "..." }`
+- Client event: `subscribe_live`
+- Server events: `bike_state`, `new_event`, `command_status`
+- Full contract: `docs/websocket.md`
 
 ## Auth Endpoints
 - `POST /auth/login` with `email+password` or `phone+password`
