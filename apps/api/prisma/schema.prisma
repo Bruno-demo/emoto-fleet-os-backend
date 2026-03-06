@@ -82,6 +82,16 @@ enum NotificationStatus {
   FAILED
 }
 
+enum PartnerStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PartnerClientStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum EventSeverity {
   LOW
   MEDIUM
@@ -109,13 +119,17 @@ enum AuditActionType {
   LOCK_ACTION_REQUESTED
   DEVICE_COMMAND_REQUESTED
   DEVICE_COMMAND_STATUS_CHANGED
+  PARTNER_TOKEN_ISSUED
+  PARTNER_API_ACCESS
+  PARTNER_WEBHOOK_REGISTERED
+  PARTNER_WEBHOOK_DELIVERY
 }
 
 model Fleet {
-  id                String             @id @default(uuid()) @db.Uuid
+  id                String               @id @default(uuid()) @db.Uuid
   name              String
   type              FleetType
-  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  createdAt         DateTime             @default(now()) @db.Timestamptz(6)
   users             User[]
   bikes             Bike[]
   devices           Device[]
@@ -128,6 +142,7 @@ model Fleet {
   incidents         Incident[]
   emergencyContacts EmergencyContact[]
   notifications     Notification[]
+  partnerAccesses   PartnerFleetAccess[]
 }
 
 model User {
@@ -389,19 +404,83 @@ model EmergencyContact {
 }
 
 model Notification {
-  id           String              @id @default(uuid()) @db.Uuid
-  fleetId      String              @db.Uuid
-  type         NotificationType
-  channel      NotificationChannel
-  to           String
-  payloadJson  Json
-  status       NotificationStatus  @default(PENDING)
-  errorMessage String?
-  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
-  sentAt       DateTime?           @db.Timestamptz(6)
-  fleet        Fleet               @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  id               String              @id @default(uuid()) @db.Uuid
+  fleetId          String              @db.Uuid
+  type             NotificationType
+  channel          NotificationChannel
+  to               String
+  payloadJson      Json
+  status           NotificationStatus  @default(PENDING)
+  attemptCount     Int                 @default(0)
+  partnerWebhookId String?             @db.Uuid
+  errorMessage     String?
+  createdAt        DateTime            @default(now()) @db.Timestamptz(6)
+  sentAt           DateTime?           @db.Timestamptz(6)
+  fleet            Fleet               @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  partnerWebhook   PartnerWebhook?     @relation(fields: [partnerWebhookId], references: [id], onDelete: SetNull)
 
   @@index([fleetId])
   @@index([status])
   @@index([createdAt])
+  @@index([partnerWebhookId])
+}
+
+model Partner {
+  id            String               @id @default(uuid()) @db.Uuid
+  name          String
+  status        PartnerStatus        @default(ACTIVE)
+  createdAt     DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime             @updatedAt @db.Timestamptz(6)
+  clients       PartnerClient[]
+  fleetAccesses PartnerFleetAccess[]
+  webhooks      PartnerWebhook[]
+
+  @@index([status])
+}
+
+model PartnerClient {
+  id               String              @id @default(uuid()) @db.Uuid
+  partnerId        String              @db.Uuid
+  clientId         String              @unique
+  clientSecretHash String
+  scopes           String
+  status           PartnerClientStatus @default(ACTIVE)
+  createdAt        DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime            @updatedAt @db.Timestamptz(6)
+  partner          Partner             @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([partnerId, status])
+}
+
+model PartnerFleetAccess {
+  id        String   @id @default(uuid()) @db.Uuid
+  partnerId String   @db.Uuid
+  fleetId   String   @db.Uuid
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  fleet     Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, fleetId])
+  @@index([partnerId, active])
+  @@index([fleetId, active])
+}
+
+model PartnerWebhook {
+  id              String         @id @default(uuid()) @db.Uuid
+  partnerId       String         @db.Uuid
+  url             String
+  secretHash      String
+  secretEncrypted String?
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
+  partner         Partner        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  notifications   Notification[]
+
+  @@index([partnerId])
+  @@index([partnerId, active])
 }

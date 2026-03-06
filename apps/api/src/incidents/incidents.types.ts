@@ -42,6 +42,8 @@ export interface FleetNotification {
   to: string;
   payloadJson: Prisma.JsonValue;
   status: NotificationStatus;
+  attemptCount: number;
+  partnerWebhookId: string | null;
   errorMessage: string | null;
   createdAt: Date;
   sentAt: Date | null;
@@ -54,6 +56,8 @@ export interface NotificationDispatchInput {
   channel: NotificationChannel;
   to: string;
   payloadJson: Prisma.JsonValue;
+  partnerWebhookId: string | null;
+  attemptCount: number;
 }
 
 export interface IncidentBroadcastPayload {

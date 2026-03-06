@@ -48,10 +48,20 @@ async function seed() {
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
   const seedDeviceUid = process.env.SEED_DEVICE_UID ?? 'DEV-0001';
   const seedDeviceSecret = process.env.SEED_DEVICE_SECRET ?? 'device-secret-0001';
+  const seedPartnerClientId =
+    process.env.SEED_PARTNER_CLIENT_ID ?? 'partner-demo-client';
+  const seedPartnerClientSecret =
+    process.env.SEED_PARTNER_CLIENT_SECRET ?? 'PartnerSecret123!';
+  const seedPartnerScopes =
+    process.env.SEED_PARTNER_SCOPES ?? 'insurer:read webhooks:write';
   const deviceSecretMasterKey =
     process.env.DEVICE_SECRET_MASTER_KEY ??
     'change_me_device_secret_master_key_32chars';
+  const partnerWebhookSecretMasterKey =
+    process.env.PARTNER_WEBHOOK_SECRET_MASTER_KEY ??
+    'change_me_partner_webhook_secret_master_key_32chars';
   const adminPasswordHash = await hashPassword(adminPassword);
+  const partnerClientSecretHash = await hashPassword(seedPartnerClientSecret);
 
   const fleet = await prisma.fleet.upsert({
     where: { id: '00000000-0000-0000-0000-000000000001' },
@@ -126,6 +136,81 @@ async function seed() {
     },
   });
 
+  const partner = await prisma.partner.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000201' },
+    update: {
+      name: 'Demo Insurer Partner',
+      status: 'ACTIVE',
+    },
+    create: {
+      id: '00000000-0000-0000-0000-000000000201',
+      name: 'Demo Insurer Partner',
+      status: 'ACTIVE',
+    },
+  });
+
+  const partnerClient = await prisma.partnerClient.upsert({
+    where: {
+      clientId: seedPartnerClientId,
+    },
+    update: {
+      clientSecretHash: partnerClientSecretHash,
+      scopes: seedPartnerScopes,
+      status: 'ACTIVE',
+    },
+    create: {
+      partnerId: partner.id,
+      clientId: seedPartnerClientId,
+      clientSecretHash: partnerClientSecretHash,
+      scopes: seedPartnerScopes,
+      status: 'ACTIVE',
+    },
+  });
+
+  const partnerWebhookSecret = `partner-webhook-${seedPartnerClientId}`;
+  const partnerWebhook = await prisma.partnerWebhook.upsert({
+    where: {
+      id: '00000000-0000-0000-0000-000000000221',
+    },
+    update: {
+      url: 'https://example-insurer.invalid/emoto/webhook',
+      secretHash: hashSecret(partnerWebhookSecret),
+      secretEncrypted: encryptSecret(
+        partnerWebhookSecret,
+        partnerWebhookSecretMasterKey,
+      ),
+      active: false,
+    },
+    create: {
+      id: '00000000-0000-0000-0000-000000000221',
+      partnerId: partner.id,
+      url: 'https://example-insurer.invalid/emoto/webhook',
+      secretHash: hashSecret(partnerWebhookSecret),
+      secretEncrypted: encryptSecret(
+        partnerWebhookSecret,
+        partnerWebhookSecretMasterKey,
+      ),
+      active: false,
+    },
+  });
+
+  await prisma.partnerFleetAccess.upsert({
+    where: {
+      partnerId_fleetId: {
+        partnerId: partner.id,
+        fleetId: fleet.id,
+      },
+    },
+    update: {
+      active: true,
+    },
+    create: {
+      partnerId: partner.id,
+      fleetId: fleet.id,
+      active: true,
+    },
+  });
+
   console.log(
     JSON.stringify(
       {
@@ -133,6 +218,10 @@ async function seed() {
         adminUserId: adminUser.id,
         bikeId: bike.id,
         deviceId: device.id,
+        partnerId: partner.id,
+        partnerClientId: partnerClient.clientId,
+        partnerClientSecret: seedPartnerClientSecret,
+        partnerWebhookId: partnerWebhook.id,
       },
       null,
       2,

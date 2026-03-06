@@ -12,6 +12,7 @@
     "db:deploy": "npm --prefix apps/api run db:deploy",
     "db:seed": "npm --prefix apps/api run db:seed",
     "db:studio": "npm --prefix apps/api run db:studio",
+    "partner:create-client": "npm --prefix apps/api run partner:create-client",
     "mqtt:publish:sample": "npm --prefix apps/api run mqtt:publish:sample",
     "mqtt:publish:sample:ack": "npm --prefix apps/api run mqtt:publish:sample:ack",
     "lint": "npm --prefix apps/api run lint",

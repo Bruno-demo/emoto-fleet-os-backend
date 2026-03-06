@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
 import { ConsoleNotificationProvider } from './console-notification.provider';
@@ -9,7 +10,7 @@ import { NOTIFICATION_PROVIDER } from './notification-provider';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AuditModule],
   controllers: [IncidentsController, ContactsController],
   providers: [
     IncidentsService,
@@ -21,6 +22,6 @@ import { PrismaModule } from '../prisma/prisma.module';
       useExisting: ConsoleNotificationProvider,
     },
   ],
-  exports: [IncidentsService],
+  exports: [IncidentsService, NotificationOutboxService],
 })
 export class IncidentsModule {}

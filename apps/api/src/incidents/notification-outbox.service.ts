@@ -15,6 +15,7 @@ import {
   QueueEvents,
   Worker,
 } from 'bullmq';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { NotificationDispatchInput } from './incidents.types';
 import { NOTIFICATION_PROVIDER } from './notification-provider';
@@ -49,6 +50,7 @@ export class NotificationOutboxService
   constructor(
     private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
+    private readonly auditService: AuditService,
     @Inject(NOTIFICATION_PROVIDER)
     private readonly notificationProvider: NotificationProvider,
   ) {
@@ -152,6 +154,16 @@ export class NotificationOutboxService
       return;
     }
 
+    await this.prismaService.notification.update({
+      where: { id: notification.id },
+      data: {
+        attemptCount: {
+          increment: 1,
+        },
+        errorMessage: null,
+      },
+    });
+
     const dispatchInput: NotificationDispatchInput = {
       id: notification.id,
       fleetId: notification.fleetId,
@@ -159,6 +171,8 @@ export class NotificationOutboxService
       channel: notification.channel,
       to: notification.to,
       payloadJson: notification.payloadJson,
+      partnerWebhookId: notification.partnerWebhookId,
+      attemptCount: notification.attemptCount + 1,
     };
 
     await this.notificationProvider.send(dispatchInput);
@@ -171,6 +185,19 @@ export class NotificationOutboxService
         errorMessage: null,
       },
     });
+
+    if (notification.channel === 'WEBHOOK') {
+      await this.auditService.createAuditLog({
+        fleetId: notification.fleetId,
+        actionType: 'PARTNER_WEBHOOK_DELIVERY',
+        targetType: 'Notification',
+        targetId: notification.id,
+        metaJson: {
+          status: 'SENT',
+          attemptCount: notification.attemptCount + 1,
+        },
+      });
+    }
   }
 
   // Marks notifications as FAILED when their final retry attempt is exhausted.
@@ -179,12 +206,25 @@ export class NotificationOutboxService
     reason: string,
     attemptsMade: number,
   ): Promise<void> {
-    if (!jobId || attemptsMade < NOTIFICATION_ATTEMPTS) {
+    if (!jobId) {
       return;
     }
 
     const notificationId = this.parseNotificationIdFromJob(jobId);
     if (!notificationId) {
+      return;
+    }
+
+    if (attemptsMade < NOTIFICATION_ATTEMPTS) {
+      await this.prismaService.notification.updateMany({
+        where: {
+          id: notificationId,
+          status: NotificationStatus.PENDING,
+        },
+        data: {
+          errorMessage: `Retry ${attemptsMade}/${NOTIFICATION_ATTEMPTS}: ${reason.slice(0, 900)}`,
+        },
+      });
       return;
     }
 
@@ -198,6 +238,28 @@ export class NotificationOutboxService
         errorMessage: reason.slice(0, 1000),
       },
     });
+
+    const failedNotification = await this.prismaService.notification.findUnique(
+      {
+        where: { id: notificationId },
+        select: {
+          fleetId: true,
+          channel: true,
+        },
+      },
+    );
+    if (failedNotification?.channel === 'WEBHOOK') {
+      await this.auditService.createAuditLog({
+        fleetId: failedNotification.fleetId,
+        actionType: 'PARTNER_WEBHOOK_DELIVERY',
+        targetType: 'Notification',
+        targetId: notificationId,
+        metaJson: {
+          status: 'FAILED',
+          attemptsMade,
+        },
+      });
+    }
   }
 
   // Creates default retry/backoff behavior used for notification outbox jobs.

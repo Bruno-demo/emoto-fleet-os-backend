@@ -12,6 +12,7 @@ import {
   IncidentBroadcastPayload,
 } from '../incidents/incidents.types';
 import { IncidentsService } from '../incidents/incidents.service';
+import { PartnerService } from '../partner/partner.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListEventsDto } from './dto/list-events.dto';
 import { EventsGateway } from './events.gateway';
@@ -32,6 +33,7 @@ export class EventsService {
     private readonly prismaService: PrismaService,
     private readonly eventsGateway: EventsGateway,
     private readonly incidentsService: IncidentsService,
+    private readonly partnerService: PartnerService,
     private readonly configService: ConfigService,
   ) {
     this.incidentCrashMinSeverity = this.configService.get<EventSeverity>(
@@ -114,6 +116,10 @@ export class EventsService {
 
     const incident = await this.tryCreateIncidentFromCrashEvent(fleetEvent);
     if (incident) {
+      await this.partnerService.enqueueCrashIncidentWebhooks(
+        incident,
+        fleetEvent,
+      );
       this.eventsGateway.emitNewIncident(
         input.fleetId,
         this.toIncidentBroadcastPayload(incident),

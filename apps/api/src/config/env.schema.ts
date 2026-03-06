@@ -23,6 +23,12 @@ export const envSchema = z.object({
     .default('HIGH'),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().min(2),
+  PARTNER_JWT_SECRET: z.string().min(16),
+  PARTNER_JWT_EXPIRES_IN: z.string().min(2).default('1h'),
+  PARTNER_WEBHOOK_SECRET_MASTER_KEY: z
+    .string()
+    .min(32)
+    .default('change_me_partner_webhook_secret_master_key_32chars'),
   AUTH_REGISTER_ENABLED: booleanString,
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10),
   TRIP_START_SPEED_KPH: z.coerce.number().positive().default(5),

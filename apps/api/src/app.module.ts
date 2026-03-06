@@ -11,6 +11,7 @@ import { DevicesModule } from './devices/devices.module';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
+import { PartnerModule } from './partner/partner.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { ReportsModule } from './reports/reports.module';
@@ -45,6 +46,7 @@ import { ZonesModule } from './zones/zones.module';
     RedisModule,
     HealthModule,
     IngestionModule,
+    PartnerModule,
   ],
   providers: [
     {

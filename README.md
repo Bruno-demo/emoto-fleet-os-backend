@@ -7,6 +7,7 @@ Backend scaffold for e-moto telematics using NestJS + TypeScript.
 - PostgreSQL (TimescaleDB image) via Docker Compose
 - Redis via Docker Compose
 - EMQX MQTT broker via Docker Compose
+- Insurer Partner API with OAuth2 client-credentials style auth
 
 ## Prerequisites
 - Node.js 22+
@@ -72,6 +73,12 @@ API should run at `http://localhost:3000`.
 - `GET /incidents?from&to&status`, `GET /incidents/:id`
 - `POST /incidents/:id/acknowledge`, `POST /incidents/:id/resolve`
 - `CRUD /contacts` for emergency notification recipients
+- `POST /partner/oauth/token` for partner access token issuance
+- `GET /partner/fleets/:fleetId/weekly-summary`
+- `GET /partner/bikes/:bikeId/trips`
+- `GET /partner/incidents/:incidentId`
+- `GET /partner/incidents/:incidentId/evidence-pack`
+- `POST /partner/webhooks`
 
 Pagination:
 - List endpoints support `?page` and `?pageSize` (max 100).
@@ -123,6 +130,15 @@ WebSocket stream:
 
 ## Incidents
 - Lifecycle and notification outbox details: `docs/incidents.md`
+- CRASH incidents also fan out signed partner webhooks via notification outbox.
+
+## Partner API
+- Partner auth and endpoint contract: `docs/partner-api.md`
+- Create or rotate partner clients locally:
+```bash
+cd apps/api
+npm run partner:create-client
+```
 
 ## Docker Ports
 - PostgreSQL: `5432`
@@ -145,6 +161,7 @@ npm run db:seed
 npm run db:studio
 npm run mqtt:publish:sample
 npm run mqtt:publish:sample:ack
+npm run partner:create-client
 npm run lint
 npm run format
 ```
@@ -183,11 +200,17 @@ COMMAND_TTL_SECONDS=45
 INCIDENT_CRASH_MIN_SEVERITY=HIGH
 JWT_SECRET=change_me_change_me
 JWT_EXPIRES_IN=1h
+PARTNER_JWT_SECRET=change_me_partner_jwt_secret
+PARTNER_JWT_EXPIRES_IN=1h
+PARTNER_WEBHOOK_SECRET_MASTER_KEY=change_me_partner_webhook_secret_master_key_32chars
 AUTH_REGISTER_ENABLED=false
 BCRYPT_SALT_ROUNDS=10
 SEED_ADMIN_PASSWORD=ChangeMe123!
 SEED_DEVICE_UID=DEV-0001
 SEED_DEVICE_SECRET=device-secret-0001
+SEED_PARTNER_CLIENT_ID=partner-demo-client
+SEED_PARTNER_CLIENT_SECRET=PartnerSecret123!
+SEED_PARTNER_SCOPES=insurer:read webhooks:write
 
 TRIP_START_SPEED_KPH=5
 TRIP_END_SPEED_KPH=5
