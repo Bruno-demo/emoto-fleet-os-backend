@@ -1,0 +1,525 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  AuditActionType,
+  Bike,
+  Device,
+  DeviceCommand,
+  DeviceCommandStatus,
+  DeviceCommandType,
+  Prisma,
+} from '@prisma/client';
+import { timingSafeEqual, randomUUID } from 'crypto';
+import mqtt, { IClientOptions, MqttClient } from 'mqtt';
+import { AuthenticatedUser } from '../auth/auth.types';
+import { AuditService } from '../audit/audit.service';
+import {
+  decryptDeviceSecret,
+  hashDeviceSecret,
+} from '../crypto/device-secret.crypto';
+import {
+  CommandAckPayload,
+  CommandDownlinkPayloadWithoutSig,
+  computePayloadSignature,
+} from '../mqtt/mqtt-validation.util';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
+import { EventsGateway } from '../events/events.gateway';
+import { FleetDeviceCommand } from './commands.types';
+
+const LIVE_STATE_MAX_AGE_MS = 30_000;
+const LOCK_MIN_STATIONARY_MS = 15_000;
+const MQTT_PUBLISH_TIMEOUT_MS = 10_000;
+
+interface LiveStateSnapshot {
+  ts: string;
+  speedKph: number;
+}
+
+@Injectable()
+export class CommandsService {
+  private readonly logger = new Logger(CommandsService.name);
+  private readonly mqttUrl: string;
+  private readonly deviceSecretMasterKey: string;
+  private readonly commandTtlSeconds: number;
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly redisService: RedisService,
+    private readonly auditService: AuditService,
+    private readonly eventsGateway: EventsGateway,
+    private readonly configService: ConfigService,
+  ) {
+    this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
+    this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
+      'DEVICE_SECRET_MASTER_KEY',
+    );
+    this.commandTtlSeconds = this.configService.get<number>(
+      'COMMAND_TTL_SECONDS',
+      45,
+    );
+  }
+
+  // Creates and dispatches a LOCK command for a fleet bike.
+  async requestLockForBike(
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<FleetDeviceCommand> {
+    return this.requestCommandForBike('LOCK', bikeId, user);
+  }
+
+  // Creates and dispatches an UNLOCK command for a fleet bike.
+  async requestUnlockForBike(
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<FleetDeviceCommand> {
+    return this.requestCommandForBike('UNLOCK', bikeId, user);
+  }
+
+  // Applies command acknowledgement updates from MQTT uplink ack messages.
+  async handleCommandAckFromDevice(
+    device: Pick<Device, 'id' | 'fleetId' | 'deviceUid'>,
+    payload: CommandAckPayload,
+  ): Promise<void> {
+    const command = await this.prismaService.deviceCommand.findUnique({
+      where: { id: payload.commandId },
+    });
+    if (!command) {
+      this.logger.warn(
+        `Ignoring ack for unknown command ${payload.commandId} from ${this.truncateDeviceUid(device.deviceUid)}`,
+      );
+      return;
+    }
+
+    if (command.deviceId !== device.id || command.fleetId !== device.fleetId) {
+      this.logger.warn(
+        `Ignoring ack for mismatched command ${payload.commandId} from ${this.truncateDeviceUid(device.deviceUid)}`,
+      );
+      return;
+    }
+
+    if (this.isTerminalStatus(command.status)) {
+      return;
+    }
+
+    const ackTimestamp = new Date(payload.ts);
+    if (ackTimestamp.getTime() > command.expiresAt.getTime()) {
+      await this.transitionStatus(command, 'EXPIRED', {
+        ackedAt: ackTimestamp,
+        errorMessage: 'Acknowledgement received after expiry',
+      });
+      return;
+    }
+
+    if (payload.status === 'ACKED') {
+      await this.transitionStatus(command, 'ACKED', {
+        ackedAt: ackTimestamp,
+        errorMessage: null,
+      });
+      return;
+    }
+
+    await this.transitionStatus(command, 'FAILED', {
+      ackedAt: ackTimestamp,
+      errorMessage: payload.errorMessage ?? 'Device reported failure',
+    });
+  }
+
+  // Creates pending command row, publishes MQTT downlink, and updates status.
+  private async requestCommandForBike(
+    type: DeviceCommandType,
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<FleetDeviceCommand> {
+    const bike = await this.loadBikeForFleetOrThrow(bikeId, user);
+    const device = await this.loadActiveBikeDeviceOrThrow(
+      bike.id,
+      user.fleetId,
+    );
+    const latestState = await this.loadLatestStateOrThrow(
+      user.fleetId,
+      bike.id,
+    );
+
+    if (type === 'LOCK') {
+      this.assertSafeToLock(latestState);
+    }
+
+    const command = await this.prismaService.deviceCommand.create({
+      data: {
+        fleetId: user.fleetId,
+        deviceId: device.id,
+        bikeId: bike.id,
+        type,
+        status: 'PENDING',
+        requestedByUserId: user.id,
+        payloadJson: {},
+        nonce: randomUUID(),
+        expiresAt: new Date(Date.now() + this.commandTtlSeconds * 1000),
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: command.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.DEVICE_COMMAND_REQUESTED,
+      targetType: 'DEVICE_COMMAND',
+      targetId: command.id,
+      metaJson: {
+        commandType: command.type,
+        status: command.status,
+        bikeId: command.bikeId,
+        deviceId: command.deviceId,
+      },
+    });
+
+    const unsignedPayload = this.buildDownlinkPayload(command);
+    const topic = `v1/devices/${device.deviceUid}/command`;
+
+    try {
+      const deviceSecret = this.decryptAndValidateSecret(device);
+      const sig = computePayloadSignature(deviceSecret, unsignedPayload);
+      const payload = {
+        ...unsignedPayload,
+        sig,
+      };
+
+      await this.publishMqtt(topic, payload);
+
+      const sentCommand = await this.transitionStatus(
+        command,
+        'SENT',
+        {
+          sentAt: new Date(),
+          errorMessage: null,
+        },
+        user.id,
+      );
+      return this.toFleetDeviceCommand(sentCommand);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const failedCommand = await this.transitionStatus(
+        command,
+        'FAILED',
+        {
+          errorMessage: message,
+        },
+        user.id,
+      );
+      return this.toFleetDeviceCommand(failedCommand);
+    }
+  }
+
+  // Updates command status and records audit + websocket notifications.
+  private async transitionStatus(
+    command: DeviceCommand,
+    nextStatus: DeviceCommandStatus,
+    update: {
+      sentAt?: Date | null;
+      ackedAt?: Date | null;
+      errorMessage?: string | null;
+    },
+    actorUserId?: string,
+  ): Promise<DeviceCommand> {
+    const updatedCommand = await this.prismaService.deviceCommand.update({
+      where: { id: command.id },
+      data: {
+        status: nextStatus,
+        sentAt: update.sentAt,
+        ackedAt: update.ackedAt,
+        errorMessage: update.errorMessage,
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: updatedCommand.fleetId,
+      actorUserId,
+      actionType: AuditActionType.DEVICE_COMMAND_STATUS_CHANGED,
+      targetType: 'DEVICE_COMMAND',
+      targetId: updatedCommand.id,
+      metaJson: {
+        previousStatus: command.status,
+        status: updatedCommand.status,
+        errorMessage: updatedCommand.errorMessage,
+      } as Prisma.InputJsonValue,
+    });
+
+    this.eventsGateway.emitCommandStatus(updatedCommand.fleetId, {
+      commandId: updatedCommand.id,
+      status: updatedCommand.status,
+      ts: new Date().toISOString(),
+      bikeId: updatedCommand.bikeId ?? undefined,
+      deviceId: updatedCommand.deviceId,
+      action: updatedCommand.type,
+      message: updatedCommand.errorMessage ?? undefined,
+    });
+
+    return updatedCommand;
+  }
+
+  // Loads and validates latest live state used for lock safety checks.
+  private async loadLatestStateOrThrow(
+    fleetId: string,
+    bikeId: string,
+  ): Promise<LiveStateSnapshot> {
+    const rawState = await this.redisService.get(
+      this.liveStateKey(fleetId, bikeId),
+    );
+    if (!rawState) {
+      throw new BadRequestException('No recent live state (<30 seconds)');
+    }
+
+    let parsedState: { ts?: unknown; speedKph?: unknown };
+    try {
+      parsedState = JSON.parse(rawState) as {
+        ts?: unknown;
+        speedKph?: unknown;
+      };
+    } catch {
+      throw new BadRequestException('Malformed live state payload');
+    }
+
+    if (
+      typeof parsedState.ts !== 'string' ||
+      typeof parsedState.speedKph !== 'number' ||
+      Number.isNaN(Date.parse(parsedState.ts))
+    ) {
+      throw new BadRequestException('Malformed live state payload');
+    }
+
+    const ageMs = Date.now() - Date.parse(parsedState.ts);
+    if (ageMs > LIVE_STATE_MAX_AGE_MS) {
+      throw new BadRequestException('No recent live state (<30 seconds)');
+    }
+
+    return {
+      ts: parsedState.ts,
+      speedKph: parsedState.speedKph,
+    };
+  }
+
+  // Enforces lock safety constraints on speed and stationary duration.
+  private assertSafeToLock(state: LiveStateSnapshot): void {
+    if (Math.abs(state.speedKph) > 0.01) {
+      throw new BadRequestException('Cannot lock while bike is moving');
+    }
+
+    const stationaryMs = Date.now() - Date.parse(state.ts);
+    if (stationaryMs < LOCK_MIN_STATIONARY_MS) {
+      throw new BadRequestException(
+        'Bike must be speed 0 for at least 15 seconds before lock',
+      );
+    }
+  }
+
+  // Loads a bike and enforces fleet ownership access controls.
+  private async loadBikeForFleetOrThrow(
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<Bike> {
+    const bike = await this.prismaService.bike.findUnique({
+      where: { id: bikeId },
+    });
+    if (!bike) {
+      throw new NotFoundException('Bike not found');
+    }
+
+    if (bike.fleetId !== user.fleetId) {
+      throw new ForbiddenException('Fleet access violation');
+    }
+
+    return bike;
+  }
+
+  // Selects an active device assigned to a bike for command dispatch.
+  private async loadActiveBikeDeviceOrThrow(
+    bikeId: string,
+    fleetId: string,
+  ): Promise<
+    Pick<
+      Device,
+      | 'id'
+      | 'fleetId'
+      | 'bikeId'
+      | 'deviceUid'
+      | 'secretHash'
+      | 'secretEncrypted'
+    >
+  > {
+    const device = await this.prismaService.device.findFirst({
+      where: {
+        bikeId,
+        fleetId,
+        status: 'ACTIVE',
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      select: {
+        id: true,
+        fleetId: true,
+        bikeId: true,
+        deviceUid: true,
+        secretHash: true,
+        secretEncrypted: true,
+      },
+    });
+
+    if (!device) {
+      throw new BadRequestException(
+        'No active device is assigned to this bike',
+      );
+    }
+
+    return device;
+  }
+
+  // Decrypts persisted secret and verifies integrity via stored hash.
+  private decryptAndValidateSecret(
+    device: Pick<Device, 'secretEncrypted' | 'secretHash'>,
+  ): string {
+    if (!device.secretEncrypted) {
+      throw new Error('Device has no encrypted secret');
+    }
+
+    const decrypted = decryptDeviceSecret(
+      device.secretEncrypted,
+      this.deviceSecretMasterKey,
+    );
+    const computedHash = hashDeviceSecret(decrypted);
+    if (!this.timingSafeHexEqual(computedHash, device.secretHash)) {
+      throw new Error('Device secret hash mismatch');
+    }
+
+    return decrypted;
+  }
+
+  // Publishes signed downlink payload to broker with timeout and qos1.
+  private async publishMqtt(
+    topic: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const options: IClientOptions = {
+      reconnectPeriod: 0,
+      connectTimeout: MQTT_PUBLISH_TIMEOUT_MS,
+    };
+    const client = mqtt.connect(this.mqttUrl, options);
+
+    try {
+      await this.waitForConnect(client);
+      await new Promise<void>((resolve, reject) => {
+        client.publish(topic, JSON.stringify(payload), { qos: 1 }, (error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve();
+        });
+      });
+    } finally {
+      client.end(true);
+    }
+  }
+
+  // Waits for MQTT connect event and rejects on timeout or client errors.
+  private async waitForConnect(client: MqttClient): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timed out connecting to MQTT broker'));
+      }, MQTT_PUBLISH_TIMEOUT_MS);
+
+      const onConnect = (): void => {
+        cleanup();
+        resolve();
+      };
+
+      const onError = (error: Error): void => {
+        cleanup();
+        reject(error);
+      };
+
+      const cleanup = (): void => {
+        clearTimeout(timeout);
+        client.off('connect', onConnect);
+        client.off('error', onError);
+      };
+
+      client.once('connect', onConnect);
+      client.once('error', onError);
+    });
+  }
+
+  // Creates canonical downlink payload before HMAC signature is added.
+  private buildDownlinkPayload(
+    command: DeviceCommand,
+  ): CommandDownlinkPayloadWithoutSig {
+    return {
+      commandId: command.id,
+      type: command.type,
+      ts: new Date().toISOString(),
+      nonce: command.nonce,
+      expiresAt: command.expiresAt.toISOString(),
+      payload: {},
+    };
+  }
+
+  // Converts Prisma command entity to API-safe response shape.
+  private toFleetDeviceCommand(command: DeviceCommand): FleetDeviceCommand {
+    return {
+      id: command.id,
+      fleetId: command.fleetId,
+      deviceId: command.deviceId,
+      bikeId: command.bikeId,
+      type: command.type,
+      status: command.status,
+      requestedByUserId: command.requestedByUserId,
+      requestedAt: command.requestedAt,
+      sentAt: command.sentAt,
+      ackedAt: command.ackedAt,
+      payloadJson: command.payloadJson,
+      errorMessage: command.errorMessage,
+      nonce: command.nonce,
+      expiresAt: command.expiresAt,
+      createdAt: command.createdAt,
+      updatedAt: command.updatedAt,
+    };
+  }
+
+  // Builds deterministic redis key used by latest-state cache.
+  private liveStateKey(fleetId: string, bikeId: string): string {
+    return `live:fleet:${fleetId}:bike:${bikeId}`;
+  }
+
+  // Determines whether command status can no longer transition.
+  private isTerminalStatus(status: DeviceCommandStatus): boolean {
+    return ['ACKED', 'FAILED', 'EXPIRED'].includes(status);
+  }
+
+  // Compares hex strings in constant time to avoid timing attacks.
+  private timingSafeHexEqual(leftHex: string, rightHex: string): boolean {
+    const left = Buffer.from(leftHex, 'hex');
+    const right = Buffer.from(rightHex, 'hex');
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    return timingSafeEqual(left, right);
+  }
+
+  // Produces a truncated device identifier safe for operational logs.
+  private truncateDeviceUid(deviceUid: string): string {
+    if (deviceUid.length <= 8) {
+      return `${deviceUid.slice(0, 2)}***${deviceUid.slice(-2)}`;
+    }
+
+    return `${deviceUid.slice(0, 4)}...${deviceUid.slice(-4)}`;
+  }
+}

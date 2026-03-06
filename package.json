@@ -13,6 +13,7 @@
     "db:seed": "npm --prefix apps/api run db:seed",
     "db:studio": "npm --prefix apps/api run db:studio",
     "mqtt:publish:sample": "npm --prefix apps/api run mqtt:publish:sample",
+    "mqtt:publish:sample:ack": "npm --prefix apps/api run mqtt:publish:sample:ack",
     "lint": "npm --prefix apps/api run lint",
     "format": "npm --prefix apps/api run format"
   }

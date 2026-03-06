@@ -8,6 +8,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import { DeviceCommandStatus } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { Public } from '../auth/public.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -17,7 +18,7 @@ import { FleetEvent } from './events.types';
 
 const BIKE_STATE_EMIT_THROTTLE_MS = 1_000;
 
-type CommandStatus = 'QUEUED' | 'SENT' | 'ACKED' | 'FAILED' | 'NOT_IMPLEMENTED';
+type CommandStatus = DeviceCommandStatus | 'QUEUED' | 'NOT_IMPLEMENTED';
 
 export interface CommandStatusPayload {
   commandId: string;

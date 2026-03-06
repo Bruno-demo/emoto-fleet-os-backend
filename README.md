@@ -67,6 +67,8 @@ API should run at `http://localhost:3000`.
 - `GET /trips/:id` to fetch one trip details.
 - `GET /reports/weekly` to fetch fleet weekly summary.
 - `POST /bikes/:id/lock-actions` logs lock/unlock intent to audit log (lock integration pending).
+- `POST /commands/lock?bikeId=...` requests device lock command with safety checks.
+- `POST /commands/unlock?bikeId=...` requests device unlock command.
 
 Pagination:
 - List endpoints support `?page` and `?pageSize` (max 100).
@@ -136,6 +138,7 @@ npm run db:deploy
 npm run db:seed
 npm run db:studio
 npm run mqtt:publish:sample
+npm run mqtt:publish:sample:ack
 npm run lint
 npm run format
 ```
@@ -161,12 +164,16 @@ MQTT_PORT=1883
 MQTT_URL=mqtt://localhost:1883
 MQTT_SAMPLE_DEVICE_UID=DEV-0001
 MQTT_SAMPLE_DEVICE_SECRET=device-secret-0001
+MQTT_SAMPLE_COMMAND_ID=00000000-0000-0000-0000-000000000000
+MQTT_SAMPLE_ACK_STATUS=ACKED
+MQTT_SAMPLE_ACK_ERROR_MESSAGE=Simulated device failure
 
 EMQX_DASHBOARD_PORT=18083
 EMQX_DASHBOARD_USERNAME=admin
 EMQX_DASHBOARD_PASSWORD=public
 
 DEVICE_SECRET_MASTER_KEY=change_me_device_secret_master_key_32chars
+COMMAND_TTL_SECONDS=45
 JWT_SECRET=change_me_change_me
 JWT_EXPIRES_IN=1h
 AUTH_REGISTER_ENABLED=false
@@ -196,6 +203,10 @@ TRIP_SCORE_WEIGHT_THEFT_SUSPECTED=3
 - Publish a signed sample message:
 ```bash
 npm run mqtt:publish:sample
+```
+- Publish a signed command ack sample message:
+```bash
+npm run mqtt:publish:sample:ack
 ```
 
 Trip lifecycle:

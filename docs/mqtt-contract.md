@@ -6,6 +6,8 @@ This document defines the MQTT topics, payload schema, and signing/anti-replay r
 
 - Telemetry topic: `v1/devices/{deviceUid}/telemetry`
 - Event topic: `v1/devices/{deviceUid}/event`
+- Command downlink topic: `v1/devices/{deviceUid}/command`
+- Command ack uplink topic: `v1/devices/{deviceUid}/command-ack`
 
 `{deviceUid}` is the fleet device identifier provisioned by the API.
 
@@ -55,6 +57,40 @@ For `v1/devices/{deviceUid}/event`, use:
 ```
 
 `severity` must be one of `LOW | MEDIUM | HIGH | CRITICAL`.
+
+## Command Downlink Payload
+
+Server publishes command instructions to devices on `v1/devices/{deviceUid}/command`:
+
+```json
+{
+  "commandId": "f6fcb4e5-7abd-4661-b22b-2d85e509f3ff",
+  "type": "LOCK",
+  "ts": "2026-03-06T10:12:34.000Z",
+  "nonce": "b173145f-aec6-4384-8dc7-e5f8f23d35d3",
+  "expiresAt": "2026-03-06T10:13:19.000Z",
+  "payload": {},
+  "sig": "hex-hmac-sha256"
+}
+```
+
+`type` is `LOCK` or `UNLOCK`.
+
+## Command Ack Payload
+
+Device acknowledges command outcome on `v1/devices/{deviceUid}/command-ack`:
+
+```json
+{
+  "commandId": "f6fcb4e5-7abd-4661-b22b-2d85e509f3ff",
+  "status": "ACKED",
+  "ts": "2026-03-06T10:12:40.000Z",
+  "nonce": "0a3b289f-cb6d-427f-8c39-c8b40398d252",
+  "sig": "hex-hmac-sha256"
+}
+```
+
+When `status` is `FAILED`, include optional `errorMessage`.
 
 ## Signing
 
@@ -110,6 +146,7 @@ Message is rejected if any of the following occurs:
 - Signature is invalid.
 - Timestamp drift is more than 5 minutes from server time.
 - Replay `nonce` was already seen in last 10 minutes for same device.
+- Command-ack signature is invalid or command id does not match the device.
 
 Nonce replay cache:
 - Redis key: `mqtt:nonce:{deviceUid}:{nonce}`
@@ -123,6 +160,7 @@ Implemented in:
 
 Key exported utilities:
 - `telemetryPayloadSchema`, `eventPayloadSchema`
+- `commandDownlinkPayloadSchema`, `commandAckPayloadSchema`
 - `parseMqttTopic(...)`
 - `canonicalJSONString(...)`
 - `computePayloadSignature(...)`

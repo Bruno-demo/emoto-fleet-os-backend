@@ -2,11 +2,13 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { Server as HttpServer } from 'http';
 import { AddressInfo } from 'net';
 import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { CommandsService } from '../src/commands/commands.service';
 import { EventsService } from '../src/events/events.service';
 
 describe('Realtime WebSocket Gateway (e2e)', () => {
@@ -14,11 +16,14 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
   let prisma: PrismaClient;
   let httpServer: Parameters<typeof request>[0];
   let eventsService: EventsService;
+  let commandsService: CommandsService;
   let baseUrl = '';
   let token = '';
   let fleetId = '';
   let bikeId = '';
   let deviceId = '';
+  let adminUserId = '';
+  const deviceUid = 'DEV-WS-0001';
   let socket: Socket | null = null;
 
   // Seeds deterministic fleet data required for websocket auth and event delivery.
@@ -36,7 +41,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     });
     fleetId = fleet.id;
 
-    await prisma.user.upsert({
+    const adminUser = await prisma.user.upsert({
       where: {
         fleetId_email: {
           fleetId,
@@ -58,6 +63,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
         status: 'ACTIVE',
       },
     });
+    adminUserId = adminUser.id;
 
     const bike = await prisma.bike.upsert({
       where: {
@@ -78,7 +84,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     bikeId = bike.id;
 
     const device = await prisma.device.upsert({
-      where: { deviceUid: 'DEV-WS-0001' },
+      where: { deviceUid },
       update: {
         fleetId,
         bikeId,
@@ -88,7 +94,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
       create: {
         fleetId,
         bikeId,
-        deviceUid: 'DEV-WS-0001',
+        deviceUid,
         status: 'ACTIVE',
         secretHash: 'seeded-hash-ws',
       },
@@ -154,6 +160,22 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     });
   };
 
+  // Waits for one command_status payload pushed from server.
+  const waitForCommandStatus = async (
+    client: Socket,
+  ): Promise<Record<string, unknown>> => {
+    return await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('command_status timeout'));
+      }, 5_000);
+
+      client.once('command_status', (payload: Record<string, unknown>) => {
+        clearTimeout(timeout);
+        resolve(payload);
+      });
+    });
+  };
+
   beforeAll(async () => {
     prisma = new PrismaClient();
     await seedFixtures();
@@ -171,6 +193,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
     httpServer = nodeHttpServer as unknown as Parameters<typeof request>[0];
     eventsService = app.get(EventsService);
+    commandsService = app.get(CommandsService);
 
     const login = await request(httpServer).post('/auth/login').send({
       email: 'admin@demo.emoto',
@@ -220,5 +243,51 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     expect(payload.bikeId).toBe(bikeId);
     expect(payload.deviceId).toBe(deviceId);
     expect(payload).not.toHaveProperty('fleetId');
+  });
+
+  it('streams command_status when command ack transitions to ACKED', async () => {
+    if (!socket) {
+      throw new Error('Socket client not initialized');
+    }
+
+    const command = await prisma.deviceCommand.create({
+      data: {
+        fleetId,
+        deviceId,
+        bikeId,
+        type: 'LOCK',
+        status: 'SENT',
+        requestedByUserId: adminUserId,
+        payloadJson: {},
+        nonce: randomUUID(),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+
+    const commandStatusPromise = waitForCommandStatus(socket);
+
+    await commandsService.handleCommandAckFromDevice(
+      { id: deviceId, fleetId, deviceUid },
+      {
+        commandId: command.id,
+        status: 'ACKED',
+        ts: new Date().toISOString(),
+        nonce: randomUUID(),
+        sig: 'a'.repeat(64),
+      },
+    );
+
+    const payload = await commandStatusPromise;
+
+    expect(payload.commandId).toBe(command.id);
+    expect(payload.status).toBe('ACKED');
+    expect(payload.bikeId).toBe(bikeId);
+    expect(payload.deviceId).toBe(deviceId);
+
+    const updated = await prisma.deviceCommand.findUnique({
+      where: { id: command.id },
+    });
+
+    expect(updated?.status).toBe('ACKED');
   });
 });

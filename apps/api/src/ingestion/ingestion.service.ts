@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { DeviceStatus, EventSeverity, Prisma } from '@prisma/client';
 import { timingSafeEqual } from 'crypto';
 import mqtt, { IClientOptions, MqttClient } from 'mqtt';
+import { CommandsService } from '../commands/commands.service';
 import {
   decryptDeviceSecret,
   hashDeviceSecret,
@@ -19,10 +20,12 @@ import {
   TelemetryPayload,
   assertNonceNotReplayed,
   assertTimestampDrift,
+  commandAckPayloadSchema,
   eventPayloadSchema,
   parseMqttTopic,
   telemetryPayloadSchema,
   verifyPayloadSignature,
+  CommandAckPayload,
 } from '../mqtt/mqtt-validation.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -56,6 +59,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     private readonly rulesEngineService: RulesEngineService,
     private readonly eventsService: EventsService,
     private readonly tripBuilderService: TripBuilderService,
+    private readonly commandsService: CommandsService,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -93,13 +97,17 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Subscribes to wildcard telemetry and event topics.
+  // Subscribes to wildcard telemetry, event, and command-ack topics.
   private subscribeToTopics(): void {
     if (!this.mqttClient) {
       return;
     }
 
-    const topics = ['v1/devices/+/telemetry', 'v1/devices/+/event'];
+    const topics = [
+      'v1/devices/+/telemetry',
+      'v1/devices/+/event',
+      'v1/devices/+/command-ack',
+    ];
     this.mqttClient.subscribe(topics, { qos: 1 }, (error: Error | null) => {
       if (error) {
         this.logger.warn(`MQTT subscribe failed: ${error.message}`);
@@ -134,8 +142,10 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
 
       if (parsedTopic.kind === 'telemetry') {
         await this.processTelemetryPayload(device, payload, deviceSecret);
-      } else {
+      } else if (parsedTopic.kind === 'event') {
         await this.processEventPayload(device, payload, deviceSecret);
+      } else {
+        await this.processCommandAckPayload(device, payload, deviceSecret);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'unknown error';
@@ -243,6 +253,40 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  // Validates command-ack payload and forwards acknowledgement to command service.
+  private async processCommandAckPayload(
+    device: DeviceForIngestion,
+    payload: unknown,
+    deviceSecret: string,
+  ): Promise<void> {
+    const parsedPayload = commandAckPayloadSchema.safeParse(payload);
+    if (!parsedPayload.success) {
+      throw new MqttValidationError(parsedPayload.error.message);
+    }
+
+    const commandAckPayload = parsedPayload.data;
+    assertTimestampDrift(commandAckPayload.ts);
+    this.assertSignatureValid(deviceSecret, commandAckPayload);
+    await assertNonceNotReplayed(
+      this.redisService,
+      device.deviceUid,
+      commandAckPayload.nonce,
+    );
+
+    const ackTimestamp = new Date(commandAckPayload.ts);
+    await this.prismaService.device.update({
+      where: { id: device.id },
+      data: {
+        lastSeenAt: ackTimestamp,
+      },
+    });
+
+    await this.commandsService.handleCommandAckFromDevice(
+      device,
+      commandAckPayload,
+    );
+  }
+
   // Loads device security context by incoming MQTT device UID.
   private async loadDeviceByUid(
     deviceUid: string,
@@ -283,7 +327,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
   // Verifies that incoming payload signature matches expected HMAC.
   private assertSignatureValid(
     deviceSecret: string,
-    payload: TelemetryPayload | EventPayload,
+    payload: TelemetryPayload | EventPayload | CommandAckPayload,
   ): void {
     const payloadWithSig = payload as Record<string, unknown> & { sig: string };
     if (!verifyPayloadSignature(deviceSecret, payloadWithSig)) {

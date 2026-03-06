@@ -17,6 +17,7 @@ export const envSchema = z.object({
     .string()
     .min(32)
     .default('change_me_device_secret_master_key_32chars'),
+  COMMAND_TTL_SECONDS: z.coerce.number().int().min(10).max(600).default(45),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().min(2),
   AUTH_REGISTER_ENABLED: booleanString,

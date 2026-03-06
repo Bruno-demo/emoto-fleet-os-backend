@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BikesModule } from './bikes/bikes.module';
+import { CommandsModule } from './commands/commands.module';
 import { envSchema } from './config/env.schema';
 import { DevicesModule } from './devices/devices.module';
 import { EventsModule } from './events/events.module';
@@ -34,6 +35,7 @@ import { ZonesModule } from './zones/zones.module';
     AuditModule,
     AuthModule,
     BikesModule,
+    CommandsModule,
     DevicesModule,
     EventsModule,
     ZonesModule,

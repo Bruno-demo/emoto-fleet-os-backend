@@ -7,6 +7,9 @@ const signatureHexSchema = z.string().regex(/^[a-f0-9]{64}$/i);
 
 export const MQTT_TELEMETRY_TOPIC_REGEX = /^v1\/devices\/([^/]+)\/telemetry$/;
 export const MQTT_EVENT_TOPIC_REGEX = /^v1\/devices\/([^/]+)\/event$/;
+export const MQTT_COMMAND_TOPIC_REGEX = /^v1\/devices\/([^/]+)\/command$/;
+export const MQTT_COMMAND_ACK_TOPIC_REGEX =
+  /^v1\/devices\/([^/]+)\/command-ack$/;
 
 export const MQTT_MAX_TIMESTAMP_DRIFT_MS = 5 * 60 * 1000;
 export const MQTT_NONCE_TTL_SECONDS = 10 * 60;
@@ -45,12 +48,48 @@ export const eventPayloadSchema = eventPayloadWithoutSigSchema.extend({
   sig: signatureHexSchema,
 });
 
+const commandDownlinkPayloadWithoutSigSchema = z.object({
+  commandId: z.string().uuid(),
+  type: z.enum(['LOCK', 'UNLOCK']),
+  ts: z.string().datetime({ offset: true }),
+  nonce: z.string().uuid(),
+  expiresAt: z.string().datetime({ offset: true }),
+  payload: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const commandDownlinkPayloadSchema =
+  commandDownlinkPayloadWithoutSigSchema.extend({
+    sig: signatureHexSchema,
+  });
+
+const commandAckPayloadWithoutSigSchema = z.object({
+  commandId: z.string().uuid(),
+  status: z.enum(['ACKED', 'FAILED']),
+  ts: z.string().datetime({ offset: true }),
+  nonce: z.string().uuid(),
+  errorMessage: z.string().min(1).max(500).optional(),
+});
+
+export const commandAckPayloadSchema = commandAckPayloadWithoutSigSchema.extend(
+  {
+    sig: signatureHexSchema,
+  },
+);
+
 export type TelemetryPayload = z.infer<typeof telemetryPayloadSchema>;
 export type EventPayload = z.infer<typeof eventPayloadSchema>;
+export type CommandDownlinkPayloadWithoutSig = z.infer<
+  typeof commandDownlinkPayloadWithoutSigSchema
+>;
+export type CommandDownlinkPayload = z.infer<
+  typeof commandDownlinkPayloadSchema
+>;
+export type CommandAckPayload = z.infer<typeof commandAckPayloadSchema>;
 
 export type ParsedMqttTopic =
   | { kind: 'telemetry'; deviceUid: string }
-  | { kind: 'event'; deviceUid: string };
+  | { kind: 'event'; deviceUid: string }
+  | { kind: 'commandAck'; deviceUid: string };
 
 export class MqttValidationError extends Error {}
 
@@ -69,6 +108,14 @@ export function parseMqttTopic(topic: string): ParsedMqttTopic | null {
     return {
       kind: 'event',
       deviceUid: eventMatch[1],
+    };
+  }
+
+  const commandAckMatch = MQTT_COMMAND_ACK_TOPIC_REGEX.exec(topic);
+  if (commandAckMatch) {
+    return {
+      kind: 'commandAck',
+      deviceUid: commandAckMatch[1],
     };
   }
 

@@ -88,14 +88,21 @@ Emitted immediately when an `Event` row is created.
 
 Emitted when a device/bike command status changes.
 
+Status values:
+- `PENDING`
+- `SENT`
+- `ACKED`
+- `FAILED`
+- `EXPIRED`
+
 ```json
 {
-  "commandId": "lock:bike-id:1741255945000",
-  "status": "NOT_IMPLEMENTED",
+  "commandId": "f6fcb4e5-7abd-4661-b22b-2d85e509f3ff",
+  "status": "ACKED",
   "ts": "2026-03-06T10:12:34.000Z",
   "bikeId": "f9d7...",
-  "action": "LOCK",
-  "message": "Bike lock integration is not implemented yet"
+  "deviceId": "9f7d...",
+  "action": "LOCK"
 }
 ```
 
