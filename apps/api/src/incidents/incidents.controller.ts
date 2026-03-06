@@ -13,6 +13,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginatedResponse } from '../common/pagination';
+import type { IncidentEvidencePackResponse } from '../evidence/evidence.types';
 import { IncidentStatusActionDto } from './dto/incident-status-action.dto';
 import { ListIncidentsDto } from './dto/list-incidents.dto';
 import type { FleetIncident } from './incidents.types';
@@ -44,6 +45,19 @@ export class IncidentsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FleetIncident> {
     return this.incidentsService.getIncidentForUser(user, id);
+  }
+
+  @Get(':id/evidence-pack')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({
+    summary:
+      'Generate incident evidence pack and return short-lived download URLs',
+  })
+  async getIncidentEvidencePack(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<IncidentEvidencePackResponse> {
+    return this.incidentsService.getIncidentEvidencePackForUser(user, id);
   }
 
   @Post(':id/acknowledge')

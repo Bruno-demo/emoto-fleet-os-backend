@@ -7,6 +7,7 @@ Backend scaffold for e-moto telematics using NestJS + TypeScript.
 - PostgreSQL (TimescaleDB image) via Docker Compose
 - Redis via Docker Compose
 - EMQX MQTT broker via Docker Compose
+- MinIO (S3-compatible) for incident evidence pack storage
 - Insurer Partner API with OAuth2 client-credentials style auth
 
 ## Prerequisites
@@ -72,6 +73,7 @@ API should run at `http://localhost:3000`.
 - `POST /commands/unlock?bikeId=...` requests device unlock command.
 - `GET /incidents?from&to&status`, `GET /incidents/:id`
 - `POST /incidents/:id/acknowledge`, `POST /incidents/:id/resolve`
+- `GET /incidents/:id/evidence-pack` (returns short-lived presigned links)
 - `CRUD /contacts` for emergency notification recipients
 - `POST /partner/oauth/token` for partner access token issuance
 - `GET /partner/fleets/:fleetId/weekly-summary`
@@ -131,6 +133,7 @@ WebSocket stream:
 ## Incidents
 - Lifecycle and notification outbox details: `docs/incidents.md`
 - CRASH incidents also fan out signed partner webhooks via notification outbox.
+- Evidence packs are generated on demand and stored in S3/MinIO.
 
 ## Partner API
 - Partner auth and endpoint contract: `docs/partner-api.md`
@@ -145,6 +148,8 @@ npm run partner:create-client
 - Redis: `6379`
 - EMQX MQTT: `1883`
 - EMQX dashboard: `18083`
+- MinIO API: `9000`
+- MinIO console: `9001`
 
 TimescaleDB extension is auto-enabled on first database initialization via `docker/postgres/init/01-timescaledb.sql`.
 
@@ -194,6 +199,16 @@ MQTT_SAMPLE_ACK_ERROR_MESSAGE=Simulated device failure
 EMQX_DASHBOARD_PORT=18083
 EMQX_DASHBOARD_USERNAME=admin
 EMQX_DASHBOARD_PASSWORD=public
+
+MINIO_PORT=9000
+MINIO_CONSOLE_PORT=9001
+S3_ENDPOINT=http://localhost:9000
+S3_REGION=us-east-1
+S3_BUCKET=emoto-evidence
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=minioadmin
+S3_FORCE_PATH_STYLE=true
+S3_PRESIGN_EXPIRES_SECONDS=600
 
 DEVICE_SECRET_MASTER_KEY=change_me_device_secret_master_key_32chars
 COMMAND_TTL_SECONDS=45

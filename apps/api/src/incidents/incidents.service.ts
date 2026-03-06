@@ -16,6 +16,8 @@ import {
   createPaginatedResponse,
   getPaginationParams,
 } from '../common/pagination';
+import { EvidenceService } from '../evidence/evidence.service';
+import type { IncidentEvidencePackResponse } from '../evidence/evidence.types';
 import { FleetEvent } from '../events/events.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { IncidentStatusActionDto } from './dto/incident-status-action.dto';
@@ -28,6 +30,7 @@ export class IncidentsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly notificationOutboxService: NotificationOutboxService,
+    private readonly evidenceService: EvidenceService,
   ) {}
 
   // Creates one incident and notification outbox rows from an eligible CRASH event.
@@ -154,6 +157,14 @@ export class IncidentsService {
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);
     return this.toFleetIncident(incident);
+  }
+
+  // Generates or loads presigned evidence-pack links for one incident in caller fleet.
+  async getIncidentEvidencePackForUser(
+    user: AuthenticatedUser,
+    id: string,
+  ): Promise<IncidentEvidencePackResponse> {
+    return this.evidenceService.getEvidencePackForFleetUser(user, id);
   }
 
   // Marks an incident as ACKNOWLEDGED by the authenticated fleet user.

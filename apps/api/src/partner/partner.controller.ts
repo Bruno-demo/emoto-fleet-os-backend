@@ -75,7 +75,8 @@ export class PartnerController {
 
   @Get('incidents/:incidentId/evidence-pack')
   @ApiOperation({
-    summary: 'Get placeholder evidence pack summary for an incident',
+    summary:
+      'Generate incident evidence pack and return short-lived download URLs',
   })
   async getIncidentEvidencePack(
     @CurrentPartner() partner: AuthenticatedPartner,

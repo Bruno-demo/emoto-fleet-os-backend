@@ -11,6 +11,7 @@ import {
   encryptDeviceSecret,
   hashDeviceSecret,
 } from '../crypto/device-secret.crypto';
+import { EvidenceService } from '../evidence/evidence.service';
 import type { FleetEvent } from '../events/events.types';
 import { NotificationOutboxService } from '../incidents/notification-outbox.service';
 import { FleetIncident } from '../incidents/incidents.types';
@@ -45,6 +46,7 @@ export class PartnerService {
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly notificationOutboxService: NotificationOutboxService,
+    private readonly evidenceService: EvidenceService,
   ) {}
 
   // Builds fleet-level partner summary metrics for allowed insurer partners.
@@ -246,29 +248,22 @@ export class PartnerService {
     partner: AuthenticatedPartner,
     incidentId: string,
   ): Promise<PartnerEvidencePackSummary> {
-    const incident = await this.getIncidentForPartner(partner, incidentId);
+    this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
 
+    const evidencePack = await this.evidenceService.getEvidencePackForPartner(
+      partner,
+      incidentId,
+    );
     await this.auditPartnerApiAccess(
       partner,
-      incident.fleetId,
+      evidencePack.fleetId,
       'partner.incident_evidence_pack',
       {
         incidentId,
       },
     );
 
-    return {
-      incidentId,
-      status: 'PENDING_GENERATION',
-      summary: {
-        incidentId: incident.incidentId,
-        bikeId: incident.bikeId,
-        deviceId: incident.deviceId,
-        status: incident.status,
-        timelineEvents: incident.timeline.length,
-      },
-      downloadUrl: null,
-    };
+    return evidencePack;
   }
 
   // Registers a partner webhook endpoint and returns its one-time signing secret.

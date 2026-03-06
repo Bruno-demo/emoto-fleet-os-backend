@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { EvidenceModule } from '../evidence/evidence.module';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
 import { ConsoleNotificationProvider } from './console-notification.provider';
@@ -10,7 +11,7 @@ import { NOTIFICATION_PROVIDER } from './notification-provider';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule, AuditModule],
+  imports: [PrismaModule, AuditModule, EvidenceModule],
   controllers: [IncidentsController, ContactsController],
   providers: [
     IncidentsService,

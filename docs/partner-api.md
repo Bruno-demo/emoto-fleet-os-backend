@@ -50,7 +50,8 @@ curl -H "Authorization: Bearer <jwt>" \
   - Returns incident metadata + nearby event timeline.
   - Event metadata is location-sanitized (rounded coordinates).
 - `GET /partner/incidents/:incidentId/evidence-pack`
-  - Placeholder summary for future downloadable evidence packs.
+  - Returns short-lived presigned URLs for summary JSON + telemetry CSV.
+  - Access is allowed only when partner has active `PartnerFleetAccess` for the incident fleet.
 - `POST /partner/webhooks`
   - Registers an HMAC-signed webhook endpoint for incident alerts.
 

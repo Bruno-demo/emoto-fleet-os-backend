@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuditModule } from '../audit/audit.module';
+import { EvidenceModule } from '../evidence/evidence.module';
 import { IncidentsModule } from '../incidents/incidents.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PartnerAuthController } from './partner-auth.controller';
@@ -16,6 +17,7 @@ import { PartnerService } from './partner.service';
     PrismaModule,
     AuditModule,
     IncidentsModule,
+    EvidenceModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       // Configures dedicated JWT signing for insurer partner tokens.

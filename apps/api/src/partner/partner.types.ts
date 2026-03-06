@@ -1,5 +1,6 @@
 import { IncidentStatus, PartnerStatus, Prisma, Trip } from '@prisma/client';
 import { Request } from 'express';
+import type { IncidentEvidencePackResponse } from '../evidence/evidence.types';
 
 export interface PartnerJwtPayload {
   sub: string;
@@ -70,12 +71,7 @@ export interface PartnerIncidentDetails {
   timeline: PartnerIncidentTimelineEvent[];
 }
 
-export interface PartnerEvidencePackSummary {
-  incidentId: string;
-  status: 'PENDING_GENERATION';
-  summary: Prisma.JsonValue;
-  downloadUrl: string | null;
-}
+export type PartnerEvidencePackSummary = IncidentEvidencePackResponse;
 
 export interface PartnerWebhookRegistration {
   id: string;

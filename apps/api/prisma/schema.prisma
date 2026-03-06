@@ -382,10 +382,22 @@ model Incident {
   event                Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   acknowledgedByUser   User?          @relation("IncidentAcknowledgedBy", fields: [acknowledgedByUserId], references: [id], onDelete: SetNull)
   resolvedByUser       User?          @relation("IncidentResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  evidencePack         EvidencePack?
 
   @@index([fleetId, status, createdAt])
   @@index([bikeId])
   @@index([deviceId])
+}
+
+model EvidencePack {
+  id         String   @id @default(uuid()) @db.Uuid
+  incidentId String   @unique @db.Uuid
+  s3KeyJson  String
+  s3KeyCsv   String
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
 }
 
 model EmergencyContact {

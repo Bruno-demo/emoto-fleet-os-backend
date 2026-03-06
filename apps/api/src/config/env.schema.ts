@@ -13,6 +13,21 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   MQTT_URL: z.string().url(),
+  S3_ENDPOINT: z.string().url().default('http://localhost:9000'),
+  S3_REGION: z.string().default('us-east-1'),
+  S3_BUCKET: z.string().min(3).default('emoto-evidence'),
+  S3_ACCESS_KEY_ID: z.string().min(3).default('minioadmin'),
+  S3_SECRET_ACCESS_KEY: z.string().min(6).default('minioadmin'),
+  S3_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  S3_PRESIGN_EXPIRES_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(3600)
+    .default(600),
   DEVICE_SECRET_MASTER_KEY: z
     .string()
     .min(32)

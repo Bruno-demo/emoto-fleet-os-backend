@@ -25,6 +25,7 @@ Incident status values:
 API transitions:
 - `POST /incidents/:id/acknowledge`
 - `POST /incidents/:id/resolve`
+- `GET /incidents/:id/evidence-pack` (generates and returns presigned links)
 
 ## Notification Outbox
 
@@ -51,3 +52,17 @@ Processing:
 
 - Fleet isolation is enforced on incident/contact APIs.
 - Provider logs must mask recipients; no raw phone numbers in logs.
+
+## Evidence Packs
+
+For crash incidents, evidence packs are generated on demand:
+
+1. Build summary JSON:
+  incident, bike, device, active trip snapshot, related events
+2. Build telemetry CSV window:
+  from `-120s` to `+120s` around crash timestamp
+3. Upload files to object storage under:
+  `evidence/{fleetId}/{incidentId}/summary.json`
+  `evidence/{fleetId}/{incidentId}/telemetry-window.csv`
+4. Persist one `EvidencePack` row with object keys
+5. Return short-lived presigned download URLs (default 10 minutes)
