@@ -1,0 +1,112 @@
+import { z } from 'zod';
+import { readAuthToken } from '@/lib/auth/session';
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
+  /\/$/,
+  '',
+);
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly details?: unknown,
+  ) {
+    super(message);
+  }
+}
+
+interface ApiFetchOptions<T> {
+  auth?: boolean;
+  schema?: z.ZodType<T>;
+}
+
+// Joins relative API paths against the configured backend base URL.
+function resolveApiUrl(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
+// Parses JSON/text response bodies and returns undefined for empty responses.
+async function parseResponseBody(response: Response): Promise<unknown> {
+  if (response.status === 204) {
+    return undefined;
+  }
+
+  const text = await response.text();
+  if (!text) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+// Normalizes backend errors into a human-readable message.
+function extractErrorMessage(body: unknown, fallback: string): string {
+  if (typeof body === 'string' && body.trim().length > 0) {
+    return body;
+  }
+
+  if (body && typeof body === 'object') {
+    const maybeMessage = (body as { message?: unknown }).message;
+    if (typeof maybeMessage === 'string' && maybeMessage.trim().length > 0) {
+      return maybeMessage;
+    }
+    if (Array.isArray(maybeMessage) && maybeMessage.length > 0) {
+      const firstMessage = maybeMessage[0];
+      if (typeof firstMessage === 'string' && firstMessage.trim().length > 0) {
+        return firstMessage;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+// Performs authenticated API requests with optional Zod response validation.
+export async function apiFetch<T = unknown>(
+  path: string,
+  init: RequestInit = {},
+  options: ApiFetchOptions<T> = {},
+): Promise<T> {
+  const shouldAttachAuth = options.auth !== false;
+  const token = shouldAttachAuth ? readAuthToken() : null;
+
+  if (shouldAttachAuth && !token) {
+    throw new ApiError(401, 'Authentication required');
+  }
+
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has('content-type')) {
+    headers.set('content-type', 'application/json');
+  }
+  if (shouldAttachAuth && token) {
+    headers.set('authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(resolveApiUrl(path), {
+    ...init,
+    headers,
+  });
+
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      extractErrorMessage(body, `Request failed with status ${response.status}`),
+      body,
+    );
+  }
+
+  if (!options.schema) {
+    return body as T;
+  }
+  return options.schema.parse(body);
+}

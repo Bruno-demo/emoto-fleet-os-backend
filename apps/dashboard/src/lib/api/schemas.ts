@@ -1,0 +1,52 @@
+import { z } from 'zod';
+
+export const userRoleSchema = z.enum([
+  'OWNER',
+  'ADMIN',
+  'DISPATCHER',
+  'TECH',
+  'INSURER',
+  'RIDER',
+]);
+
+export const userStatusSchema = z.enum(['INVITED', 'ACTIVE', 'SUSPENDED', 'DISABLED']);
+
+export const authUserSchema = z.object({
+  id: z.string().uuid(),
+  fleetId: z.string().uuid(),
+  role: userRoleSchema,
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  status: userStatusSchema,
+});
+
+export const loginFormSchema = z.object({
+  identifier: z.string().min(3, 'Provide email or phone'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+export const loginResponseSchema = z.object({
+  accessToken: z.string().min(1),
+  tokenType: z.literal('Bearer'),
+  user: authUserSchema,
+});
+
+export const meResponseSchema = authUserSchema;
+
+// Builds the backend login payload by mapping identifier to email or phone.
+export function buildLoginPayload(identifier: string, password: string) {
+  const normalizedIdentifier = identifier.trim();
+  const commonFields = { password };
+
+  if (normalizedIdentifier.includes('@')) {
+    return {
+      ...commonFields,
+      email: normalizedIdentifier.toLowerCase(),
+    };
+  }
+
+  return {
+    ...commonFields,
+    phone: normalizedIdentifier,
+  };
+}

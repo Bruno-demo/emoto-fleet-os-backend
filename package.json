@@ -2,20 +2,29 @@
   "name": "emoto-fleet-os-backend",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev:stack:up": "docker compose up -d",
     "dev:stack:down": "docker compose down",
     "dev:stack:logs": "docker compose logs -f",
-    "dev:api": "npm --prefix apps/api run start:dev",
-    "db:generate": "npm --prefix apps/api run db:generate",
-    "db:migrate": "npm --prefix apps/api run db:migrate",
-    "db:deploy": "npm --prefix apps/api run db:deploy",
-    "db:seed": "npm --prefix apps/api run db:seed",
-    "db:studio": "npm --prefix apps/api run db:studio",
-    "partner:create-client": "npm --prefix apps/api run partner:create-client",
-    "mqtt:publish:sample": "npm --prefix apps/api run mqtt:publish:sample",
-    "mqtt:publish:sample:ack": "npm --prefix apps/api run mqtt:publish:sample:ack",
-    "lint": "npm --prefix apps/api run lint",
-    "format": "npm --prefix apps/api run format"
+    "dev:api": "npm run start:dev -w apps/api",
+    "dev:dashboard": "npm run dev -w apps/dashboard",
+    "dev": "concurrently -k -n api,dashboard -c green,cyan \"npm run dev:api\" \"npm run dev:dashboard\"",
+    "build": "npm run build -w apps/api && npm run build -w apps/dashboard",
+    "lint": "npm run lint -w apps/api && npm run lint -w apps/dashboard",
+    "format": "npm run format -w apps/api",
+    "db:generate": "npm run db:generate -w apps/api",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:deploy": "npm run db:deploy -w apps/api",
+    "db:seed": "npm run db:seed -w apps/api",
+    "db:studio": "npm run db:studio -w apps/api",
+    "partner:create-client": "npm run partner:create-client -w apps/api",
+    "mqtt:publish:sample": "npm run mqtt:publish:sample -w apps/api",
+    "mqtt:publish:sample:ack": "npm run mqtt:publish:sample:ack -w apps/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

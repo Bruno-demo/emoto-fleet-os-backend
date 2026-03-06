@@ -1,9 +1,10 @@
 # emoto-fleet-os-backend
 
-Backend scaffold for e-moto telematics using NestJS + TypeScript.
+Monorepo scaffold for e-moto telematics using NestJS + TypeScript backend and Next.js dashboard.
 
 ## Stack
 - NestJS API in `apps/api`
+- Next.js dashboard in `apps/dashboard`
 - PostgreSQL (TimescaleDB image) via Docker Compose
 - Redis via Docker Compose
 - EMQX MQTT broker via Docker Compose
@@ -31,12 +32,17 @@ npm run db:seed
 ```
 4. Start API:
 ```bash
-cd apps/api
-npm install
-npm run start:dev
+npm run dev:api
 ```
 
 API should run at `http://localhost:3000`.
+
+5. Start dashboard:
+```bash
+npm run dev:dashboard
+```
+
+Dashboard runs at `http://localhost:3001`.
 
 ## Troubleshooting
 - If Docker shows `dockerDesktopLinuxEngine` pipe errors, wait for Docker Desktop to finish starting or restart Docker Desktop.
@@ -120,6 +126,14 @@ WebSocket stream:
 
 ## Swagger
 - `http://localhost:3000/docs`
+- Swagger JSON: `http://localhost:3000/docs-json`
+
+## Dashboard OpenAPI Types
+- Generate dashboard API types from Swagger:
+```bash
+npm run gen:types -w apps/dashboard
+```
+- Output file: `apps/dashboard/src/lib/api-types.ts`
 
 ## Audit Logs
 - Admin control-plane actions are persisted in `AuditLog` table:
@@ -159,6 +173,10 @@ npm run dev:stack:up
 npm run dev:stack:down
 npm run dev:stack:logs
 npm run dev:api
+npm run dev:dashboard
+npm run dev
+npm run build
+npm run lint
 npm run db:generate
 npm run db:migrate
 npm run db:deploy
@@ -167,7 +185,6 @@ npm run db:studio
 npm run mqtt:publish:sample
 npm run mqtt:publish:sample:ack
 npm run partner:create-client
-npm run lint
 npm run format
 ```
 
@@ -175,6 +192,7 @@ npm run format
 ```env
 NODE_ENV=development
 PORT=3000
+NEXT_PUBLIC_API_URL=http://localhost:3000
 
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432

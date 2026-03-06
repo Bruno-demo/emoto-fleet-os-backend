@@ -23,7 +23,9 @@ async function bootstrap(): Promise<void> {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, document, {
+    jsonDocumentUrl: 'docs-json',
+  });
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
