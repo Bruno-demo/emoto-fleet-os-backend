@@ -1,4 +1,4 @@
-import { EventSeverity, Prisma } from '@prisma/client';
+import { EventSeverity, EventType, Prisma } from '@prisma/client';
 
 export interface FleetEvent {
   id: string;
@@ -6,7 +6,7 @@ export interface FleetEvent {
   bikeId: string | null;
   deviceId: string;
   ts: Date;
-  type: string;
+  type: EventType;
   severity: EventSeverity;
   metaJson: Prisma.JsonValue;
   createdAt: Date;
@@ -17,7 +17,7 @@ export interface CreateFleetEventInput {
   bikeId: string | null;
   deviceId: string;
   ts: Date;
-  type: string;
+  type: EventType;
   severity: EventSeverity;
   metaJson: Prisma.InputJsonValue;
 }

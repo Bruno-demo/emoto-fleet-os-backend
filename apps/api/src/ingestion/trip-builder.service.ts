@@ -242,11 +242,25 @@ export class TripBuilderService {
       return;
     }
 
+    const activeAssignment = await this.prismaService.bikeAssignment.findFirst({
+      where: {
+        fleetId: device.fleetId,
+        bikeId: device.bikeId,
+        active: true,
+      },
+      orderBy: {
+        assignedAt: 'desc',
+      },
+      select: {
+        riderUserId: true,
+      },
+    });
+
     await this.prismaService.trip.create({
       data: {
         fleetId: device.fleetId,
         bikeId: device.bikeId,
-        riderId: null,
+        riderId: activeAssignment?.riderUserId ?? null,
         startTs: startDate,
         endTs: endDate,
         distanceKm,

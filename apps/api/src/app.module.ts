@@ -15,6 +15,7 @@ import { PartnerModule } from './partner/partner.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { ReportsModule } from './reports/reports.module';
+import { RidersModule } from './riders/riders.module';
 import { TripsModule } from './trips/trips.module';
 import { ZonesModule } from './zones/zones.module';
 
@@ -42,6 +43,7 @@ import { ZonesModule } from './zones/zones.module';
     ZonesModule,
     TripsModule,
     ReportsModule,
+    RidersModule,
     PrismaModule,
     RedisModule,
     HealthModule,

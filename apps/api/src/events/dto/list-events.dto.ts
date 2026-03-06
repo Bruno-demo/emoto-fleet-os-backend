@@ -1,13 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { EventSeverity } from '@prisma/client';
-import {
-  IsEnum,
-  IsISO8601,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-} from 'class-validator';
+import { EventSeverity, EventType } from '@prisma/client';
+import { IsEnum, IsISO8601, IsOptional, IsUUID } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class ListEventsDto extends PaginationQueryDto {
@@ -21,11 +14,10 @@ export class ListEventsDto extends PaginationQueryDto {
   @IsISO8601()
   to?: string;
 
-  @ApiPropertyOptional({ example: 'OVERSPEED' })
+  @ApiPropertyOptional({ enum: EventType, example: EventType.OVERSPEED })
   @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  type?: string;
+  @IsEnum(EventType)
+  type?: EventType;
 
   @ApiPropertyOptional({ enum: EventSeverity, example: EventSeverity.HIGH })
   @IsOptional()

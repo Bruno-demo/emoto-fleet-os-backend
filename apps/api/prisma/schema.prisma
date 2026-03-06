@@ -18,6 +18,7 @@ enum UserRole {
   DISPATCHER
   TECH
   INSURER
+  RIDER
 }
 
 enum UserStatus {
@@ -68,6 +69,7 @@ enum EmergencyContactRole {
 enum NotificationType {
   CRASH_ALERT
   THEFT_ALERT
+  SOS_ALERT
 }
 
 enum NotificationChannel {
@@ -99,6 +101,16 @@ enum EventSeverity {
   CRITICAL
 }
 
+enum EventType {
+  OVERSPEED
+  HARSH_BRAKE
+  HARSH_ACCEL
+  HARSH_CORNER
+  CRASH
+  THEFT_SUSPECTED
+  SOS
+}
+
 enum ScoreScope {
   RIDER
   BIKE
@@ -109,6 +121,13 @@ enum ZoneType {
   SLOW
   NO_GO
   PARK
+}
+
+enum PoiType {
+  GARAGE
+  SWAP
+  CLINIC
+  OTHER
 }
 
 enum AuditActionType {
@@ -123,6 +142,9 @@ enum AuditActionType {
   PARTNER_API_ACCESS
   PARTNER_WEBHOOK_REGISTERED
   PARTNER_WEBHOOK_DELIVERY
+  RIDER_CREATED
+  BIKE_ASSIGNMENT_CHANGED
+  SOS_TRIGGERED
 }
 
 model Fleet {
@@ -143,24 +165,28 @@ model Fleet {
   emergencyContacts EmergencyContact[]
   notifications     Notification[]
   partnerAccesses   PartnerFleetAccess[]
+  bikeAssignments   BikeAssignment[]
+  pois              Poi[]
 }
 
 model User {
-  id                    String          @id @default(uuid()) @db.Uuid
-  fleetId               String          @db.Uuid
+  id                    String           @id @default(uuid()) @db.Uuid
+  fleetId               String           @db.Uuid
   role                  UserRole
   phone                 String?
   email                 String?
   passwordHash          String
-  status                UserStatus      @default(ACTIVE)
-  createdAt             DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime        @updatedAt @db.Timestamptz(6)
-  fleet                 Fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  trips                 Trip[]          @relation("TripRider")
+  status                UserStatus       @default(ACTIVE)
+  createdAt             DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime         @updatedAt @db.Timestamptz(6)
+  fleet                 Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  trips                 Trip[]           @relation("TripRider")
   auditLogs             AuditLog[]
   requestedCommands     DeviceCommand[]
-  acknowledgedIncidents Incident[]      @relation("IncidentAcknowledgedBy")
-  resolvedIncidents     Incident[]      @relation("IncidentResolvedBy")
+  acknowledgedIncidents Incident[]       @relation("IncidentAcknowledgedBy")
+  resolvedIncidents     Incident[]       @relation("IncidentResolvedBy")
+  riderProfile          RiderProfile?
+  bikeAssignments       BikeAssignment[] @relation("BikeAssignmentRider")
 
   @@unique([fleetId, email])
   @@unique([fleetId, phone])
@@ -169,21 +195,22 @@ model User {
 }
 
 model Bike {
-  id        String          @id @default(uuid()) @db.Uuid
-  fleetId   String          @db.Uuid
-  label     String
-  plate     String?
-  serial    String?
-  model     String?
-  status    BikeStatus      @default(ACTIVE)
-  createdAt DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime        @updatedAt @db.Timestamptz(6)
-  fleet     Fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  devices   Device[]
-  events    Event[]
-  trips     Trip[]
-  commands  DeviceCommand[]
-  incidents Incident[]
+  id          String           @id @default(uuid()) @db.Uuid
+  fleetId     String           @db.Uuid
+  label       String
+  plate       String?
+  serial      String?
+  model       String?
+  status      BikeStatus       @default(ACTIVE)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+  fleet       Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  devices     Device[]
+  events      Event[]
+  trips       Trip[]
+  commands    DeviceCommand[]
+  incidents   Incident[]
+  assignments BikeAssignment[]
 
   @@unique([fleetId, label])
   @@unique([fleetId, plate])
@@ -245,7 +272,7 @@ model Event {
   bikeId    String?       @db.Uuid
   deviceId  String        @db.Uuid
   ts        DateTime      @db.Timestamptz(6)
-  type      String
+  type      EventType
   severity  EventSeverity
   metaJson  Json
   createdAt DateTime      @default(now()) @db.Timestamptz(6)
@@ -259,6 +286,52 @@ model Event {
   @@index([ts])
   @@index([fleetId, ts])
   @@index([deviceId, ts])
+}
+
+model RiderProfile {
+  userId    String   @id @db.Uuid
+  fullName  String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BikeAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  fleetId      String    @db.Uuid
+  bikeId       String    @db.Uuid
+  riderUserId  String    @db.Uuid
+  assignedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  unassignedAt DateTime? @db.Timestamptz(6)
+  active       Boolean   @default(true)
+  fleet        Fleet     @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  bike         Bike      @relation(fields: [bikeId], references: [id], onDelete: Cascade)
+  rider        User      @relation("BikeAssignmentRider", fields: [riderUserId], references: [id], onDelete: Cascade)
+
+  @@index([fleetId])
+  @@index([bikeId])
+  @@index([riderUserId])
+  @@index([active])
+  @@index([fleetId, active])
+}
+
+model Poi {
+  id        String   @id @default(uuid()) @db.Uuid
+  fleetId   String?  @db.Uuid
+  type      PoiType
+  name      String
+  phone     String?
+  lat       Decimal  @db.Decimal(9, 6)
+  lng       Decimal  @db.Decimal(9, 6)
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  fleet     Fleet?   @relation(fields: [fleetId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([fleetId])
+  @@index([active])
+  @@index([fleetId, active])
 }
 
 model Trip {

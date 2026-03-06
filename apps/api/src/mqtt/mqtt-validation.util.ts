@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
+import { EventType } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
 
 const finiteNumber = z.number().finite();
@@ -38,7 +39,7 @@ export const telemetryPayloadSchema = telemetryPayloadWithoutSigSchema.extend({
 
 const eventPayloadWithoutSigSchema = z.object({
   ts: z.string().datetime({ offset: true }),
-  type: z.string().min(1).max(80),
+  type: z.nativeEnum(EventType),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   meta: z.record(z.string(), z.unknown()).default({}),
   nonce: z.string().uuid(),
