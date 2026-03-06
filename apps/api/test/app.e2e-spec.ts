@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
@@ -11,12 +11,19 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
   let prisma: PrismaClient;
   let httpServer: Parameters<typeof request>[0];
   let token = '';
+  let fleetId = '';
   let fleetBikeId = '';
   let foreignDeviceId = '';
   let foreignBikeId = '';
   let provisionedDeviceId = '';
   let provisionedDeviceSecret = '';
   let provisionedDeviceUid = '';
+  const runId = randomUUID().replace(/-/g, '');
+  const primaryFleetSeedId = randomUUID();
+  const foreignFleetSeedId = randomUUID();
+  const adminEmail = `admin.app.${runId}@demo.emoto`;
+  const dispatcherEmail = `dispatcher.app.${runId}@demo.emoto`;
+  const adminPhone = `+2507${runId.slice(0, 8)}`;
 
   // Seeds deterministic auth and fleet data required for login/RBAC assertions.
   const seedFixtures = async (): Promise<void> => {
@@ -24,33 +31,34 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     const dispatcherPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
     const fleet = await prisma.fleet.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000001' },
+      where: { id: primaryFleetSeedId },
       update: {},
       create: {
-        id: '00000000-0000-0000-0000-000000000001',
+        id: primaryFleetSeedId,
         name: 'Demo Fleet',
         type: 'DELIVERY',
       },
     });
+    fleetId = fleet.id;
 
     await prisma.user.upsert({
       where: {
         fleetId_email: {
           fleetId: fleet.id,
-          email: 'admin@demo.emoto',
+          email: adminEmail,
         },
       },
       update: {
         role: 'ADMIN',
-        phone: '+250700000001',
+        phone: adminPhone,
         passwordHash: adminPasswordHash,
         status: 'ACTIVE',
       },
       create: {
         fleetId: fleet.id,
         role: 'ADMIN',
-        email: 'admin@demo.emoto',
-        phone: '+250700000001',
+        email: adminEmail,
+        phone: adminPhone,
         passwordHash: adminPasswordHash,
         status: 'ACTIVE',
       },
@@ -79,7 +87,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       where: {
         fleetId_email: {
           fleetId: fleet.id,
-          email: 'dispatcher@demo.emoto',
+          email: dispatcherEmail,
         },
       },
       update: {
@@ -90,17 +98,17 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       create: {
         fleetId: fleet.id,
         role: 'DISPATCHER',
-        email: 'dispatcher@demo.emoto',
+        email: dispatcherEmail,
         passwordHash: dispatcherPasswordHash,
         status: 'ACTIVE',
       },
     });
 
     const foreignFleet = await prisma.fleet.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000099' },
+      where: { id: foreignFleetSeedId },
       update: {},
       create: {
-        id: '00000000-0000-0000-0000-000000000099',
+        id: foreignFleetSeedId,
         name: 'Foreign Fleet',
         type: 'COOP',
       },
@@ -190,7 +198,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     const login = await request(httpServer)
       .post('/auth/login')
       .send({
-        email: 'admin@demo.emoto',
+        email: adminEmail,
         password: 'ChangeMe123!',
       })
       .expect(200);
@@ -204,7 +212,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     const login = await request(httpServer)
       .post('/auth/login')
       .send({
-        phone: '+250700000001',
+        phone: adminPhone,
         password: 'ChangeMe123!',
       })
       .expect(200);
@@ -217,9 +225,9 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       .expect(200);
 
     const meBody = me.body as { email: string; role: string; fleetId: string };
-    expect(meBody.email).toBe('admin@demo.emoto');
+    expect(meBody.email).toBe(adminEmail);
     expect(meBody.role).toBe('ADMIN');
-    expect(meBody.fleetId).toBe('00000000-0000-0000-0000-000000000001');
+    expect(meBody.fleetId).toBe(fleetId);
   });
 
   it('blocks cross-fleet bike access', async () => {
@@ -364,7 +372,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     const dispatcherLogin = await request(httpServer)
       .post('/auth/login')
       .send({
-        email: 'dispatcher@demo.emoto',
+        email: dispatcherEmail,
         password: 'ChangeMe123!',
       })
       .expect(200);

@@ -106,6 +106,21 @@ Status values:
 }
 ```
 
+### `new_incident`
+
+Emitted when a crash incident is opened for the fleet.
+
+```json
+{
+  "id": "f6fcb4e5-7abd-4661-b22b-2d85e509f3ff",
+  "bikeId": "f9d7...",
+  "deviceId": "9f7d...",
+  "eventId": "281",
+  "status": "OPEN",
+  "createdAt": "2026-03-06T10:12:34.123Z"
+}
+```
+
 ## Example Client (TypeScript)
 
 ```ts
@@ -129,5 +144,8 @@ socket.on('bike_state', (payload) => console.log('bike_state', payload));
 socket.on('new_event', (payload) => console.log('new_event', payload));
 socket.on('command_status', (payload) =>
   console.log('command_status', payload),
+);
+socket.on('new_incident', (payload) =>
+  console.log('new_incident', payload),
 );
 ```

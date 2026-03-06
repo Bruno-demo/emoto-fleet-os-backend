@@ -40,6 +40,7 @@
     "@turf/boolean-point-in-polygon": "^7.3.4",
     "@turf/helpers": "^7.3.4",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.70.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "dotenv-cli": "^11.0.0",

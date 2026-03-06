@@ -1,22 +1,44 @@
 import { Injectable } from '@nestjs/common';
-import { Event, Prisma } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { Event, EventSeverity, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import {
   PaginatedResponse,
   createPaginatedResponse,
   getPaginationParams,
 } from '../common/pagination';
+import {
+  FleetIncident,
+  IncidentBroadcastPayload,
+} from '../incidents/incidents.types';
+import { IncidentsService } from '../incidents/incidents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListEventsDto } from './dto/list-events.dto';
 import { EventsGateway } from './events.gateway';
 import { CreateFleetEventInput, FleetEvent } from './events.types';
 
+const SEVERITY_ORDER: Record<EventSeverity, number> = {
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+};
+
 @Injectable()
 export class EventsService {
+  private readonly incidentCrashMinSeverity: EventSeverity;
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly eventsGateway: EventsGateway,
-  ) {}
+    private readonly incidentsService: IncidentsService,
+    private readonly configService: ConfigService,
+  ) {
+    this.incidentCrashMinSeverity = this.configService.get<EventSeverity>(
+      'INCIDENT_CRASH_MIN_SEVERITY',
+      EventSeverity.HIGH,
+    );
+  }
 
   // Returns fleet-scoped events with optional time range and type filtering.
   async listEventsForUser(
@@ -89,7 +111,47 @@ export class EventsService {
 
     const fleetEvent = this.toFleetEvent(event);
     this.eventsGateway.emitNewEvent(input.fleetId, fleetEvent);
+
+    const incident = await this.tryCreateIncidentFromCrashEvent(fleetEvent);
+    if (incident) {
+      this.eventsGateway.emitNewIncident(
+        input.fleetId,
+        this.toIncidentBroadcastPayload(incident),
+      );
+    }
+
     return fleetEvent;
+  }
+
+  // Creates incidents only for crash events meeting minimum severity threshold.
+  private async tryCreateIncidentFromCrashEvent(
+    event: FleetEvent,
+  ): Promise<FleetIncident | null> {
+    if (event.type !== 'CRASH') {
+      return null;
+    }
+
+    const eventSeverityRank = SEVERITY_ORDER[event.severity];
+    const thresholdSeverityRank = SEVERITY_ORDER[this.incidentCrashMinSeverity];
+    if (eventSeverityRank < thresholdSeverityRank) {
+      return null;
+    }
+
+    return this.incidentsService.createIncidentFromCrashEvent(event);
+  }
+
+  // Projects incident records into websocket-safe payloads for fleet dashboards.
+  private toIncidentBroadcastPayload(
+    incident: FleetIncident,
+  ): IncidentBroadcastPayload {
+    return {
+      id: incident.id,
+      bikeId: incident.bikeId,
+      deviceId: incident.deviceId,
+      eventId: incident.eventId,
+      status: incident.status,
+      createdAt: incident.createdAt.toISOString(),
+    };
   }
 
   // Converts Prisma event entity into API-safe representation.

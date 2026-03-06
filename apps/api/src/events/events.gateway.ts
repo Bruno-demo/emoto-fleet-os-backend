@@ -13,6 +13,7 @@ import { Server, Socket } from 'socket.io';
 import { Public } from '../auth/public.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { AuthService } from '../auth/auth.service';
+import { IncidentBroadcastPayload } from '../incidents/incidents.types';
 import { LiveBikeState } from '../ingestion/ingestion.types';
 import { FleetEvent } from './events.types';
 
@@ -124,6 +125,15 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
     }
 
     this.server.to(this.roomForFleet(fleetId)).emit('command_status', payload);
+  }
+
+  // Emits newly opened incidents to fleet websocket subscribers.
+  emitNewIncident(fleetId: string, payload: IncidentBroadcastPayload): void {
+    if (!this.server) {
+      return;
+    }
+
+    this.server.to(this.roomForFleet(fleetId)).emit('new_incident', payload);
   }
 
   // Authenticates a socket using bearer token from auth payload or headers.

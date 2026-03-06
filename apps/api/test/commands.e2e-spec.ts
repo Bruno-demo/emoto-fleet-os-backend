@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import {
@@ -18,58 +19,40 @@ describe('Device Commands API (e2e)', () => {
   let token = '';
   let fleetId = '';
   let bikeId = '';
+  let deviceId = '';
+  const runId = randomUUID().replace(/-/g, '');
+  const adminEmail = `admin.commands.${runId}@demo.emoto`;
+  const adminPhone = `+2507${runId.slice(0, 8)}`;
+  const bikeLabel = `Bike-CMD-${runId.slice(0, 6)}`;
+  const deviceUid = `DEV-CMD-${runId.slice(0, 8)}`;
 
   // Seeds deterministic admin + bike + device data for command endpoint assertions.
   const seedFixtures = async (): Promise<void> => {
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
-    const fleet = await prisma.fleet.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000001' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Demo Fleet',
+    const fleet = await prisma.fleet.create({
+      data: {
+        name: `Demo Fleet Commands ${runId.slice(0, 6)}`,
         type: 'DELIVERY',
       },
     });
     fleetId = fleet.id;
 
-    await prisma.user.upsert({
-      where: {
-        fleetId_email: {
-          fleetId,
-          email: 'admin@demo.emoto',
-        },
-      },
-      update: {
-        role: 'ADMIN',
-        phone: '+250700000001',
-        passwordHash: adminPasswordHash,
-        status: 'ACTIVE',
-      },
-      create: {
+    await prisma.user.create({
+      data: {
         fleetId,
         role: 'ADMIN',
-        email: 'admin@demo.emoto',
-        phone: '+250700000001',
+        email: adminEmail,
+        phone: adminPhone,
         passwordHash: adminPasswordHash,
         status: 'ACTIVE',
       },
     });
 
-    const bike = await prisma.bike.upsert({
-      where: {
-        fleetId_label: {
-          fleetId,
-          label: 'Bike-CMD-001',
-        },
-      },
-      update: {
-        status: 'ACTIVE',
-      },
-      create: {
+    const bike = await prisma.bike.create({
+      data: {
         fleetId,
-        label: 'Bike-CMD-001',
+        label: bikeLabel,
         status: 'ACTIVE',
       },
     });
@@ -80,24 +63,17 @@ describe('Device Commands API (e2e)', () => {
       'change_me_device_secret_master_key_32chars';
     const seedSecret = 'device-secret-cmd-001';
 
-    await prisma.device.upsert({
-      where: { deviceUid: 'DEV-CMD-0001' },
-      update: {
+    const device = await prisma.device.create({
+      data: {
         fleetId,
         bikeId,
-        status: 'ACTIVE',
-        secretHash: hashDeviceSecret(seedSecret),
-        secretEncrypted: encryptDeviceSecret(seedSecret, masterKey),
-      },
-      create: {
-        fleetId,
-        bikeId,
-        deviceUid: 'DEV-CMD-0001',
+        deviceUid,
         status: 'ACTIVE',
         secretHash: hashDeviceSecret(seedSecret),
         secretEncrypted: encryptDeviceSecret(seedSecret, masterKey),
       },
     });
+    deviceId = device.id;
   };
 
   // Writes fleet bike live state projection into Redis for lock safety checks.
@@ -113,8 +89,8 @@ describe('Device Commands API (e2e)', () => {
       JSON.stringify({
         fleetId,
         bikeId,
-        deviceId: '00000000-0000-0000-0000-000000000010',
-        deviceUid: 'DEV-CMD-0001',
+        deviceId,
+        deviceUid,
         ts,
         lat: -1.944,
         lng: 30.061,
@@ -139,7 +115,7 @@ describe('Device Commands API (e2e)', () => {
     redisService = app.get(RedisService);
 
     const login = await request(httpServer).post('/auth/login').send({
-      email: 'admin@demo.emoto',
+      email: adminEmail,
       password: 'ChangeMe123!',
     });
 
@@ -147,7 +123,9 @@ describe('Device Commands API (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
     await prisma.$disconnect();
   });
 

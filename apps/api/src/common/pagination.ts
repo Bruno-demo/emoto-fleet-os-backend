@@ -19,8 +19,14 @@ export interface PaginatedResponse<T> {
 export function getPaginationParams(
   query: PaginationQueryDto,
 ): PaginationParams {
-  const page = query.page ?? 1;
-  const pageSize = query.pageSize ?? 20;
+  const parsedPage = Number(query.page ?? 1);
+  const parsedPageSize = Number(query.pageSize ?? 20);
+  const page =
+    Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
+  const pageSize =
+    Number.isFinite(parsedPageSize) && parsedPageSize > 0
+      ? Math.floor(parsedPageSize)
+      : 20;
 
   return {
     page,

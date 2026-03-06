@@ -23,75 +23,48 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
   let bikeId = '';
   let deviceId = '';
   let adminUserId = '';
-  const deviceUid = 'DEV-WS-0001';
+  const runId = randomUUID().replace(/-/g, '');
+  const adminEmail = `admin.websocket.${runId}@demo.emoto`;
+  const adminPhone = `+2507${runId.slice(0, 8)}`;
+  const bikeLabel = `Bike-WS-${runId.slice(0, 6)}`;
+  const deviceUid = `DEV-WS-${runId.slice(0, 8)}`;
   let socket: Socket | null = null;
 
   // Seeds deterministic fleet data required for websocket auth and event delivery.
   const seedFixtures = async (): Promise<void> => {
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
-    const fleet = await prisma.fleet.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000001' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Demo Fleet',
+    const fleet = await prisma.fleet.create({
+      data: {
+        name: `Demo Fleet Websocket ${runId.slice(0, 6)}`,
         type: 'DELIVERY',
       },
     });
     fleetId = fleet.id;
 
-    const adminUser = await prisma.user.upsert({
-      where: {
-        fleetId_email: {
-          fleetId,
-          email: 'admin@demo.emoto',
-        },
-      },
-      update: {
-        role: 'ADMIN',
-        phone: '+250700000001',
-        passwordHash: adminPasswordHash,
-        status: 'ACTIVE',
-      },
-      create: {
+    const adminUser = await prisma.user.create({
+      data: {
         fleetId,
         role: 'ADMIN',
-        email: 'admin@demo.emoto',
-        phone: '+250700000001',
+        email: adminEmail,
+        phone: adminPhone,
         passwordHash: adminPasswordHash,
         status: 'ACTIVE',
       },
     });
     adminUserId = adminUser.id;
 
-    const bike = await prisma.bike.upsert({
-      where: {
-        fleetId_label: {
-          fleetId,
-          label: 'Bike-WS-001',
-        },
-      },
-      update: {
-        status: 'ACTIVE',
-      },
-      create: {
+    const bike = await prisma.bike.create({
+      data: {
         fleetId,
-        label: 'Bike-WS-001',
+        label: bikeLabel,
         status: 'ACTIVE',
       },
     });
     bikeId = bike.id;
 
-    const device = await prisma.device.upsert({
-      where: { deviceUid },
-      update: {
-        fleetId,
-        bikeId,
-        status: 'ACTIVE',
-        secretHash: 'seeded-hash-ws',
-      },
-      create: {
+    const device = await prisma.device.create({
+      data: {
         fleetId,
         bikeId,
         deviceUid,
@@ -196,7 +169,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     commandsService = app.get(CommandsService);
 
     const login = await request(httpServer).post('/auth/login').send({
-      email: 'admin@demo.emoto',
+      email: adminEmail,
       password: 'ChangeMe123!',
     });
 
@@ -208,7 +181,9 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
       socket.disconnect();
     }
 
-    await app.close();
+    if (app) {
+      await app.close();
+    }
     await prisma.$disconnect();
   });
 

@@ -69,6 +69,9 @@ API should run at `http://localhost:3000`.
 - `POST /bikes/:id/lock-actions` logs lock/unlock intent to audit log (lock integration pending).
 - `POST /commands/lock?bikeId=...` requests device lock command with safety checks.
 - `POST /commands/unlock?bikeId=...` requests device unlock command.
+- `GET /incidents?from&to&status`, `GET /incidents/:id`
+- `POST /incidents/:id/acknowledge`, `POST /incidents/:id/resolve`
+- `CRUD /contacts` for emergency notification recipients
 
 Pagination:
 - List endpoints support `?page` and `?pageSize` (max 100).
@@ -91,7 +94,7 @@ Rules engine emits:
 WebSocket stream:
 - Namespace: `/fleet-events`
 - Client event: `subscribe_live`
-- Server events: `bike_state`, `new_event`, `command_status`
+- Server events: `bike_state`, `new_event`, `new_incident`, `command_status`
 - Full contract: `docs/websocket.md`
 
 ## Auth Endpoints
@@ -117,6 +120,9 @@ WebSocket stream:
 
 ## MQTT Contract
 - Contract and signing rules: `docs/mqtt-contract.md`
+
+## Incidents
+- Lifecycle and notification outbox details: `docs/incidents.md`
 
 ## Docker Ports
 - PostgreSQL: `5432`
@@ -174,6 +180,7 @@ EMQX_DASHBOARD_PASSWORD=public
 
 DEVICE_SECRET_MASTER_KEY=change_me_device_secret_master_key_32chars
 COMMAND_TTL_SECONDS=45
+INCIDENT_CRASH_MIN_SEVERITY=HIGH
 JWT_SECRET=change_me_change_me
 JWT_EXPIRES_IN=1h
 AUTH_REGISTER_ENABLED=false
