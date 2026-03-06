@@ -211,6 +211,28 @@ export class IncidentsService {
     return this.toFleetIncident(updatedIncident);
   }
 
+  // Marks an incident as FALSE_ALARM by the authenticated fleet user.
+  async markIncidentFalseAlarmForUser(
+    user: AuthenticatedUser,
+    id: string,
+    dto: IncidentStatusActionDto,
+  ): Promise<FleetIncident> {
+    const incident = await this.loadIncidentOrThrow(id);
+    this.assertFleetAccess(incident.fleetId, user);
+
+    const updatedIncident = await this.prismaService.incident.update({
+      where: { id },
+      data: {
+        status: IncidentStatus.FALSE_ALARM,
+        resolvedByUserId: user.id,
+        resolvedAt: new Date(),
+        notes: dto.notes ?? incident.notes,
+      },
+    });
+
+    return this.toFleetIncident(updatedIncident);
+  }
+
   // Builds notification payload data for crash alerts.
   private buildCrashNotificationPayload(
     event: FleetEvent,

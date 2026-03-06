@@ -14,6 +14,7 @@ export const userStatusSchema = z.enum(['INVITED', 'ACTIVE', 'SUSPENDED', 'DISAB
 export const authUserSchema = z.object({
   id: z.string().uuid(),
   fleetId: z.string().uuid(),
+  fleetName: z.string().nullable().optional(),
   role: userRoleSchema,
   email: z.string().nullable(),
   phone: z.string().nullable(),

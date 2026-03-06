@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { canManageZones } from '@/lib/auth/roles';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { clearAuthToken } from '@/lib/auth/session';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
 
@@ -19,6 +21,7 @@ const NAV_LINKS = [
 export function DashboardNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: user } = useCurrentUser();
 
   // Clears current auth state and websocket connection before returning to login.
   const handleLogout = () => {
@@ -26,6 +29,13 @@ export function DashboardNav() {
     clearAuthToken();
     router.replace('/login');
   };
+
+  const visibleLinks = NAV_LINKS.filter((link) => {
+    if (link.href === '/zones' && user && !canManageZones(user.role)) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <aside className="border-b border-line bg-surface/95 p-4 backdrop-blur md:min-h-screen md:border-r md:border-b-0 md:p-6">
@@ -37,7 +47,7 @@ export function DashboardNav() {
       </div>
 
       <nav className="mt-6 grid gap-2">
-        {NAV_LINKS.map((link) => {
+        {visibleLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
             <Link

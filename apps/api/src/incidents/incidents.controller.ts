@@ -81,4 +81,15 @@ export class IncidentsController {
   ): Promise<FleetIncident> {
     return this.incidentsService.resolveIncidentForUser(user, id, dto);
   }
+
+  @Post(':id/false-alarm')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({ summary: 'Mark an incident as false alarm' })
+  async markIncidentFalseAlarm(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: IncidentStatusActionDto,
+  ): Promise<FleetIncident> {
+    return this.incidentsService.markIncidentFalseAlarmForUser(user, id, dto);
+  }
 }

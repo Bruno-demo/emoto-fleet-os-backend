@@ -183,6 +183,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
   // Shapes live bike-state payload for websocket clients.
   private toBikeStatePayload(state: LiveBikeState): Record<string, unknown> {
     return {
+      fleetId: state.fleetId,
       bikeId: state.bikeId,
       deviceId: state.deviceId,
       ts: state.ts,
