@@ -5,6 +5,7 @@ Monorepo scaffold for e-moto telematics using NestJS + TypeScript backend and Ne
 ## Stack
 - NestJS API in `apps/api`
 - Next.js dashboard in `apps/dashboard`
+- Expo React Native rider app in `apps/rider`
 - PostgreSQL (TimescaleDB image) via Docker Compose
 - Redis via Docker Compose
 - EMQX MQTT broker via Docker Compose
@@ -43,6 +44,13 @@ npm run dev:dashboard
 ```
 
 Dashboard runs at `http://localhost:3001`.
+
+6. Start rider app (Expo):
+```bash
+npm run dev:rider
+```
+
+Rider app opens in Expo on `http://localhost:8082` (QR/dev-client workflow). Set `EXPO_PUBLIC_API_URL` in `apps/rider/.env` when using a physical device.
 
 ## Troubleshooting
 - If Docker shows `dockerDesktopLinuxEngine` pipe errors, wait for Docker Desktop to finish starting or restart Docker Desktop.
@@ -174,6 +182,7 @@ npm run dev:stack:down
 npm run dev:stack:logs
 npm run dev:api
 npm run dev:dashboard
+npm run dev:rider
 npm run dev
 npm run build
 npm run lint
@@ -193,6 +202,7 @@ npm run format
 NODE_ENV=development
 PORT=3000
 NEXT_PUBLIC_API_URL=http://localhost:3000
+EXPO_PUBLIC_API_URL=http://localhost:3000
 
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
@@ -258,6 +268,23 @@ TRIP_SCORE_WEIGHT_HARSH_CORNER=0.8
 TRIP_SCORE_WEIGHT_CRASH=4
 TRIP_SCORE_WEIGHT_THEFT_SUSPECTED=3
 ```
+
+## Rider App
+- Location: `apps/rider`
+- Copy rider env sample:
+```bash
+cp apps/rider/.env.example apps/rider/.env
+```
+- Start Expo:
+```bash
+npm run dev:rider
+```
+- Rider flow included in scaffold:
+  - Login (phone + password)
+  - Home score/quick stats
+  - Trips list + trip detail
+  - SOS confirm/action
+  - Nearby POIs via device GPS
 
 ## Telemetry Ingestion
 - API subscribes to:
