@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { apiFetch } from '../api/client';
 import { loginResponseSchema, riderMeResponseSchema } from '../api/schemas';
+import { logAppError } from '../monitoring/error-log';
 import { clearAuthToken, readAuthToken, writeAuthToken } from './session';
 import type { AuthUser, RiderMeResponse } from '../types/api';
 
@@ -67,7 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       setRiderMe(me);
       setStatus('authenticated');
-    } catch {
+    } catch (error: unknown) {
+      logAppError('auth.bootstrap_failed', error, {
+        feature: 'auth',
+        operation: 'bootstrapSession',
+      });
       await clearAuthToken();
       setToken(null);
       setUser(null);
@@ -79,31 +84,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Executes rider login via phone/password and persists JWT on success.
   const login = useCallback(
     async (phone: string, password: string): Promise<void> => {
-      const payload = await apiFetch('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          phone,
-          password,
-        }),
-      }, {
-        auth: false,
-        schema: loginResponseSchema,
-      });
+      try {
+        const payload = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            phone,
+            password,
+          }),
+        }, {
+          auth: false,
+          schema: loginResponseSchema,
+        });
 
-      if (payload.user.role !== 'RIDER') {
-        throw new Error('This account is not a rider account');
+        if (payload.user.role !== 'RIDER') {
+          throw new Error('This account is not a rider account');
+        }
+
+        await writeAuthToken(payload.accessToken);
+        const me = await apiFetch('/rider/me', undefined, {
+          schema: riderMeResponseSchema,
+          token: payload.accessToken,
+        });
+
+        setToken(payload.accessToken);
+        setUser(payload.user);
+        setRiderMe(me);
+        setStatus('authenticated');
+      } catch (error: unknown) {
+        logAppError('auth.login_failed', error, {
+          feature: 'auth',
+          operation: 'login',
+        });
+        throw error;
       }
-
-      await writeAuthToken(payload.accessToken);
-      const me = await apiFetch('/rider/me', undefined, {
-        schema: riderMeResponseSchema,
-        token: payload.accessToken,
-      });
-
-      setToken(payload.accessToken);
-      setUser(payload.user);
-      setRiderMe(me);
-      setStatus('authenticated');
     },
     [],
   );
@@ -125,14 +138,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const me = await apiFetch('/rider/me', undefined, {
-      schema: riderMeResponseSchema,
-      token: storedToken,
-    });
+    try {
+      const me = await apiFetch('/rider/me', undefined, {
+        schema: riderMeResponseSchema,
+        token: storedToken,
+      });
 
-    setRiderMe(me);
-    setToken(storedToken);
-    setStatus('authenticated');
+      setRiderMe(me);
+      setToken(storedToken);
+      setStatus('authenticated');
+    } catch (error: unknown) {
+      logAppError('auth.refresh_me_failed', error, {
+        feature: 'auth',
+        operation: 'refreshRiderMe',
+      });
+      throw error;
+    }
   }, [token]);
 
   useEffect(() => {

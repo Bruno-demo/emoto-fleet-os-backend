@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LoadingState } from '../components/loading-state';
 import { ScreenContainer } from '../components/screen-container';
-import { apiFetch } from '../lib/api/client';
+import { ApiError, apiFetch } from '../lib/api/client';
 import { buildQueryString } from '../lib/api/query-string';
 import { paginatedResponseSchema, riderTripSchema } from '../lib/api/schemas';
+import { logAppError } from '../lib/monitoring/error-log';
 import type { PaginatedResponse, RiderTripSummary } from '../lib/types/api';
 import type { RiderTripsStackParamList } from '../navigation/navigation.types';
 
@@ -42,6 +43,14 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
     return <LoadingState message="Loading your trips..." />;
   }
 
+  if (tripsQuery.isError) {
+    logAppError('rider.trips_list_failed', tripsQuery.error, {
+      feature: 'trips',
+      operation: 'list',
+      status: tripsQuery.error instanceof ApiError ? tripsQuery.error.status : undefined,
+    });
+  }
+
   const payload = tripsQuery.data;
   const rows = payload?.data ?? [];
   const canGoPrevious = page > 1;
@@ -63,7 +72,7 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
         rows.map((trip) => (
           <Pressable
             key={trip.id}
-            onPress={() => navigation.navigate('TripDetail', { trip })}
+            onPress={() => navigation.navigate('TripDetail', { tripId: trip.id })}
             style={styles.tripCard}
           >
             <Text style={styles.tripTitle}>
@@ -81,6 +90,12 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
           </Pressable>
         ))
       )}
+
+      {tripsQuery.isError ? (
+        <Text style={styles.errorText}>
+          Unable to load some trips right now. Pull to refresh.
+        </Text>
+      ) : null}
 
       <View style={styles.pagination}>
         <Pressable
@@ -170,5 +185,10 @@ const styles = StyleSheet.create({
   pageLabel: {
     fontSize: 13,
     color: '#4b5563',
+  },
+  errorText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

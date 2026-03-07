@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -6,13 +14,16 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginatedResponse } from '../common/pagination';
 import { PoiNearQueryDto } from './dto/poi-near-query.dto';
+import { RiderEventsQueryDto } from './dto/rider-events-query.dto';
 import { RiderSosDto } from './dto/rider-sos.dto';
 import { RiderTripsQueryDto } from './dto/rider-trips-query.dto';
 import { RiderWeeklyScoreQueryDto } from './dto/rider-weekly-score-query.dto';
 import type {
   NearbyPoiSummary,
+  RiderEventSummary,
   RiderMeResponse,
   RiderSosResponse,
+  RiderTripDetail,
   RiderTripSummary,
   RiderWeeklyScoreResponse,
 } from './riders.types';
@@ -41,6 +52,30 @@ export class RiderController {
     @Query() query: RiderTripsQueryDto,
   ): Promise<PaginatedResponse<RiderTripSummary>> {
     return this.ridersService.listRiderTrips(user, query);
+  }
+
+  @Get('trips/:id')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({
+    summary: 'Load a rider trip with score breakdown and event counts',
+  })
+  async getMyTripDetail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) tripId: string,
+  ): Promise<RiderTripDetail> {
+    return this.ridersService.getRiderTripDetail(user, tripId);
+  }
+
+  @Get('events')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({
+    summary: 'List recent rider alerts for the active assigned bike',
+  })
+  async listMyRecentEvents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: RiderEventsQueryDto,
+  ): Promise<RiderEventSummary[]> {
+    return this.ridersService.listRiderEvents(user, query);
   }
 
   @Get('score/weekly')

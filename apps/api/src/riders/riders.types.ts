@@ -1,5 +1,6 @@
 import { BikeStatus, PoiType, UserStatus } from '@prisma/client';
 import type { FleetEvent } from '../events/events.types';
+import { TripEventCounts, TripScoreWeights } from '../trips/trip-scoring.util';
 
 export interface RiderSummary {
   id: string;
@@ -59,6 +60,37 @@ export interface RiderTripSummary {
   distanceKm: number;
   durationSec: number;
   score: number;
+}
+
+export interface RiderTripScoreBreakdown {
+  minDistanceKm: number;
+  normalizedDistanceKm: number;
+  penaltyMultiplier: number;
+  weights: TripScoreWeights;
+  penalties: {
+    OVERSPEED: number;
+    HARSH_BRAKE: number;
+    HARSH_ACCEL: number;
+    HARSH_CORNER: number;
+    CRASH: number;
+    THEFT_SUSPECTED: number;
+    total: number;
+  };
+}
+
+export interface RiderTripDetail extends RiderTripSummary {
+  eventCounts: TripEventCounts;
+  scoreBreakdown: RiderTripScoreBreakdown;
+}
+
+export interface RiderEventSummary {
+  id: string;
+  bikeId: string | null;
+  deviceId: string;
+  ts: string;
+  type: FleetEvent['type'];
+  severity: FleetEvent['severity'];
+  createdAt: string;
 }
 
 export interface RiderWeeklyScoreResponse {

@@ -47,6 +47,43 @@ export interface RiderTripSummary {
   score: number;
 }
 
+export interface RiderTripEventCounts {
+  OVERSPEED: number;
+  HARSH_BRAKE: number;
+  HARSH_ACCEL: number;
+  HARSH_CORNER: number;
+  CRASH: number;
+  THEFT_SUSPECTED: number;
+}
+
+export interface RiderTripScoreBreakdown {
+  minDistanceKm: number;
+  normalizedDistanceKm: number;
+  penaltyMultiplier: number;
+  weights: {
+    overspeed: number;
+    harshBrake: number;
+    harshAccel: number;
+    harshCorner: number;
+    crash: number;
+    theftSuspected: number;
+  };
+  penalties: {
+    OVERSPEED: number;
+    HARSH_BRAKE: number;
+    HARSH_ACCEL: number;
+    HARSH_CORNER: number;
+    CRASH: number;
+    THEFT_SUSPECTED: number;
+    total: number;
+  };
+}
+
+export interface RiderTripDetail extends RiderTripSummary {
+  eventCounts: RiderTripEventCounts;
+  scoreBreakdown: RiderTripScoreBreakdown;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   page: number;
@@ -81,6 +118,23 @@ export interface NearbyPoi {
   createdAt: string;
   updatedAt: string;
   distanceKm: number;
+}
+
+export interface RiderEventSummary {
+  id: string;
+  bikeId: string | null;
+  deviceId: string;
+  ts: string;
+  type:
+    | 'OVERSPEED'
+    | 'HARSH_BRAKE'
+    | 'HARSH_ACCEL'
+    | 'HARSH_CORNER'
+    | 'CRASH'
+    | 'THEFT_SUSPECTED'
+    | 'SOS';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  createdAt: string;
 }
 
 export interface RiderSosResponse {

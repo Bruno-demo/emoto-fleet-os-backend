@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { ApiError } from '../lib/api/client';
 import { useAuth } from '../lib/auth/auth-context';
+import { logAppError } from '../lib/monitoring/error-log';
 
 // Collects rider phone/password and initiates authenticated session flow.
 export function LoginScreen() {
@@ -33,6 +34,11 @@ export function LoginScreen() {
     try {
       await auth.login(phone.trim(), password);
     } catch (error: unknown) {
+      logAppError('rider.login_failed', error, {
+        feature: 'auth',
+        operation: 'login',
+        status: error instanceof ApiError ? error.status : undefined,
+      });
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else if (error instanceof Error) {

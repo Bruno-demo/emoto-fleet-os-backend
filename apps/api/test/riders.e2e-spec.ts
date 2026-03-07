@@ -18,6 +18,8 @@ describe('Rider APIs (e2e)', () => {
   let riderToken = '';
   let fleetId = '';
   let riderUserId = '';
+  let bikeId = '';
+  let deviceId = '';
   let ownTripId = '';
   let otherRiderTripId = '';
   let emergencyPhone = '';
@@ -81,8 +83,9 @@ describe('Rider APIs (e2e)', () => {
         status: 'ACTIVE',
       },
     });
+    bikeId = bike.id;
 
-    await prisma.device.create({
+    const device = await prisma.device.create({
       data: {
         fleetId,
         bikeId: bike.id,
@@ -91,6 +94,7 @@ describe('Rider APIs (e2e)', () => {
         secretHash: 'seeded-hash-rider',
       },
     });
+    deviceId = device.id;
 
     await prisma.bikeAssignment.create({
       data: {
@@ -139,6 +143,38 @@ describe('Rider APIs (e2e)', () => {
       },
     });
     otherRiderTripId = otherTrip.id;
+
+    await prisma.event.createMany({
+      data: [
+        {
+          fleetId,
+          bikeId,
+          deviceId,
+          ts: new Date('2026-03-06T09:05:00.000Z'),
+          type: EventType.OVERSPEED,
+          severity: EventSeverity.MEDIUM,
+          metaJson: { source: 'test' },
+        },
+        {
+          fleetId,
+          bikeId,
+          deviceId,
+          ts: new Date('2026-03-06T09:06:00.000Z'),
+          type: EventType.HARSH_BRAKE,
+          severity: EventSeverity.HIGH,
+          metaJson: { source: 'test' },
+        },
+        {
+          fleetId,
+          bikeId,
+          deviceId,
+          ts: new Date('2026-03-06T11:20:00.000Z'),
+          type: EventType.SOS,
+          severity: EventSeverity.HIGH,
+          metaJson: { source: 'test' },
+        },
+      ],
+    });
   };
 
   // Authenticates the seeded rider account and returns a bearer token.
@@ -252,5 +288,48 @@ describe('Rider APIs (e2e)', () => {
       },
     });
     expect(sosAudit).not.toBeNull();
+  });
+
+  it('returns rider trip detail with event counts and score breakdown', async () => {
+    const response = await request(httpServer)
+      .get(`/rider/trips/${ownTripId}`)
+      .set('Authorization', `Bearer ${riderToken}`)
+      .expect(200);
+
+    const body = response.body as {
+      id: string;
+      eventCounts: {
+        OVERSPEED: number;
+        HARSH_BRAKE: number;
+      };
+      scoreBreakdown: {
+        penalties: {
+          total: number;
+        };
+      };
+    };
+
+    expect(body.id).toBe(ownTripId);
+    expect(body.eventCounts.OVERSPEED).toBeGreaterThanOrEqual(1);
+    expect(body.eventCounts.HARSH_BRAKE).toBeGreaterThanOrEqual(1);
+    expect(body.scoreBreakdown.penalties.total).toBeGreaterThan(0);
+  });
+
+  it('returns recent rider events for assigned bike', async () => {
+    const response = await request(httpServer)
+      .get('/rider/events?limit=5')
+      .set('Authorization', `Bearer ${riderToken}`)
+      .expect(200);
+
+    const body = response.body as Array<{
+      id: string;
+      bikeId: string | null;
+    }>;
+
+    expect(body.length).toBeGreaterThan(0);
+    for (const event of body) {
+      expect(event.id).toMatch(/^\d+$/);
+      expect(event.bikeId).toBe(bikeId);
+    }
   });
 });

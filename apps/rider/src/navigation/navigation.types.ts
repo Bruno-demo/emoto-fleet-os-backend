@@ -1,7 +1,3 @@
-import type {
-  RiderTripSummary,
-} from '../lib/types/api';
-
 export type RiderRootStackParamList = {
   Login: undefined;
   App: undefined;
@@ -17,6 +13,6 @@ export type RiderTabParamList = {
 export type RiderTripsStackParamList = {
   TripsList: undefined;
   TripDetail: {
-    trip: RiderTripSummary;
+    tripId: string;
   };
 };

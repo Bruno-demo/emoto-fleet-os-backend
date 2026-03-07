@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   AuditActionType,
   EventSeverity,
+  EventType,
   NotificationChannel,
   NotificationType,
   Poi,
@@ -35,6 +36,7 @@ import { ListPoiDto } from './dto/list-poi.dto';
 import { ListRidersDto } from './dto/list-riders.dto';
 import { PoiNearQueryDto } from './dto/poi-near-query.dto';
 import { RiderSosDto } from './dto/rider-sos.dto';
+import { RiderEventsQueryDto } from './dto/rider-events-query.dto';
 import { RiderTripsQueryDto } from './dto/rider-trips-query.dto';
 import { RiderWeeklyScoreQueryDto } from './dto/rider-weekly-score-query.dto';
 import { UpdatePoiDto } from './dto/update-poi.dto';
@@ -42,12 +44,20 @@ import type {
   AssignmentSummary,
   NearbyPoiSummary,
   PoiSummary,
+  RiderEventSummary,
   RiderMeResponse,
   RiderSosResponse,
+  RiderTripDetail,
   RiderSummary,
   RiderTripSummary,
   RiderWeeklyScoreResponse,
 } from './riders.types';
+import {
+  EMPTY_TRIP_EVENT_COUNTS,
+  TripEventCounts,
+  TripScoreWeights,
+  normalizeTripEventCounts,
+} from '../trips/trip-scoring.util';
 
 interface RiderIdentity {
   id: string;
@@ -75,13 +85,49 @@ interface RiderIdentity {
 
 @Injectable()
 export class RidersService {
+  private readonly tripScoreMinDistanceKm: number;
+  private readonly tripPenaltyMultiplier: number;
+  private readonly tripScoreWeights: TripScoreWeights;
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly eventsService: EventsService,
     private readonly notificationOutboxService: NotificationOutboxService,
-  ) {}
+  ) {
+    this.tripScoreMinDistanceKm = this.configService.get<number>(
+      'TRIP_SCORE_MIN_DISTANCE_KM',
+      1,
+    );
+    this.tripPenaltyMultiplier = this.configService.get<number>(
+      'TRIP_SCORE_PENALTY_MULTIPLIER',
+      20,
+    );
+    this.tripScoreWeights = {
+      overspeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_OVERSPEED',
+        1.2,
+      ),
+      harshBrake: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_HARSH_BRAKE',
+        1,
+      ),
+      harshAccel: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_HARSH_ACCEL',
+        0.8,
+      ),
+      harshCorner: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_HARSH_CORNER',
+        0.8,
+      ),
+      crash: this.configService.get<number>('TRIP_SCORE_WEIGHT_CRASH', 4),
+      theftSuspected: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_THEFT_SUSPECTED',
+        3,
+      ),
+    };
+  }
 
   // Creates one rider account/profile and optionally assigns a bike in one transactional workflow.
   async createRiderForUser(
@@ -496,6 +542,98 @@ export class RidersService {
     );
   }
 
+  // Loads one rider-owned trip and attaches score breakdown and grouped event counters.
+  async getRiderTripDetail(
+    user: AuthenticatedUser,
+    tripId: string,
+  ): Promise<RiderTripDetail> {
+    const trip = await this.prismaService.trip.findFirst({
+      where: {
+        id: tripId,
+        fleetId: user.fleetId,
+        riderId: user.id,
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    const eventCounts = await this.getTripEventCountsForWindow(
+      trip.fleetId,
+      trip.bikeId,
+      trip.startTs,
+      trip.endTs,
+    );
+
+    return {
+      id: trip.id,
+      bikeId: trip.bikeId,
+      startTs: trip.startTs.toISOString(),
+      endTs: trip.endTs?.toISOString() ?? null,
+      distanceKm: Number(trip.distanceKm),
+      durationSec: trip.durationSec,
+      score: Number(trip.score),
+      eventCounts,
+      scoreBreakdown: this.computeTripScoreBreakdown(
+        Number(trip.distanceKm),
+        eventCounts,
+      ),
+    };
+  }
+
+  // Lists recent rider-visible events for assigned bike context on mobile home alerts.
+  async listRiderEvents(
+    user: AuthenticatedUser,
+    query: RiderEventsQueryDto,
+  ): Promise<RiderEventSummary[]> {
+    const rider = await this.loadRiderIdentityOrThrow(user.id, user.fleetId);
+    const assignedBikeIds = rider.bikeAssignments.map(
+      (assignment) => assignment.bikeId,
+    );
+    if (assignedBikeIds.length === 0) {
+      return [];
+    }
+
+    const targetBikeId = query.bikeId ?? assignedBikeIds[0];
+    if (!assignedBikeIds.includes(targetBikeId)) {
+      throw new ForbiddenException('Rider can only view assigned bike alerts');
+    }
+
+    const where: Prisma.EventWhereInput = {
+      fleetId: user.fleetId,
+      bikeId: targetBikeId,
+    };
+    if (query.from || query.to) {
+      where.ts = {};
+      if (query.from) {
+        where.ts.gte = new Date(query.from);
+      }
+      if (query.to) {
+        where.ts.lte = new Date(query.to);
+      }
+    }
+
+    const limit = query.limit ?? 5;
+    const events = await this.prismaService.event.findMany({
+      where,
+      orderBy: {
+        ts: 'desc',
+      },
+      take: limit,
+    });
+
+    return events.map((event) => ({
+      id: event.id.toString(),
+      bikeId: event.bikeId,
+      deviceId: event.deviceId,
+      ts: event.ts.toISOString(),
+      type: event.type,
+      severity: event.severity,
+      createdAt: event.createdAt.toISOString(),
+    }));
+  }
+
   // Computes weekly rider scoring aggregates from rider-linked trips.
   async getRiderWeeklyScore(
     user: AuthenticatedUser,
@@ -643,6 +781,122 @@ export class RidersService {
       notifiedContacts: emergencyContacts.length,
       type: 'SOS',
     };
+  }
+
+  // Aggregates trip-window event counts that feed rider detail score transparency.
+  private async getTripEventCountsForWindow(
+    fleetId: string,
+    bikeId: string,
+    startTs: Date,
+    endTs: Date | null,
+  ): Promise<TripEventCounts> {
+    if (!endTs) {
+      return { ...EMPTY_TRIP_EVENT_COUNTS };
+    }
+
+    const groupedRows = await this.prismaService.event.groupBy({
+      by: ['type'],
+      where: {
+        fleetId,
+        bikeId,
+        ts: {
+          gte: startTs,
+          lte: endTs,
+        },
+        type: {
+          in: [
+            EventType.OVERSPEED,
+            EventType.HARSH_BRAKE,
+            EventType.HARSH_ACCEL,
+            EventType.HARSH_CORNER,
+            EventType.CRASH,
+            EventType.THEFT_SUSPECTED,
+          ],
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    return normalizeTripEventCounts(
+      groupedRows.map((row) => ({
+        type: row.type,
+        count: row._count._all,
+      })),
+    );
+  }
+
+  // Derives a score explanation payload from configured weights and trip event counts.
+  private computeTripScoreBreakdown(
+    distanceKm: number,
+    counts: TripEventCounts,
+  ): RiderTripDetail['scoreBreakdown'] {
+    const normalizedDistanceKm = Math.max(
+      distanceKm,
+      this.tripScoreMinDistanceKm,
+    );
+    const weightedBaseByType = {
+      OVERSPEED: counts.OVERSPEED * this.tripScoreWeights.overspeed,
+      HARSH_BRAKE: counts.HARSH_BRAKE * this.tripScoreWeights.harshBrake,
+      HARSH_ACCEL: counts.HARSH_ACCEL * this.tripScoreWeights.harshAccel,
+      HARSH_CORNER: counts.HARSH_CORNER * this.tripScoreWeights.harshCorner,
+      CRASH: counts.CRASH * this.tripScoreWeights.crash,
+      THEFT_SUSPECTED:
+        counts.THEFT_SUSPECTED * this.tripScoreWeights.theftSuspected,
+    };
+
+    const penalties = {
+      OVERSPEED: this.roundScorePenalty(
+        (weightedBaseByType.OVERSPEED / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      HARSH_BRAKE: this.roundScorePenalty(
+        (weightedBaseByType.HARSH_BRAKE / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      HARSH_ACCEL: this.roundScorePenalty(
+        (weightedBaseByType.HARSH_ACCEL / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      HARSH_CORNER: this.roundScorePenalty(
+        (weightedBaseByType.HARSH_CORNER / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      CRASH: this.roundScorePenalty(
+        (weightedBaseByType.CRASH / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      THEFT_SUSPECTED: this.roundScorePenalty(
+        (weightedBaseByType.THEFT_SUSPECTED / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+    };
+
+    const total = this.roundScorePenalty(
+      penalties.OVERSPEED +
+        penalties.HARSH_BRAKE +
+        penalties.HARSH_ACCEL +
+        penalties.HARSH_CORNER +
+        penalties.CRASH +
+        penalties.THEFT_SUSPECTED,
+    );
+
+    return {
+      minDistanceKm: this.tripScoreMinDistanceKm,
+      normalizedDistanceKm: this.roundScorePenalty(normalizedDistanceKm),
+      penaltyMultiplier: this.tripPenaltyMultiplier,
+      weights: this.tripScoreWeights,
+      penalties: {
+        ...penalties,
+        total,
+      },
+    };
+  }
+
+  // Rounds score-related decimal values to two places for stable mobile rendering.
+  private roundScorePenalty(value: number): number {
+    return Number(value.toFixed(2));
   }
 
   // Reusable transactional assignment workflow with fleet/rider validation and audit logging.

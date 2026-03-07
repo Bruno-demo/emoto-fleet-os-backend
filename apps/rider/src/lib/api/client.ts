@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { API_BASE_URL } from '../../config/env';
 import { readAuthToken } from '../auth/session';
+import { logAppError } from '../monitoring/error-log';
 
 export class ApiError extends Error {
   constructor(
@@ -100,6 +101,11 @@ export async function apiFetch<T = unknown>(
       headers,
     });
   } catch (error: unknown) {
+    logAppError('api.network_failure', error, {
+      feature: 'api',
+      operation: path,
+      status: 0,
+    });
     throw new ApiError(
       0,
       error instanceof Error ? error.message : 'Network request failed',
@@ -109,6 +115,11 @@ export async function apiFetch<T = unknown>(
 
   const body = await parseResponseBody(response);
   if (!response.ok) {
+    logAppError('api.http_error', body, {
+      feature: 'api',
+      operation: path,
+      status: response.status,
+    });
     throw new ApiError(
       response.status,
       extractErrorMessage(body, `Request failed with status ${response.status}`),

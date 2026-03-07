@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const numericIdSchema = z.string().regex(/^\d+$/);
+
 const authUserSchema = z.object({
   id: z.string().uuid(),
   fleetId: z.string().uuid(),
@@ -47,6 +49,43 @@ export const riderTripSchema = z.object({
   score: z.number(),
 });
 
+const riderTripEventCountsSchema = z.object({
+  OVERSPEED: z.number(),
+  HARSH_BRAKE: z.number(),
+  HARSH_ACCEL: z.number(),
+  HARSH_CORNER: z.number(),
+  CRASH: z.number(),
+  THEFT_SUSPECTED: z.number(),
+});
+
+const riderTripScoreBreakdownSchema = z.object({
+  minDistanceKm: z.number(),
+  normalizedDistanceKm: z.number(),
+  penaltyMultiplier: z.number(),
+  weights: z.object({
+    overspeed: z.number(),
+    harshBrake: z.number(),
+    harshAccel: z.number(),
+    harshCorner: z.number(),
+    crash: z.number(),
+    theftSuspected: z.number(),
+  }),
+  penalties: z.object({
+    OVERSPEED: z.number(),
+    HARSH_BRAKE: z.number(),
+    HARSH_ACCEL: z.number(),
+    HARSH_CORNER: z.number(),
+    CRASH: z.number(),
+    THEFT_SUSPECTED: z.number(),
+    total: z.number(),
+  }),
+});
+
+export const riderTripDetailSchema = riderTripSchema.extend({
+  eventCounts: riderTripEventCountsSchema,
+  scoreBreakdown: riderTripScoreBreakdownSchema,
+});
+
 // Generates a typed schema for the API pagination envelope.
 export function paginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T) {
   return z.object({
@@ -84,9 +123,27 @@ export const nearbyPoiSchema = z.object({
   distanceKm: z.number(),
 });
 
+export const riderEventSchema = z.object({
+  id: numericIdSchema,
+  bikeId: z.string().uuid().nullable(),
+  deviceId: z.string().uuid(),
+  ts: z.string(),
+  type: z.enum([
+    'OVERSPEED',
+    'HARSH_BRAKE',
+    'HARSH_ACCEL',
+    'HARSH_CORNER',
+    'CRASH',
+    'THEFT_SUSPECTED',
+    'SOS',
+  ]),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  createdAt: z.string(),
+});
+
 export const riderSosResponseSchema = z.object({
   event: z.object({
-    id: z.string().uuid(),
+    id: numericIdSchema,
     fleetId: z.string().uuid(),
     bikeId: z.string().uuid().nullable(),
     deviceId: z.string().uuid(),

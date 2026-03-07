@@ -12,6 +12,7 @@ import {
 import { ScreenContainer } from '../components/screen-container';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { riderSosResponseSchema } from '../lib/api/schemas';
+import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderSosResponse } from '../lib/types/api';
 
 // Captures current coordinates only when foreground location permission is granted.
@@ -33,7 +34,7 @@ async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | n
 
 // Provides SOS confirmation flow and submits emergency requests to backend.
 export function SosScreen() {
-  const [message, setMessage] = useState('');
+  const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [response, setResponse] = useState<RiderSosResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export function SosScreen() {
         {
           method: 'POST',
           body: JSON.stringify({
-            message: message.trim() || undefined,
+            message: note.trim() || undefined,
             lat: coordinates?.lat,
             lng: coordinates?.lng,
           }),
@@ -60,8 +61,14 @@ export function SosScreen() {
       );
 
       setResponse(payload);
-      setMessage('');
+      setNote('');
     } catch (error: unknown) {
+      logAppError('rider.sos_submit_failed', error, {
+        feature: 'sos',
+        operation: 'submit',
+        status: error instanceof ApiError ? error.status : undefined,
+      });
+
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else if (error instanceof Error) {
@@ -78,7 +85,7 @@ export function SosScreen() {
   const confirmSos = (): void => {
     Alert.alert(
       'Send SOS?',
-      'This will notify emergency contacts in your fleet.',
+      'This will notify your dispatcher and fleet emergency contacts.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -100,10 +107,10 @@ export function SosScreen() {
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Optional message</Text>
+        <Text style={styles.label}>Optional note</Text>
         <TextInput
-          value={message}
-          onChangeText={setMessage}
+          value={note}
+          onChangeText={setNote}
           style={styles.messageInput}
           placeholder="Describe what happened"
           multiline
@@ -134,10 +141,10 @@ export function SosScreen() {
         <View style={styles.successCard}>
           <Text style={styles.successTitle}>SOS sent</Text>
           <Text style={styles.successText}>
-            Notified contacts: {response.notifiedContacts}
+            Dispatcher notified. Contacts alerted: {response.notifiedContacts}
           </Text>
           <Text style={styles.successText}>
-            Event ID: {response.event.id.slice(0, 8)}
+            Reference event: {response.event.id}
           </Text>
         </View>
       ) : null}

@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -11,9 +12,10 @@ import {
 import { z } from 'zod';
 import { LoadingState } from '../components/loading-state';
 import { ScreenContainer } from '../components/screen-container';
-import { apiFetch } from '../lib/api/client';
+import { ApiError, apiFetch } from '../lib/api/client';
 import { buildQueryString } from '../lib/api/query-string';
 import { nearbyPoiSchema } from '../lib/api/schemas';
+import { logAppError } from '../lib/monitoring/error-log';
 import type { NearbyPoi, PoiType } from '../lib/types/api';
 
 const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC'];
@@ -40,6 +42,15 @@ async function fetchCurrentLocation(): Promise<{
   };
 }
 
+// Opens phone dialer for POI contact actions when a phone number is available.
+async function openPhoneDialer(phone: string): Promise<void> {
+  const dialLink = `tel:${phone}`;
+  const canOpen = await Linking.canOpenURL(dialLink);
+  if (canOpen) {
+    await Linking.openURL(dialLink);
+  }
+}
+
 // Retrieves and filters nearby POIs around current rider coordinates.
 export function PoiNearbyScreen() {
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
@@ -62,15 +73,19 @@ export function PoiNearbyScreen() {
 
       setCoordinates(nextCoordinates);
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setLocationError(error.message);
-      } else {
-        setLocationError('Unable to get current location');
-      }
+      logAppError('rider.poi_location_failed', error, {
+        feature: 'poi',
+        operation: 'resolveLocation',
+      });
+      setLocationError('Unable to get current location');
     } finally {
       setIsResolvingLocation(false);
     }
   };
+
+  useEffect(() => {
+    void resolveLocation();
+  }, []);
 
   const poiQuery = useQuery({
     queryKey: ['rider-poi-nearby', coordinates?.lat, coordinates?.lng, selectedType],
@@ -96,6 +111,14 @@ export function PoiNearbyScreen() {
     },
   });
 
+  if (poiQuery.isError) {
+    logAppError('rider.poi_nearby_failed', poiQuery.error, {
+      feature: 'poi',
+      operation: 'listNearby',
+      status: poiQuery.error instanceof ApiError ? poiQuery.error.status : undefined,
+    });
+  }
+
   const rows = poiQuery.data ?? [];
 
   return (
@@ -116,7 +139,7 @@ export function PoiNearbyScreen() {
         {isResolvingLocation ? (
           <ActivityIndicator size="small" color="#111827" />
         ) : (
-          <Text style={styles.locationButtonText}>Use Current Location</Text>
+          <Text style={styles.locationButtonText}>Refresh Location</Text>
         )}
       </Pressable>
 
@@ -150,11 +173,14 @@ export function PoiNearbyScreen() {
         <Text style={styles.emptyText}>
           {coordinates
             ? 'No nearby POIs found for the selected type.'
-            : 'Tap "Use Current Location" to load nearby POIs.'}
+            : 'Location permission is required to load nearby POIs.'}
         </Text>
       ) : (
-        rows.map((poi) => (
-          <View key={poi.id} style={styles.poiCard}>
+        rows.map((poi) => {
+          const contactPhone = poi.phone;
+
+          return (
+            <View key={poi.id} style={styles.poiCard}>
             <Text style={styles.poiTitle}>{poi.name}</Text>
             <Text style={styles.poiMeta}>
               {poi.type} | {poi.distanceKm.toFixed(2)} km
@@ -162,8 +188,24 @@ export function PoiNearbyScreen() {
             <Text style={styles.poiMeta}>
               {poi.address ?? `${poi.lat.toFixed(4)}, ${poi.lng.toFixed(4)}`}
             </Text>
+            {contactPhone ? (
+              <Pressable
+                style={styles.callButton}
+                onPress={() => {
+                  void openPhoneDialer(contactPhone).catch((error: unknown) => {
+                    logAppError('rider.poi_call_failed', error, {
+                      feature: 'poi',
+                      operation: 'call',
+                    });
+                  });
+                }}
+              >
+                <Text style={styles.callButtonText}>Call</Text>
+              </Pressable>
+            ) : null}
           </View>
-        ))
+          );
+        })
       )}
     </ScreenContainer>
   );
@@ -246,5 +288,19 @@ const styles = StyleSheet.create({
   poiMeta: {
     fontSize: 13,
     color: '#374151',
+  },
+  callButton: {
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1d4ed8',
+    paddingVertical: 8,
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+  },
+  callButtonText: {
+    color: '#1d4ed8',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
