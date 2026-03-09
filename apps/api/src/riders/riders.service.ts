@@ -447,8 +447,8 @@ export class RidersService {
     user: AuthenticatedUser,
     query: PoiNearQueryDto,
   ): Promise<NearbyPoiSummary[]> {
-    const radiusKm = query.radiusKm ?? 5;
-    const limit = query.limit ?? 20;
+    const radiusKm = this.normalizePositiveNumber(query.radiusKm, 5);
+    const limit = this.normalizePositiveInteger(query.limit, 20);
 
     const where: Prisma.PoiWhereInput = {
       active: true,
@@ -614,7 +614,7 @@ export class RidersService {
       }
     }
 
-    const limit = query.limit ?? 5;
+    const limit = this.normalizePositiveInteger(query.limit, 5);
     const events = await this.prismaService.event.findMany({
       where,
       orderBy: {
@@ -1267,5 +1267,31 @@ export class RidersService {
       createdAt: poi.createdAt.toISOString(),
       updatedAt: poi.updatedAt.toISOString(),
     };
+  }
+
+  // Coerces HTTP query values into positive integers for stable service behavior in tests and runtime.
+  private normalizePositiveInteger(
+    value: number | string | undefined,
+    fallback: number,
+  ): number {
+    const normalized = Number(value ?? fallback);
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      return fallback;
+    }
+
+    return Math.trunc(normalized);
+  }
+
+  // Coerces HTTP query values into positive numbers for geo distance filtering.
+  private normalizePositiveNumber(
+    value: number | string | undefined,
+    fallback: number,
+  ): number {
+    const normalized = Number(value ?? fallback);
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      return fallback;
+    }
+
+    return normalized;
   }
 }

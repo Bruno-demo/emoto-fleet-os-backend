@@ -42,6 +42,7 @@ export class NotificationOutboxService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(NotificationOutboxService.name);
+  private readonly inlineMode: boolean;
   private readonly connection: ConnectionOptions;
   private queue: Queue<NotificationJobPayload> | null = null;
   private worker: Worker<NotificationJobPayload> | null = null;
@@ -54,12 +55,21 @@ export class NotificationOutboxService
     @Inject(NOTIFICATION_PROVIDER)
     private readonly notificationProvider: NotificationProvider,
   ) {
+    this.inlineMode = this.configService.get<boolean>(
+      'NOTIFICATION_OUTBOX_INLINE',
+      false,
+    );
     const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
     this.connection = this.buildBullMqConnection(redisUrl);
   }
 
   // Boots queue worker and schedules any pending notification rows for dispatch.
   async onModuleInit(): Promise<void> {
+    if (this.inlineMode) {
+      await this.enqueuePendingNotifications();
+      return;
+    }
+
     this.queue = new Queue<NotificationJobPayload>(NOTIFICATION_QUEUE_NAME, {
       connection: this.connection,
     });
@@ -96,6 +106,10 @@ export class NotificationOutboxService
 
   // Gracefully shuts down queue resources during process termination.
   async onModuleDestroy(): Promise<void> {
+    if (this.inlineMode) {
+      return;
+    }
+
     if (this.worker) {
       await this.worker.close();
       this.worker = null;
@@ -112,6 +126,19 @@ export class NotificationOutboxService
 
   // Enqueues one notification id for asynchronous provider delivery.
   async enqueueNotification(notificationId: string): Promise<void> {
+    if (this.inlineMode) {
+      try {
+        await this.processNotificationJob(notificationId);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Notification dispatch failed';
+        await this.handleInlineFailure(notificationId, message);
+      }
+      return;
+    }
+
     if (!this.queue) {
       return;
     }
@@ -125,7 +152,7 @@ export class NotificationOutboxService
 
   // Enqueues all pending notifications so outbox processing can resume after restarts.
   async enqueuePendingNotifications(): Promise<void> {
-    if (!this.queue) {
+    if (!this.queue && !this.inlineMode) {
       return;
     }
 
@@ -143,6 +170,23 @@ export class NotificationOutboxService
     for (const notification of pendingNotifications) {
       await this.enqueueNotification(notification.id);
     }
+  }
+
+  // Marks inline-mode notifications as failed without requiring BullMQ retries.
+  private async handleInlineFailure(
+    notificationId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.prismaService.notification.updateMany({
+      where: {
+        id: notificationId,
+        status: NotificationStatus.PENDING,
+      },
+      data: {
+        status: NotificationStatus.FAILED,
+        errorMessage: reason.slice(0, 1000),
+      },
+    });
   }
 
   // Processes a single notification row and marks it as SENT on successful dispatch.

@@ -48,6 +48,7 @@ export class CommandsService {
   private readonly mqttUrl: string;
   private readonly deviceSecretMasterKey: string;
   private readonly commandTtlSeconds: number;
+  private readonly mqttDisabled: boolean;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -64,6 +65,7 @@ export class CommandsService {
       'COMMAND_TTL_SECONDS',
       45,
     );
+    this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
   }
 
   // Creates and dispatches a LOCK command for a fleet bike.
@@ -405,6 +407,13 @@ export class CommandsService {
     topic: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
+    if (this.mqttDisabled) {
+      this.logger.log(
+        `Skipping MQTT publish for ${topic} because MQTT is disabled`,
+      );
+      return;
+    }
+
     const options: IClientOptions = {
       reconnectPeriod: 0,
       connectTimeout: MQTT_PUBLISH_TIMEOUT_MS,

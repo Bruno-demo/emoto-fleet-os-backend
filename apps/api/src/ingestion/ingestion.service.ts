@@ -49,6 +49,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IngestionService.name);
   private readonly mqttUrl: string;
   private readonly deviceSecretMasterKey: string;
+  private readonly mqttDisabled: boolean;
   private mqttClient: MqttClient | null = null;
 
   constructor(
@@ -65,10 +66,16 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
       'DEVICE_SECRET_MASTER_KEY',
     );
+    this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
   }
 
   // Opens MQTT connection and subscribes to ingestion topics.
   onModuleInit(): void {
+    if (this.mqttDisabled) {
+      this.logger.log('MQTT ingestion disabled by configuration');
+      return;
+    }
+
     const options: IClientOptions = {
       reconnectPeriod: 3_000,
       connectTimeout: 10_000,
