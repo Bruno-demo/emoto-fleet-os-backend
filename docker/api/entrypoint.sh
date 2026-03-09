@@ -10,4 +10,6 @@ run_migrations() {
 
 run_migrations
 
+echo "Starting API container on http://localhost:${PORT:-3000}"
+
 exec node apps/api/dist/main.js

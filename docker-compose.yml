@@ -58,11 +58,17 @@ services:
       - '${MINIO_CONSOLE_PORT:-9001}:9001'
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9000/minio/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio-init:
     image: minio/mc:RELEASE.2025-03-12T17-29-24Z
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: /bin/sh
     command:
       - -c
@@ -74,6 +80,41 @@ services:
         /usr/bin/mc mb --ignore-existing local/${S3_BUCKET:-emoto-evidence};
         /usr/bin/mc anonymous set private local/${S3_BUCKET:-emoto-evidence};
     restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      PORT: ${PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      MQTT_URL: mqtt://emqx:1883
+      S3_ENDPOINT: http://minio:9000
+      RUN_MIGRATIONS: 'true'
+      LOG_PRETTY: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - '${PORT:-3000}:3000'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

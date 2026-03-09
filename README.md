@@ -22,16 +22,27 @@ Monorepo scaffold for e-moto telematics using NestJS + TypeScript backend and Ne
 ```bash
 cp .env.example .env
 ```
-2. Start infrastructure:
+2. Start backend stack in Docker:
 ```bash
 docker compose up -d
+```
+This now starts:
+- PostgreSQL
+- Redis
+- EMQX
+- MinIO
+- API on `http://localhost:3000`
+
+To watch the API container logs, including the exposed port and URLs:
+```bash
+docker compose logs -f api
 ```
 3. Run Prisma migration + seed:
 ```bash
 npm run db:migrate
 npm run db:seed
 ```
-4. Start API:
+4. Start API on the host only if you are not using the Dockerized API:
 ```bash
 npm run dev:api
 ```
@@ -202,6 +213,7 @@ npm run partner:create-client
 ```
 
 ## Docker Ports
+- API: `3000`
 - PostgreSQL: `5432`
 - Redis: `6379`
 - EMQX MQTT: `1883`
