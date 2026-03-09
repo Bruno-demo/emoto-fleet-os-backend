@@ -79,7 +79,7 @@ function ensureDevLockIsClear() {
   let contents = '';
   try {
     contents = fs.readFileSync(LOCK_PATH, 'utf8').trim();
-  } catch (error) {
+  } catch {
     const isStale = Date.now() - mtimeMs > STALE_LOCK_MAX_AGE_MS;
     if (!isStale) {
       console.error(

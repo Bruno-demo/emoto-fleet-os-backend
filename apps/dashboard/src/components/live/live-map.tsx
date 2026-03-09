@@ -1,7 +1,16 @@
-'use client';
+﻿'use client';
 
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
+import {
+  Bike,
+  Eye,
+  Lock,
+  Navigation,
+  Radio,
+  ShieldAlert,
+  Unlock,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
@@ -12,21 +21,16 @@ import { ToastItem, ToastStack } from '@/components/ui/toast-stack';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type {
-  Bike,
+  Bike as FleetBike,
   CommandStatusEvent,
   DeviceCommand,
+  FleetEvent,
   LiveBikeState,
   PaginatedResponse,
 } from '@/lib/types/dashboard';
 
-const markerIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
 const COMMAND_STREAM_LIMIT = 40;
+const FRESH_STATE_WINDOW_MS = 60_000;
 
 export function LiveMapPanel() {
   const searchParams = useSearchParams();
@@ -40,18 +44,16 @@ export function LiveMapPanel() {
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'live-index'],
-    queryFn: () =>
-      apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=100'),
+    queryFn: () => apiFetch<PaginatedResponse<FleetBike>>('/bikes?page=1&pageSize=100'),
   });
 
   const liveStatesQuery = useQuery({
     queryKey: ['live', 'bikes', 'initial'],
-    queryFn: () =>
-      apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
+    queryFn: () => apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
   });
 
   const bikesById = useMemo(() => {
-    const map = new Map<string, Bike>();
+    const map = new Map<string, FleetBike>();
     for (const bike of bikesQuery.data?.data ?? []) {
       map.set(bike.id, bike);
     }
@@ -72,13 +74,29 @@ export function LiveMapPanel() {
     );
   }, [bikeStates, liveStatesQuery.data]);
 
+  const latestEventByBike = useMemo(() => {
+    const map = new Map<string, FleetEvent>();
+    for (const event of recentEvents) {
+      if (event.bikeId && !map.has(event.bikeId)) {
+        map.set(event.bikeId, event);
+      }
+    }
+    return map;
+  }, [recentEvents]);
+
   useEffect(() => {
     const bikeIdFromQuery = searchParams.get('bikeId');
-    if (!bikeIdFromQuery) {
+    if (bikeIdFromQuery) {
+      setSelectedBikeId(bikeIdFromQuery);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (selectedBikeId || mergedStates.length === 0) {
       return;
     }
-    setSelectedBikeId(bikeIdFromQuery);
-  }, [searchParams]);
+    setSelectedBikeId(mergedStates[0]?.bikeId ?? null);
+  }, [mergedStates, selectedBikeId]);
 
   useEffect(() => {
     const latestEvent = recentEvents[0];
@@ -88,15 +106,17 @@ export function LiveMapPanel() {
 
     lastToastEventId.current = latestEvent.id;
     const toastId = `event-${latestEvent.id}-${Date.now()}`;
-    setToasts((currentToasts) => [
-      {
-        id: toastId,
-        title: `New ${latestEvent.type} event`,
-        message: `Severity ${latestEvent.severity} at ${new Date(latestEvent.ts).toLocaleTimeString()}`,
-        tone: latestEvent.severity === 'CRITICAL' ? ('danger' as const) : ('warning' as const),
-      },
-      ...currentToasts,
-    ].slice(0, 4));
+    setToasts((currentToasts) =>
+      [
+        {
+          id: toastId,
+          title: `New ${formatLabel(latestEvent.type)} event`,
+          message: `Severity ${latestEvent.severity} at ${new Date(latestEvent.ts).toLocaleTimeString()}`,
+          tone: latestEvent.severity === 'CRITICAL' ? ('danger' as const) : ('warning' as const),
+        },
+        ...currentToasts,
+      ].slice(0, 4),
+    );
 
     const timer = window.setTimeout(() => {
       setToasts((currentToasts) => currentToasts.filter((toast) => toast.id !== toastId));
@@ -108,8 +128,7 @@ export function LiveMapPanel() {
   }, [recentEvents]);
 
   const selectedBike = selectedBikeId ? bikesById.get(selectedBikeId) ?? null : null;
-  const selectedState =
-    mergedStates.find((state) => state.bikeId === selectedBikeId) ?? null;
+  const selectedState = mergedStates.find((state) => state.bikeId === selectedBikeId) ?? null;
 
   const mapCenter = useMemo<[number, number]>(() => {
     if (selectedState) {
@@ -134,10 +153,16 @@ export function LiveMapPanel() {
     [commandStream, selectedBikeId],
   );
 
+  const onlineCount = mergedStates.filter((state) => isFreshState(state.ts)).length;
+  const movingCount = mergedStates.filter((state) => state.speedKph >= 5).length;
+  const alertCount = recentEvents.filter(
+    (event) => event.severity === 'HIGH' || event.severity === 'CRITICAL',
+  ).length;
+
   const lockRule = evaluateLockRule(selectedState);
   const unlockRule = evaluateUnlockRule(selectedState);
 
-  // Sends lock/unlock request and records immediate response in command timeline.
+  // Sends lock or unlock request and stores the immediate status response locally.
   const sendCommand = async (action: 'LOCK' | 'UNLOCK') => {
     if (!selectedBikeId) {
       return;
@@ -176,194 +201,432 @@ export function LiveMapPanel() {
 
   return (
     <PageShell
-      title="Live Map"
-      description="Realtime map updates, event feed, and command controls."
+      title="Live Operations"
+      description="Track bikes in motion, inspect alerts, and issue lock or unlock commands from a single dispatcher surface."
     >
       <ToastStack items={toasts} />
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_340px]">
-        <div className="h-[65vh] overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
-          <MapContainer center={mapCenter} zoom={13} className="h-full w-full">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="relative overflow-hidden rounded-[28px] border border-line bg-white shadow-[var(--shadow)]">
+          <div className="absolute left-4 top-4 z-[500] flex flex-wrap gap-3">
+            <MapOverlayChip
+              icon={<Navigation size={15} />}
+              label="Kigali, Rwanda"
+              tone="neutral"
             />
-            {mergedStates.map((bikeState) => {
-              const bike = bikesById.get(bikeState.bikeId);
-              return (
-                <Marker
-                  key={bikeState.bikeId}
-                  position={[bikeState.lat, bikeState.lng]}
-                  icon={markerIcon}
-                  eventHandlers={{
-                    click: () => {
-                      setSelectedBikeId(bikeState.bikeId);
-                    },
-                  }}
-                >
-                  <Popup>
-                    <p className="font-semibold">{bike?.label ?? bikeState.bikeId.slice(0, 8)}</p>
-                    <p>Speed: {bikeState.speedKph.toFixed(1)} kph</p>
-                    <p>Last update: {new Date(bikeState.ts).toLocaleString()}</p>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
+            <MapOverlayChip
+              icon={<Bike size={15} />}
+              label={`${onlineCount} bikes online`}
+              tone="success"
+            />
+            <MapOverlayChip
+              icon={<ShieldAlert size={15} />}
+              label={`${alertCount} active alerts`}
+              tone="danger"
+            />
+          </div>
+
+          <div className="absolute bottom-4 left-4 z-[500] rounded-2xl border border-line bg-white/96 p-4 shadow-lg backdrop-blur">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
+              Legend
+            </p>
+            <div className="mt-3 grid gap-2 text-xs text-ink-soft sm:grid-cols-2">
+              <LegendItem color="bg-rose-500" label="Critical event" />
+              <LegendItem color="bg-amber-500" label="High severity" />
+              <LegendItem color="bg-accent" label="Moving bike" />
+              <LegendItem color="bg-emerald-500" label="Online and stable" />
+            </div>
+          </div>
+
+          <div className="h-[68vh] min-h-[540px]">
+            <MapContainer center={mapCenter} zoom={13} className="h-full w-full">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {mergedStates.map((bikeState) => {
+                const bike = bikesById.get(bikeState.bikeId);
+                const latestEvent = latestEventByBike.get(bikeState.bikeId);
+
+                return (
+                  <Marker
+                    key={bikeState.bikeId}
+                    position={[bikeState.lat, bikeState.lng]}
+                    icon={createBikeMarkerIcon({
+                      selected: bikeState.bikeId === selectedBikeId,
+                      severity: latestEvent?.severity,
+                      moving: bikeState.speedKph >= 5,
+                    })}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedBikeId(bikeState.bikeId);
+                      },
+                    }}
+                  >
+                    <Popup>
+                      <p className="font-semibold">
+                        {bike?.label ?? bikeState.bikeId.slice(0, 8)}
+                      </p>
+                      <p>Speed: {bikeState.speedKph.toFixed(1)} kph</p>
+                      <p>Last update: {new Date(bikeState.ts).toLocaleString()}</p>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          </div>
         </div>
 
-        <aside className="h-[65vh] overflow-y-auto rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <h2 className="font-display text-xl font-semibold text-ink">Bike Control</h2>
-          {!selectedBikeId ? (
-            <p className="mt-3 text-sm text-ink-soft">
-              Click a bike marker to open control actions.
+        <aside className="flex h-[68vh] min-h-[540px] flex-col overflow-hidden rounded-[28px] border border-line bg-white shadow-[var(--shadow)]">
+          <div className="border-b border-line bg-gradient-to-r from-surface-muted to-white px-5 py-4">
+            <h2 className="font-display text-xl font-semibold text-ink">Live Feed</h2>
+            <p className="mt-1 text-sm text-ink-soft">
+              Realtime alerts, bike context, and command actions.
             </p>
-          ) : (
-            <div className="mt-3 space-y-4">
-              <section className="rounded-xl border border-line bg-surface-muted p-3">
-                <p className="text-xs uppercase tracking-[0.14em] text-ink-soft">Bike</p>
-                <p className="mt-1 font-medium text-ink">
-                  {selectedBike?.label ?? selectedBikeId.slice(0, 8)}
-                </p>
-                <p className="mt-2 text-sm text-ink-soft">
-                  Speed: {selectedState ? `${selectedState.speedKph.toFixed(1)} kph` : '--'}
-                </p>
-                <p className="text-sm text-ink-soft">
-                  Last seen:{' '}
-                  {selectedState ? new Date(selectedState.ts).toLocaleTimeString() : 'No live state'}
-                </p>
-              </section>
+          </div>
 
-              <section className="rounded-xl border border-line bg-surface-muted p-3">
-                <p className="text-sm font-medium text-ink">Quick Actions</p>
-                <div className="mt-3 grid gap-2">
-                  <button
-                    type="button"
-                    disabled={isSendingCommand || !lockRule.allowed}
-                    onClick={() => sendCommand('LOCK')}
-                    className="rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isSendingCommand ? 'Sending...' : 'LOCK'}
-                  </button>
-                  {!lockRule.allowed && lockRule.reason ? (
-                    <p className="text-xs text-amber-700">{lockRule.reason}</p>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    disabled={isSendingCommand || !unlockRule.allowed}
-                    onClick={() => sendCommand('UNLOCK')}
-                    className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isSendingCommand ? 'Sending...' : 'UNLOCK'}
-                  </button>
-                  {!unlockRule.allowed && unlockRule.reason ? (
-                    <p className="text-xs text-amber-700">{unlockRule.reason}</p>
-                  ) : null}
-
-                  {requestError ? (
-                    <p className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">
-                      {requestError}
-                    </p>
-                  ) : null}
+          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            <section className="rounded-3xl border border-line bg-surface-muted p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
+                    Selected Bike
+                  </p>
+                  <p className="mt-2 font-display text-2xl font-semibold text-ink">
+                    {selectedBike?.label ?? 'No bike selected'}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    {selectedBike?.plate ?? selectedBike?.model ?? 'Select a bike marker on the map'}
+                  </p>
                 </div>
-              </section>
+                {selectedState ? (
+                  <StatusPill
+                    label={selectedState.speedKph >= 5 ? 'MOVING' : 'ONLINE'}
+                    tone={selectedState.speedKph >= 5 ? 'info' : 'success'}
+                  />
+                ) : null}
+              </div>
 
-              <section>
-                <p className="text-sm font-medium text-ink">Command Status</p>
-                <ul className="mt-2 space-y-2">
-                  {bikeCommandStream.slice(0, 8).map((status) => (
-                    <li
-                      key={`${status.commandId}-${status.ts}`}
-                      className="rounded-lg border border-line bg-surface-muted px-3 py-2"
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <MiniMetric
+                  label="Current Speed"
+                  value={selectedState ? `${selectedState.speedKph.toFixed(1)} kph` : '--'}
+                />
+                <MiniMetric
+                  label="Last Seen"
+                  value={selectedState ? formatTimeAgo(selectedState.ts) : '--'}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-line bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-ink">Quick Actions</p>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    Backend lock rules are mirrored here before dispatch.
+                  </p>
+                </div>
+                <Radio size={16} className="text-accent" />
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <button
+                  type="button"
+                  disabled={isSendingCommand || !lockRule.allowed}
+                  onClick={() => sendCommand('LOCK')}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  <Lock size={16} />
+                  {isSendingCommand ? 'Sending...' : 'Lock Bike'}
+                </button>
+                {!lockRule.allowed && lockRule.reason ? (
+                  <p className="text-xs text-amber-700">{lockRule.reason}</p>
+                ) : null}
+
+                <button
+                  type="button"
+                  disabled={isSendingCommand || !unlockRule.allowed}
+                  onClick={() => sendCommand('UNLOCK')}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Unlock size={16} />
+                  {isSendingCommand ? 'Sending...' : 'Unlock Bike'}
+                </button>
+                {!unlockRule.allowed && unlockRule.reason ? (
+                  <p className="text-xs text-amber-700">{unlockRule.reason}</p>
+                ) : null}
+
+                {requestError ? (
+                  <p className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                    {requestError}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg font-semibold text-ink">Recent Alerts</h3>
+                <span className="text-xs uppercase tracking-[0.16em] text-ink-soft">
+                  Realtime
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {recentEvents.slice(0, 8).map((event) => {
+                  const linkedBike = event.bikeId ? bikesById.get(event.bikeId) : null;
+
+                  return (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => setSelectedBikeId(event.bikeId)}
+                      className="w-full rounded-2xl border border-line bg-surface-muted p-4 text-left transition hover:bg-surface-strong"
                     >
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-ink-soft">{status.action ?? 'COMMAND'}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-ink">{formatLabel(event.type)}</p>
+                          <p className="mt-1 text-xs text-ink-soft">
+                            {linkedBike?.label ?? event.bikeId?.slice(0, 8) ?? 'Fleet event'} ·{' '}
+                            {formatTimeAgo(event.ts)}
+                          </p>
+                        </div>
                         <StatusPill
-                          label={status.status}
-                          tone={
-                            status.status === 'ACKED'
-                              ? 'success'
-                              : status.status === 'FAILED' || status.status === 'EXPIRED'
-                                ? 'danger'
-                                : 'info'
-                          }
+                          label={event.severity}
+                          tone={severityToTone(event.severity)}
                         />
                       </div>
-                      <p className="mt-1 text-xs text-ink-soft">
-                        {new Date(status.ts).toLocaleString()}
+                      <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-accent">
+                        <Eye size={13} />
+                        View bike context
+                      </div>
+                    </button>
+                  );
+                })}
+                {recentEvents.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-sm text-ink-soft">
+                    Waiting for websocket events.
+                  </p>
+                ) : null}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg font-semibold text-ink">Command Status</h3>
+                <span className="text-xs uppercase tracking-[0.16em] text-ink-soft">Latest</span>
+              </div>
+
+              <ul className="mt-3 space-y-2">
+                {bikeCommandStream.slice(0, 6).map((status) => (
+                  <li
+                    key={`${status.commandId}-${status.ts}`}
+                    className="rounded-2xl border border-line bg-surface-muted px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-ink">
+                        {status.action ?? 'Command'}
                       </p>
-                      {status.message ? (
-                        <p className="mt-1 text-xs text-ink-soft">{status.message}</p>
-                      ) : null}
-                    </li>
-                  ))}
-                  {bikeCommandStream.length === 0 ? (
-                    <li className="text-sm text-ink-soft">No commands yet for this bike.</li>
-                  ) : null}
-                </ul>
-              </section>
-            </div>
-          )}
+                      <StatusPill
+                        label={status.status}
+                        tone={
+                          status.status === 'ACKED'
+                            ? 'success'
+                            : status.status === 'FAILED' || status.status === 'EXPIRED'
+                              ? 'danger'
+                              : 'info'
+                        }
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-ink-soft">{formatTimeAgo(status.ts)}</p>
+                    {status.message ? (
+                      <p className="mt-1 text-xs text-ink-soft">{status.message}</p>
+                    ) : null}
+                  </li>
+                ))}
+                {bikeCommandStream.length === 0 ? (
+                  <li className="rounded-2xl border border-dashed border-line px-4 py-5 text-sm text-ink-soft">
+                    No command activity for the current bike.
+                  </li>
+                ) : null}
+              </ul>
+            </section>
+          </div>
         </aside>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <h3 className="font-display text-lg font-semibold text-ink">Recent Events</h3>
-          <ul className="mt-3 space-y-2">
-            {recentEvents.slice(0, 8).map((event) => (
-              <li key={event.id} className="rounded-lg border border-line bg-surface-muted p-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-ink">{event.type}</p>
-                  <StatusPill
-                    label={event.severity}
-                    tone={
-                      event.severity === 'CRITICAL'
-                        ? 'danger'
-                        : event.severity === 'HIGH'
-                          ? 'warning'
-                          : 'info'
-                    }
-                  />
-                </div>
-                <p className="mt-1 text-xs text-ink-soft">
-                  Bike {event.bikeId?.slice(0, 8) ?? 'N/A'} at{' '}
-                  {new Date(event.ts).toLocaleString()}
-                </p>
-              </li>
-            ))}
-            {recentEvents.length === 0 ? (
-              <li className="text-sm text-ink-soft">Waiting for websocket events...</li>
-            ) : null}
-          </ul>
-        </article>
-
-        <article className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <h3 className="font-display text-lg font-semibold text-ink">Live Bikes</h3>
-          <ul className="mt-3 space-y-2">
-            {mergedStates.slice(0, 10).map((state) => (
-              <li
-                key={state.bikeId}
-                className="cursor-pointer rounded-lg border border-line bg-surface-muted px-3 py-2"
-                onClick={() => setSelectedBikeId(state.bikeId)}
-              >
-                <p className="font-medium text-ink">
-                  {bikesById.get(state.bikeId)?.label ?? state.bikeId.slice(0, 8)}
-                </p>
-                <p className="text-xs text-ink-soft">
-                  {state.speedKph.toFixed(1)} kph | {new Date(state.ts).toLocaleTimeString()}
-                </p>
-              </li>
-            ))}
-            {mergedStates.length === 0 ? (
-              <li className="text-sm text-ink-soft">No bike state available.</li>
-            ) : null}
-          </ul>
-        </article>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <SummaryCard
+          title="Fleet Coverage"
+          metric={`${onlineCount}/${mergedStates.length || '--'}`}
+          description="Bikes with a fresh live-state sample in the last minute."
+        />
+        <SummaryCard
+          title="Bikes Moving"
+          metric={String(movingCount)}
+          description="Bikes currently reporting a speed of at least 5 kph."
+        />
+        <SummaryCard
+          title="Recent High Risk"
+          metric={String(alertCount)}
+          description="High or critical alerts currently visible in the live feed."
+        />
       </section>
     </PageShell>
   );
+}
+
+function MiniMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white px-4 py-3">
+      <p className="text-xs uppercase tracking-[0.14em] text-ink-soft">{label}</p>
+      <p className="mt-2 font-semibold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function SummaryCard({
+  title,
+  metric,
+  description,
+}: {
+  title: string;
+  metric: string;
+  description: string;
+}) {
+  return (
+    <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">{title}</p>
+      <p className="mt-4 font-display text-4xl font-semibold text-ink">{metric}</p>
+      <p className="mt-3 text-sm leading-6 text-ink-soft">{description}</p>
+    </article>
+  );
+}
+
+function LegendItem({
+  color,
+  label,
+}: {
+  color: string;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`h-3 w-3 rounded-full ${color}`} />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function MapOverlayChip({
+  icon,
+  label,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tone: 'neutral' | 'success' | 'danger';
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'bg-success-soft text-emerald-800'
+      : tone === 'danger'
+        ? 'bg-danger-soft text-rose-800'
+        : 'bg-white text-ink';
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-2xl border border-line px-4 py-3 text-sm font-medium shadow-lg ${toneClass}`}
+    >
+      {icon}
+      {label}
+    </div>
+  );
+}
+
+function createBikeMarkerIcon({
+  selected,
+  severity,
+  moving,
+}: {
+  selected: boolean;
+  severity?: FleetEvent['severity'];
+  moving: boolean;
+}) {
+  const color =
+    severity === 'CRITICAL'
+      ? '#ef4444'
+      : severity === 'HIGH'
+        ? '#f59e0b'
+        : moving
+          ? '#2563eb'
+          : '#22c55e';
+
+  return L.divIcon({
+    className: 'emoto-bike-marker',
+    html: `
+      <div style="
+        width: ${selected ? 28 : 22}px;
+        height: ${selected ? 28 : 22}px;
+        border-radius: 999px;
+        background: ${color};
+        border: 3px solid white;
+        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.22);
+      "></div>
+    `,
+    iconSize: selected ? [28, 28] : [22, 22],
+    iconAnchor: selected ? [14, 14] : [11, 11],
+    popupAnchor: [0, -12],
+  });
+}
+
+function formatLabel(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function isFreshState(ts: string) {
+  return Date.now() - Date.parse(ts) <= FRESH_STATE_WINDOW_MS;
+}
+
+function formatTimeAgo(ts: string) {
+  const diffMs = Date.now() - Date.parse(ts);
+  const diffMinutes = Math.floor(diffMs / 60_000);
+  if (diffMinutes < 1) {
+    return 'just now';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  return new Date(ts).toLocaleString();
+}
+
+function severityToTone(severity: FleetEvent['severity']) {
+  if (severity === 'CRITICAL') {
+    return 'danger' as const;
+  }
+  if (severity === 'HIGH') {
+    return 'warning' as const;
+  }
+  if (severity === 'MEDIUM') {
+    return 'info' as const;
+  }
+  return 'neutral' as const;
 }
 
 function evaluateUnlockRule(state: LiveBikeState | null): {
@@ -428,3 +691,5 @@ function evaluateLockRule(state: LiveBikeState | null): {
     reason: null,
   };
 }
+
+

@@ -1,6 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import {
+  Activity,
+  Bike,
+  Clock3,
+  Cpu,
+  Gauge,
+  Lock,
+  ShieldAlert,
+  Unlock,
+  UserRound,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
@@ -13,8 +24,9 @@ import { canViewAssignments } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type {
   Assignment,
-  Bike,
+  Bike as FleetBike,
   BikeTrip,
+  CommandStatusEvent,
   Device,
   DeviceCommand,
   FleetEvent,
@@ -29,30 +41,28 @@ export default function BikesPage() {
   const { commandStatuses, recordCommandStatus } = useRealtime();
   const [page, setPage] = useState(1);
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [commandError, setCommandError] = useState<string | null>(null);
   const [isSendingCommand, setIsSendingCommand] = useState(false);
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', page],
     queryFn: () =>
-      apiFetch<PaginatedResponse<Bike>>(
+      apiFetch<PaginatedResponse<FleetBike>>(
         `/bikes${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
       ),
   });
 
   const devicesQuery = useQuery({
     queryKey: ['devices', 'bike-join'],
-    queryFn: () =>
-      apiFetch<PaginatedResponse<Device>>('/devices?page=1&pageSize=100'),
+    queryFn: () => apiFetch<PaginatedResponse<Device>>('/devices?page=1&pageSize=100'),
   });
 
   const assignmentsEnabled = !!currentUser && canViewAssignments(currentUser.role);
   const assignmentsQuery = useQuery({
     queryKey: ['assignments', 'active'],
     queryFn: () =>
-      apiFetch<PaginatedResponse<Assignment>>(
-        '/assignments?page=1&pageSize=100&active=true',
-      ),
+      apiFetch<PaginatedResponse<Assignment>>('/assignments?page=1&pageSize=100&active=true'),
     enabled: assignmentsEnabled,
     retry: false,
   });
@@ -72,7 +82,7 @@ export default function BikesPage() {
       }
     }
     return byBike;
-  }, [devicesQuery.data]);
+  }, [devicesQuery.data?.data]);
 
   const assignmentByBikeId = useMemo(() => {
     const byBike = new Map<string, Assignment>();
@@ -82,16 +92,32 @@ export default function BikesPage() {
       }
     }
     return byBike;
-  }, [assignmentsQuery.data]);
+  }, [assignmentsQuery.data?.data]);
+
+  const filteredBikes = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const bikes = bikesQuery.data?.data ?? [];
+    if (!query) {
+      return bikes;
+    }
+
+    return bikes.filter((bike) => {
+      const device = deviceByBikeId.get(bike.id);
+      const assignment = assignmentByBikeId.get(bike.id);
+      return [bike.label, bike.plate, bike.model, device?.deviceUid, assignment?.riderFullName]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(query));
+    });
+  }, [assignmentByBikeId, bikesQuery.data?.data, deviceByBikeId, searchQuery]);
 
   const selectedBike = useMemo(
     () => (bikesQuery.data?.data ?? []).find((bike) => bike.id === selectedBikeId) ?? null,
-    [bikesQuery.data, selectedBikeId],
+    [bikesQuery.data?.data, selectedBikeId],
   );
 
   const selectedBikeDetailQuery = useQuery({
     queryKey: ['bikes', selectedBikeId, 'detail'],
-    queryFn: () => apiFetch<Bike>(`/bikes/${selectedBikeId}`),
+    queryFn: () => apiFetch<FleetBike>(`/bikes/${selectedBikeId}`),
     enabled: !!selectedBikeId && !selectedBike,
   });
 
@@ -100,9 +126,7 @@ export default function BikesPage() {
   const bikeTripsQuery = useQuery({
     queryKey: ['bikes', selectedBikeId, 'trips'],
     queryFn: () =>
-      apiFetch<PaginatedResponse<BikeTrip>>(
-        `/bikes/${selectedBikeId}/trips?page=1&pageSize=10`,
-      ),
+      apiFetch<PaginatedResponse<BikeTrip>>(`/bikes/${selectedBikeId}/trips?page=1&pageSize=10`),
     enabled: !!selectedBikeId,
   });
 
@@ -127,7 +151,12 @@ export default function BikesPage() {
     [commandStatuses, selectedBikeId],
   );
 
-  // Sends lock/unlock command and keeps status stream synchronized in UI.
+  const bikes = bikesQuery.data?.data ?? [];
+  const totalAssignedDevices = bikes.filter((bike) => deviceByBikeId.has(bike.id)).length;
+  const totalAssignedRiders = bikes.filter((bike) => assignmentByBikeId.has(bike.id)).length;
+  const maintenanceCount = bikes.filter((bike) => bike.status === 'MAINTENANCE').length;
+
+  // Sends a lock or unlock command and mirrors the first status in the websocket cache.
   const requestCommand = async (action: 'LOCK' | 'UNLOCK') => {
     if (!selectedBikeId) {
       return;
@@ -140,7 +169,8 @@ export default function BikesPage() {
         `/commands/${action.toLowerCase()}${buildQueryString({ bikeId: selectedBikeId })}`,
         { method: 'POST' },
       );
-      recordCommandStatus({
+
+      const commandStatus: CommandStatusEvent = {
         commandId: command.id,
         status: command.status,
         ts: command.updatedAt,
@@ -148,7 +178,9 @@ export default function BikesPage() {
         deviceId: command.deviceId,
         action: command.type,
         message: command.errorMessage ?? undefined,
-      });
+      };
+
+      recordCommandStatus(commandStatus);
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setCommandError(error.message);
@@ -163,54 +195,122 @@ export default function BikesPage() {
   return (
     <PageShell
       title="Bikes"
-      description="Fleet bike inventory with trip history, events and command stream."
+      description="Asset operations, rider assignment context, and remote control history for every bike in the fleet."
     >
-      <section className="overflow-x-auto rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="text-xs uppercase tracking-[0.14em] text-ink-soft">
-              <th className="px-2 py-2">Label</th>
-              <th className="px-2 py-2">Status</th>
-              <th className="px-2 py-2">Assigned Device</th>
-              <th className="px-2 py-2">Assigned Rider</th>
-              <th className="px-2 py-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(bikesQuery.data?.data ?? []).map((bike) => (
-              <tr key={bike.id} className="border-t border-line">
-                <td className="px-2 py-2 font-medium text-ink">{bike.label}</td>
-                <td className="px-2 py-2">
-                  <StatusPill
-                    label={bike.status}
-                    tone={
-                      bike.status === 'ACTIVE'
-                        ? 'success'
-                        : bike.status === 'MAINTENANCE'
-                          ? 'warning'
-                          : 'neutral'
-                    }
-                  />
-                </td>
-                <td className="px-2 py-2 text-ink-soft">
-                  {deviceByBikeId.get(bike.id)?.deviceUid ?? 'Unassigned'}
-                </td>
-                <td className="px-2 py-2 text-ink-soft">
-                  {assignmentByBikeId.get(bike.id)?.riderFullName ?? 'Unassigned'}
-                </td>
-                <td className="px-2 py-2">
-                  <button
-                    type="button"
-                    className="rounded-lg border border-line px-2 py-1 text-xs hover:bg-surface-muted"
-                    onClick={() => setSelectedBikeId(bike.id)}
-                  >
-                    Details
-                  </button>
-                </td>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Fleet Bikes"
+          value={String(bikesQuery.data?.total ?? 0)}
+          hint="Total registered bikes in the current fleet scope."
+          icon={<Bike size={18} />}
+          tone="info"
+        />
+        <MetricCard
+          title="Assigned Devices"
+          value={String(totalAssignedDevices)}
+          hint="Bikes currently paired to an active telemetry device."
+          icon={<Cpu size={18} />}
+          tone="success"
+        />
+        <MetricCard
+          title="Assigned Riders"
+          value={String(totalAssignedRiders)}
+          hint="Bikes with an active rider assignment."
+          icon={<UserRound size={18} />}
+          tone="info"
+        />
+        <MetricCard
+          title="Maintenance Queue"
+          value={String(maintenanceCount)}
+          hint="Bikes flagged for maintenance and unavailable for trips."
+          icon={<ShieldAlert size={18} />}
+          tone="warning"
+        />
+      </section>
+
+      <section className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+              Fleet Registry
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
+              Bike inventory
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search bike, plate, rider, or device..."
+              className="min-w-[280px] rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+            />
+            <div className="rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-soft">
+              Showing {filteredBikes.length} of {bikes.length} bikes
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-xs uppercase tracking-[0.16em] text-ink-soft">
+                <th className="px-3 py-3">Bike</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Assigned Device</th>
+                <th className="px-3 py-3">Assigned Rider</th>
+                <th className="px-3 py-3">Details</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredBikes.map((bike) => (
+                <tr key={bike.id} className="border-b border-line/70 last:border-b-0">
+                  <td className="px-3 py-4">
+                    <div className="flex items-start gap-3">
+                      <span className="rounded-2xl bg-accent-soft p-2 text-accent">
+                        <Bike size={18} />
+                      </span>
+                      <div>
+                        <p className="font-medium text-ink">{bike.label}</p>
+                        <p className="mt-1 text-xs text-ink-soft">
+                          {bike.plate ?? bike.model ?? bike.serial ?? bike.id.slice(0, 8)}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-4">
+                    <StatusPill label={bike.status} tone={bikeStatusTone(bike.status)} />
+                  </td>
+                  <td className="px-3 py-4 text-ink-soft">
+                    {deviceByBikeId.get(bike.id)?.deviceUid ?? 'Unassigned'}
+                  </td>
+                  <td className="px-3 py-4 text-ink-soft">
+                    {assignmentByBikeId.get(bike.id)?.riderFullName ?? 'Unassigned'}
+                  </td>
+                  <td className="px-3 py-4">
+                    <button
+                      type="button"
+                      className="rounded-2xl border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
+                      onClick={() => setSelectedBikeId(bike.id)}
+                    >
+                      View details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredBikes.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-10 text-center text-sm text-ink-soft">
+                    No bikes match the current search.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+
         <PaginationControls
           page={bikesQuery.data?.page ?? page}
           totalPages={bikesQuery.data?.totalPages ?? 1}
@@ -219,118 +319,289 @@ export default function BikesPage() {
       </section>
 
       {activeBike ? (
-        <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <section className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 className="font-display text-2xl font-semibold text-ink">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                Bike Detail
+              </p>
+              <h2 className="mt-2 font-display text-3xl font-semibold text-ink">
                 {activeBike.label}
               </h2>
-              <p className="text-sm text-ink-soft">Bike ID: {activeBike.id}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatusPill label={activeBike.status} tone={bikeStatusTone(activeBike.status)} />
+                <StatusPill
+                  label={deviceByBikeId.get(activeBike.id)?.deviceUid ?? 'No device'}
+                  tone="info"
+                />
+                <StatusPill
+                  label={assignmentByBikeId.get(activeBike.id)?.riderFullName ?? 'No rider'}
+                  tone="neutral"
+                />
+              </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                className="rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 onClick={() => requestCommand('LOCK')}
                 disabled={isSendingCommand}
               >
-                LOCK
+                <Lock size={16} />
+                {isSendingCommand ? 'Sending...' : 'Lock Bike'}
               </button>
               <button
                 type="button"
-                className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => requestCommand('UNLOCK')}
                 disabled={isSendingCommand}
               >
-                UNLOCK
+                <Unlock size={16} />
+                {isSendingCommand ? 'Sending...' : 'Unlock Bike'}
               </button>
             </div>
           </div>
 
           {commandError ? (
-            <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {commandError}
             </p>
           ) : null}
 
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
-            <article className="rounded-xl border border-line bg-surface-muted p-3">
-              <h3 className="font-semibold text-ink">Recent Trips</h3>
-              <ul className="mt-2 space-y-2">
-                {(bikeTripsQuery.data?.data ?? []).map((trip) => (
-                  <li key={trip.id} className="rounded-lg border border-line bg-white px-2 py-2">
-                    <p className="text-xs text-ink-soft">
-                      {new Date(trip.startTs).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-ink">
-                      {trip.distanceKm.toFixed(2)} km • {trip.score.toFixed(1)} score
-                    </p>
-                  </li>
-                ))}
-                {(bikeTripsQuery.data?.data ?? []).length === 0 ? (
-                  <li className="text-sm text-ink-soft">No trips yet.</li>
-                ) : null}
-              </ul>
-            </article>
+            <DetailPanel
+              title="Recent Trips"
+              icon={<Gauge size={16} className="text-accent" />}
+              emptyLabel="No trips recorded for this bike yet."
+            >
+              {(bikeTripsQuery.data?.data ?? []).map((trip) => (
+                <li key={trip.id} className="rounded-2xl border border-line bg-white px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-ink">{formatTripDistance(trip.distanceKm)}</p>
+                    <StatusPill
+                      label={`Score ${trip.score.toFixed(1)}`}
+                      tone={trip.score < 70 ? 'danger' : 'success'}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    {formatTimestamp(trip.startTs)} · {formatTripDuration(trip.durationSec)}
+                  </p>
+                </li>
+              ))}
+            </DetailPanel>
 
-            <article className="rounded-xl border border-line bg-surface-muted p-3">
-              <h3 className="font-semibold text-ink">Recent Events</h3>
-              <ul className="mt-2 space-y-2">
-                {(bikeEventsQuery.data?.data ?? []).map((event) => (
-                  <li key={event.id} className="rounded-lg border border-line bg-white px-2 py-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-ink">{event.type}</p>
-                      <StatusPill label={event.severity} tone="warning" />
-                    </div>
-                    <p className="mt-1 text-xs text-ink-soft">
-                      {new Date(event.ts).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
-                {(bikeEventsQuery.data?.data ?? []).length === 0 ? (
-                  <li className="text-sm text-ink-soft">No events in recent window.</li>
-                ) : null}
-              </ul>
-            </article>
+            <DetailPanel
+              title="Recent Events"
+              icon={<ShieldAlert size={16} className="text-accent" />}
+              emptyLabel="No recent events linked to this bike."
+            >
+              {(bikeEventsQuery.data?.data ?? []).map((event) => (
+                <li key={event.id} className="rounded-2xl border border-line bg-white px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-ink">{formatLabel(event.type)}</p>
+                    <StatusPill label={event.severity} tone={eventSeverityTone(event.severity)} />
+                  </div>
+                  <p className="mt-1 text-xs text-ink-soft">{formatTimestamp(event.ts)}</p>
+                </li>
+              ))}
+            </DetailPanel>
 
-            <article className="rounded-xl border border-line bg-surface-muted p-3">
-              <h3 className="font-semibold text-ink">Command History</h3>
-              <ul className="mt-2 space-y-2">
-                {bikeCommandStatuses.slice(0, 10).map((status) => (
-                  <li
-                    key={`${status.commandId}-${status.ts}`}
-                    className="rounded-lg border border-line bg-white px-2 py-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-ink">{status.action ?? 'COMMAND'}</p>
-                      <StatusPill
-                        label={status.status}
-                        tone={
-                          status.status === 'ACKED'
-                            ? 'success'
-                            : status.status === 'FAILED'
-                              ? 'danger'
-                              : 'info'
-                        }
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-ink-soft">
-                      {new Date(status.ts).toLocaleString()}
-                    </p>
-                    {status.message ? (
-                      <p className="mt-1 text-xs text-ink-soft">{status.message}</p>
-                    ) : null}
-                  </li>
-                ))}
-                {bikeCommandStatuses.length === 0 ? (
-                  <li className="text-sm text-ink-soft">No command status for this bike yet.</li>
-                ) : null}
-              </ul>
-            </article>
+            <DetailPanel
+              title="Command History"
+              icon={<Activity size={16} className="text-accent" />}
+              emptyLabel="No command activity for the selected bike."
+            >
+              {bikeCommandStatuses.slice(0, 10).map((status) => (
+                <li
+                  key={`${status.commandId}-${status.ts}`}
+                  className="rounded-2xl border border-line bg-white px-4 py-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-ink">{status.action ?? 'Command'}</p>
+                    <StatusPill label={status.status} tone={commandStatusTone(status.status)} />
+                  </div>
+                  <p className="mt-1 text-xs text-ink-soft">{formatTimestamp(status.ts)}</p>
+                  {status.message ? (
+                    <p className="mt-1 text-xs text-ink-soft">{status.message}</p>
+                  ) : null}
+                </li>
+              ))}
+            </DetailPanel>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <SummaryTile
+              label="Assigned Device"
+              value={deviceByBikeId.get(activeBike.id)?.deviceUid ?? 'Unassigned'}
+              icon={<Cpu size={16} />}
+            />
+            <SummaryTile
+              label="Assigned Rider"
+              value={assignmentByBikeId.get(activeBike.id)?.riderFullName ?? 'Unassigned'}
+              icon={<UserRound size={16} />}
+            />
+            <SummaryTile
+              label="Last Trip Start"
+              value={
+                bikeTripsQuery.data?.data?.[0]?.startTs
+                  ? formatTimestamp(bikeTripsQuery.data.data[0].startTs)
+                  : 'No trips yet'
+              }
+              icon={<Clock3 size={16} />}
+            />
           </div>
         </section>
       ) : null}
     </PageShell>
   );
+}
+
+function MetricCard({
+  title,
+  value,
+  hint,
+  icon,
+  tone,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ReactNode;
+  tone: 'info' | 'success' | 'warning';
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'bg-success-soft text-emerald-700'
+      : tone === 'warning'
+        ? 'bg-warning-soft text-amber-700'
+        : 'bg-accent-soft text-accent';
+
+  return (
+    <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
+            {title}
+          </p>
+          <p className="mt-4 font-display text-4xl font-semibold text-ink">{value}</p>
+        </div>
+        <span className={`rounded-2xl p-3 ${toneClass}`}>{icon}</span>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-ink-soft">{hint}</p>
+    </article>
+  );
+}
+
+function DetailPanel({
+  title,
+  icon,
+  emptyLabel,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  emptyLabel: string;
+  children: React.ReactNode;
+}) {
+  const items = Array.isArray(children) ? children : [children];
+
+  return (
+    <article className="rounded-[28px] border border-line bg-surface-muted p-4">
+      <div className="flex items-center gap-2">
+        <span className="rounded-xl bg-white p-2">{icon}</span>
+        <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
+      </div>
+      <ul className="mt-4 space-y-3">
+        {items.filter(Boolean).length > 0 ? (
+          children
+        ) : (
+          <li className="rounded-2xl border border-dashed border-line px-4 py-6 text-sm text-ink-soft">
+            {emptyLabel}
+          </li>
+        )}
+      </ul>
+    </article>
+  );
+}
+
+function SummaryTile({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[24px] border border-line bg-surface-muted px-4 py-4">
+      <div className="flex items-center gap-2 text-ink-soft">
+        {icon}
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]">{label}</p>
+      </div>
+      <p className="mt-3 text-sm font-medium text-ink">{value}</p>
+    </div>
+  );
+}
+
+function bikeStatusTone(status: FleetBike['status']) {
+  if (status === 'ACTIVE') {
+    return 'success' as const;
+  }
+  if (status === 'MAINTENANCE') {
+    return 'warning' as const;
+  }
+  return 'neutral' as const;
+}
+
+function eventSeverityTone(severity: FleetEvent['severity']) {
+  if (severity === 'CRITICAL') {
+    return 'danger' as const;
+  }
+  if (severity === 'HIGH') {
+    return 'warning' as const;
+  }
+  if (severity === 'MEDIUM') {
+    return 'info' as const;
+  }
+  return 'neutral' as const;
+}
+
+function commandStatusTone(status: CommandStatusEvent['status']) {
+  if (status === 'ACKED') {
+    return 'success' as const;
+  }
+  if (status === 'FAILED' || status === 'EXPIRED') {
+    return 'danger' as const;
+  }
+  return 'info' as const;
+}
+
+function formatTimestamp(value: string) {
+  return new Date(value).toLocaleString();
+}
+
+function formatTripDistance(distanceKm: number) {
+  return `${distanceKm.toFixed(2)} km`;
+}
+
+function formatTripDuration(durationSec: number) {
+  if (!durationSec) {
+    return '0 min';
+  }
+
+  const hours = Math.floor(durationSec / 3600);
+  const minutes = Math.max(1, Math.round((durationSec % 3600) / 60));
+  if (hours === 0) {
+    return `${minutes} min`;
+  }
+  return `${hours}h ${minutes}m`;
+}
+
+function formatLabel(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
 }

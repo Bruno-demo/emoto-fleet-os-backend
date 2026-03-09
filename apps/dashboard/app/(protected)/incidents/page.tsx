@@ -1,6 +1,13 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  AlertCircle,
+  Clock3,
+  FileArchive,
+  ShieldCheck,
+  Siren,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
 import { PaginationControls } from '@/components/ui/pagination-controls';
@@ -48,10 +55,9 @@ export default function IncidentsPage() {
 
   const selectedIncident = useMemo(
     () =>
-      (incidentsQuery.data?.data ?? []).find(
-        (incident) => incident.id === selectedIncidentId,
-      ) ?? null,
-    [incidentsQuery.data, selectedIncidentId],
+      (incidentsQuery.data?.data ?? []).find((incident) => incident.id === selectedIncidentId) ??
+      null,
+    [incidentsQuery.data?.data, selectedIncidentId],
   );
 
   const incidentTimelineEventsQuery = useQuery({
@@ -79,10 +85,20 @@ export default function IncidentsPage() {
     enabled: !!selectedIncidentId && !!selectedIncident?.bikeId,
   });
 
-  // Applies incident status transitions through acknowledge/resolve/false-alarm APIs.
-  const runIncidentAction = async (
-    action: 'acknowledge' | 'resolve' | 'false-alarm',
-  ) => {
+  const incidentStats = useMemo(() => {
+    const incidents = incidentsQuery.data?.data ?? [];
+    return {
+      open: incidents.filter((incident) => incident.status === 'OPEN').length,
+      acknowledged: incidents.filter((incident) => incident.status === 'ACKNOWLEDGED').length,
+      resolved: incidents.filter((incident) => incident.status === 'RESOLVED').length,
+      falseAlarm: incidents.filter((incident) => incident.status === 'FALSE_ALARM').length,
+    };
+  }, [incidentsQuery.data?.data]);
+
+  const incidents = incidentsQuery.data?.data ?? [];
+
+  // Applies the selected incident workflow action and refreshes the list state.
+  const runIncidentAction = async (action: 'acknowledge' | 'resolve' | 'false-alarm') => {
     if (!selectedIncident) {
       return;
     }
@@ -107,7 +123,7 @@ export default function IncidentsPage() {
     }
   };
 
-  // Requests generation of incident evidence pack and stores download URLs.
+  // Requests generation of the incident evidence pack and stores the resulting links.
   const generateEvidencePack = async () => {
     if (!selectedIncident) {
       return;
@@ -139,108 +155,146 @@ export default function IncidentsPage() {
   return (
     <PageShell
       title="Incidents"
-      description="Crash/theft incident queue with workflow actions and evidence downloads."
+      description="Manage crash and theft workflows, drive dispatcher acknowledgement, and generate evidence packs when the incident must leave the dashboard."
     >
-      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-4">
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as IncidentStatusFilter);
-              setPage(1);
-            }}
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
-          >
-            <option value="">All statuses</option>
-            {STATUS_FILTERS.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Open"
+          value={String(incidentStats.open)}
+          hint="Incidents awaiting first dispatcher action."
+          icon={<AlertCircle size={18} />}
+          tone="danger"
+        />
+        <MetricCard
+          title="Acknowledged"
+          value={String(incidentStats.acknowledged)}
+          hint="Incidents owned but not yet resolved."
+          icon={<ShieldCheck size={18} />}
+          tone="warning"
+        />
+        <MetricCard
+          title="Resolved"
+          value={String(incidentStats.resolved)}
+          hint="Incidents closed during the current filtered result window."
+          icon={<Clock3 size={18} />}
+          tone="success"
+        />
+        <MetricCard
+          title="False Alarm"
+          value={String(incidentStats.falseAlarm)}
+          hint="Closed incidents dismissed as non-actionable."
+          icon={<Siren size={18} />}
+          tone="info"
+        />
+      </section>
 
-          <input
-            type="datetime-local"
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
-            value={from}
-            onChange={(event) => {
-              setFrom(event.target.value);
-              setPage(1);
-            }}
-          />
+      <section className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+              Incident Queue
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
+              Active workflow list
+            </h2>
+          </div>
 
-          <input
-            type="datetime-local"
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
-            value={to}
-            onChange={(event) => {
-              setTo(event.target.value);
-              setPage(1);
-            }}
-          />
+          <div className="grid gap-3 md:grid-cols-4">
+            <select
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value as IncidentStatusFilter);
+                setPage(1);
+              }}
+              className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+            >
+              <option value="">All statuses</option>
+              {STATUS_FILTERS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
 
-          <button
-            type="button"
-            onClick={() => {
-              setStatus('');
-              setFrom('');
-              setTo('');
-              setPage(1);
-            }}
-            className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-muted"
-          >
-            Reset Filters
-          </button>
+            <input
+              type="datetime-local"
+              value={from}
+              onChange={(event) => {
+                setFrom(event.target.value);
+                setPage(1);
+              }}
+              className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+            />
+
+            <input
+              type="datetime-local"
+              value={to}
+              onChange={(event) => {
+                setTo(event.target.value);
+                setPage(1);
+              }}
+              className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+            />
+
+            <button
+              type="button"
+              onClick={() => {
+                setStatus('');
+                setFrom('');
+                setTo('');
+                setPage(1);
+              }}
+              className="rounded-2xl border border-line px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
-              <tr className="text-xs uppercase tracking-[0.14em] text-ink-soft">
-                <th className="px-2 py-2">Created</th>
-                <th className="px-2 py-2">Bike</th>
-                <th className="px-2 py-2">Device</th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2">Action</th>
+              <tr className="border-b border-line text-xs uppercase tracking-[0.16em] text-ink-soft">
+                <th className="px-3 py-3">Created</th>
+                <th className="px-3 py-3">Bike</th>
+                <th className="px-3 py-3">Device</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {(incidentsQuery.data?.data ?? []).map((incident) => (
-                <tr key={incident.id} className="border-t border-line">
-                  <td className="px-2 py-2 text-ink-soft">
-                    {new Date(incident.createdAt).toLocaleString()}
+              {incidents.map((incident) => (
+                <tr key={incident.id} className="border-b border-line/70 last:border-b-0">
+                  <td className="px-3 py-4 text-ink-soft">{formatTimestamp(incident.createdAt)}</td>
+                  <td className="px-3 py-4 text-ink">
+                    {incident.bikeId ? incident.bikeId.slice(0, 8) : 'N/A'}
                   </td>
-                  <td className="px-2 py-2 text-ink">{incident.bikeId?.slice(0, 8) ?? 'N/A'}</td>
-                  <td className="px-2 py-2 text-ink-soft">
-                    {incident.deviceId.slice(0, 8)}...
+                  <td className="px-3 py-4 text-ink-soft">{incident.deviceId.slice(0, 8)}...</td>
+                  <td className="px-3 py-4">
+                    <StatusPill label={incident.status} tone={incidentStatusTone(incident.status)} />
                   </td>
-                  <td className="px-2 py-2">
-                    <StatusPill
-                      label={incident.status}
-                      tone={
-                        incident.status === 'OPEN'
-                          ? 'danger'
-                          : incident.status === 'ACKNOWLEDGED'
-                            ? 'warning'
-                            : 'success'
-                      }
-                    />
-                  </td>
-                  <td className="px-2 py-2">
+                  <td className="px-3 py-4">
                     <button
                       type="button"
-                      className="rounded-lg border border-line px-2 py-1 text-xs hover:bg-surface-muted"
+                      className="rounded-2xl border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
                       onClick={() => {
                         setSelectedIncidentId(incident.id);
                         setEvidencePack(null);
                         setActionError(null);
                       }}
                     >
-                      Details
+                      Open detail
                     </button>
                   </td>
                 </tr>
               ))}
+              {incidents.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-10 text-center text-sm text-ink-soft">
+                    No incidents match the current filter set.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -253,22 +307,46 @@ export default function IncidentsPage() {
       </section>
 
       {selectedIncident ? (
-        <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <h2 className="font-display text-2xl font-semibold text-ink">
-            Incident {selectedIncident.id.slice(0, 8)}...
-          </h2>
+        <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                  Incident Detail
+                </p>
+                <h2 className="mt-2 font-display text-3xl font-semibold text-ink">
+                  {selectedIncident.id.slice(0, 8)}...
+                </h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusPill
+                    label={selectedIncident.status}
+                    tone={incidentStatusTone(selectedIncident.status)}
+                  />
+                  <StatusPill
+                    label={selectedIncident.bikeId ? `Bike ${selectedIncident.bikeId.slice(0, 8)}` : 'No bike'}
+                    tone="neutral"
+                  />
+                </div>
+              </div>
+              <div className="rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-soft">
+                Opened {formatTimestamp(selectedIncident.createdAt)}
+              </div>
+            </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <article className="rounded-xl border border-line bg-surface-muted p-3">
-              <h3 className="font-semibold text-ink">Timeline</h3>
-              <ul className="mt-2 space-y-2">
+            <div className="mt-5 rounded-[28px] border border-line bg-surface-muted p-4">
+              <div className="flex items-center gap-2">
+                <span className="rounded-xl bg-white p-2 text-accent">
+                  <Clock3 size={16} />
+                </span>
+                <h3 className="font-display text-lg font-semibold text-ink">Timeline</h3>
+              </div>
+
+              <ul className="mt-4 space-y-3">
                 {timelineRows.map((row) => (
-                  <li key={row.id} className="rounded-lg border border-line bg-white px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-ink">{row.title}</p>
-                      <p className="text-xs text-ink-soft">
-                        {new Date(row.ts).toLocaleString()}
-                      </p>
+                  <li key={row.id} className="rounded-2xl border border-line bg-white px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium text-ink">{row.title}</p>
+                      <p className="text-xs text-ink-soft">{formatTimestamp(row.ts)}</p>
                     </div>
                     {row.description ? (
                       <p className="mt-1 text-xs text-ink-soft">{row.description}</p>
@@ -276,71 +354,81 @@ export default function IncidentsPage() {
                   </li>
                 ))}
               </ul>
-            </article>
+            </div>
+          </article>
 
-            <article className="rounded-xl border border-line bg-surface-muted p-3">
-              <h3 className="font-semibold text-ink">Actions</h3>
-              <textarea
-                className="mt-2 min-h-24 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                placeholder="Optional notes"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-              />
+          <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+              Workflow Actions
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
+              Dispatcher controls
+            </h2>
 
-              <div className="mt-3 grid gap-2">
-                <button
-                  type="button"
-                  disabled={isSubmittingAction}
-                  onClick={() => runIncidentAction('acknowledge')}
-                  className="rounded-lg border border-line bg-white px-3 py-2 text-sm disabled:opacity-60"
-                >
-                  Acknowledge
-                </button>
-                <button
-                  type="button"
-                  disabled={isSubmittingAction}
-                  onClick={() => runIncidentAction('resolve')}
-                  className="rounded-lg border border-line bg-white px-3 py-2 text-sm disabled:opacity-60"
-                >
-                  Resolve
-                </button>
-                <button
-                  type="button"
-                  disabled={isSubmittingAction}
-                  onClick={() => runIncidentAction('false-alarm')}
-                  className="rounded-lg border border-line bg-white px-3 py-2 text-sm disabled:opacity-60"
-                >
-                  False Alarm
-                </button>
+            <textarea
+              className="mt-5 min-h-28 w-full rounded-3xl border border-line bg-surface-muted px-4 py-4 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+              placeholder="Optional notes for acknowledgement, resolution, or false-alarm reasoning."
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
+
+            <div className="mt-4 grid gap-3">
+              <button
+                type="button"
+                disabled={isSubmittingAction}
+                onClick={() => runIncidentAction('acknowledge')}
+                className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Acknowledge
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingAction}
+                onClick={() => runIncidentAction('resolve')}
+                className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Resolve
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingAction}
+                onClick={() => runIncidentAction('false-alarm')}
+                className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                False Alarm
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-[28px] border border-line bg-surface-muted p-4">
+              <div className="flex items-center gap-2">
+                <span className="rounded-xl bg-white p-2 text-accent">
+                  <FileArchive size={16} />
+                </span>
+                <h3 className="font-display text-lg font-semibold text-ink">Evidence Pack</h3>
               </div>
 
               <button
                 type="button"
                 disabled={isGeneratingEvidence}
                 onClick={generateEvidencePack}
-                className="mt-4 w-full rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
+                <FileArchive size={16} />
                 {isGeneratingEvidence ? 'Generating...' : 'Generate Evidence Pack'}
               </button>
 
-              {actionError ? (
-                <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-                  {actionError}
-                </p>
-              ) : null}
-
               {evidencePack ? (
-                <div className="mt-4 rounded-xl border border-line bg-white p-3">
-                  <p className="text-sm font-semibold text-ink">Evidence Pack Ready</p>
+                <div className="mt-4 rounded-2xl border border-line bg-white p-4">
+                  <p className="text-sm font-semibold text-ink">Evidence pack ready</p>
                   <p className="mt-1 text-xs text-ink-soft">
                     Expires in {Math.round(evidencePack.expiresInSeconds / 60)} minutes
                   </p>
-                  <div className="mt-2 grid gap-2">
+                  <div className="mt-3 grid gap-2">
                     <a
                       href={evidencePack.summaryJsonUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-lg border border-line px-2 py-1 text-sm hover:bg-surface-muted"
+                      className="rounded-2xl border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-surface-muted"
                     >
                       Download Summary JSON
                     </a>
@@ -348,19 +436,76 @@ export default function IncidentsPage() {
                       href={evidencePack.telemetryCsvUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-lg border border-line px-2 py-1 text-sm hover:bg-surface-muted"
+                      className="rounded-2xl border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-surface-muted"
                     >
                       Download Telemetry CSV
                     </a>
                   </div>
                 </div>
               ) : null}
-            </article>
-          </div>
+            </div>
+
+            {actionError ? (
+              <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {actionError}
+              </p>
+            ) : null}
+          </article>
         </section>
       ) : null}
     </PageShell>
   );
+}
+
+function MetricCard({
+  title,
+  value,
+  hint,
+  icon,
+  tone,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ReactNode;
+  tone: 'info' | 'success' | 'warning' | 'danger';
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'bg-success-soft text-emerald-700'
+      : tone === 'warning'
+        ? 'bg-warning-soft text-amber-700'
+        : tone === 'danger'
+          ? 'bg-danger-soft text-rose-700'
+          : 'bg-accent-soft text-accent';
+
+  return (
+    <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
+            {title}
+          </p>
+          <p className="mt-4 font-display text-4xl font-semibold text-ink">{value}</p>
+        </div>
+        <span className={`rounded-2xl p-3 ${toneClass}`}>{icon}</span>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-ink-soft">{hint}</p>
+    </article>
+  );
+}
+
+function incidentStatusTone(status: Incident['status']) {
+  if (status === 'OPEN') {
+    return 'danger' as const;
+  }
+  if (status === 'ACKNOWLEDGED') {
+    return 'warning' as const;
+  }
+  if (status === 'RESOLVED') {
+    return 'success' as const;
+  }
+  return 'neutral' as const;
 }
 
 function toIsoUtcOrUndefined(value: string): string | undefined {
@@ -374,6 +519,10 @@ function toIsoUtcOrUndefined(value: string): string | undefined {
   }
 
   return parsedDate.toISOString();
+}
+
+function formatTimestamp(value: string) {
+  return new Date(value).toLocaleString();
 }
 
 function buildIncidentTimeline(
@@ -406,7 +555,7 @@ function buildIncidentTimeline(
     rows.push({
       id: `incident-resolved-${incident.id}`,
       ts: incident.resolvedAt,
-      title: `Incident ${incident.status === 'FALSE_ALARM' ? 'marked false alarm' : 'resolved'}`,
+      title: incident.status === 'FALSE_ALARM' ? 'Marked false alarm' : 'Incident resolved',
       description: incident.notes ?? undefined,
     });
   }
@@ -415,10 +564,17 @@ function buildIncidentTimeline(
     rows.push({
       id: `event-${event.id}`,
       ts: event.ts,
-      title: `${event.type} (${event.severity})`,
+      title: `${formatEventType(event.type)} (${event.severity})`,
       description: event.bikeId ? `Bike ${event.bikeId.slice(0, 8)}...` : undefined,
     });
   }
 
   return rows.sort((left, right) => left.ts.localeCompare(right.ts));
+}
+
+function formatEventType(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
 }

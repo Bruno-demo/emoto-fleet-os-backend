@@ -11,11 +11,11 @@ export default function ProtectedLayout({
   return (
     <RequireAuth>
       <RealtimeProvider>
-        <div className="min-h-screen md:grid md:grid-cols-[270px_1fr]">
+        <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
           <DashboardNav />
           <div className="min-h-screen bg-background">
             <Topbar />
-            <main className="p-4 md:p-8">{children}</main>
+            <main className="px-4 py-5 md:px-8 md:py-6">{children}</main>
           </div>
         </div>
       </RealtimeProvider>
