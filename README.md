@@ -33,6 +33,12 @@ This now starts:
 - MinIO
 - API on `http://localhost:3000`
 
+If host port `3000` is already in use, set a different host mapping in `.env`:
+```env
+API_HOST_PORT=3004
+NEXT_PUBLIC_API_URL=http://localhost:3004
+```
+
 To watch the API container logs, including the exposed port and URLs:
 ```bash
 docker compose logs -f api
@@ -213,7 +219,7 @@ npm run partner:create-client
 ```
 
 ## Docker Ports
-- API: `3000`
+- API: `${API_HOST_PORT:-3000}` -> container `3000`
 - PostgreSQL: `5432`
 - Redis: `6379`
 - EMQX MQTT: `1883`

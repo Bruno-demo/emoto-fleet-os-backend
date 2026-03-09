@@ -32,11 +32,12 @@ async function bootstrap(): Promise<void> {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
+  const publicUrl = configService.get<string>('API_PUBLIC_URL') ?? `http://localhost:${port}`;
   await app.listen(port, '0.0.0.0');
 
-  logger.log(`API listening on http://localhost:${port}`);
-  logger.log(`Swagger docs available at http://localhost:${port}/docs`);
-  logger.log(`Prometheus metrics available at http://localhost:${port}/metrics`);
+  logger.log(`API listening on ${publicUrl}`);
+  logger.log(`Swagger docs available at ${publicUrl}/docs`);
+  logger.log(`Prometheus metrics available at ${publicUrl}/metrics`);
 }
 
 void bootstrap();

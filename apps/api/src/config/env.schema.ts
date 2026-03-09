@@ -10,6 +10,7 @@ export const envSchema = z.object({
     .enum(['development', 'test', 'production'])
     .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  API_PUBLIC_URL: z.string().url().optional(),
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   REDIS_IN_MEMORY: booleanString,

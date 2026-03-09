@@ -22,11 +22,13 @@ RUN apk add --no-cache curl
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 COPY docker/api/entrypoint.sh /entrypoint.sh
 
 ENV NODE_ENV=production
+ENV NODE_PATH=/app/apps/api/node_modules:/app/node_modules
 
 RUN chmod +x /entrypoint.sh
 
