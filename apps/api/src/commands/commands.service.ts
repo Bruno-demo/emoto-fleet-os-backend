@@ -31,6 +31,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { EventsGateway } from '../events/events.gateway';
+import { MetricsService } from '../metrics/metrics.service';
 import { FleetDeviceCommand } from './commands.types';
 
 const LIVE_STATE_MAX_AGE_MS = 30_000;
@@ -56,6 +57,7 @@ export class CommandsService {
     private readonly auditService: AuditService,
     private readonly eventsGateway: EventsGateway,
     private readonly configService: ConfigService,
+    private readonly metricsService: MetricsService,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -251,6 +253,11 @@ export class CommandsService {
         errorMessage: updatedCommand.errorMessage,
       } as Prisma.InputJsonValue,
     });
+
+    this.metricsService.incrementCommandStatus(
+      updatedCommand.status,
+      updatedCommand.type,
+    );
 
     this.eventsGateway.emitCommandStatus(updatedCommand.fleetId, {
       commandId: updatedCommand.id,

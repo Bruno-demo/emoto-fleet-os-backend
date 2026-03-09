@@ -52,6 +52,42 @@ npm run dev:rider
 
 Rider app opens in Expo on `http://localhost:8082` (QR/dev-client workflow). Set `EXPO_PUBLIC_API_URL` in `apps/rider/.env` when using a physical device.
 
+## Production Compose
+1. Copy production env values:
+```bash
+cp .env.prod.example .env.prod
+```
+2. Build and start services:
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+
+API runs at `http://localhost:3000`, dashboard runs at `http://localhost:3001`.
+
+## Monitoring (Prometheus + Grafana)
+1. Start monitoring stack:
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env-file .env.prod up -d
+```
+2. Access tools:
+- Prometheus: `http://localhost:${PROMETHEUS_PORT:-9090}`
+- Grafana: `http://localhost:${GRAFANA_PORT:-3005}` (default admin/admin)
+
+The API metrics endpoint is available at `http://localhost:3000/metrics`.
+
+## Backups
+The production compose includes a `backup` service that runs a daily Postgres dump into the `postgres_backups` volume.
+
+Manual backup (one-off):
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm backup /bin/sh /backup/backup.sh
+```
+
+Restore from a dump:
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm backup /bin/sh /backup/restore.sh /backups/your-backup.dump
+```
+
 ## Troubleshooting
 - If Docker shows `dockerDesktopLinuxEngine` pipe errors, wait for Docker Desktop to finish starting or restart Docker Desktop.
 - If local Postgres is already installed, ensure `.env` has correct credentials and the target DB exists.

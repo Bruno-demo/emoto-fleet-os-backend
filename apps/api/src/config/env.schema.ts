@@ -16,6 +16,10 @@ export const envSchema = z.object({
   MQTT_URL: z.string().url(),
   MQTT_DISABLED: booleanString,
   NOTIFICATION_OUTBOX_INLINE: booleanString,
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
+  LOG_PRETTY: booleanString,
   S3_ENDPOINT: z.string().url().default('http://localhost:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_BUCKET: z.string().min(3).default('emoto-evidence'),

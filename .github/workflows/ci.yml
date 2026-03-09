@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'master']
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:2.16.1-pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: emoto_fleet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d emoto_fleet"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Seed CI env
+        run: |
+          cat > .env <<'EOF'
+          NODE_ENV=test
+          PORT=3000
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/emoto_fleet
+          POSTGRES_HOST=localhost
+          POSTGRES_PORT=5432
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB=emoto_fleet
+          REDIS_URL=redis://localhost:6379
+          MQTT_URL=mqtt://localhost:1883
+          S3_ENDPOINT=http://localhost:9000
+          S3_REGION=us-east-1
+          S3_BUCKET=emoto-evidence
+          S3_ACCESS_KEY_ID=minioadmin
+          S3_SECRET_ACCESS_KEY=minioadmin
+          S3_FORCE_PATH_STYLE=true
+          DEVICE_SECRET_MASTER_KEY=change_me_device_secret_master_key_32chars
+          COMMAND_TTL_SECONDS=45
+          INCIDENT_CRASH_MIN_SEVERITY=HIGH
+          JWT_SECRET=change_me_change_me
+          JWT_EXPIRES_IN=1h
+          PARTNER_JWT_SECRET=change_me_partner_jwt_secret
+          PARTNER_JWT_EXPIRES_IN=1h
+          PARTNER_WEBHOOK_SECRET_MASTER_KEY=change_me_partner_webhook_secret_master_key_32chars
+          AUTH_REGISTER_ENABLED=false
+          BCRYPT_SALT_ROUNDS=10
+          LOG_LEVEL=info
+          LOG_PRETTY=false
+          EOF
+
+      - name: Migrate DB
+        run: npm run db:deploy -w apps/api
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test e2e
+        run: npm run test:e2e
+
+      - name: Build Docker Images
+        run: |
+          docker build -f apps/api/Dockerfile -t emoto-api:ci .
+          docker build -f apps/dashboard/Dockerfile --build-arg NEXT_PUBLIC_API_URL=http://localhost:3000 -t emoto-dashboard:ci .

@@ -29,6 +29,7 @@ import {
 } from '../mqtt/mqtt-validation.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { LiveBikeState } from './ingestion.types';
 import { LiveStateService } from './live-state.service';
 import { RulesEngineService } from './rules-engine.service';
@@ -61,6 +62,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     private readonly eventsService: EventsService,
     private readonly tripBuilderService: TripBuilderService,
     private readonly commandsService: CommandsService,
+    private readonly metricsService: MetricsService,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -135,6 +137,9 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const kindLabel =
+      parsedTopic.kind === 'commandAck' ? 'command_ack' : parsedTopic.kind;
+
     try {
       const payload = JSON.parse(rawMessage) as unknown;
       const device = await this.loadDeviceByUid(parsedTopic.deviceUid);
@@ -154,7 +159,9 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       } else {
         await this.processCommandAckPayload(device, payload, deviceSecret);
       }
+      this.metricsService.incrementMqttIngestion(kindLabel, 'accepted');
     } catch (error: unknown) {
+      this.metricsService.incrementMqttIngestion(kindLabel, 'rejected');
       const message = error instanceof Error ? error.message : 'unknown error';
       this.logger.warn(
         `Failed to process MQTT message for ${this.truncateDeviceUid(parsedTopic.deviceUid)}: ${message}`,

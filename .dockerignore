@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.next
+**/.expo
+**/coverage
+.git
+.gitignore
+.env
+.env.*
+.tmp*
+docker-compose*.yml
+ops/backup/*.dump
