@@ -10,7 +10,7 @@ RUN npm ci
 COPY apps/api ./apps/api
 
 RUN DATABASE_URL=postgresql://postgres:postgres@postgres:5432/emoto_fleet \
-    ./node_modules/.bin/prisma generate --schema apps/api/prisma/schema.prisma
+    npm exec --workspace apps/api prisma generate --schema apps/api/prisma/schema.prisma
 RUN npm run build -w apps/api
 
 FROM node:22-alpine AS runtime
