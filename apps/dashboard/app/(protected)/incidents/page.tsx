@@ -1,38 +1,40 @@
-'use client';
+﻿'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  CheckCircle2,
   Clock3,
   FileArchive,
-  ShieldCheck,
+  ShieldAlert,
   Siren,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
-import { PaginationControls } from '@/components/ui/pagination-controls';
-import { StatusPill } from '@/components/ui/status-pill';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import type {
-  FleetEvent,
-  Incident,
-  IncidentEvidencePack,
-  PaginatedResponse,
-} from '@/lib/types/dashboard';
+import { Bike, FleetEvent, Incident, IncidentEvidencePack, PaginatedResponse } from '@/lib/types/dashboard';
+import { formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DataTable, DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
+import { Drawer } from '@/components/ui/drawer';
+import { EmptyState } from '@/components/ui/empty-state';
+import { DrawerSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 const PAGE_SIZE = 20;
-const STATUS_FILTERS = ['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'FALSE_ALARM'] as const;
-
-type IncidentStatusFilter = (typeof STATUS_FILTERS)[number] | '';
+type IncidentStatusFilter = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'FALSE_ALARM' | '';
+type IncidentAction = 'acknowledge' | 'resolve' | 'false-alarm';
 
 export default function IncidentsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<IncidentStatusFilter>('');
+  const [status, setStatus] = useState<IncidentStatusFilter>('OPEN');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<IncidentAction | null>(null);
   const [notes, setNotes] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
@@ -53,12 +55,18 @@ export default function IncidentsPage() {
       ),
   });
 
-  const selectedIncident = useMemo(
-    () =>
-      (incidentsQuery.data?.data ?? []).find((incident) => incident.id === selectedIncidentId) ??
-      null,
-    [incidentsQuery.data?.data, selectedIncidentId],
-  );
+  const bikesQuery = useQuery({
+    queryKey: ['bikes', 'incident-labels'],
+    queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=100'),
+  });
+
+  const selectedIncidentQuery = useQuery({
+    queryKey: ['incidents', selectedIncidentId, 'detail'],
+    queryFn: () => apiFetch<Incident>(`/incidents/${selectedIncidentId}`),
+    enabled: !!selectedIncidentId,
+  });
+
+  const selectedIncident = selectedIncidentQuery.data ?? null;
 
   const incidentTimelineEventsQuery = useQuery({
     queryKey: ['incidents', selectedIncidentId, 'timeline-events'],
@@ -85,33 +93,54 @@ export default function IncidentsPage() {
     enabled: !!selectedIncidentId && !!selectedIncident?.bikeId,
   });
 
+  const bikeLabelById = useMemo(() => {
+    const bikeMap = new Map<string, string>();
+    for (const bike of bikesQuery.data?.data ?? []) {
+      bikeMap.set(bike.id, bike.label);
+    }
+    return bikeMap;
+  }, [bikesQuery.data?.data]);
+
+  const incidents = useMemo(() => incidentsQuery.data?.data ?? [], [incidentsQuery.data?.data]);
   const incidentStats = useMemo(() => {
-    const incidents = incidentsQuery.data?.data ?? [];
     return {
       open: incidents.filter((incident) => incident.status === 'OPEN').length,
       acknowledged: incidents.filter((incident) => incident.status === 'ACKNOWLEDGED').length,
       resolved: incidents.filter((incident) => incident.status === 'RESOLVED').length,
       falseAlarm: incidents.filter((incident) => incident.status === 'FALSE_ALARM').length,
     };
-  }, [incidentsQuery.data?.data]);
+  }, [incidents]);
 
-  const incidents = incidentsQuery.data?.data ?? [];
+  const timelineRows = useMemo(
+    () => buildIncidentTimeline(selectedIncident, incidentTimelineEventsQuery.data ?? [], bikeLabelById),
+    [bikeLabelById, incidentTimelineEventsQuery.data, selectedIncident],
+  );
 
-  // Applies the selected incident workflow action and refreshes the list state.
-  const runIncidentAction = async (action: 'acknowledge' | 'resolve' | 'false-alarm') => {
-    if (!selectedIncident) {
+  // Clears transient evidence and form state whenever the operator opens a different incident.
+  useEffect(() => {
+    setEvidencePack(null);
+    setActionError(null);
+    setNotes('');
+  }, [selectedIncidentId]);
+
+  // Applies the selected incident workflow action and refreshes both list and detail state.
+  const runIncidentAction = async (action: IncidentAction) => {
+    if (!selectedIncidentId) {
       return;
     }
 
     setActionError(null);
     try {
       setIsSubmittingAction(true);
-      await apiFetch<Incident>(`/incidents/${selectedIncident.id}/${action}`, {
+      await apiFetch<Incident>(`/incidents/${selectedIncidentId}/${action}`, {
         method: 'POST',
         body: JSON.stringify({ notes: notes || undefined }),
       });
-      await queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      setNotes('');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['incidents'] }),
+        queryClient.invalidateQueries({ queryKey: ['incidents', selectedIncidentId, 'detail'] }),
+      ]);
+      setPendingAction(null);
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setActionError(error.message);
@@ -123,9 +152,9 @@ export default function IncidentsPage() {
     }
   };
 
-  // Requests generation of the incident evidence pack and stores the resulting links.
+  // Requests generation of the incident evidence pack and stores the returned download links.
   const generateEvidencePack = async () => {
-    if (!selectedIncident) {
+    if (!selectedIncidentId) {
       return;
     }
 
@@ -133,7 +162,7 @@ export default function IncidentsPage() {
       setIsGeneratingEvidence(true);
       setActionError(null);
       const response = await apiFetch<IncidentEvidencePack>(
-        `/incidents/${selectedIncident.id}/evidence-pack`,
+        `/incidents/${selectedIncidentId}/evidence-pack`,
       );
       setEvidencePack(response);
     } catch (error: unknown) {
@@ -147,156 +176,148 @@ export default function IncidentsPage() {
     }
   };
 
-  const timelineRows = buildIncidentTimeline(
-    selectedIncident,
-    incidentTimelineEventsQuery.data ?? [],
-  );
+  const columns = useMemo<Array<DataTableColumn<Incident>>>(() => [
+    {
+      header: 'Incident',
+      render: (incident) => (
+        <div>
+          <p className="font-semibold text-ink">{maskIdentifier(incident.id)}</p>
+          <p className="mt-1 text-xs leading-5 text-ink-soft">
+            Created {formatTimestamp(incident.createdAt)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: 'Bike',
+      render: (incident) => (
+        <div>
+          <p className="font-semibold text-ink">
+            {incident.bikeId ? bikeLabelById.get(incident.bikeId) ?? maskIdentifier(incident.bikeId) : 'No bike linked'}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-ink-soft">
+            Device {maskIdentifier(incident.deviceId)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: 'Status',
+      render: (incident) => <IncidentStatusBadge status={incident.status} />,
+    },
+    {
+      header: 'Updated',
+      render: (incident) => (
+        <div>
+          <p className="font-semibold text-ink">{formatTimeAgo(incident.updatedAt)}</p>
+          <p className="mt-1 text-xs leading-5 text-ink-soft">{formatTimestamp(incident.updatedAt)}</p>
+        </div>
+      ),
+    },
+    {
+      header: 'Action',
+      className: 'text-right',
+      cellClassName: 'text-right',
+      render: (incident) => (
+        <button
+          type="button"
+          onClick={() => setSelectedIncidentId(incident.id)}
+          className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+        >
+          Open detail
+        </button>
+      ),
+    },
+  ], [bikeLabelById]);
 
   return (
     <PageShell
       title="Incidents"
-      description="Manage crash and theft workflows, drive dispatcher acknowledgement, and generate evidence packs when the incident must leave the dashboard."
+      description="Triage crash, SOS, and theft workflows with fewer clicks, clearer status transitions, and faster evidence-pack access."
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Open"
           value={String(incidentStats.open)}
-          hint="Incidents awaiting first dispatcher action."
+          hint="Incidents waiting for the first dispatcher action."
           icon={<AlertCircle size={18} />}
           tone="danger"
         />
         <MetricCard
           title="Acknowledged"
           value={String(incidentStats.acknowledged)}
-          hint="Incidents owned but not yet resolved."
-          icon={<ShieldCheck size={18} />}
+          hint="Incidents owned by dispatch but not yet closed."
+          icon={<ShieldAlert size={18} />}
           tone="warning"
         />
         <MetricCard
           title="Resolved"
           value={String(incidentStats.resolved)}
-          hint="Incidents closed during the current filtered result window."
-          icon={<Clock3 size={18} />}
+          hint="Incidents resolved in the current result set."
+          icon={<CheckCircle2 size={18} />}
           tone="success"
         />
         <MetricCard
           title="False Alarm"
           value={String(incidentStats.falseAlarm)}
-          hint="Closed incidents dismissed as non-actionable."
+          hint="Incidents closed as non-actionable."
           icon={<Siren size={18} />}
           tone="info"
         />
       </section>
 
-      <section className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-              Incident Queue
-            </p>
-            <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
-              Active workflow list
-            </h2>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-4">
-            <select
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value as IncidentStatusFilter);
-                setPage(1);
-              }}
-              className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
-            >
-              <option value="">All statuses</option>
-              {STATUS_FILTERS.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="datetime-local"
-              value={from}
-              onChange={(event) => {
-                setFrom(event.target.value);
-                setPage(1);
-              }}
-              className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
-            />
-
-            <input
-              type="datetime-local"
-              value={to}
-              onChange={(event) => {
-                setTo(event.target.value);
-                setPage(1);
-              }}
-              className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
-            />
-
+      <DashboardCard eyebrow="Incident Queue" title="Dispatcher workflow" description="Use status tabs for fast triage, then open an incident drawer to acknowledge, resolve, or package evidence.">
+        <DataTableToolbar
+          actions={
             <button
               type="button"
               onClick={() => {
-                setStatus('');
+                setStatus('OPEN');
                 setFrom('');
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-2xl border border-line px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted"
+              className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
             >
-              Reset Filters
+              Reset to open queue
             </button>
-          </div>
-        </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <StatusTab label="All" active={status === ''} count={incidentsQuery.data?.total ?? 0} onClick={() => { setStatus(''); setPage(1); }} />
+              <StatusTab label="Open" active={status === 'OPEN'} count={incidentStats.open} tone="danger" onClick={() => { setStatus('OPEN'); setPage(1); }} />
+              <StatusTab label="Acknowledged" active={status === 'ACKNOWLEDGED'} count={incidentStats.acknowledged} tone="warning" onClick={() => { setStatus('ACKNOWLEDGED'); setPage(1); }} />
+              <StatusTab label="Resolved" active={status === 'RESOLVED'} count={incidentStats.resolved} tone="success" onClick={() => { setStatus('RESOLVED'); setPage(1); }} />
+              <StatusTab label="False Alarm" active={status === 'FALSE_ALARM'} count={incidentStats.falseAlarm} onClick={() => { setStatus('FALSE_ALARM'); setPage(1); }} />
+            </div>
 
-        <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-line text-xs uppercase tracking-[0.16em] text-ink-soft">
-                <th className="px-3 py-3">Created</th>
-                <th className="px-3 py-3">Bike</th>
-                <th className="px-3 py-3">Device</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {incidents.map((incident) => (
-                <tr key={incident.id} className="border-b border-line/70 last:border-b-0">
-                  <td className="px-3 py-4 text-ink-soft">{formatTimestamp(incident.createdAt)}</td>
-                  <td className="px-3 py-4 text-ink">
-                    {incident.bikeId ? incident.bikeId.slice(0, 8) : 'N/A'}
-                  </td>
-                  <td className="px-3 py-4 text-ink-soft">{incident.deviceId.slice(0, 8)}...</td>
-                  <td className="px-3 py-4">
-                    <StatusPill label={incident.status} tone={incidentStatusTone(incident.status)} />
-                  </td>
-                  <td className="px-3 py-4">
-                    <button
-                      type="button"
-                      className="rounded-2xl border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
-                      onClick={() => {
-                        setSelectedIncidentId(incident.id);
-                        setEvidencePack(null);
-                        setActionError(null);
-                      }}
-                    >
-                      Open detail
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {incidents.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-sm text-ink-soft">
-                    No incidents match the current filter set.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+            <div className="grid gap-3 md:grid-cols-3">
+              <FilterField label="From" type="datetime-local" value={from} onChange={(value) => { setFrom(value); setPage(1); }} />
+              <FilterField label="To" type="datetime-local" value={to} onChange={(value) => { setTo(value); setPage(1); }} />
+              <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Queue size</p>
+                <p className="mt-2 font-display text-3xl font-semibold text-ink">{incidentsQuery.data?.total ?? 0}</p>
+                <p className="mt-2 text-sm leading-6 text-ink-soft">Rows matched by the current status and time filters.</p>
+              </div>
+            </div>
+          </div>
+        </DataTableToolbar>
+
+        <div className="mt-6">
+          <DataTable
+            data={incidents}
+            columns={columns}
+            keyExtractor={(incident) => incident.id}
+            loading={incidentsQuery.isLoading}
+            emptyState={
+              <EmptyState
+                icon={<AlertCircle size={18} />}
+                title="No incidents in this queue"
+                description="Adjust the time filters or switch tabs to inspect other incident states."
+              />
+            }
+          />
         </div>
 
         <PaginationControls
@@ -304,210 +325,320 @@ export default function IncidentsPage() {
           totalPages={incidentsQuery.data?.totalPages ?? 1}
           onPageChange={setPage}
         />
-      </section>
+      </DashboardCard>
 
-      {selectedIncident ? (
-        <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-                  Incident Detail
-                </p>
-                <h2 className="mt-2 font-display text-3xl font-semibold text-ink">
-                  {selectedIncident.id.slice(0, 8)}...
-                </h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <StatusPill
-                    label={selectedIncident.status}
-                    tone={incidentStatusTone(selectedIncident.status)}
+      <Drawer
+        open={!!selectedIncidentId}
+        title={selectedIncident ? maskIdentifier(selectedIncident.id) : 'Incident detail'}
+        description="Review timeline context, take the next workflow action, and manage evidence-pack output."
+        onClose={() => {
+          setSelectedIncidentId(null);
+          setPendingAction(null);
+          setActionError(null);
+        }}
+      >
+        {!selectedIncidentId ? null : selectedIncidentQuery.isLoading ? (
+          <DrawerSkeleton />
+        ) : !selectedIncident ? (
+          <EmptyState
+            icon={<AlertCircle size={18} />}
+            title="Incident detail unavailable"
+            description="This incident could not be loaded. Refresh the queue and try again."
+          />
+        ) : (
+          <div className="space-y-5">
+            <section className="grid gap-3 sm:grid-cols-2">
+              <KeyMetric label="Status" value={<IncidentStatusBadge status={selectedIncident.status} />} />
+              <KeyMetric label="Created" value={<span>{formatTimestamp(selectedIncident.createdAt)}</span>} />
+              <KeyMetric
+                label="Bike"
+                value={<span>{selectedIncident.bikeId ? bikeLabelById.get(selectedIncident.bikeId) ?? maskIdentifier(selectedIncident.bikeId) : 'No bike linked'}</span>}
+              />
+              <KeyMetric label="Last updated" value={<span>{formatTimeAgo(selectedIncident.updatedAt)}</span>} />
+            </section>
+
+            <DashboardCard eyebrow="Actions" title="Primary workflow" description="Use notes for handoff context, then move the incident to its next operational state.">
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-ink">
+                  Notes
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Optional resolution context, handoff details, or false-alarm reasoning."
+                    className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
                   />
-                  <StatusPill
-                    label={selectedIncident.bikeId ? `Bike ${selectedIncident.bikeId.slice(0, 8)}` : 'No bike'}
-                    tone="neutral"
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <ActionCard
+                    label="Acknowledge"
+                    description="Claim the incident and remove it from the unowned queue."
+                    disabled={selectedIncident.status !== 'OPEN' || isSubmittingAction}
+                    tone="info"
+                    onClick={() => setPendingAction('acknowledge')}
+                  />
+                  <ActionCard
+                    label="Resolve"
+                    description="Close the incident after the response workflow is complete."
+                    disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
+                    tone="success"
+                    onClick={() => setPendingAction('resolve')}
+                  />
+                  <ActionCard
+                    label="False Alarm"
+                    description="Close the incident as non-actionable without marking it resolved."
+                    disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
+                    tone="warning"
+                    onClick={() => setPendingAction('false-alarm')}
                   />
                 </div>
+
+                {actionError ? <InlineNotice message={actionError} /> : null}
               </div>
-              <div className="rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-soft">
-                Opened {formatTimestamp(selectedIncident.createdAt)}
-              </div>
-            </div>
+            </DashboardCard>
 
-            <div className="mt-5 rounded-[28px] border border-line bg-surface-muted p-4">
-              <div className="flex items-center gap-2">
-                <span className="rounded-xl bg-white p-2 text-accent">
-                  <Clock3 size={16} />
-                </span>
-                <h3 className="font-display text-lg font-semibold text-ink">Timeline</h3>
-              </div>
-
-              <ul className="mt-4 space-y-3">
-                {timelineRows.map((row) => (
-                  <li key={row.id} className="rounded-2xl border border-line bg-white px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-ink">{row.title}</p>
-                      <p className="text-xs text-ink-soft">{formatTimestamp(row.ts)}</p>
-                    </div>
-                    {row.description ? (
-                      <p className="mt-1 text-xs text-ink-soft">{row.description}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </article>
-
-          <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-              Workflow Actions
-            </p>
-            <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
-              Dispatcher controls
-            </h2>
-
-            <textarea
-              className="mt-5 min-h-28 w-full rounded-3xl border border-line bg-surface-muted px-4 py-4 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
-              placeholder="Optional notes for acknowledgement, resolution, or false-alarm reasoning."
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-            />
-
-            <div className="mt-4 grid gap-3">
-              <button
-                type="button"
-                disabled={isSubmittingAction}
-                onClick={() => runIncidentAction('acknowledge')}
-                className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Acknowledge
-              </button>
-              <button
-                type="button"
-                disabled={isSubmittingAction}
-                onClick={() => runIncidentAction('resolve')}
-                className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Resolve
-              </button>
-              <button
-                type="button"
-                disabled={isSubmittingAction}
-                onClick={() => runIncidentAction('false-alarm')}
-                className="rounded-2xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                False Alarm
-              </button>
-            </div>
-
-            <div className="mt-5 rounded-[28px] border border-line bg-surface-muted p-4">
-              <div className="flex items-center gap-2">
-                <span className="rounded-xl bg-white p-2 text-accent">
+            <DashboardCard eyebrow="Evidence Pack" title="Crash artifacts" description="Generate a fresh evidence pack when the incident needs an exportable summary and telemetry window.">
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  disabled={isGeneratingEvidence}
+                  onClick={() => {
+                    void generateEvidencePack();
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   <FileArchive size={16} />
-                </span>
-                <h3 className="font-display text-lg font-semibold text-ink">Evidence Pack</h3>
-              </div>
+                  {isGeneratingEvidence ? 'Generating evidence pack...' : 'Generate evidence pack'}
+                </button>
 
-              <button
-                type="button"
-                disabled={isGeneratingEvidence}
-                onClick={generateEvidencePack}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <FileArchive size={16} />
-                {isGeneratingEvidence ? 'Generating...' : 'Generate Evidence Pack'}
-              </button>
-
-              {evidencePack ? (
-                <div className="mt-4 rounded-2xl border border-line bg-white p-4">
-                  <p className="text-sm font-semibold text-ink">Evidence pack ready</p>
-                  <p className="mt-1 text-xs text-ink-soft">
-                    Expires in {Math.round(evidencePack.expiresInSeconds / 60)} minutes
-                  </p>
-                  <div className="mt-3 grid gap-2">
-                    <a
-                      href={evidencePack.summaryJsonUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-2xl border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-surface-muted"
-                    >
-                      Download Summary JSON
-                    </a>
-                    <a
-                      href={evidencePack.telemetryCsvUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-2xl border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-surface-muted"
-                    >
-                      Download Telemetry CSV
-                    </a>
+                {isGeneratingEvidence ? (
+                  <div className="space-y-2 rounded-[18px] border border-line bg-surface-muted px-4 py-4">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-4/5" />
                   </div>
-                </div>
-              ) : null}
-            </div>
+                ) : evidencePack ? (
+                  <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-ink">Evidence pack ready</p>
+                        <p className="mt-1 text-xs leading-5 text-ink-soft">
+                          Generated {formatTimeAgo(evidencePack.createdAt)} · expires in {Math.round(evidencePack.expiresInSeconds / 60)} min
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink">
+                        Fresh
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <a
+                        href={evidencePack.summaryJsonUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                      >
+                        Download summary JSON
+                      </a>
+                      <a
+                        href={evidencePack.telemetryCsvUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                      >
+                        Download telemetry CSV
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={<FileArchive size={18} />}
+                    title="No evidence pack generated yet"
+                    description="Generate a pack to create short-lived links for the JSON summary and telemetry CSV window."
+                  />
+                )}
+              </div>
+            </DashboardCard>
 
-            {actionError ? (
-              <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {actionError}
-              </p>
-            ) : null}
-          </article>
-        </section>
-      ) : null}
+            <DashboardCard eyebrow="Timeline" title="Incident context" description="Timeline rows blend the incident workflow with nearby bike events so dispatch can reconstruct what happened.">
+              {incidentTimelineEventsQuery.isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-18 w-full rounded-[18px]" />
+                  <Skeleton className="h-18 w-full rounded-[18px]" />
+                  <Skeleton className="h-18 w-full rounded-[18px]" />
+                </div>
+              ) : timelineRows.length ? (
+                <ul className="space-y-2">
+                  {timelineRows.map((row) => (
+                    <li
+                      key={row.id}
+                      className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-ink">{row.title}</p>
+                        <span className="text-xs font-medium text-ink-soft">{formatTimestamp(row.ts)}</span>
+                      </div>
+                      {row.description ? (
+                        <p className="mt-2 text-xs leading-5 text-ink-soft">{row.description}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon={<Clock3 size={18} />}
+                  title="No timeline events"
+                  description="This incident does not yet have nearby event context in the loaded time window."
+                />
+              )}
+            </DashboardCard>
+          </div>
+        )}
+      </Drawer>
+
+      <ConfirmModal
+        open={!!pendingAction}
+        title={pendingAction ? actionTitle(pendingAction) : 'Confirm incident action'}
+        description={pendingAction ? actionDescription(pendingAction, selectedIncident) : ''}
+        confirmLabel={pendingAction ? actionConfirmLabel(pendingAction) : 'Confirm'}
+        tone={pendingAction === 'false-alarm' ? 'danger' : 'default'}
+        isSubmitting={isSubmittingAction}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          if (pendingAction) {
+            void runIncidentAction(pendingAction);
+          }
+        }}
+      />
     </PageShell>
   );
 }
 
-function MetricCard({
-  title,
-  value,
-  hint,
-  icon,
-  tone,
+function StatusTab({
+  label,
+  active,
+  count,
+  tone = 'neutral',
+  onClick,
 }: {
-  title: string;
-  value: string;
-  hint: string;
-  icon: React.ReactNode;
-  tone: 'info' | 'success' | 'warning' | 'danger';
+  label: string;
+  active: boolean;
+  count: number;
+  tone?: 'neutral' | 'danger' | 'warning' | 'success';
+  onClick: () => void;
 }) {
-  const toneClass =
-    tone === 'success'
-      ? 'bg-success-soft text-emerald-700'
-      : tone === 'warning'
-        ? 'bg-warning-soft text-amber-700'
-        : tone === 'danger'
-          ? 'bg-danger-soft text-rose-700'
-          : 'bg-accent-soft text-accent';
-
   return (
-    <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            {title}
-          </p>
-          <p className="mt-4 font-display text-4xl font-semibold text-ink">{value}</p>
-        </div>
-        <span className={`rounded-2xl p-3 ${toneClass}`}>{icon}</span>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-ink-soft">{hint}</p>
-    </article>
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? tone === 'danger'
+            ? 'rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700'
+            : tone === 'warning'
+              ? 'rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700'
+              : tone === 'success'
+                ? 'rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
+                : 'rounded-full border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink'
+          : 'rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink-soft transition hover:bg-surface-hover'
+      }
+    >
+      {label} <span className="ml-2 rounded-full bg-white/80 px-2 py-0.5 text-[11px]">{count}</span>
+    </button>
   );
 }
 
-function incidentStatusTone(status: Incident['status']) {
-  if (status === 'OPEN') {
-    return 'danger' as const;
-  }
-  if (status === 'ACKNOWLEDGED') {
-    return 'warning' as const;
-  }
-  if (status === 'RESOLVED') {
-    return 'success' as const;
-  }
-  return 'neutral' as const;
+function FilterField({
+  label,
+  value,
+  onChange,
+  type,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type: 'datetime-local';
+}) {
+  return (
+    <label className="block text-sm font-medium text-ink">
+      {label}
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+      />
+    </label>
+  );
 }
 
+function KeyMetric({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">{label}</p>
+      <div className="mt-2 text-sm font-semibold text-ink">{value}</div>
+    </div>
+  );
+}
+
+function ActionCard({
+  label,
+  description,
+  disabled,
+  tone,
+  onClick,
+}: {
+  label: string;
+  description: string;
+  disabled: boolean;
+  tone: 'info' | 'success' | 'warning';
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={
+        tone === 'success'
+          ? 'rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-left transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50'
+          : tone === 'warning'
+            ? 'rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4 text-left transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50'
+            : 'rounded-[18px] border border-sky-200 bg-sky-50 px-4 py-4 text-left transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50'
+      }
+    >
+      <p className="font-semibold text-ink">{label}</p>
+      <p className="mt-2 text-xs leading-5 text-ink-soft">{description}</p>
+    </button>
+  );
+}
+
+function InlineNotice({ message }: { message: string }) {
+  return (
+    <p className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+      {message}
+    </p>
+  );
+}
+
+function IncidentStatusBadge({ status }: { status: Incident['status'] }) {
+  return (
+    <span
+      className={
+        status === 'OPEN'
+          ? 'inline-flex rounded-full bg-danger-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-danger-ink'
+          : status === 'ACKNOWLEDGED'
+            ? 'inline-flex rounded-full bg-warning-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-warning-ink'
+            : status === 'RESOLVED'
+              ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
+              : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+      }
+    >
+      {formatEnumLabel(status)}
+    </span>
+  );
+}
+
+// Converts browser datetime-local values into UTC strings expected by the backend filters.
 function toIsoUtcOrUndefined(value: string): string | undefined {
   if (!value) {
     return undefined;
@@ -521,16 +652,14 @@ function toIsoUtcOrUndefined(value: string): string | undefined {
   return parsedDate.toISOString();
 }
 
-function formatTimestamp(value: string) {
-  return new Date(value).toLocaleString();
-}
-
+// Builds a descending timeline that combines workflow milestones with nearby events.
 function buildIncidentTimeline(
   incident: Incident | null,
   events: FleetEvent[],
-): Array<{ id: string; ts: string; title: string; description?: string }> {
+  bikeLabelById: Map<string, string>,
+) {
   if (!incident) {
-    return [];
+    return [] as Array<{ id: string; ts: string; title: string; description?: string }>;
   }
 
   const rows: Array<{ id: string; ts: string; title: string; description?: string }> = [
@@ -538,7 +667,7 @@ function buildIncidentTimeline(
       id: `incident-created-${incident.id}`,
       ts: incident.createdAt,
       title: 'Incident opened',
-      description: `Status ${incident.status}`,
+      description: `Status ${formatEnumLabel(incident.status)}`,
     },
   ];
 
@@ -564,17 +693,51 @@ function buildIncidentTimeline(
     rows.push({
       id: `event-${event.id}`,
       ts: event.ts,
-      title: `${formatEventType(event.type)} (${event.severity})`,
-      description: event.bikeId ? `Bike ${event.bikeId.slice(0, 8)}...` : undefined,
+      title: `${formatEnumLabel(event.type)} (${event.severity})`,
+      description: event.bikeId
+        ? bikeLabelById.get(event.bikeId) ?? `Bike ${maskIdentifier(event.bikeId)}`
+        : undefined,
     });
   }
 
-  return rows.sort((left, right) => left.ts.localeCompare(right.ts));
+  return rows.sort((left, right) => right.ts.localeCompare(left.ts));
 }
 
-function formatEventType(value: string) {
-  return value
-    .split('_')
-    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-    .join(' ');
+function actionTitle(action: IncidentAction) {
+  if (action === 'acknowledge') {
+    return 'Acknowledge incident';
+  }
+  if (action === 'resolve') {
+    return 'Resolve incident';
+  }
+  return 'Mark false alarm';
 }
+
+function actionConfirmLabel(action: IncidentAction) {
+  if (action === 'acknowledge') {
+    return 'Confirm acknowledge';
+  }
+  if (action === 'resolve') {
+    return 'Confirm resolve';
+  }
+  return 'Confirm false alarm';
+}
+
+function actionDescription(action: IncidentAction, incident: Incident | null) {
+  const incidentLabel = incident ? maskIdentifier(incident.id) : 'this incident';
+  if (action === 'acknowledge') {
+    return `Move ${incidentLabel} into the acknowledged queue and assign ownership to the current operator.`;
+  }
+  if (action === 'resolve') {
+    return `Close ${incidentLabel} as resolved. Add notes first if the response needs handoff context.`;
+  }
+  return `Close ${incidentLabel} as a false alarm. Use notes to explain why dispatch dismissed it.`;
+}
+
+function maskIdentifier(value: string | null | undefined) {
+  if (!value) {
+    return 'N/A';
+  }
+  return `${value.slice(0, 8)}...`;
+}
+
