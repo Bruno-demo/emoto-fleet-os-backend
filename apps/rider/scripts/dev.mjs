@@ -6,7 +6,6 @@ import os from 'node:os';
 const DEFAULT_PORT = 8082;
 const MAX_PORT = 8090;
 const DEFAULT_API_PORT = 3000;
-const STARTUP_GRACE_MS = 12000;
 const require = createRequire(import.meta.url);
 const expoCliBin = require.resolve('expo/bin/cli');
 const READY_PATTERNS = [
@@ -197,13 +196,8 @@ function launchExpoAttempt({ apiBaseUrl, offline, port, setActiveChild }) {
     }
   };
 
-  const startupTimer = setTimeout(() => {
-    markReady();
-  }, STARTUP_GRACE_MS);
-
   const handleOutput = (chunk) => {
     if (READY_PATTERNS.some((pattern) => pattern.test(chunk))) {
-      clearTimeout(startupTimer);
       markReady();
     }
   };
@@ -212,7 +206,6 @@ function launchExpoAttempt({ apiBaseUrl, offline, port, setActiveChild }) {
   attachStream(child.stderr, process.stderr, handleOutput);
 
   child.on('error', (error) => {
-    clearTimeout(startupTimer);
     if (!startupSettled) {
       startupSettled = true;
       startupReject(new Error(`Expo ${modeLabel} startup failed: ${error.message}`));
@@ -220,7 +213,6 @@ function launchExpoAttempt({ apiBaseUrl, offline, port, setActiveChild }) {
   });
 
   child.on('exit', (code, signal) => {
-    clearTimeout(startupTimer);
     if (!startupSettled) {
       startupSettled = true;
       if (code === 0 || signal === 'SIGINT' || signal === 'SIGTERM') {
