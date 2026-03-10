@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
-// Resolves browser origins allowed to call the API, defaulting to local dashboard ports.
+// Resolves browser origins allowed to call the API for local dashboard and rider apps.
 function resolveCorsOrigins(configService: ConfigService): string[] {
   const configuredOrigins = configService.get<string>('CORS_ORIGINS');
   if (configuredOrigins) {
@@ -15,7 +15,16 @@ function resolveCorsOrigins(configService: ConfigService): string[] {
       .filter((origin) => origin.length > 0);
   }
 
-  return Array.from({ length: 10 }, (_, index) => `http://localhost:${3001 + index}`);
+  const dashboardOrigins = Array.from(
+    { length: 10 },
+    (_, index) => `http://localhost:${3001 + index}`,
+  );
+  const riderOrigins = Array.from(
+    { length: 10 },
+    (_, index) => `http://localhost:${8081 + index}`,
+  );
+
+  return [...dashboardOrigins, ...riderOrigins, 'http://localhost:19006'];
 }
 
 // Bootstraps the HTTP server, global validation, and API documentation.
