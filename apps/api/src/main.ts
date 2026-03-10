@@ -5,11 +5,42 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
+// Resolves browser origins allowed to call the API, defaulting to local dashboard ports.
+function resolveCorsOrigins(configService: ConfigService): string[] {
+  const configuredOrigins = configService.get<string>('CORS_ORIGINS');
+  if (configuredOrigins) {
+    return configuredOrigins
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0);
+  }
+
+  return Array.from({ length: 10 }, (_, index) => `http://localhost:${3001 + index}`);
+}
+
 // Bootstraps the HTTP server, global validation, and API documentation.
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = app.get(Logger);
   app.useLogger(logger);
+
+  const configService = app.get(ConfigService);
+  const allowedCorsOrigins = resolveCorsOrigins(configService);
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || allowedCorsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -30,7 +61,6 @@ async function bootstrap(): Promise<void> {
     jsonDocumentUrl: 'docs-json',
   });
 
-  const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
   const publicUrl = configService.get<string>('API_PUBLIC_URL') ?? `http://localhost:${port}`;
   await app.listen(port, '0.0.0.0');
