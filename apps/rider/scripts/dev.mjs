@@ -6,8 +6,15 @@ import os from 'node:os';
 const DEFAULT_PORT = 8082;
 const MAX_PORT = 8090;
 const DEFAULT_API_PORT = 3000;
+const STARTUP_GRACE_MS = 12000;
 const require = createRequire(import.meta.url);
 const expoCliBin = require.resolve('expo/bin/cli');
+const READY_PATTERNS = [
+  /waiting on/i,
+  /logs for your project will appear below/i,
+  /tunnel ready/i,
+  /scan the qr code/i,
+];
 
 // Checks whether a TCP port is free for the Expo dev server.
 async function isPortAvailable(port) {
@@ -116,7 +123,124 @@ function resolveApiBaseUrl(lanAddress) {
   return `http://localhost:${apiPort}`;
 }
 
-// Starts Expo on an available port and forwards shutdown signals.
+// Prints the rider dev URLs once before Expo starts streaming logs.
+function printStartupBanner({ localUrl, expoGoUrl, apiBaseUrl }) {
+  console.log(`Rider Expo dev server: ${localUrl}`);
+  if (expoGoUrl) {
+    console.log(`Rider Expo Go LAN URL: ${expoGoUrl}`);
+  } else {
+    console.log('Rider Expo Go LAN URL: unavailable (no non-internal IPv4 address detected)');
+  }
+  console.log(`Rider API base URL: ${apiBaseUrl}`);
+  console.log('Scan the QR code shown by Expo Go after Metro starts.');
+}
+
+// Builds the environment for either the normal online path or the offline fallback.
+function buildExpoEnv(apiBaseUrl, offline) {
+  return {
+    ...process.env,
+    EXPO_PUBLIC_API_URL: apiBaseUrl,
+    EXPO_OFFLINE: process.env.EXPO_OFFLINE ?? (offline ? '1' : '0'),
+    EXPO_NO_DEPENDENCY_VALIDATION:
+      process.env.EXPO_NO_DEPENDENCY_VALIDATION ?? (offline ? '1' : '0'),
+    EXPO_NO_TELEMETRY: process.env.EXPO_NO_TELEMETRY ?? '1',
+  };
+}
+
+// Mirrors Expo child output to the terminal while detecting when the dev server is ready.
+function attachStream(stream, target, onChunk) {
+  if (!stream) {
+    return;
+  }
+
+  stream.setEncoding('utf8');
+  stream.on('data', (chunk) => {
+    target.write(chunk);
+    onChunk(chunk);
+  });
+}
+
+// Starts a single Expo attempt and rejects only if it dies before startup completes.
+function launchExpoAttempt({ apiBaseUrl, offline, port, setActiveChild }) {
+  const modeLabel = offline ? 'offline fallback' : 'online';
+  const child = spawn(process.execPath, [expoCliBin, 'start', '--port', String(port)], {
+    stdio: ['inherit', 'pipe', 'pipe'],
+    env: buildExpoEnv(apiBaseUrl, offline),
+  });
+  setActiveChild(child);
+
+  let startupSettled = false;
+  let startupReady = false;
+  let startupResolve;
+  let startupReject;
+
+  const startup = new Promise((resolve, reject) => {
+    startupResolve = resolve;
+    startupReject = reject;
+  });
+
+  const completion = new Promise((resolve) => {
+    child.on('exit', (code, signal) => {
+      resolve({ code, signal });
+    });
+  });
+
+  const markReady = () => {
+    if (startupReady) {
+      return;
+    }
+
+    startupReady = true;
+    if (!startupSettled) {
+      startupSettled = true;
+      startupResolve();
+    }
+  };
+
+  const startupTimer = setTimeout(() => {
+    markReady();
+  }, STARTUP_GRACE_MS);
+
+  const handleOutput = (chunk) => {
+    if (READY_PATTERNS.some((pattern) => pattern.test(chunk))) {
+      clearTimeout(startupTimer);
+      markReady();
+    }
+  };
+
+  attachStream(child.stdout, process.stdout, handleOutput);
+  attachStream(child.stderr, process.stderr, handleOutput);
+
+  child.on('error', (error) => {
+    clearTimeout(startupTimer);
+    if (!startupSettled) {
+      startupSettled = true;
+      startupReject(new Error(`Expo ${modeLabel} startup failed: ${error.message}`));
+    }
+  });
+
+  child.on('exit', (code, signal) => {
+    clearTimeout(startupTimer);
+    if (!startupSettled) {
+      startupSettled = true;
+      if (code === 0 || signal === 'SIGINT' || signal === 'SIGTERM') {
+        startupResolve();
+      } else {
+        startupReject(
+          new Error(`Expo ${modeLabel} startup failed with code ${code ?? 'unknown'}`),
+        );
+      }
+    }
+  });
+
+  return {
+    child,
+    completion,
+    startup,
+  };
+}
+
+// Runs Expo normally first, then retries once in offline mode if startup fails.
 async function main() {
   const port = await resolvePort();
   if (port !== DEFAULT_PORT) {
@@ -127,30 +251,13 @@ async function main() {
   const lanAddress = resolveLanAddress();
   const expoGoUrl = lanAddress ? `exp://${lanAddress}:${port}` : null;
   const apiBaseUrl = resolveApiBaseUrl(lanAddress);
+  let activeChild = null;
 
-  console.log(`Rider Expo dev server: ${localUrl}`);
-  if (expoGoUrl) {
-    console.log(`Rider Expo Go LAN URL: ${expoGoUrl}`);
-  } else {
-    console.log('Rider Expo Go LAN URL: unavailable (no non-internal IPv4 address detected)');
-  }
-  console.log(`Rider API base URL: ${apiBaseUrl}`);
-  console.log('Scan the QR code shown by Expo Go after Metro starts.');
-
-  const child = spawn(process.execPath, [expoCliBin, 'start', '--port', String(port)], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      EXPO_PUBLIC_API_URL: apiBaseUrl,
-      EXPO_OFFLINE: process.env.EXPO_OFFLINE ?? '1',
-      EXPO_NO_DEPENDENCY_VALIDATION: process.env.EXPO_NO_DEPENDENCY_VALIDATION ?? '1',
-      EXPO_NO_TELEMETRY: process.env.EXPO_NO_TELEMETRY ?? '1',
-    },
-  });
+  printStartupBanner({ localUrl, expoGoUrl, apiBaseUrl });
 
   const forwardSignal = (signal) => {
-    if (!child.killed) {
-      child.kill(signal);
+    if (activeChild && !activeChild.killed) {
+      activeChild.kill(signal);
     }
   };
 
@@ -161,14 +268,29 @@ async function main() {
     forwardSignal('SIGTERM');
   });
 
-  child.on('exit', (code) => {
-    process.exit(code ?? 0);
-  });
+  const startAttempt = (offline) =>
+    launchExpoAttempt({
+      apiBaseUrl,
+      offline,
+      port,
+      setActiveChild: (child) => {
+        activeChild = child;
+      },
+    });
 
-  child.on('error', (error) => {
-    console.error(error.message);
-    process.exit(1);
-  });
+  let attempt = startAttempt(false);
+
+  try {
+    await attempt.startup;
+  } catch (error) {
+    console.warn(error.message);
+    console.warn('Retrying rider app startup in offline mode.');
+    attempt = startAttempt(true);
+    await attempt.startup;
+  }
+
+  const { code } = await attempt.completion;
+  process.exit(code ?? 0);
 }
 
 void main();
