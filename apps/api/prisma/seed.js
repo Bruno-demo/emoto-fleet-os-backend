@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 const DEVICE_SECRET_FORMAT_VERSION = 'v1';
 const LIVE_STATE_TTL_SECONDS = 60 * 60;
 const DEMO_FLEET_ID = '00000000-0000-0000-0000-000000000001';
+const SECOND_FLEET_ID = '00000000-0000-0000-0000-000000000002';
 const DEMO_PARTNER_ID = '00000000-0000-0000-0000-000000000201';
 const DEMO_PARTNER_WEBHOOK_ID = '00000000-0000-0000-0000-000000000221';
 
@@ -181,6 +182,82 @@ const CONTACT_FIXTURES = [
   },
 ];
 
+const SECOND_FLEET_USER_FIXTURES = [
+  {
+    key: 'owner',
+    role: 'OWNER',
+    email: 'owner@north.demo.emoto',
+    phone: '+250700000210',
+  },
+  {
+    key: 'admin',
+    role: 'ADMIN',
+    email: 'admin@north.demo.emoto',
+    phone: '+250700000211',
+  },
+  {
+    key: 'dispatcher',
+    role: 'DISPATCHER',
+    email: 'dispatch@north.demo.emoto',
+    phone: '+250700000212',
+  },
+  {
+    key: 'tech',
+    role: 'TECH',
+    email: 'tech@north.demo.emoto',
+    phone: '+250700000213',
+  },
+  {
+    key: 'riderNorth',
+    role: 'RIDER',
+    email: 'rider.north@demo.emoto',
+    phone: '+250700000214',
+    fullName: 'Eric Nshimiyimana',
+  },
+];
+
+const SECOND_FLEET_BIKE_FIXTURES = [
+  {
+    key: 'bikeNorthAlpha',
+    label: 'North-001',
+    plate: 'NTH-001A',
+    serial: 'EMOTO-NORTH-001',
+    model: 'eMoto Cargo Pro',
+    status: 'ACTIVE',
+  },
+  {
+    key: 'bikeNorthBravo',
+    label: 'North-002',
+    plate: 'NTH-002B',
+    serial: 'EMOTO-NORTH-002',
+    model: 'eMoto Cargo Pro',
+    status: 'ACTIVE',
+  },
+];
+
+const SECOND_FLEET_DEVICE_FIXTURES = [
+  {
+    key: 'deviceNorthAlpha',
+    bikeKey: 'bikeNorthAlpha',
+    deviceUid: 'DEV-NORTH-0001',
+    imei: '356938035643833',
+    fwVersion: '1.3.0',
+    status: 'ACTIVE',
+    defaultSecret: 'device-secret-north-0001',
+    secretEnv: 'SEED_DEVICE_SECRET_NORTH_ALPHA',
+  },
+  {
+    key: 'deviceNorthBravo',
+    bikeKey: 'bikeNorthBravo',
+    deviceUid: 'DEV-NORTH-0002',
+    imei: '356938035643841',
+    fwVersion: '1.3.0',
+    status: 'ACTIVE',
+    defaultSecret: 'device-secret-north-0002',
+    secretEnv: 'SEED_DEVICE_SECRET_NORTH_BRAVO',
+  },
+];
+
 // Derives a symmetric encryption key from the configured master secret.
 function deriveMasterKey(masterKey) {
   return createHash('sha256').update(masterKey).digest();
@@ -325,10 +402,10 @@ function interpolate(start, end, ratio) {
 }
 
 // Upserts the demo fleet user accounts and rider profiles.
-async function upsertDemoUsers(fleetId, passwordHash) {
+async function upsertFleetUsers(fleetId, passwordHash, userFixtures) {
   const users = {};
 
-  for (const fixture of USER_FIXTURES) {
+  for (const fixture of userFixtures) {
     const user = await prisma.user.upsert({
       where: {
         fleetId_email: {
@@ -374,10 +451,10 @@ async function upsertDemoUsers(fleetId, passwordHash) {
 }
 
 // Upserts the demo bikes used by both dashboard and rider flows.
-async function upsertDemoBikes(fleetId) {
+async function upsertFleetBikes(fleetId, bikeFixtures) {
   const bikes = {};
 
-  for (const fixture of BIKE_FIXTURES) {
+  for (const fixture of bikeFixtures) {
     bikes[fixture.key] = await prisma.bike.upsert({
       where: {
         fleetId_label: {
@@ -406,10 +483,15 @@ async function upsertDemoBikes(fleetId) {
 }
 
 // Upserts demo devices with encrypted secrets for telemetry and command testing.
-async function upsertDemoDevices(fleetId, bikes, deviceSecretMasterKey) {
+async function upsertFleetDevices(
+  fleetId,
+  bikes,
+  deviceSecretMasterKey,
+  deviceFixtures,
+) {
   const devices = {};
 
-  for (const fixture of DEVICE_FIXTURES) {
+  for (const fixture of deviceFixtures) {
     const deviceSecret =
       process.env[fixture.secretEnv] ??
       (fixture.key === 'deviceAlpha'
@@ -500,12 +582,17 @@ async function resetDemoFleetData(fleetId) {
 }
 
 // Removes stale demo-fleet entities left behind by local tests or older seeds.
-async function pruneNonSeedEntities(fleetId) {
+async function pruneNonSeedEntities(
+  fleetId,
+  userFixtures,
+  bikeFixtures,
+  deviceFixtures,
+) {
   await prisma.device.deleteMany({
     where: {
       fleetId,
       deviceUid: {
-        notIn: DEVICE_FIXTURES.map((fixture) => fixture.deviceUid),
+        notIn: deviceFixtures.map((fixture) => fixture.deviceUid),
       },
     },
   });
@@ -514,7 +601,7 @@ async function pruneNonSeedEntities(fleetId) {
     where: {
       fleetId,
       label: {
-        notIn: BIKE_FIXTURES.map((fixture) => fixture.label),
+        notIn: bikeFixtures.map((fixture) => fixture.label),
       },
     },
   });
@@ -523,7 +610,7 @@ async function pruneNonSeedEntities(fleetId) {
     where: {
       fleetId,
       NOT: {
-        OR: USER_FIXTURES.map((fixture) => ({
+        OR: userFixtures.map((fixture) => ({
           email: fixture.email,
         })),
       },
@@ -565,6 +652,269 @@ async function seedLiveBikeStates(fleetId, liveStates) {
   }
 }
 
+// Seeds a smaller second fleet so dashboard logins can verify fleet isolation.
+async function seedSecondFleet({
+  passwordHash,
+  deviceSecretMasterKey,
+  baseNow,
+}) {
+  const secondFleet = await prisma.fleet.upsert({
+    where: {
+      id: SECOND_FLEET_ID,
+    },
+    update: {
+      name: 'North Ops Fleet',
+      type: 'COOP',
+    },
+    create: {
+      id: SECOND_FLEET_ID,
+      name: 'North Ops Fleet',
+      type: 'COOP',
+    },
+  });
+
+  const users = await upsertFleetUsers(
+    secondFleet.id,
+    passwordHash,
+    SECOND_FLEET_USER_FIXTURES,
+  );
+  const bikes = await upsertFleetBikes(secondFleet.id, SECOND_FLEET_BIKE_FIXTURES);
+  const devices = await upsertFleetDevices(
+    secondFleet.id,
+    bikes,
+    deviceSecretMasterKey,
+    SECOND_FLEET_DEVICE_FIXTURES,
+  );
+
+  await resetDemoFleetData(secondFleet.id);
+  await pruneNonSeedEntities(
+    secondFleet.id,
+    SECOND_FLEET_USER_FIXTURES,
+    SECOND_FLEET_BIKE_FIXTURES,
+    SECOND_FLEET_DEVICE_FIXTURES,
+  );
+
+  const now = new Date(baseNow.getTime());
+  const tripStart = offsetMinutes(now, -95);
+  const tripEnd = offsetMinutes(now, -68);
+  const tripTs = offsetMinutes(now, -82);
+  const weekStart = offsetMinutes(now, -7 * 24 * 60);
+
+  await prisma.bikeAssignment.createMany({
+    data: [
+      {
+        id: '00000000-0000-0000-0000-000000001201',
+        fleetId: secondFleet.id,
+        bikeId: bikes.bikeNorthAlpha.id,
+        riderUserId: users.riderNorth.id,
+        assignedAt: offsetMinutes(now, -9 * 24 * 60),
+        active: true,
+      },
+    ],
+  });
+
+  await prisma.poi.createMany({
+    data: [
+      {
+        id: '00000000-0000-0000-0000-000000001211',
+        fleetId: secondFleet.id,
+        type: 'GARAGE',
+        name: 'North Fleet Garage',
+        phone: '+250700400510',
+        lat: -1.921114,
+        lng: 30.103241,
+        address: 'Kimisagara North Yard',
+        active: true,
+      },
+      {
+        id: '00000000-0000-0000-0000-000000001212',
+        fleetId: secondFleet.id,
+        type: 'SWAP',
+        name: 'North Swap Hub',
+        phone: '+250700400511',
+        lat: -1.926217,
+        lng: 30.110311,
+        address: 'Gatsata Exchange',
+        active: true,
+      },
+    ],
+  });
+
+  await prisma.emergencyContact.createMany({
+    data: [
+      {
+        id: '00000000-0000-0000-0000-000000001221',
+        fleetId: secondFleet.id,
+        name: 'North Dispatch',
+        phone: '+250700400520',
+        role: 'DISPATCH',
+        active: true,
+      },
+    ],
+  });
+
+  await prisma.trip.create({
+    data: {
+      id: '00000000-0000-0000-0000-000000001231',
+      fleetId: secondFleet.id,
+      bikeId: bikes.bikeNorthAlpha.id,
+      riderId: users.riderNorth.id,
+      startTs: tripStart,
+      endTs: tripEnd,
+      distanceKm: 11.4,
+      durationSec: 1620,
+      score: 88.2,
+    },
+  });
+
+  await prisma.telemetryPoint.createMany({
+    data: [
+      ...buildTripTelemetryPoints({
+        deviceId: devices.deviceNorthAlpha.id,
+        startTs: tripStart,
+        endTs: tripEnd,
+        startLat: -1.9294,
+        startLng: 30.1021,
+        endLat: -1.9192,
+        endLng: 30.1118,
+        speeds: [7, 18, 24, 29, 22, 15, 0],
+        batteryStart: 53.1,
+      }),
+    ],
+  });
+
+  const northOverspeed = await prisma.event.create({
+    data: {
+      fleetId: secondFleet.id,
+      bikeId: bikes.bikeNorthAlpha.id,
+      deviceId: devices.deviceNorthAlpha.id,
+      ts: tripTs,
+      type: 'OVERSPEED',
+      severity: 'MEDIUM',
+      metaJson: {
+        source: 'seed',
+        speedKph: 43.2,
+        speedLimitKph: 25,
+        zoneName: 'Northern Market Slow Zone',
+      },
+    },
+  });
+
+  await prisma.scoreSummary.createMany({
+    data: [
+      {
+        id: '00000000-0000-0000-0000-000000001241',
+        fleetId: secondFleet.id,
+        scope: 'RIDER',
+        refId: users.riderNorth.id,
+        periodStart: weekStart,
+        periodEnd: now,
+        score: 88.2,
+        breakdownJson: {
+          tripCount: 1,
+          eventCounts: {
+            OVERSPEED: 1,
+            HARSH_BRAKE: 0,
+            HARSH_ACCEL: 0,
+            HARSH_CORNER: 0,
+            CRASH: 0,
+            THEFT_SUSPECTED: 0,
+          },
+        },
+      },
+      {
+        id: '00000000-0000-0000-0000-000000001242',
+        fleetId: secondFleet.id,
+        scope: 'BIKE',
+        refId: bikes.bikeNorthAlpha.id,
+        periodStart: weekStart,
+        periodEnd: now,
+        score: 88.2,
+        breakdownJson: {
+          tripCount: 1,
+        },
+      },
+      {
+        id: '00000000-0000-0000-0000-000000001243',
+        fleetId: secondFleet.id,
+        scope: 'FLEET',
+        refId: null,
+        periodStart: weekStart,
+        periodEnd: now,
+        score: 88.2,
+        breakdownJson: {
+          tripCount: 1,
+          eventCount: 1,
+        },
+      },
+    ],
+  });
+
+  const liveStates = [
+    {
+      fleetId: secondFleet.id,
+      bikeId: bikes.bikeNorthAlpha.id,
+      deviceId: devices.deviceNorthAlpha.id,
+      deviceUid: devices.deviceNorthAlpha.deviceUid,
+      ts: new Date(now.getTime() - 12 * 1000).toISOString(),
+      lat: -1.922114,
+      lng: 30.108241,
+      speedKph: 12.6,
+      heading: 58,
+      batteryV: 52.784,
+      ignition: true,
+    },
+    {
+      fleetId: secondFleet.id,
+      bikeId: bikes.bikeNorthBravo.id,
+      deviceId: devices.deviceNorthBravo.id,
+      deviceUid: devices.deviceNorthBravo.deviceUid,
+      ts: new Date(now.getTime() - 34 * 1000).toISOString(),
+      lat: -1.924221,
+      lng: 30.106711,
+      speedKph: 0,
+      heading: 41,
+      batteryV: 52.117,
+      ignition: false,
+    },
+  ];
+
+  await seedLiveBikeStates(secondFleet.id, liveStates);
+
+  await prisma.device.update({
+    where: {
+      id: devices.deviceNorthAlpha.id,
+    },
+    data: {
+      bikeId: bikes.bikeNorthAlpha.id,
+      lastSeenAt: new Date(liveStates[0].ts),
+      status: 'ACTIVE',
+    },
+  });
+  await prisma.device.update({
+    where: {
+      id: devices.deviceNorthBravo.id,
+    },
+    data: {
+      bikeId: bikes.bikeNorthBravo.id,
+      lastSeenAt: new Date(liveStates[1].ts),
+      status: 'ACTIVE',
+    },
+  });
+
+  return {
+    fleetId: secondFleet.id,
+    eventId: northOverspeed.id.toString(),
+    counts: {
+      users: SECOND_FLEET_USER_FIXTURES.length,
+      bikes: SECOND_FLEET_BIKE_FIXTURES.length,
+      devices: SECOND_FLEET_DEVICE_FIXTURES.length,
+      trips: 1,
+      events: 1,
+    },
+  };
+}
+
 // Creates the richer dashboard and rider demo dataset used across local apps.
 async function seed() {
   const demoPassword =
@@ -601,16 +951,22 @@ async function seed() {
     },
   });
 
-  const users = await upsertDemoUsers(fleet.id, passwordHash);
-  const bikes = await upsertDemoBikes(fleet.id);
-  const devices = await upsertDemoDevices(
+  const users = await upsertFleetUsers(fleet.id, passwordHash, USER_FIXTURES);
+  const bikes = await upsertFleetBikes(fleet.id, BIKE_FIXTURES);
+  const devices = await upsertFleetDevices(
     fleet.id,
     bikes,
     deviceSecretMasterKey,
+    DEVICE_FIXTURES,
   );
 
   await resetDemoFleetData(fleet.id);
-  await pruneNonSeedEntities(fleet.id);
+  await pruneNonSeedEntities(
+    fleet.id,
+    USER_FIXTURES,
+    BIKE_FIXTURES,
+    DEVICE_FIXTURES,
+  );
 
   const partner = await prisma.partner.upsert({
     where: { id: DEMO_PARTNER_ID },
@@ -1278,20 +1634,39 @@ async function seed() {
     },
   });
 
+  const secondFleetPassword =
+    process.env.SEED_SECOND_FLEET_PASSWORD ?? 'FleetTwo123!';
+  const secondFleetPasswordHash = await hashPassword(secondFleetPassword);
+  const secondFleetSummary = await seedSecondFleet({
+    passwordHash: secondFleetPasswordHash,
+    deviceSecretMasterKey,
+    baseNow: now,
+  });
+
   console.log(
     JSON.stringify(
       {
-        fleetId: fleet.id,
+        fleets: [
+          {
+            fleetId: fleet.id,
+            name: 'Demo Fleet',
+            counts: {
+              users: USER_FIXTURES.length,
+              bikes: BIKE_FIXTURES.length,
+              devices: DEVICE_FIXTURES.length,
+              trips: tripFixtures.length,
+              events: eventFixtures.length,
+              incidents: 2,
+              pois: GLOBAL_POIS.length + FLEET_POIS.length,
+            },
+          },
+          {
+            fleetId: secondFleetSummary.fleetId,
+            name: 'North Ops Fleet',
+            counts: secondFleetSummary.counts,
+          },
+        ],
         seedVersion: 'dashboard-rider-v1',
-        counts: {
-          users: USER_FIXTURES.length,
-          bikes: BIKE_FIXTURES.length,
-          devices: DEVICE_FIXTURES.length,
-          trips: tripFixtures.length,
-          events: eventFixtures.length,
-          incidents: 2,
-          pois: GLOBAL_POIS.length + FLEET_POIS.length,
-        },
       },
       null,
       2,
