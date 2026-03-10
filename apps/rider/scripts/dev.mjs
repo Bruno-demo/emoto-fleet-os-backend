@@ -140,8 +140,7 @@ function buildExpoEnv(apiBaseUrl, offline) {
     ...process.env,
     EXPO_PUBLIC_API_URL: apiBaseUrl,
     EXPO_OFFLINE: process.env.EXPO_OFFLINE ?? (offline ? '1' : '0'),
-    EXPO_NO_DEPENDENCY_VALIDATION:
-      process.env.EXPO_NO_DEPENDENCY_VALIDATION ?? (offline ? '1' : '0'),
+    EXPO_NO_DEPENDENCY_VALIDATION: process.env.EXPO_NO_DEPENDENCY_VALIDATION ?? '1',
     EXPO_NO_TELEMETRY: process.env.EXPO_NO_TELEMETRY ?? '1',
   };
 }
