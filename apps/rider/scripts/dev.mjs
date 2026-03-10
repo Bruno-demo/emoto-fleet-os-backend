@@ -92,7 +92,12 @@ async function main() {
 
   const child = spawn(process.execPath, [expoCliBin, 'start', '--port', String(port)], {
     stdio: 'inherit',
-    env: process.env,
+    env: {
+      ...process.env,
+      EXPO_OFFLINE: process.env.EXPO_OFFLINE ?? '1',
+      EXPO_NO_DEPENDENCY_VALIDATION: process.env.EXPO_NO_DEPENDENCY_VALIDATION ?? '1',
+      EXPO_NO_TELEMETRY: process.env.EXPO_NO_TELEMETRY ?? '1',
+    },
   });
 
   const forwardSignal = (signal) => {
