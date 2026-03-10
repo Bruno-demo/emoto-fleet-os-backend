@@ -21,6 +21,7 @@
     "db:migrate": "npm run db:migrate -w apps/api",
     "db:deploy": "npm run db:deploy -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
+    "smoke:fleet-isolation": "npm run smoke:fleet-isolation -w apps/api",
     "db:studio": "npm run db:studio -w apps/api",
     "partner:create-client": "npm run partner:create-client -w apps/api",
     "mqtt:publish:sample": "npm run mqtt:publish:sample -w apps/api",
