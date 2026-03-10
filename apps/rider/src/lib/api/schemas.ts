@@ -2,9 +2,12 @@ import { z } from 'zod';
 
 const numericIdSchema = z.string().regex(/^\d+$/);
 const fleetIdSchema = z.string().min(1);
+const uuidLikeSchema = z
+  .string()
+  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/);
 
 const authUserSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidLikeSchema,
   fleetId: fleetIdSchema,
   role: z.literal('RIDER'),
   email: z.string().email().nullable(),
@@ -19,12 +22,12 @@ export const loginResponseSchema = z.object({
 });
 
 export const riderAssignmentSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidLikeSchema,
   fleetId: fleetIdSchema,
-  bikeId: z.string().uuid(),
+  bikeId: uuidLikeSchema,
   bikeLabel: z.string(),
   bikeStatus: z.enum(['ACTIVE', 'MAINTENANCE', 'RETIRED']),
-  riderUserId: z.string().uuid(),
+  riderUserId: uuidLikeSchema,
   riderFullName: z.string().nullable(),
   assignedAt: z.string(),
   unassignedAt: z.string().nullable(),
@@ -32,7 +35,7 @@ export const riderAssignmentSchema = z.object({
 });
 
 export const riderMeResponseSchema = z.object({
-  userId: z.string().uuid(),
+  userId: uuidLikeSchema,
   fleetId: fleetIdSchema,
   phone: z.string().nullable(),
   email: z.string().nullable(),
@@ -41,8 +44,8 @@ export const riderMeResponseSchema = z.object({
 });
 
 export const riderTripSchema = z.object({
-  id: z.string().uuid(),
-  bikeId: z.string().uuid(),
+  id: uuidLikeSchema,
+  bikeId: uuidLikeSchema,
   startTs: z.string(),
   endTs: z.string().nullable(),
   distanceKm: z.number(),
@@ -110,7 +113,7 @@ export const riderWeeklyScoreSchema = z.object({
 });
 
 export const nearbyPoiSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidLikeSchema,
   fleetId: fleetIdSchema.nullable(),
   type: z.enum(['GARAGE', 'SWAP', 'CLINIC', 'OTHER']),
   name: z.string(),
@@ -126,8 +129,8 @@ export const nearbyPoiSchema = z.object({
 
 export const riderEventSchema = z.object({
   id: numericIdSchema,
-  bikeId: z.string().uuid().nullable(),
-  deviceId: z.string().uuid(),
+  bikeId: uuidLikeSchema.nullable(),
+  deviceId: uuidLikeSchema,
   ts: z.string(),
   type: z.enum([
     'OVERSPEED',
@@ -146,8 +149,8 @@ export const riderSosResponseSchema = z.object({
   event: z.object({
     id: numericIdSchema,
     fleetId: fleetIdSchema,
-    bikeId: z.string().uuid().nullable(),
-    deviceId: z.string().uuid(),
+    bikeId: uuidLikeSchema.nullable(),
+    deviceId: uuidLikeSchema,
     ts: z.string(),
     type: z.string(),
     severity: z.string(),
