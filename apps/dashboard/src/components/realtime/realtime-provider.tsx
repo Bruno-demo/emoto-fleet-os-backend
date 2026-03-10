@@ -17,7 +17,7 @@ import type {
 } from '@/lib/types/dashboard';
 
 const bikeStateSchema = z.object({
-  fleetId: z.string().uuid(),
+  fleetId: z.string().min(1),
   bikeId: z.string().uuid(),
   deviceId: z.string().uuid(),
   ts: z.string(),

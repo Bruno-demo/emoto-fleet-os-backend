@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const fleetIdSchema = z.string().min(1);
+
 export const userRoleSchema = z.enum([
   'OWNER',
   'ADMIN',
@@ -13,7 +15,7 @@ export const userStatusSchema = z.enum(['INVITED', 'ACTIVE', 'SUSPENDED', 'DISAB
 
 export const authUserSchema = z.object({
   id: z.string().uuid(),
-  fleetId: z.string().uuid(),
+  fleetId: fleetIdSchema,
   fleetName: z.string().nullable().optional(),
   role: userRoleSchema,
   email: z.string().nullable(),

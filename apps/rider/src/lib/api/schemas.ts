@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
 const numericIdSchema = z.string().regex(/^\d+$/);
+const fleetIdSchema = z.string().min(1);
 
 const authUserSchema = z.object({
   id: z.string().uuid(),
-  fleetId: z.string().uuid(),
+  fleetId: fleetIdSchema,
   role: z.literal('RIDER'),
   email: z.string().email().nullable(),
   phone: z.string().nullable(),
@@ -19,7 +20,7 @@ export const loginResponseSchema = z.object({
 
 export const riderAssignmentSchema = z.object({
   id: z.string().uuid(),
-  fleetId: z.string().uuid(),
+  fleetId: fleetIdSchema,
   bikeId: z.string().uuid(),
   bikeLabel: z.string(),
   bikeStatus: z.enum(['ACTIVE', 'MAINTENANCE', 'RETIRED']),
@@ -32,7 +33,7 @@ export const riderAssignmentSchema = z.object({
 
 export const riderMeResponseSchema = z.object({
   userId: z.string().uuid(),
-  fleetId: z.string().uuid(),
+  fleetId: fleetIdSchema,
   phone: z.string().nullable(),
   email: z.string().nullable(),
   fullName: z.string().nullable(),
@@ -110,7 +111,7 @@ export const riderWeeklyScoreSchema = z.object({
 
 export const nearbyPoiSchema = z.object({
   id: z.string().uuid(),
-  fleetId: z.string().uuid().nullable(),
+  fleetId: fleetIdSchema.nullable(),
   type: z.enum(['GARAGE', 'SWAP', 'CLINIC', 'OTHER']),
   name: z.string(),
   phone: z.string().nullable(),
@@ -144,7 +145,7 @@ export const riderEventSchema = z.object({
 export const riderSosResponseSchema = z.object({
   event: z.object({
     id: numericIdSchema,
-    fleetId: z.string().uuid(),
+    fleetId: fleetIdSchema,
     bikeId: z.string().uuid().nullable(),
     deviceId: z.string().uuid(),
     ts: z.string(),
