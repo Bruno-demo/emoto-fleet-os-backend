@@ -1,8 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Search, Siren, Wifi } from 'lucide-react';
+import { CalendarDays, Menu, Siren, Wifi } from 'lucide-react';
 import { useState } from 'react';
+import { ConnectionIndicator } from '@/components/ui/connection-indicator';
+import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type {
@@ -11,7 +13,11 @@ import type {
   PaginatedResponse,
 } from '@/lib/types/dashboard';
 
-export function Topbar() {
+interface TopbarProps {
+  onOpenSidebar: () => void;
+}
+
+export function Topbar({ onOpenSidebar }: TopbarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: user } = useCurrentUser();
 
@@ -37,43 +43,53 @@ export function Topbar() {
   }).format(new Date());
 
   return (
-    <header className="border-b border-line bg-white/92 px-4 py-4 backdrop-blur md:px-8">
+    <header className="sticky top-0 z-[880] border-b border-line bg-surface/92 px-4 py-4 backdrop-blur md:px-6 xl:px-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
-            Fleet Operations
-          </p>
-          <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{fleetLabel}</h1>
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            className="inline-flex rounded-2xl border border-line bg-white p-2 text-ink-soft shadow-sm hover:bg-surface-hover lg:hidden"
+            aria-label="Open sidebar"
+          >
+            <Menu size={18} />
+          </button>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-muted">
+              Fleet operations
+            </p>
+            <h1 className="mt-1 font-display text-[clamp(1.5rem,1.25rem+1vw,2rem)] font-semibold text-ink">
+              {fleetLabel}
+            </h1>
+            <p className="mt-2 text-sm text-ink-soft">Role: {user?.role ?? 'Operator'}</p>
+          </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-3 xl:max-w-3xl xl:flex-row xl:items-center xl:justify-end">
-          <label className="relative block xl:min-w-[340px] xl:flex-1">
-            <Search
-              size={18}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+        <div className="flex flex-1 flex-col gap-3 xl:max-w-4xl xl:items-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <ConnectionIndicator />
+            <StatChip
+              icon={<Wifi size={14} />}
+              label={`${liveBikesQuery.data?.total ?? 0} live bikes`}
+              tone="success"
             />
+            <StatChip
+              icon={<Siren size={14} />}
+              label={`${incidentsQuery.data?.total ?? 0} open incidents`}
+              tone="danger"
+            />
+            <StatChip icon={<CalendarDays size={14} />} label={todayLabel} tone="neutral" />
+          </div>
+          <label className="block w-full xl:max-w-xl">
+            <span className="sr-only">Context search</span>
             <input
               type="text"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search bike label, plate, rider, or device..."
-              className="w-full rounded-2xl border border-line bg-surface-muted py-3 pl-10 pr-4 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+              placeholder="Search is visual-only for now. Use page filters for exact results."
+              className="w-full rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink placeholder:text-ink-muted"
             />
           </label>
-
-          <div className="flex flex-wrap gap-3">
-            <StatChip
-              icon={<Wifi size={15} />}
-              label={`${liveBikesQuery.data?.total ?? 0} Bikes Online`}
-              tone="success"
-            />
-            <StatChip
-              icon={<Siren size={15} />}
-              label={`${incidentsQuery.data?.total ?? 0} Active Alerts`}
-              tone="danger"
-            />
-            <StatChip icon={<CalendarDays size={15} />} label={todayLabel} tone="neutral" />
-          </div>
         </div>
       </div>
     </header>
@@ -89,19 +105,11 @@ function StatChip({
   label: string;
   tone: 'success' | 'danger' | 'neutral';
 }) {
-  const toneClass =
-    tone === 'success'
-      ? 'bg-success-soft text-emerald-800'
-      : tone === 'danger'
-        ? 'bg-danger-soft text-rose-800'
-        : 'bg-surface-muted text-ink';
-
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium ${toneClass}`}
-    >
-      {icon}
-      {label}
-    </span>
+    <Badge
+      label={label}
+      icon={icon}
+      tone={tone === 'success' ? 'success' : tone === 'danger' ? 'danger' : 'neutral'}
+    />
   );
 }

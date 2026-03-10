@@ -5,6 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertCircle,
   Bike,
+  ChevronLeft,
+  ChevronRight,
+  Command,
   FileBarChart2,
   Home,
   LogOut,
@@ -12,11 +15,13 @@ import {
   MapPin,
   Radio,
   Router,
+  X,
 } from 'lucide-react';
 import { canManageZones } from '@/lib/auth/roles';
-import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { clearAuthToken } from '@/lib/auth/session';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
+import { cx } from '@/lib/ui';
 
 const NAV_LINKS = [
   { href: '/', label: 'Overview', icon: Home },
@@ -29,7 +34,19 @@ const NAV_LINKS = [
   { href: '/reports', label: 'Reports', icon: FileBarChart2 },
 ] as const;
 
-export function DashboardNav() {
+interface DashboardNavProps {
+  collapsed: boolean;
+  mobileOpen: boolean;
+  onClose: () => void;
+  onToggleCollapse: () => void;
+}
+
+export function DashboardNav({
+  collapsed,
+  mobileOpen,
+  onClose,
+  onToggleCollapse,
+}: DashboardNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: user } = useCurrentUser();
@@ -49,62 +66,129 @@ export function DashboardNav() {
   });
 
   return (
-    <aside className="border-b border-line bg-white shadow-[var(--shadow)] md:sticky md:top-0 md:flex md:min-h-screen md:flex-col md:border-r md:border-b-0">
-      <div className="bg-gradient-to-br from-accent to-accent-strong px-5 py-6 text-white md:px-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-100">
-          Emoto Fleet
-        </p>
-        <h2 className="mt-2 font-display text-2xl font-semibold">Dispatcher Portal</h2>
-        <p className="mt-1 text-sm text-blue-100">
-          Live telemetry, incidents, and command operations.
-        </p>
-      </div>
-
-      <nav className="grid gap-2 overflow-x-auto px-3 py-4 md:flex-1 md:px-4 md:py-5">
-        {visibleLinks.map((link) => {
-          const Icon = link.icon;
-          const isActive = pathname === link.href;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm transition md:min-w-0 ${
-                isActive
-                  ? 'bg-accent-soft text-accent shadow-sm'
-                  : 'text-ink-soft hover:bg-surface-muted hover:text-ink'
-              }`}
+    <>
+      <div
+        className={cx(
+          'fixed inset-0 z-[900] bg-slate-950/30 backdrop-blur-[2px] transition-opacity lg:hidden',
+          mobileOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={onClose}
+      />
+      <aside
+        className={cx(
+          'fixed inset-y-0 left-0 z-[950] flex h-full flex-col border-r border-line bg-surface shadow-[var(--shadow-strong)] transition-transform lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:shadow-none',
+          collapsed ? 'w-[92px]' : 'w-[296px]',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-line px-4 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-[20px] bg-gradient-to-br from-accent to-accent-strong text-white shadow-lg">
+              <Command size={20} />
+            </span>
+            {!collapsed ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+                  E-Moto Safety
+                </p>
+                <h2 className="mt-1 font-display text-xl font-semibold text-ink">Fleet OS</h2>
+              </div>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-2xl border border-line bg-surface-muted p-2 text-ink-soft hover:bg-surface-hover lg:hidden"
+              aria-label="Close sidebar"
             >
-              <span
-                className={`rounded-xl p-2 ${
-                  isActive ? 'bg-white text-accent' : 'bg-surface-muted text-ink-soft'
-                }`}
-              >
-                <Icon size={18} />
-              </span>
-              <span className="font-medium">{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="border-t border-line px-4 py-4">
-        <div className="rounded-2xl bg-surface-muted p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-ink-soft">Signed In</p>
-          <p className="mt-2 text-sm font-semibold text-ink">{user?.role ?? 'Operator'}</p>
-          <p className="mt-1 text-xs text-ink-soft">
-            {user?.email ?? user?.phone ?? 'Authenticated user'}
-          </p>
+              <X size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="hidden rounded-2xl border border-line bg-surface-muted p-2 text-ink-soft hover:bg-surface-hover lg:inline-flex"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink transition hover:bg-surface-muted"
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
-      </div>
-    </aside>
+        {!collapsed ? (
+          <div className="px-4 pt-4">
+            <div className="rounded-[20px] bg-surface-muted px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
+                Control plane
+              </p>
+              <p className="mt-2 text-sm leading-6 text-ink-soft">
+                Live telemetry, incidents, command actions, and evidence workflows.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <nav className="dashboard-scrollbar flex-1 overflow-y-auto px-3 py-4">
+          <div className="grid gap-2">
+            {visibleLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={onClose}
+                  className={cx(
+                    'group flex items-center gap-3 rounded-[18px] px-3 py-3 text-sm',
+                    isActive
+                      ? 'bg-accent text-white shadow-sm'
+                      : 'text-ink-soft hover:bg-surface-hover hover:text-ink',
+                    collapsed && 'justify-center px-2',
+                  )}
+                >
+                  <span
+                    className={cx(
+                      'rounded-2xl p-2',
+                      isActive
+                        ? 'bg-white/16 text-white'
+                        : 'bg-surface-muted text-ink-soft group-hover:bg-white',
+                    )}
+                  >
+                    <Icon size={18} />
+                  </span>
+                  {!collapsed ? <span className="font-medium">{link.label}</span> : null}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div className="border-t border-line px-3 py-4">
+          {!collapsed ? (
+            <div className="rounded-[20px] bg-surface-muted px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
+                Signed in
+              </p>
+              <p className="mt-2 text-sm font-semibold text-ink">{user?.role ?? 'Operator'}</p>
+              <p className="mt-1 text-xs text-ink-soft">
+                {user?.email ?? user?.phone ?? 'Authenticated user'}
+              </p>
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={cx(
+              'mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-hover',
+              collapsed && 'px-3',
+            )}
+          >
+            <LogOut size={16} />
+            {!collapsed ? 'Logout' : null}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

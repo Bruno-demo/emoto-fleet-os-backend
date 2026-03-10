@@ -2,36 +2,64 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #eff4fa;
-  --surface: #ffffff;
-  --surface-muted: #f6f8fc;
-  --surface-strong: #e9eef8;
-  --ink: #162033;
-  --ink-soft: #5f6f89;
-  --line: #d8e1ee;
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
-  --accent-soft: #dbeafe;
-  --success-soft: #dcfce7;
-  --warning-soft: #fef3c7;
-  --danger-soft: #fee2e2;
-  --shadow: 0 18px 40px rgba(21, 42, 82, 0.08);
+  --background: #eef4fb;
+  --background-strong: #e1ebf7;
+  --surface: rgba(255, 255, 255, 0.96);
+  --surface-muted: #f6f9fd;
+  --surface-strong: #edf3fb;
+  --surface-hover: #e9f1fb;
+  --ink: #102038;
+  --ink-soft: #53657e;
+  --ink-muted: #7d8ca3;
+  --line: #d4deeb;
+  --line-strong: #b9c8db;
+  --accent: #155eef;
+  --accent-strong: #0f4cd1;
+  --accent-soft: #dce8ff;
+  --success-soft: #ddf7e4;
+  --success-ink: #0f7b44;
+  --warning-soft: #fff1cf;
+  --warning-ink: #9a6400;
+  --danger-soft: #ffe0df;
+  --danger-ink: #b2253a;
+  --critical-soft: #ffd7e4;
+  --critical-ink: #be185d;
+  --low-soft: #edf2f7;
+  --low-ink: #475569;
+  --ring: rgba(21, 94, 239, 0.24);
+  --shadow-soft: 0 18px 48px rgba(15, 39, 72, 0.08);
+  --shadow-strong: 0 28px 72px rgba(13, 31, 58, 0.16);
+  --shadow: var(--shadow-soft);
+  --radius-control: 14px;
+  --radius-panel: 24px;
+  --radius-pill: 999px;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-strong: var(--background-strong);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-surface-strong: var(--surface-strong);
+  --color-surface-hover: var(--surface-hover);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
   --color-success-soft: var(--success-soft);
+  --color-success-ink: var(--success-ink);
   --color-warning-soft: var(--warning-soft);
+  --color-warning-ink: var(--warning-ink);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-critical-soft: var(--critical-soft);
+  --color-critical-ink: var(--critical-ink);
+  --color-low-soft: var(--low-soft);
+  --color-low-ink: var(--low-ink);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-space-grotesk);
 }
@@ -40,22 +68,54 @@
   box-sizing: border-box;
 }
 
-html {
+html,
+body {
   min-height: 100%;
 }
 
 body {
   background:
-    radial-gradient(circle at 8% 0%, rgba(59, 130, 246, 0.16) 0%, transparent 26%),
-    radial-gradient(circle at 96% 8%, rgba(37, 99, 235, 0.14) 0%, transparent 28%),
-    radial-gradient(circle at 70% 100%, rgba(148, 163, 184, 0.14) 0%, transparent 24%),
+    radial-gradient(circle at 8% 0%, rgba(21, 94, 239, 0.16) 0%, transparent 24%),
+    radial-gradient(circle at 96% 8%, rgba(42, 111, 240, 0.12) 0%, transparent 28%),
+    radial-gradient(circle at 72% 100%, rgba(113, 143, 181, 0.12) 0%, transparent 24%),
     var(--background);
   color: var(--ink);
   min-height: 100vh;
+  font-feature-settings: "ss01" 1, "cv03" 1;
 }
 
 a {
   color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
 }
 
 ::selection {
@@ -65,4 +125,21 @@ a {
 .leaflet-container {
   background: #dbe7f5;
   font-family: var(--font-manrope), sans-serif;
+}
+
+.dashboard-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(83, 101, 126, 0.35) transparent;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(83, 101, 126, 0.28);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }

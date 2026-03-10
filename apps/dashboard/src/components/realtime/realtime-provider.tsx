@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { z } from 'zod';
+import { readAuthToken } from '@/lib/auth/session';
 import { connectFleetSocket, disconnectFleetSocket } from '@/lib/realtime/socket';
 import type {
   CommandStatusEvent,
@@ -70,6 +71,7 @@ interface RealtimeContextValue {
   bikeStates: Record<string, LiveBikeState>;
   recentEvents: FleetEvent[];
   commandStatuses: CommandStatusEvent[];
+  connectionState: 'connecting' | 'connected' | 'reconnecting' | 'offline';
   recordCommandStatus: (status: CommandStatusEvent) => void;
 }
 
@@ -82,7 +84,16 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [bikeStates, setBikeStates] = useState<Record<string, LiveBikeState>>({});
   const [recentEvents, setRecentEvents] = useState<FleetEvent[]>([]);
   const [commandStatuses, setCommandStatuses] = useState<CommandStatusEvent[]>([]);
+  const [connectionState, setConnectionState] = useState<
+    'connecting' | 'connected' | 'reconnecting' | 'offline'
+  >(() => {
+    if (typeof window === 'undefined') {
+      return 'offline';
+    }
+    return readAuthToken() ? 'connecting' : 'offline';
+  });
 
+  // Stores synthetic or websocket-delivered command updates in a capped local stream.
   const recordCommandStatus = useCallback((status: CommandStatusEvent) => {
     setCommandStatuses((currentStatuses) =>
       [status, ...currentStatuses].slice(0, MAX_COMMAND_STATUSES),
@@ -94,7 +105,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     if (!socket) {
       return;
     }
-
     socket.emit('subscribe_live', {}, () => undefined);
 
     // Applies per-bike websocket state updates to the in-memory live map cache.
@@ -129,11 +139,32 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       recordCommandStatus(parsed.data);
     };
 
+    // Tracks websocket lifecycle so the shell can expose connection health clearly.
+    const onConnect = () => {
+      setConnectionState('connected');
+    };
+
+    // Reflects transport interruptions without disconnecting the rest of the UI.
+    const onDisconnect = () => {
+      setConnectionState('reconnecting');
+    };
+
+    // Reflects failed handshake or retry attempts as a reconnecting state.
+    const onConnectError = () => {
+      setConnectionState('reconnecting');
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on('bike_state', onBikeState);
     socket.on('new_event', onNewEvent);
     socket.on('command_status', onCommandStatus);
 
     return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('bike_state', onBikeState);
       socket.off('new_event', onNewEvent);
       socket.off('command_status', onCommandStatus);
@@ -146,9 +177,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       bikeStates,
       recentEvents,
       commandStatuses,
+      connectionState,
       recordCommandStatus,
     }),
-    [bikeStates, recentEvents, commandStatuses, recordCommandStatus],
+    [bikeStates, recentEvents, commandStatuses, connectionState, recordCommandStatus],
   );
 
   return (

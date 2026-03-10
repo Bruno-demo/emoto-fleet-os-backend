@@ -9,17 +9,19 @@ export function PageShell({
 }) {
   return (
     <section className="space-y-5">
-      <header className="rounded-[28px] border border-line bg-white px-6 py-5 shadow-[var(--shadow)]">
+      <header className="rounded-[var(--radius-panel)] border border-line bg-surface px-6 py-5 shadow-[var(--shadow-soft)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-              Dispatcher Workspace
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+              Command surface
             </p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-ink">{title}</h1>
+            <h1 className="mt-2 font-display text-[clamp(1.85rem,1.55rem+1vw,2.5rem)] font-semibold text-ink">
+              {title}
+            </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-soft">{description}</p>
           </div>
 
-          <div className="rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-soft">
+          <div className="rounded-[18px] bg-surface-muted px-4 py-3 text-sm text-ink-soft">
             Live telemetry surfaces update automatically when websocket events arrive.
           </div>
         </div>
