@@ -1,23 +1,20 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Cpu,
-  KeyRound,
-  Link2,
-  Radio,
-  ShieldCheck,
-  Smartphone,
-} from 'lucide-react';
+import { Cpu, KeyRound, Link2, Radio, ShieldCheck, Smartphone } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
-import { PaginationControls } from '@/components/ui/pagination-controls';
-import { StatusPill } from '@/components/ui/status-pill';
-import { ApiError, apiFetch } from '@/lib/api/client';
-import { buildQueryString } from '@/lib/api/query-string';
 import { canProvisionDevices } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
-import type { Device, PaginatedResponse } from '@/lib/types/dashboard';
+import { ApiError, apiFetch } from '@/lib/api/client';
+import { buildQueryString } from '@/lib/api/query-string';
+import { Device, PaginatedResponse } from '@/lib/types/dashboard';
+import { formatTimestamp } from '@/lib/ui';
+import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { InlineNotice, TextField } from '@/components/ui/form-controls';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 const PAGE_SIZE = 20;
 
@@ -57,8 +54,6 @@ export default function DevicesPage() {
     };
   }, [devicesQuery.data?.data, devicesQuery.data?.total]);
 
-  const devices = devicesQuery.data?.data ?? [];
-
   // Creates a device and exposes the one-time provisioning secret to authorized roles.
   const createDevice = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,6 +89,49 @@ export default function DevicesPage() {
       setIsCreating(false);
     }
   };
+
+  const columns = useMemo<Array<DataTableColumn<Device>>>(
+    () => [
+      {
+        header: 'Device',
+        render: (device) => (
+          <div>
+            <p className="font-semibold text-ink">{device.deviceUid}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">
+              {device.imei ?? device.id.slice(0, 8)}
+            </p>
+          </div>
+        ),
+      },
+      {
+        header: 'Status',
+        render: (device) => (
+          <span
+            className={
+              device.status === 'ACTIVE'
+                ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
+                : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+            }
+          >
+            {device.status}
+          </span>
+        ),
+      },
+      {
+        header: 'Bike',
+        render: (device) => <span className="text-sm text-ink-soft">{device.bike?.label ?? 'Unassigned'}</span>,
+      },
+      {
+        header: 'Last seen',
+        render: (device) => (
+          <span className="text-sm text-ink-soft">
+            {device.lastSeenAt ? formatTimestamp(device.lastSeenAt) : 'Never'}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <PageShell
@@ -132,189 +170,76 @@ export default function DevicesPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-                Device Registry
-              </p>
-              <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
-                Provisioned hardware
-              </h2>
-            </div>
-            <div className="rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-soft">
-              Page {devicesQuery.data?.page ?? page} of {devicesQuery.data?.totalPages ?? 1}
-            </div>
-          </div>
-
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-line text-xs uppercase tracking-[0.16em] text-ink-soft">
-                  <th className="px-3 py-3">Device</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Bike</th>
-                  <th className="px-3 py-3">Last Seen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {devices.map((device) => (
-                  <tr key={device.id} className="border-b border-line/70 last:border-b-0">
-                    <td className="px-3 py-4">
-                      <div className="flex items-start gap-3">
-                        <span className="rounded-2xl bg-accent-soft p-2 text-accent">
-                          <Smartphone size={18} />
-                        </span>
-                        <div>
-                          <p className="font-medium text-ink">{device.deviceUid}</p>
-                          <p className="mt-1 text-xs text-ink-soft">
-                            {device.imei ?? device.id.slice(0, 8)}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-4">
-                      <StatusPill
-                        label={device.status}
-                        tone={device.status === 'ACTIVE' ? 'success' : 'neutral'}
-                      />
-                    </td>
-                    <td className="px-3 py-4 text-ink-soft">
-                      {device.bike?.label ?? 'Unassigned'}
-                    </td>
-                    <td className="px-3 py-4 text-ink-soft">
-                      {device.lastSeenAt ? formatTimestamp(device.lastSeenAt) : 'Never'}
-                    </td>
-                  </tr>
-                ))}
-                {devices.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-10 text-center text-sm text-ink-soft">
-                      No devices have been provisioned for this fleet yet.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+        <DashboardCard eyebrow="Device Registry" title="Provisioned hardware" description="Review assignment health and last-seen activity without leaving the dashboard.">
+          <DataTable
+            data={devicesQuery.data?.data ?? []}
+            columns={columns}
+            keyExtractor={(device) => device.id}
+            loading={devicesQuery.isLoading}
+            emptyState={
+              <EmptyState
+                icon={<Smartphone size={18} />}
+                title="No devices provisioned yet"
+                description="Provision a device to begin telemetry ingest for a bike."
+              />
+            }
+          />
 
           <PaginationControls
             page={devicesQuery.data?.page ?? page}
             totalPages={devicesQuery.data?.totalPages ?? 1}
             onPageChange={setPage}
           />
-        </article>
+        </DashboardCard>
 
-        <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-            Provisioning
-          </p>
-          <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
-            Create a new device identity
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-ink-soft">
-            Provisioning returns a one-time device secret. Store it securely during technician handoff.
-          </p>
-
+        <DashboardCard eyebrow="Provisioning" title="Create a device identity" description="Provisioning returns a one-time device secret. Store it securely during technician handoff.">
           {canProvision ? (
-            <form className="mt-5 space-y-4" onSubmit={createDevice}>
-              <div className="rounded-3xl border border-line bg-surface-muted p-4">
-                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
-                  Device UID
-                </label>
-                <input
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
-                  placeholder="EMOTO-DEV-001"
-                  value={deviceUid}
-                  onChange={(event) => setDeviceUid(event.target.value)}
-                />
-              </div>
+            <form className="space-y-4" onSubmit={createDevice}>
+              <TextField
+                label="Device UID"
+                placeholder="EMOTO-DEV-001"
+                value={deviceUid}
+                onChange={(event) => setDeviceUid(event.target.value)}
+              />
+              <TextField
+                label="IMEI"
+                placeholder="Optional hardware IMEI"
+                value={imei}
+                onChange={(event) => setImei(event.target.value)}
+              />
 
-              <div className="rounded-3xl border border-line bg-surface-muted p-4">
-                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
-                  IMEI
-                </label>
-                <input
-                  className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
-                  placeholder="Optional hardware IMEI"
-                  value={imei}
-                  onChange={(event) => setImei(event.target.value)}
-                />
-              </div>
+              {createError ? <InlineNotice message={createError} /> : null}
 
               <button
                 type="submit"
                 disabled={isCreating}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <KeyRound size={16} />
-                {isCreating ? 'Provisioning...' : 'Create Device'}
+                {isCreating ? 'Provisioning device...' : 'Provision device'}
               </button>
 
-              {createError ? (
-                <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {createError}
-                </p>
-              ) : null}
-
               {lastProvisionedSecret ? (
-                <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
-                    One-time Secret
-                  </p>
-                  <p className="mt-3 break-all rounded-2xl bg-white px-4 py-3 font-mono text-sm text-amber-900">
+                <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-amber-800">One-time device secret</p>
+                  <p className="mt-2 break-all font-mono text-sm text-amber-900">
                     {lastProvisionedSecret}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-amber-700">
+                    This value is shown only once. Copy it into the technician handoff flow now.
                   </p>
                 </div>
               ) : null}
             </form>
           ) : (
-            <div className="mt-5 rounded-3xl border border-dashed border-line px-4 py-8 text-sm text-ink-soft">
-              Device provisioning actions are hidden for your role.
-            </div>
+            <EmptyState
+              icon={<KeyRound size={18} />}
+              title="Provisioning requires elevated access"
+              description="Use an OWNER, ADMIN, or TECH account to create or rotate device identities."
+            />
           )}
-        </article>
+        </DashboardCard>
       </section>
     </PageShell>
   );
-}
-
-function MetricCard({
-  title,
-  value,
-  hint,
-  icon,
-  tone,
-}: {
-  title: string;
-  value: string;
-  hint: string;
-  icon: React.ReactNode;
-  tone: 'info' | 'success' | 'warning';
-}) {
-  const toneClass =
-    tone === 'success'
-      ? 'bg-success-soft text-emerald-700'
-      : tone === 'warning'
-        ? 'bg-warning-soft text-amber-700'
-        : 'bg-accent-soft text-accent';
-
-  return (
-    <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            {title}
-          </p>
-          <p className="mt-4 font-display text-4xl font-semibold text-ink">{value}</p>
-        </div>
-        <span className={`rounded-2xl p-3 ${toneClass}`}>{icon}</span>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-ink-soft">{hint}</p>
-    </article>
-  );
-}
-
-function formatTimestamp(value: string) {
-  return new Date(value).toLocaleString();
 }

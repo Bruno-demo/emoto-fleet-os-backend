@@ -5,15 +5,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Activity, CalendarDays, Filter, ShieldAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
+import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PaginationControls } from '@/components/ui/pagination-controls';
-import { StatusPill } from '@/components/ui/status-pill';
+import { SelectField, TextField } from '@/components/ui/form-controls';
 import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import type {
-  Bike,
-  FleetEvent,
-  PaginatedResponse,
-} from '@/lib/types/dashboard';
+import { Bike, FleetEvent, PaginatedResponse } from '@/lib/types/dashboard';
+import { formatEnumLabel, formatTimestamp } from '@/lib/ui';
 
 const PAGE_SIZE = 20;
 
@@ -46,22 +46,87 @@ export default function EventsPage() {
       ),
   });
 
+  const bikeLabelById = useMemo(() => {
+    const bikeMap = new Map<string, string>();
+    for (const bike of bikesQuery.data?.data ?? []) {
+      bikeMap.set(bike.id, bike.label);
+    }
+    return bikeMap;
+  }, [bikesQuery.data?.data]);
+
+  const currentEvents = useMemo(() => eventsQuery.data?.data ?? [], [eventsQuery.data?.data]);
   const summary = useMemo(() => {
-    const currentEvents = eventsQuery.data?.data ?? [];
     return {
       total: eventsQuery.data?.total ?? 0,
       critical: currentEvents.filter((event) => event.severity === 'CRITICAL').length,
       high: currentEvents.filter((event) => event.severity === 'HIGH').length,
       bikeLinked: currentEvents.filter((event) => !!event.bikeId).length,
     };
-  }, [eventsQuery.data?.data, eventsQuery.data?.total]);
+  }, [currentEvents, eventsQuery.data?.total]);
 
-  const currentEvents = eventsQuery.data?.data ?? [];
+  const columns = useMemo<Array<DataTableColumn<FleetEvent>>>(
+    () => [
+      {
+        header: 'Timestamp',
+        render: (event) => (
+          <div>
+            <p className="font-semibold text-ink">{formatTimestamp(event.ts)}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">{event.id.slice(0, 8)}...</p>
+          </div>
+        ),
+      },
+      {
+        header: 'Event',
+        render: (event) => (
+          <div>
+            <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">
+              {event.bikeId
+                ? bikeLabelById.get(event.bikeId) ?? event.bikeId.slice(0, 8)
+                : 'Fleet-level event'}
+            </p>
+          </div>
+        ),
+      },
+      {
+        header: 'Severity',
+        render: (event) => <SeverityBadge severity={event.severity} />,
+      },
+      {
+        header: 'Actions',
+        className: 'text-right',
+        cellClassName: 'text-right',
+        render: (event) => (
+          <div className="flex justify-end gap-2">
+            {event.bikeId ? (
+              <>
+                <Link
+                  href={`/bikes?bikeId=${event.bikeId}`}
+                  className="rounded-[var(--radius-control)] border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-hover"
+                >
+                  Open bike
+                </Link>
+                <Link
+                  href={`/live?bikeId=${event.bikeId}`}
+                  className="rounded-[var(--radius-control)] border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-hover"
+                >
+                  View live
+                </Link>
+              </>
+            ) : (
+              <span className="text-xs font-medium text-ink-muted">No linked bike</span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [bikeLabelById],
+  );
 
   return (
     <PageShell
       title="Events"
-      description="Search the fleet event stream by severity, type, bike, and time range without losing the direct jump paths into bike and live map views."
+      description="Search the fleet event stream by severity, type, bike, and time range without losing the direct jump paths into bike and live-map views."
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -88,189 +153,106 @@ export default function EventsPage() {
         <MetricCard
           title="Bike Linked"
           value={String(summary.bikeLinked)}
-          hint="Events that can jump directly to a bike detail or live-map context."
+          hint="Events that can jump directly to a bike detail or live map."
           icon={<CalendarDays size={18} />}
           tone="success"
         />
       </section>
 
-      <section className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-              Filter Console
-            </p>
-            <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
-              Event search
-            </h2>
-          </div>
+      <DashboardCard
+        eyebrow="Filter Console"
+        title="Event search"
+        description="Use filters that mirror the backend query options, then jump directly into bike or live-map context."
+      >
+        <DataTableToolbar
+          actions={
+            <button
+              type="button"
+              onClick={() => {
+                setType('');
+                setSeverity('');
+                setBikeId('');
+                setFrom('');
+                setTo('');
+                setPage(1);
+              }}
+              className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+            >
+              Reset filters
+            </button>
+          }
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <SelectField label="Event type" value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}>
+              <option value="">All event types</option>
+              <option value="OVERSPEED">Overspeed</option>
+              <option value="HARSH_BRAKE">Harsh brake</option>
+              <option value="HARSH_ACCEL">Harsh accel</option>
+              <option value="HARSH_CORNER">Harsh corner</option>
+              <option value="CRASH">Crash</option>
+              <option value="THEFT_SUSPECTED">Theft suspected</option>
+              <option value="SOS">SOS</option>
+            </SelectField>
 
-          <button
-            type="button"
-            className="rounded-2xl border border-line px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted"
-            onClick={() => {
-              setType('');
-              setSeverity('');
-              setBikeId('');
-              setFrom('');
-              setTo('');
-              setPage(1);
-            }}
-          >
-            Reset Filters
-          </button>
-        </div>
+            <SelectField label="Severity" value={severity} onChange={(event) => { setSeverity(event.target.value); setPage(1); }}>
+              <option value="">All severities</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="CRITICAL">Critical</option>
+            </SelectField>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <SelectField
-            label="Event type"
-            value={type}
-            onChange={(value) => {
-              setType(value);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'All event types' },
-              { value: 'OVERSPEED', label: 'OVERSPEED' },
-              { value: 'HARSH_BRAKE', label: 'HARSH_BRAKE' },
-              { value: 'HARSH_ACCEL', label: 'HARSH_ACCEL' },
-              { value: 'HARSH_CORNER', label: 'HARSH_CORNER' },
-              { value: 'CRASH', label: 'CRASH' },
-              { value: 'THEFT_SUSPECTED', label: 'THEFT_SUSPECTED' },
-              { value: 'SOS', label: 'SOS' },
-            ]}
-          />
-
-          <SelectField
-            label="Severity"
-            value={severity}
-            onChange={(value) => {
-              setSeverity(value);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'All severities' },
-              { value: 'LOW', label: 'LOW' },
-              { value: 'MEDIUM', label: 'MEDIUM' },
-              { value: 'HIGH', label: 'HIGH' },
-              { value: 'CRITICAL', label: 'CRITICAL' },
-            ]}
-          />
-
-          <SelectField
-            label="Bike"
-            value={bikeId}
-            onChange={(value) => {
-              setBikeId(value);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'All bikes' },
-              ...(bikesQuery.data?.data ?? []).map((bike) => ({
-                value: bike.id,
-                label: bike.label,
-              })),
-            ]}
-          />
-
-          <InputField
-            label="From"
-            type="datetime-local"
-            value={from}
-            onChange={(value) => {
-              setFrom(value);
-              setPage(1);
-            }}
-          />
-
-          <InputField
-            label="To"
-            type="datetime-local"
-            value={to}
-            onChange={(value) => {
-              setTo(value);
-              setPage(1);
-            }}
-          />
-
-          <div className="rounded-3xl border border-line bg-surface-muted px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
-              Result scope
-            </p>
-            <p className="mt-3 text-2xl font-display font-semibold text-ink">
-              {eventsQuery.data?.total ?? 0}
-            </p>
-            <p className="mt-2 text-sm text-ink-soft">
-              Total events matched by the current query.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-line text-xs uppercase tracking-[0.16em] text-ink-soft">
-                <th className="px-3 py-3">Timestamp</th>
-                <th className="px-3 py-3">Type</th>
-                <th className="px-3 py-3">Severity</th>
-                <th className="px-3 py-3">Bike</th>
-                <th className="px-3 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentEvents.map((event) => (
-                <tr key={event.id} className="border-b border-line/70 last:border-b-0">
-                  <td className="px-3 py-4 text-ink-soft">{formatTimestamp(event.ts)}</td>
-                  <td className="px-3 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="rounded-2xl bg-surface-muted p-2 text-accent">
-                        <Activity size={16} />
-                      </span>
-                      <div>
-                        <p className="font-medium text-ink">{formatLabel(event.type)}</p>
-                        <p className="mt-1 text-xs text-ink-soft">{event.id.slice(0, 8)}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-4">
-                    <StatusPill label={event.severity} tone={eventSeverityTone(event.severity)} />
-                  </td>
-                  <td className="px-3 py-4 text-ink-soft">
-                    {event.bikeId ? event.bikeId.slice(0, 8) : 'N/A'}
-                  </td>
-                  <td className="px-3 py-4">
-                    {event.bikeId ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/bikes?bikeId=${event.bikeId}`}
-                          className="rounded-2xl border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
-                        >
-                          Bike detail
-                        </Link>
-                        <Link
-                          href={`/live?bikeId=${event.bikeId}`}
-                          className="rounded-2xl border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
-                        >
-                          Show on map
-                        </Link>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-ink-soft">No bike target</span>
-                    )}
-                  </td>
-                </tr>
+            <SelectField label="Bike" value={bikeId} onChange={(event) => { setBikeId(event.target.value); setPage(1); }}>
+              <option value="">All bikes</option>
+              {(bikesQuery.data?.data ?? []).map((bike) => (
+                <option key={bike.id} value={bike.id}>
+                  {bike.label}
+                </option>
               ))}
-              {currentEvents.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-sm text-ink-soft">
-                    No events match the current filters.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+            </SelectField>
+
+            <TextField
+              label="From"
+              type="datetime-local"
+              value={from}
+              onChange={(event) => { setFrom(event.target.value); setPage(1); }}
+            />
+
+            <TextField
+              label="To"
+              type="datetime-local"
+              value={to}
+              onChange={(event) => { setTo(event.target.value); setPage(1); }}
+            />
+
+            <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                Result scope
+              </p>
+              <p className="mt-2 font-display text-3xl font-semibold text-ink">
+                {eventsQuery.data?.total ?? 0}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-ink-soft">
+                Total events matched by the current query.
+              </p>
+            </div>
+          </div>
+        </DataTableToolbar>
+
+        <div className="mt-6">
+          <DataTable
+            data={currentEvents}
+            columns={columns}
+            keyExtractor={(event) => event.id}
+            loading={eventsQuery.isLoading}
+            emptyState={
+              <EmptyState
+                icon={<Activity size={18} />}
+                title="No events match this query"
+                description="Broaden the filters or change the time window to inspect more fleet activity."
+              />
+            }
+          />
         </div>
 
         <PaginationControls
@@ -278,130 +260,29 @@ export default function EventsPage() {
           totalPages={eventsQuery.data?.totalPages ?? 1}
           onPageChange={setPage}
         />
-      </section>
+      </DashboardCard>
     </PageShell>
   );
 }
 
-function MetricCard({
-  title,
-  value,
-  hint,
-  icon,
-  tone,
-}: {
-  title: string;
-  value: string;
-  hint: string;
-  icon: React.ReactNode;
-  tone: 'info' | 'success' | 'warning' | 'danger';
-}) {
-  const toneClass =
-    tone === 'success'
-      ? 'bg-success-soft text-emerald-700'
-      : tone === 'warning'
-        ? 'bg-warning-soft text-amber-700'
-        : tone === 'danger'
-          ? 'bg-danger-soft text-rose-700'
-          : 'bg-accent-soft text-accent';
+function SeverityBadge({ severity }: { severity: FleetEvent['severity'] }) {
+  const className =
+    severity === 'CRITICAL'
+      ? 'bg-critical-soft text-critical-ink'
+      : severity === 'HIGH'
+        ? 'bg-warning-soft text-warning-ink'
+        : severity === 'MEDIUM'
+          ? 'bg-accent-soft text-accent'
+          : 'bg-low-soft text-low-ink';
 
   return (
-    <article className="rounded-[28px] border border-line bg-white p-5 shadow-[var(--shadow)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            {title}
-          </p>
-          <p className="mt-4 font-display text-4xl font-semibold text-ink">{value}</p>
-        </div>
-        <span className={`rounded-2xl p-3 ${toneClass}`}>{icon}</span>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-ink-soft">{hint}</p>
-    </article>
+    <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${className}`}>
+      {severity}
+    </span>
   );
 }
 
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <div className="rounded-3xl border border-line bg-surface-muted px-4 py-4">
-      <label className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
-      >
-        {options.map((option) => (
-          <option key={`${label}-${option.value}`} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function InputField({
-  label,
-  type,
-  value,
-  onChange,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="rounded-3xl border border-line bg-surface-muted px-4 py-4">
-      <label className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
-      />
-    </div>
-  );
-}
-
-function eventSeverityTone(severity: FleetEvent['severity']) {
-  if (severity === 'CRITICAL') {
-    return 'danger' as const;
-  }
-  if (severity === 'HIGH') {
-    return 'warning' as const;
-  }
-  if (severity === 'MEDIUM') {
-    return 'info' as const;
-  }
-  return 'neutral' as const;
-}
-
-function formatLabel(value: string) {
-  return value
-    .split('_')
-    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-    .join(' ');
-}
-
-function formatTimestamp(value: string) {
-  return new Date(value).toLocaleString();
-}
-
+// Converts browser datetime-local values into UTC strings expected by the backend filters.
 function toIsoUtcOrUndefined(value: string): string | undefined {
   if (!value) {
     return undefined;

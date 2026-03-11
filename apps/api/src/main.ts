@@ -71,7 +71,8 @@ async function bootstrap(): Promise<void> {
   });
 
   const port = configService.get<number>('PORT', 3000);
-  const publicUrl = configService.get<string>('API_PUBLIC_URL') ?? `http://localhost:${port}`;
+  const publicUrl =
+    configService.get<string>('API_PUBLIC_URL') ?? `http://localhost:${port}`;
   await app.listen(port, '0.0.0.0');
 
   logger.log(`API listening on ${publicUrl}`);
