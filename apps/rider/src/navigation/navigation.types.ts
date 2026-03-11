@@ -1,6 +1,15 @@
 export type RiderRootStackParamList = {
-  Login: undefined;
+  Auth: undefined;
   App: undefined;
+};
+
+export type RiderAuthStackParamList = {
+  Login: undefined;
+  ForgotAccess: undefined;
+  ResetAccess: {
+    phone?: string;
+  } | undefined;
+  OtpHelp: undefined;
 };
 
 export type RiderTabParamList = {

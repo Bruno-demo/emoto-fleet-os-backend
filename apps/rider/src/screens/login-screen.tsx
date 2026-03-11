@@ -1,30 +1,57 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AuthShell } from '../components/auth-shell';
+import { AppCard } from '../components/ui/card';
+import { InlineNotice } from '../components/ui/error-state';
+import { InputField } from '../components/ui/input-field';
+import { PrimaryButton, SecondaryButton } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 import { ApiError } from '../lib/api/client';
 import { useAuth } from '../lib/auth/auth-context';
 import { logAppError } from '../lib/monitoring/error-log';
+import type { RiderAuthStackParamList } from '../navigation/navigation.types';
+import { theme } from '../theme/tokens';
+
+type LoginScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Login'>;
 
 // Collects rider phone/password and initiates authenticated session flow.
-export function LoginScreen() {
+export function LoginScreen({ navigation }: LoginScreenProps) {
   const auth = useAuth();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Validates rider login fields before the network request is sent.
+  const validateForm = () => {
+    let hasError = false;
+
+    if (!phone.trim()) {
+      setPhoneError('Enter your rider phone number.');
+      hasError = true;
+    } else {
+      setPhoneError(null);
+    }
+
+    if (!password.trim()) {
+      setPasswordError('Enter your password.');
+      hasError = true;
+    } else if (password.trim().length < 6) {
+      setPasswordError('Use the full password issued for your rider account.');
+      hasError = true;
+    } else {
+      setPasswordError(null);
+    }
+
+    return !hasError;
+  };
+
   // Performs rider login using phone/password and maps failures to UI-safe text.
   const handleLogin = async (): Promise<void> => {
-    if (!phone.trim() || !password.trim()) {
-      setErrorMessage('Phone and password are required');
+    if (!validateForm()) {
       return;
     }
 
@@ -39,12 +66,12 @@ export function LoginScreen() {
         operation: 'login',
         status: error instanceof ApiError ? error.status : undefined,
       });
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message);
+      if (error instanceof ApiError && error.status === 401) {
+        setErrorMessage('Your phone or password does not match a rider account.');
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Unable to login');
+        setErrorMessage('Unable to sign you in right now.');
       }
     } finally {
       setIsSubmitting(false);
@@ -56,50 +83,67 @@ export function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      <View style={styles.card}>
-        <Text style={styles.title}>Rider Login</Text>
-        <Text style={styles.subtitle}>
-          Sign in with your rider phone and password.
-        </Text>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Phone</Text>
-          <TextInput
-            style={styles.input}
+      <AuthShell
+        eyebrow="Rider Access"
+        title="Sign in fast, even on the roadside."
+        description="Use your rider phone number and password. Recovery help is available below if you are locked out."
+      >
+        <AppCard
+          title="Rider login"
+          subtitle="Phone + password is the active sign-in flow for this deployment."
+          rightSlot={<Badge label="Secure" tone="primary" />}
+        >
+          <InputField
+            label="Phone"
             value={phone}
             onChangeText={setPhone}
-            placeholder="+250700000001"
+            error={phoneError}
+            placeholder="+250700000101"
             keyboardType="phone-pad"
             autoCapitalize="none"
+            autoComplete="tel"
           />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
+          <InputField
+            label="Password"
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            error={passwordError}
+            placeholder="Enter your password"
             secureTextEntry
             autoCapitalize="none"
+            autoComplete="password"
           />
-        </View>
 
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+          {errorMessage ? <InlineNotice description={errorMessage} /> : null}
 
-        <Pressable
-          disabled={isSubmitting}
-          onPress={() => void handleLogin()}
-          style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
+          <PrimaryButton
+            label={isSubmitting ? 'Signing in...' : 'Sign in'}
+            loading={isSubmitting}
+            onPress={() => {
+              void handleLogin();
+            }}
+          />
+
+          <View style={styles.linkRow}>
+            <Pressable onPress={() => navigation.navigate('ForgotAccess')}>
+              <Text style={styles.linkText}>Forgot access?</Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.navigate('OtpHelp')}>
+              <Text style={styles.linkText}>OTP help</Text>
+            </Pressable>
+          </View>
+        </AppCard>
+
+        <AppCard
+          title="Quick recovery"
+          subtitle="Use these help flows if your password is missing or your phone access changed."
         >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
-        </Pressable>
-      </View>
+          <SecondaryButton
+            label="Recovery options"
+            onPress={() => navigation.navigate('ForgotAccess')}
+          />
+        </AppCard>
+      </AuthShell>
     </KeyboardAvoidingView>
   );
 }
@@ -107,66 +151,16 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f6f8fa',
+    backgroundColor: theme.colors.background,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
   },
-  card: {
-    width: '100%',
-    maxWidth: 440,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    backgroundColor: '#ffffff',
-    padding: 20,
-    gap: 14,
-  },
-  title: {
-    fontSize: 24,
+  linkText: {
+    fontSize: theme.typography.body,
     fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#4b5563',
-  },
-  field: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    backgroundColor: '#ffffff',
-  },
-  error: {
-    color: '#b91c1c',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  button: {
-    marginTop: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.75,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: theme.colors.primary,
   },
 });

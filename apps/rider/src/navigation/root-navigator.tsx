@@ -4,22 +4,46 @@ import { View } from 'react-native';
 import { LoadingState } from '../components/loading-state';
 import { OfflineBanner } from '../components/offline-banner';
 import { useAuth } from '../lib/auth/auth-context';
+import { ForgotAccessScreen } from '../screens/forgot-access-screen';
 import { HomeScreen } from '../screens/home-screen';
 import { LoginScreen } from '../screens/login-screen';
+import { OtpHelpScreen } from '../screens/otp-help-screen';
 import { PoiNearbyScreen } from '../screens/poi-nearby-screen';
+import { ResetAccessScreen } from '../screens/reset-access-screen';
 import { SosScreen } from '../screens/sos-screen';
 import { TripDetailScreen } from '../screens/trip-detail-screen';
 import { TripsScreen } from '../screens/trips-screen';
 import { theme } from '../theme/tokens';
 import type {
+  RiderAuthStackParamList,
   RiderRootStackParamList,
   RiderTabParamList,
   RiderTripsStackParamList,
 } from './navigation.types';
 
 const RootStack = createNativeStackNavigator<RiderRootStackParamList>();
+const AuthStack = createNativeStackNavigator<RiderAuthStackParamList>();
 const Tab = createBottomTabNavigator<RiderTabParamList>();
 const TripsStack = createNativeStackNavigator<RiderTripsStackParamList>();
+
+// Keeps unauthenticated rider help and recovery screens inside a dedicated auth stack.
+function AuthStackNavigator() {
+  return (
+    <AuthStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: theme.colors.background,
+        },
+      }}
+    >
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="ForgotAccess" component={ForgotAccessScreen} />
+      <AuthStack.Screen name="ResetAccess" component={ResetAccessScreen} />
+      <AuthStack.Screen name="OtpHelp" component={OtpHelpScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 // Wraps trips list/detail flows in a dedicated stack under the Trips tab.
 function TripsStackNavigator() {
@@ -102,7 +126,7 @@ export function RootNavigator() {
         {auth.status === 'authenticated' ? (
           <RootStack.Screen name="App" component={RiderTabsNavigator} />
         ) : (
-          <RootStack.Screen name="Login" component={LoginScreen} />
+          <RootStack.Screen name="Auth" component={AuthStackNavigator} />
         )}
       </RootStack.Navigator>
     </View>

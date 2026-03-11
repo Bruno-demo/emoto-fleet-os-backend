@@ -32,6 +32,15 @@ export function ErrorState({
   );
 }
 
+// Renders a compact inline notice for form-level validation and request failures.
+export function InlineNotice({ description }: { description: string }) {
+  return (
+    <View style={styles.inlineContainer}>
+      <Text style={styles.inlineText}>{description}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
@@ -51,5 +60,19 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body,
     lineHeight: 22,
     color: theme.colors.textSecondary,
+  },
+  inlineContainer: {
+    borderWidth: 1,
+    borderColor: '#F1C9C4',
+    borderRadius: theme.radius.input,
+    backgroundColor: theme.colors.dangerSoft,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+  },
+  inlineText: {
+    fontSize: theme.typography.body,
+    lineHeight: 21,
+    color: theme.colors.danger,
+    fontWeight: '600',
   },
 });
