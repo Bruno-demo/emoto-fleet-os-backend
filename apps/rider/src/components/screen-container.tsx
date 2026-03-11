@@ -1,16 +1,18 @@
 import { ReactNode } from 'react';
 import {
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '../theme/tokens';
 
 interface ScreenContainerProps {
   children: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
+  padded?: boolean;
 }
 
 // Wraps screen content in safe area padding and optional pull-to-refresh behavior.
@@ -18,9 +20,10 @@ export function ScreenContainer({
   children,
   refreshing = false,
   onRefresh,
+  padded = true,
 }: ScreenContainerProps) {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -29,7 +32,7 @@ export function ScreenContainer({
           ) : undefined
         }
       >
-        <View style={styles.inner}>{children}</View>
+        <View style={[styles.inner, !padded ? styles.innerUnpadded : null]}>{children}</View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -38,15 +41,19 @@ export function ScreenContainer({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f6f8fa',
+    backgroundColor: theme.colors.background,
   },
   content: {
     flexGrow: 1,
   },
   inner: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  innerUnpadded: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
 });

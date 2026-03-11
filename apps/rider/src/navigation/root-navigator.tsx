@@ -10,6 +10,7 @@ import { PoiNearbyScreen } from '../screens/poi-nearby-screen';
 import { SosScreen } from '../screens/sos-screen';
 import { TripDetailScreen } from '../screens/trip-detail-screen';
 import { TripsScreen } from '../screens/trips-screen';
+import { theme } from '../theme/tokens';
 import type {
   RiderRootStackParamList,
   RiderTabParamList,
@@ -23,7 +24,18 @@ const TripsStack = createNativeStackNavigator<RiderTripsStackParamList>();
 // Wraps trips list/detail flows in a dedicated stack under the Trips tab.
 function TripsStackNavigator() {
   return (
-    <TripsStack.Navigator>
+    <TripsStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerShadowVisible: false,
+        headerTintColor: theme.colors.text,
+        headerTitleStyle: {
+          fontWeight: '700',
+        },
+      }}
+    >
       <TripsStack.Screen
         name="TripsList"
         component={TripsScreen}
@@ -44,6 +56,19 @@ function RiderTabsNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textMuted,
+        tabBarStyle: {
+          height: 68,
+          paddingTop: 8,
+          paddingBottom: 10,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
+        },
+        tabBarLabelStyle: {
+          fontSize: theme.typography.caption,
+          fontWeight: '700',
+        },
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
