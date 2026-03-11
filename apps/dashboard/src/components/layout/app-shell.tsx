@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DashboardNav } from '@/components/layout/dashboard-nav';
 import { Topbar } from '@/components/layout/topbar';
+import { cx } from '@/lib/ui';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -30,18 +31,19 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   return (
-    <div
-      className={`min-h-screen lg:grid ${
-        sidebarCollapsed ? 'lg:grid-cols-[92px_1fr]' : 'lg:grid-cols-[296px_1fr]'
-      }`}
-    >
+    <div className="min-h-screen bg-background">
       <DashboardNav
         collapsed={sidebarCollapsed}
         mobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapse={() => setSidebarCollapsed((current) => !current)}
       />
-      <div className="min-h-screen bg-background">
+      <div
+        className={cx(
+          'min-h-screen bg-background transition-[padding] duration-300',
+          sidebarCollapsed ? 'lg:pl-[92px]' : 'lg:pl-[296px]',
+        )}
+      >
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
         <main className="px-4 py-5 md:px-6 md:py-6 xl:px-8">
           <div className="mx-auto max-w-[1600px]">{children}</div>

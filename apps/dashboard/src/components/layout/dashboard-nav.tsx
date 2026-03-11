@@ -76,7 +76,7 @@ export function DashboardNav({
       />
       <aside
         className={cx(
-          'fixed inset-y-0 left-0 z-[950] flex h-full flex-col border-r border-line bg-surface shadow-[var(--shadow-strong)] transition-transform lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:shadow-none',
+          'fixed inset-y-0 left-0 z-[950] flex h-full flex-col border-r border-line bg-surface shadow-[var(--shadow-strong)] transition-transform lg:translate-x-0',
           collapsed ? 'w-[92px]' : 'w-[296px]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
