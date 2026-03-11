@@ -1,3 +1,8 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import { useRealtime } from '@/components/realtime/realtime-provider';
+
 export function PageShell({
   title,
   description,
@@ -5,8 +10,11 @@ export function PageShell({
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
+  const { connectionState } = useRealtime();
+  const statusCopy = getPageShellStatus(connectionState);
+
   return (
     <section className="space-y-5">
       <header className="rounded-[var(--radius-panel)] border border-line bg-surface px-6 py-5 shadow-[var(--shadow-soft)]">
@@ -22,11 +30,24 @@ export function PageShell({
           </div>
 
           <div className="rounded-[18px] bg-surface-muted px-4 py-3 text-sm text-ink-soft">
-            Live telemetry surfaces update automatically when websocket events arrive.
+            {statusCopy}
           </div>
         </div>
       </header>
       {children}
     </section>
   );
+}
+
+// Keeps shared page-shell guidance aligned with live websocket health instead of static copy.
+function getPageShellStatus(
+  connectionState: 'connecting' | 'connected' | 'reconnecting' | 'offline',
+) {
+  if (connectionState === 'connected') {
+    return 'Live telemetry is flowing. Page data will keep updating as websocket events arrive.';
+  }
+  if (connectionState === 'connecting' || connectionState === 'reconnecting') {
+    return 'Realtime transport is reconnecting. Cached data stays visible while the live stream recovers.';
+  }
+  return 'Realtime transport is offline. Use the available API data and refresh after connectivity returns.';
 }
