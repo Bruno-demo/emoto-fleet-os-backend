@@ -11,7 +11,7 @@ export function LoadingState({ message = 'Loading...' }: LoadingStateProps) {
     <View style={styles.container}>
       <View style={styles.card}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.title}>Hold on</Text>
+        <Text style={styles.title}>Preparing your rider view</Text>
         <Text style={styles.message}>{message}</Text>
       </View>
     </View>

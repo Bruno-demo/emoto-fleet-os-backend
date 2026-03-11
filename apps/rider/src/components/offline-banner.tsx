@@ -15,7 +15,10 @@ export function OfflineBanner() {
   return (
     <View style={styles.banner}>
       <Text style={styles.title}>Offline mode</Text>
-      <Text style={styles.text}>Showing cached data where available.</Text>
+      <Text style={styles.text}>
+        Showing cached data where available. Live actions resume when the
+        connection returns.
+      </Text>
     </View>
   );
 }

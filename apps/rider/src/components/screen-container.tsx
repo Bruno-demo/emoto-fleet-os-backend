@@ -28,6 +28,7 @@ export function ScreenContainer({
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

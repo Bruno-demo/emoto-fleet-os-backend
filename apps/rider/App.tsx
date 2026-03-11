@@ -22,6 +22,7 @@ export default function App() {
             staleTime: 20_000,
             retry: 1,
             refetchOnReconnect: true,
+            refetchOnWindowFocus: false,
           },
         },
       }),
