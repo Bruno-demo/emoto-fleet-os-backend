@@ -1,19 +1,20 @@
 import * as Location from 'expo-location';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/screen-container';
+import { AppCard } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { ConfirmModal } from '../components/ui/confirm-modal';
+import { EmptyState } from '../components/ui/empty-state';
+import { ErrorState } from '../components/ui/error-state';
+import { InputField } from '../components/ui/input-field';
+import { PrimaryButton, SecondaryButton } from '../components/ui/button';
+import { SectionHeader } from '../components/ui/section-header';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { riderSosResponseSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderSosResponse } from '../lib/types/api';
+import { theme } from '../theme/tokens';
 
 // Captures current coordinates only when foreground location permission is granted.
 async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | null> {
@@ -32,14 +33,32 @@ async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | n
   };
 }
 
-// Provides SOS confirmation flow and submits emergency requests to backend.
+// Maps network and permission failures into rider-facing SOS messages.
+function toSosErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.status >= 500) {
+    return 'Dispatcher alert could not be sent right now. Try again immediately.';
+  }
+
+  if (error instanceof Error && error.message.toLowerCase().includes('network')) {
+    return 'No network connection was detected. Move to coverage and retry the SOS alert.';
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'SOS could not be sent right now. Try again immediately.';
+}
+
+// Provides SOS confirmation flow and submits emergency requests to the backend.
 export function SosScreen() {
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [response, setResponse] = useState<RiderSosResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
-  // Sends SOS to backend after optional location acquisition and user confirmation.
+  // Sends SOS to the backend after optional location acquisition and explicit confirmation.
   const submitSos = async (): Promise<void> => {
     setErrorMessage(null);
     setResponse(null);
@@ -68,165 +87,135 @@ export function SosScreen() {
         operation: 'submit',
         status: error instanceof ApiError ? error.status : undefined,
       });
-
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message);
-      } else if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage('Failed to send SOS');
-      }
+      setErrorMessage(toSosErrorMessage(error));
     } finally {
       setIsSubmitting(false);
+      setConfirmVisible(false);
     }
-  };
-
-  // Requests user confirmation before dispatching emergency SOS.
-  const confirmSos = (): void => {
-    Alert.alert(
-      'Send SOS?',
-      'This will notify your dispatcher and fleet emergency contacts.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send SOS',
-          style: 'destructive',
-          onPress: () => {
-            void submitSos();
-          },
-        },
-      ],
-    );
   };
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>SOS</Text>
-      <Text style={styles.subtitle}>
-        Trigger emergency assistance and notify configured contacts.
-      </Text>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Optional note</Text>
-        <TextInput
-          value={note}
-          onChangeText={setNote}
-          style={styles.messageInput}
-          placeholder="Describe what happened"
-          multiline
-          numberOfLines={4}
-          maxLength={500}
-        />
-
-        <Pressable
-          style={[styles.sosButton, isSubmitting ? styles.sosButtonDisabled : null]}
-          disabled={isSubmitting}
-          onPress={confirmSos}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <Text style={styles.sosButtonText}>Send SOS</Text>
-          )}
-        </Pressable>
-      </View>
-
-      {errorMessage ? (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      ) : null}
+      <SectionHeader
+        title="SOS"
+        subtitle="Use this only when you need immediate fleet assistance."
+      />
 
       {response ? (
-        <View style={styles.successCard}>
-          <Text style={styles.successTitle}>SOS sent</Text>
+        <AppCard
+          title="Dispatcher notified"
+          subtitle="Your emergency alert was accepted and routed to the fleet response workflow."
+          rightSlot={<Badge label="Sent" tone="success" />}
+        >
           <Text style={styles.successText}>
-            Dispatcher notified. Contacts alerted: {response.notifiedContacts}
+            Contacts notified: {response.notifiedContacts}
           </Text>
           <Text style={styles.successText}>
             Reference event: {response.event.id}
           </Text>
-        </View>
-      ) : null}
+          <PrimaryButton
+            label="Send another SOS"
+            onPress={() => {
+              setResponse(null);
+              setErrorMessage(null);
+            }}
+          />
+        </AppCard>
+      ) : (
+        <>
+          <AppCard
+            title="Emergency alert"
+            subtitle="Press SOS only if you need urgent support. A dispatcher and configured emergency contacts will be notified."
+          >
+            <View style={styles.sosHero}>
+              <Text style={styles.sosEyebrow}>Hold steady and confirm</Text>
+              <Text style={styles.sosTitle}>Tap once, then confirm to notify dispatch.</Text>
+              <PrimaryButton
+                label={isSubmitting ? 'Sending SOS...' : 'Send SOS'}
+                loading={isSubmitting}
+                tone="danger"
+                onPress={() => setConfirmVisible(true)}
+              />
+            </View>
+            <Badge label="Location is attached when permission is available" tone="warning" />
+          </AppCard>
+
+          <AppCard title="Optional note" subtitle="Share a short message so dispatch knows what happened.">
+            <InputField
+              label="Message"
+              hint={`${note.length}/500`}
+              value={note}
+              onChangeText={setNote}
+              placeholder="Crash, medical issue, unsafe stop, or other emergency details"
+              multiline
+              numberOfLines={4}
+              maxLength={500}
+              textAlignVertical="top"
+            />
+            <SecondaryButton label="Clear note" onPress={() => setNote('')} disabled={!note} />
+          </AppCard>
+
+          {errorMessage ? (
+            <ErrorState
+              title="SOS not sent"
+              description={errorMessage}
+              retryLabel="Retry SOS"
+              onRetry={() => setConfirmVisible(true)}
+            />
+          ) : null}
+
+          <EmptyState
+            title="When to use SOS"
+            description="Use SOS for crash response, personal danger, theft in progress, or a situation where dispatch must react immediately."
+          />
+        </>
+      )}
+
+      <ConfirmModal
+        visible={confirmVisible}
+        title="Send emergency alert?"
+        description="This will notify your dispatcher immediately and may trigger emergency contact workflows. Only continue if you need urgent help."
+        confirmLabel="Yes, send SOS"
+        confirmTone="danger"
+        loading={isSubmitting}
+        onCancel={() => {
+          if (!isSubmitting) {
+            setConfirmVisible(false);
+          }
+        }}
+        onConfirm={() => {
+          void submitSos();
+        }}
+      />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#4b5563',
-  },
-  card: {
+  sosHero: {
     borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    padding: 14,
-    gap: 10,
+    borderColor: '#F1C9C4',
+    borderRadius: theme.radius.hero,
+    backgroundColor: theme.colors.dangerSoft,
+    padding: theme.spacing.xxl,
+    gap: theme.spacing.md,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1f2937',
+  sosEyebrow: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.danger,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  messageInput: {
-    minHeight: 90,
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    textAlignVertical: 'top',
-    fontSize: 14,
-  },
-  sosButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#dc2626',
-    paddingVertical: 12,
-  },
-  sosButtonDisabled: {
-    opacity: 0.8,
-  },
-  sosButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  errorCard: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    backgroundColor: '#fef2f2',
-    padding: 12,
-  },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  successCard: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    backgroundColor: '#f0fdf4',
-    padding: 12,
-    gap: 4,
-  },
-  successTitle: {
-    color: '#166534',
-    fontSize: 15,
-    fontWeight: '700',
+  sosTitle: {
+    fontSize: theme.typography.section,
+    fontWeight: '800',
+    lineHeight: 28,
+    color: theme.colors.text,
   },
   successText: {
-    color: '#14532d',
-    fontSize: 13,
+    fontSize: theme.typography.body,
+    lineHeight: 22,
+    color: theme.colors.textSecondary,
   },
 });

@@ -1,27 +1,58 @@
 import { useQuery } from '@tanstack/react-query';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
-import { LoadingState } from '../components/loading-state';
 import { ScreenContainer } from '../components/screen-container';
+import { AppCard } from '../components/ui/card';
+import { EmptyState } from '../components/ui/empty-state';
+import { ErrorState } from '../components/ui/error-state';
+import { Badge, ScoreBadge } from '../components/ui/badge';
+import { ListItem } from '../components/ui/list-item';
+import { SectionHeader } from '../components/ui/section-header';
+import { CardSkeleton, ListSkeleton } from '../components/ui/skeleton';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { riderTripDetailSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderTripDetail } from '../lib/types/api';
 import type { RiderTripsStackParamList } from '../navigation/navigation.types';
+import { theme } from '../theme/tokens';
 
 type TripDetailScreenProps = NativeStackScreenProps<
   RiderTripsStackParamList,
   'TripDetail'
 >;
 
-// Formats duration seconds into readable minutes/seconds for trip details.
+// Formats duration seconds into a short label for trip summary cards.
 function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
+  const totalMinutes = Math.max(1, Math.round(seconds / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${totalMinutes} min`;
+  }
+
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${minutes}m`;
 }
 
-// Loads rider-owned trip details with score breakdown and event count diagnostics.
+// Formats timestamps into concise trip timeline entries.
+function formatTimestamp(iso: string | null): string {
+  if (!iso) {
+    return 'In progress';
+  }
+
+  return new Date(iso).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+// Loads rider-owned trip details with clearer scoring and event diagnostics.
 export function TripDetailScreen({ route }: TripDetailScreenProps) {
   const { tripId } = route.params;
 
@@ -32,10 +63,6 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
         schema: riderTripDetailSchema,
       }),
   });
-
-  if (tripDetailQuery.isLoading) {
-    return <LoadingState message="Loading trip details..." />;
-  }
 
   if (tripDetailQuery.isError) {
     logAppError('rider.trip_detail_failed', tripDetailQuery.error, {
@@ -49,156 +76,180 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
   }
 
   const trip = tripDetailQuery.data;
-  if (!trip) {
+  const harshEventTotal = trip
+    ? trip.eventCounts.HARSH_BRAKE +
+      trip.eventCounts.HARSH_ACCEL +
+      trip.eventCounts.HARSH_CORNER
+    : 0;
+
+  if (tripDetailQuery.isLoading && !trip) {
     return (
       <ScreenContainer>
-        <Text style={styles.title}>Trip Detail</Text>
-        <Text style={styles.errorText}>
-          Unable to load trip details right now.
-        </Text>
+        <SectionHeader title="Trip detail" subtitle="Loading score breakdown and event counts." />
+        <CardSkeleton />
+        <ListSkeleton rows={3} />
       </ScreenContainer>
     );
   }
 
-  const harshEventTotal =
-    trip.eventCounts.HARSH_BRAKE +
-    trip.eventCounts.HARSH_ACCEL +
-    trip.eventCounts.HARSH_CORNER;
+  if (tripDetailQuery.isError && !trip) {
+    return (
+      <ScreenContainer>
+        <ErrorState
+          title="Unable to load trip detail"
+          description="This trip could not be fetched right now. Try again or return to the list and refresh."
+          onRetry={() => {
+            void tripDetailQuery.refetch();
+          }}
+        />
+      </ScreenContainer>
+    );
+  }
+
+  if (!trip) {
+    return (
+      <ScreenContainer>
+        <EmptyState
+          title="Trip not available"
+          description="The selected trip is missing or no longer accessible from this rider account."
+        />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer
       refreshing={tripDetailQuery.isRefetching}
-      onRefresh={() => void tripDetailQuery.refetch()}
+      onRefresh={() => {
+        void tripDetailQuery.refetch();
+      }}
     >
-      <Text style={styles.title}>Trip Detail</Text>
-      <Text style={styles.subtitle}>Trip {trip.id.slice(0, 8)}</Text>
+      <SectionHeader
+        title="Trip detail"
+        subtitle="See how event counts affected your score on this ride."
+        rightSlot={<ScoreBadge score={trip.score} />}
+      />
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Bike</Text>
-        <Text style={styles.value}>{trip.bikeId}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Start</Text>
-        <Text style={styles.value}>{new Date(trip.startTs).toLocaleString()}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>End</Text>
-        <Text style={styles.value}>
-          {trip.endTs ? new Date(trip.endTs).toLocaleString() : 'In progress'}
-        </Text>
-      </View>
-
-      <View style={styles.grid}>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Distance</Text>
-          <Text style={styles.metricValue}>{trip.distanceKm.toFixed(2)} km</Text>
+      <AppCard title="Trip summary" subtitle="A clean ride lowers harsh event penalties and raises your weekly score.">
+        <View style={styles.metricRow}>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Distance</Text>
+            <Text style={styles.metricValue}>{trip.distanceKm.toFixed(1)} km</Text>
+          </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Duration</Text>
+            <Text style={styles.metricValue}>{formatDuration(trip.durationSec)}</Text>
+          </View>
         </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Duration</Text>
-          <Text style={styles.metricValue}>{formatDuration(trip.durationSec)}</Text>
+        <View style={styles.badgeRow}>
+          <Badge label={`Bike ${trip.bikeId.slice(0, 8)}`} />
+          <Badge label={`Started ${formatTimestamp(trip.startTs)}`} tone="primary" />
         </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Score</Text>
-          <Text style={styles.metricValue}>{trip.score.toFixed(1)}</Text>
+      </AppCard>
+
+      <AppCard title="Timeline" subtitle="Trip start and end times are shown in your local time zone.">
+        <View style={styles.stack}>
+          <ListItem title="Start" meta={formatTimestamp(trip.startTs)} />
+          <ListItem title="End" meta={formatTimestamp(trip.endTs)} />
         </View>
-      </View>
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Event Counts</Text>
-        <Text style={styles.sectionText}>
-          Harsh events: {harshEventTotal} (Brake {trip.eventCounts.HARSH_BRAKE},
-          Accel {trip.eventCounts.HARSH_ACCEL}, Corner{' '}
-          {trip.eventCounts.HARSH_CORNER})
-        </Text>
-        <Text style={styles.sectionText}>
-          Overspeed events: {trip.eventCounts.OVERSPEED}
-        </Text>
-      </View>
+      <AppCard title="Event counts" subtitle="Harsh riding and overspeed events contribute directly to score penalties.">
+        <View style={styles.stack}>
+          <ListItem
+            title="Harsh riding"
+            subtitle={`Brake ${trip.eventCounts.HARSH_BRAKE} | Accel ${trip.eventCounts.HARSH_ACCEL} | Corner ${trip.eventCounts.HARSH_CORNER}`}
+            rightSlot={<Badge label={`${harshEventTotal} total`} tone={harshEventTotal > 0 ? 'warning' : 'success'} />}
+          />
+          <ListItem
+            title="Overspeed"
+            subtitle="Triggered when you exceed allowed speed thresholds."
+            rightSlot={<Badge label={`${trip.eventCounts.OVERSPEED}`} tone={trip.eventCounts.OVERSPEED > 0 ? 'warning' : 'success'} />}
+          />
+          <ListItem
+            title="Critical incidents"
+            subtitle="Crash and theft suspected events carry the heaviest penalties."
+            rightSlot={
+              <Badge
+                label={`${trip.eventCounts.CRASH + trip.eventCounts.THEFT_SUSPECTED}`}
+                tone={trip.eventCounts.CRASH + trip.eventCounts.THEFT_SUSPECTED > 0 ? 'danger' : 'success'}
+              />
+            }
+          />
+        </View>
+      </AppCard>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Score Breakdown</Text>
-        <Text style={styles.sectionText}>
-          Total penalty: {trip.scoreBreakdown.penalties.total.toFixed(2)}
-        </Text>
-        <Text style={styles.sectionText}>
-          Overspeed penalty:{' '}
-          {trip.scoreBreakdown.penalties.OVERSPEED.toFixed(2)}
-        </Text>
-        <Text style={styles.sectionText}>
-          Harsh penalty:{' '}
-          {(
-            trip.scoreBreakdown.penalties.HARSH_BRAKE +
-            trip.scoreBreakdown.penalties.HARSH_ACCEL +
-            trip.scoreBreakdown.penalties.HARSH_CORNER
-          ).toFixed(2)}
-        </Text>
-      </View>
+      <AppCard title="Score breakdown" subtitle="These penalties were applied over your normalized trip distance.">
+        <View style={styles.stack}>
+          <ListItem
+            title="Total penalty"
+            meta={trip.scoreBreakdown.penalties.total.toFixed(2)}
+          />
+          <ListItem
+            title="Overspeed penalty"
+            meta={trip.scoreBreakdown.penalties.OVERSPEED.toFixed(2)}
+          />
+          <ListItem
+            title="Harsh riding penalty"
+            meta={(
+              trip.scoreBreakdown.penalties.HARSH_BRAKE +
+              trip.scoreBreakdown.penalties.HARSH_ACCEL +
+              trip.scoreBreakdown.penalties.HARSH_CORNER
+            ).toFixed(2)}
+          />
+          <ListItem
+            title="Distance used for scoring"
+            meta={`${trip.scoreBreakdown.normalizedDistanceKm.toFixed(2)} km`}
+          />
+        </View>
+      </AppCard>
+
+      {tripDetailQuery.isError ? (
+        <ErrorState
+          title="Some trip details may be stale"
+          description="The trip summary is visible, but the latest server refresh did not complete."
+          retryLabel="Reload trip"
+          onRetry={() => {
+            void tripDetailQuery.refetch();
+          }}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#4b5563',
-  },
-  card: {
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    padding: 14,
-    gap: 4,
-  },
-  label: {
-    fontSize: 12,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-  },
-  value: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '600',
-  },
-  grid: {
-    gap: 10,
+  metricRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
   },
   metricCard: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    padding: 14,
-    gap: 4,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.button,
+    backgroundColor: theme.colors.surfaceMuted,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xs,
   },
   metricLabel: {
-    fontSize: 13,
-    color: '#4b5563',
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   metricValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: theme.typography.section,
+    fontWeight: '800',
+    color: theme.colors.text,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
-  sectionText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 14,
-    fontWeight: '600',
+  stack: {
+    gap: theme.spacing.md,
   },
 });

@@ -6,6 +6,7 @@ interface BaseButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  tone?: 'primary' | 'danger';
 }
 
 // Renders the primary mobile action with large touch targets and loading feedback.
@@ -14,6 +15,7 @@ export function PrimaryButton({
   onPress,
   disabled = false,
   loading = false,
+  tone = 'primary',
 }: BaseButtonProps) {
   return (
     <Pressable
@@ -23,9 +25,13 @@ export function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        styles.primary,
+        tone === 'danger' ? styles.danger : styles.primary,
         (disabled || loading) && styles.disabled,
-        pressed && !disabled && !loading ? styles.primaryPressed : null,
+        pressed && !disabled && !loading
+          ? tone === 'danger'
+            ? styles.dangerPressed
+            : styles.primaryPressed
+          : null,
       ]}
     >
       {loading ? (
@@ -79,6 +85,12 @@ const styles = StyleSheet.create({
   },
   primaryPressed: {
     backgroundColor: theme.colors.primaryStrong,
+  },
+  danger: {
+    backgroundColor: theme.colors.danger,
+  },
+  dangerPressed: {
+    backgroundColor: '#A12A20',
   },
   primaryText: {
     color: theme.colors.surface,

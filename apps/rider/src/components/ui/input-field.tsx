@@ -20,7 +20,11 @@ export function InputField({ label, hint, error, ...props }: InputFieldProps) {
       <TextInput
         {...props}
         placeholderTextColor={theme.colors.textMuted}
-        style={[styles.input, error ? styles.inputError : null]}
+        style={[
+          styles.input,
+          props.multiline ? styles.inputMultiline : null,
+          error ? styles.inputError : null,
+        ]}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -56,6 +60,10 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     fontSize: theme.typography.emphasis,
     color: theme.colors.text,
+  },
+  inputMultiline: {
+    minHeight: 112,
+    paddingTop: theme.spacing.lg,
   },
   inputError: {
     borderColor: theme.colors.danger,

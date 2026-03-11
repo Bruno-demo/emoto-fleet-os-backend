@@ -1,22 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
-import { LoadingState } from '../components/loading-state';
 import { ScreenContainer } from '../components/screen-container';
+import { AppCard } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { EmptyState } from '../components/ui/empty-state';
+import { ErrorState } from '../components/ui/error-state';
+import { ListItem } from '../components/ui/list-item';
+import { PrimaryButton, SecondaryButton } from '../components/ui/button';
+import { SectionHeader } from '../components/ui/section-header';
+import { ListSkeleton } from '../components/ui/skeleton';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { buildQueryString } from '../lib/api/query-string';
 import { nearbyPoiSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { NearbyPoi, PoiType } from '../lib/types/api';
+import { theme } from '../theme/tokens';
 
 const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC'];
 const DEFAULT_RADIUS_KM = 5;
@@ -51,6 +52,15 @@ async function openPhoneDialer(phone: string): Promise<void> {
   }
 }
 
+// Opens the default maps app using a simple destination-only directions URL.
+async function openDirections(poi: NearbyPoi): Promise<void> {
+  const directionsLink = `https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lng}`;
+  const canOpen = await Linking.canOpenURL(directionsLink);
+  if (canOpen) {
+    await Linking.openURL(directionsLink);
+  }
+}
+
 // Retrieves and filters nearby POIs around current rider coordinates.
 export function PoiNearbyScreen() {
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
@@ -67,7 +77,7 @@ export function PoiNearbyScreen() {
     try {
       const nextCoordinates = await fetchCurrentLocation();
       if (!nextCoordinates) {
-        setLocationError('Location permission is required to fetch nearby POIs');
+        setLocationError('Location permission is required to show the closest garages, swap stations, and clinics.');
         return;
       }
 
@@ -77,15 +87,11 @@ export function PoiNearbyScreen() {
         feature: 'poi',
         operation: 'resolveLocation',
       });
-      setLocationError('Unable to get current location');
+      setLocationError('Unable to read your current location right now.');
     } finally {
       setIsResolvingLocation(false);
     }
   };
-
-  useEffect(() => {
-    void resolveLocation();
-  }, []);
 
   const poiQuery = useQuery({
     queryKey: ['rider-poi-nearby', coordinates?.lat, coordinates?.lng, selectedType],
@@ -124,183 +130,219 @@ export function PoiNearbyScreen() {
   return (
     <ScreenContainer
       refreshing={poiQuery.isRefetching || isResolvingLocation}
-      onRefresh={() => void resolveLocation()}
+      onRefresh={() => {
+        if (coordinates) {
+          void poiQuery.refetch();
+          return;
+        }
+        void resolveLocation();
+      }}
     >
-      <Text style={styles.title}>Nearby POIs</Text>
-      <Text style={styles.subtitle}>
-        Find nearby garages, swap stations, and clinics using your current GPS.
-      </Text>
+      <SectionHeader
+        title="Nearby"
+        subtitle="Find garages, battery swaps, and clinics close to your current position."
+      />
 
-      <Pressable
-        style={styles.locationButton}
-        disabled={isResolvingLocation}
-        onPress={() => void resolveLocation()}
-      >
-        {isResolvingLocation ? (
-          <ActivityIndicator size="small" color="#111827" />
-        ) : (
-          <Text style={styles.locationButtonText}>Refresh Location</Text>
-        )}
-      </Pressable>
+      <AppCard title="Location access" subtitle="Use your current GPS so the app can sort help points by distance.">
+        <PrimaryButton
+          label={isResolvingLocation ? 'Getting location...' : coordinates ? 'Refresh location' : 'Use current location'}
+          loading={isResolvingLocation}
+          onPress={() => {
+            void resolveLocation();
+          }}
+        />
+        {coordinates ? (
+          <Badge
+            label={`Searching within ${DEFAULT_RADIUS_KM} km`}
+            tone="success"
+          />
+        ) : null}
+        {locationError ? (
+          <ErrorState
+            title="Location needed"
+            description={locationError}
+            retryLabel="Try location again"
+            onRetry={() => {
+              void resolveLocation();
+            }}
+          />
+        ) : null}
+      </AppCard>
 
-      <View style={styles.typeRow}>
-        {POI_TYPES.map((poiType) => (
-          <Pressable
-            key={poiType}
-            style={[
-              styles.typeButton,
-              selectedType === poiType ? styles.typeButtonActive : null,
-            ]}
-            onPress={() => setSelectedType(poiType)}
-          >
-            <Text
-              style={[
-                styles.typeButtonText,
-                selectedType === poiType ? styles.typeButtonTextActive : null,
+      <AppCard title="Filter" subtitle="Switch between the closest garages, swap points, and clinics.">
+        <View style={styles.typeRow}>
+          {POI_TYPES.map((poiType) => (
+            <Pressable
+              key={poiType}
+              accessibilityRole="button"
+              onPress={() => setSelectedType(poiType)}
+              style={({ pressed }) => [
+                styles.typeChip,
+                selectedType === poiType ? styles.typeChipActive : null,
+                pressed ? styles.typeChipPressed : null,
               ]}
             >
-              {poiType}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {locationError ? <Text style={styles.errorText}>{locationError}</Text> : null}
-
-      {poiQuery.isLoading ? (
-        <LoadingState message="Loading nearby POIs..." />
-      ) : rows.length === 0 ? (
-        <Text style={styles.emptyText}>
-          {coordinates
-            ? 'No nearby POIs found for the selected type.'
-            : 'Location permission is required to load nearby POIs.'}
-        </Text>
-      ) : (
-        rows.map((poi) => {
-          const contactPhone = poi.phone;
-
-          return (
-            <View key={poi.id} style={styles.poiCard}>
-            <Text style={styles.poiTitle}>{poi.name}</Text>
-            <Text style={styles.poiMeta}>
-              {poi.type} | {poi.distanceKm.toFixed(2)} km
-            </Text>
-            <Text style={styles.poiMeta}>
-              {poi.address ?? `${poi.lat.toFixed(4)}, ${poi.lng.toFixed(4)}`}
-            </Text>
-            {contactPhone ? (
-              <Pressable
-                style={styles.callButton}
-                onPress={() => {
-                  void openPhoneDialer(contactPhone).catch((error: unknown) => {
-                    logAppError('rider.poi_call_failed', error, {
-                      feature: 'poi',
-                      operation: 'call',
-                    });
-                  });
-                }}
+              <Text
+                style={[
+                  styles.typeChipText,
+                  selectedType === poiType ? styles.typeChipTextActive : null,
+                ]}
               >
-                <Text style={styles.callButtonText}>Call</Text>
-              </Pressable>
-            ) : null}
+                {poiType}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </AppCard>
+
+      {!coordinates && !isResolvingLocation && !locationError ? (
+        <EmptyState
+          title="Turn on location to start"
+          description="We only request foreground location so the closest help points appear first."
+          action={
+            <PrimaryButton
+              label="Allow location"
+              onPress={() => {
+                void resolveLocation();
+              }}
+            />
+          }
+        />
+      ) : null}
+
+      {coordinates && poiQuery.isLoading ? <ListSkeleton rows={4} /> : null}
+
+      {coordinates && !poiQuery.isLoading && rows.length === 0 ? (
+        <EmptyState
+          title="No nearby places found"
+          description="Try another filter or refresh your location to search again."
+          action={
+            <SecondaryButton
+              label="Refresh search"
+              onPress={() => {
+                void poiQuery.refetch();
+              }}
+            />
+          }
+        />
+      ) : null}
+
+      {rows.length > 0 ? (
+        <AppCard
+          title="Closest results"
+          subtitle="Sorted by distance from your current position."
+        >
+          <View style={styles.resultStack}>
+            {rows.map((poi) => {
+              const contactPhone = poi.phone;
+
+              return (
+                <View key={poi.id} style={styles.poiCard}>
+                  <ListItem
+                    title={poi.name}
+                    subtitle={poi.address ?? `${poi.lat.toFixed(4)}, ${poi.lng.toFixed(4)}`}
+                    meta={`${poi.type} | ${poi.distanceKm.toFixed(2)} km away`}
+                    rightSlot={<Badge label={poi.type} tone="primary" />}
+                  />
+                  <View style={styles.poiActions}>
+                    {contactPhone ? (
+                      <View style={styles.poiActionButton}>
+                        <SecondaryButton
+                          label="Call"
+                          onPress={() => {
+                            void openPhoneDialer(contactPhone).catch((error: unknown) => {
+                              logAppError('rider.poi_call_failed', error, {
+                                feature: 'poi',
+                                operation: 'call',
+                              });
+                            });
+                          }}
+                        />
+                      </View>
+                    ) : null}
+                    <View style={styles.poiActionButton}>
+                      <PrimaryButton
+                        label="Directions"
+                        onPress={() => {
+                          void openDirections(poi).catch((error: unknown) => {
+                            logAppError('rider.poi_directions_failed', error, {
+                              feature: 'poi',
+                              operation: 'directions',
+                            });
+                          });
+                        }}
+                      />
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
           </View>
-          );
-        })
-      )}
+        </AppCard>
+      ) : null}
+
+      {poiQuery.isError ? (
+        <ErrorState
+          title="Nearby places are unavailable"
+          description="The search did not complete. Try again after refreshing your location."
+          retryLabel="Retry nearby search"
+          onRetry={() => {
+            if (coordinates) {
+              void poiQuery.refetch();
+              return;
+            }
+            void resolveLocation();
+          }}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#4b5563',
-  },
-  locationButton: {
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  locationButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-  },
   typeRow: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
-  typeButton: {
-    flex: 1,
+  typeChip: {
+    minWidth: 92,
+    minHeight: 44,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 999,
-    backgroundColor: '#ffffff',
-    paddingVertical: 8,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  typeButtonActive: {
-    backgroundColor: '#1d4ed8',
-    borderColor: '#1d4ed8',
+  typeChipActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
   },
-  typeButtonText: {
-    fontSize: 12,
+  typeChipPressed: {
+    backgroundColor: theme.colors.surfaceMuted,
+  },
+  typeChipText: {
+    fontSize: theme.typography.body,
     fontWeight: '700',
-    color: '#374151',
+    color: theme.colors.textSecondary,
   },
-  typeButtonTextActive: {
-    color: '#ffffff',
+  typeChipTextActive: {
+    color: theme.colors.primary,
   },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  emptyText: {
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    padding: 14,
-    color: '#4b5563',
+  resultStack: {
+    gap: theme.spacing.md,
   },
   poiCard: {
-    borderWidth: 1,
-    borderColor: '#d0d7de',
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    padding: 14,
-    gap: 4,
+    gap: theme.spacing.md,
   },
-  poiTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
+  poiActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
   },
-  poiMeta: {
-    fontSize: 13,
-    color: '#374151',
-  },
-  callButton: {
-    marginTop: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#1d4ed8',
-    paddingVertical: 8,
-    alignItems: 'center',
-    backgroundColor: '#eff6ff',
-  },
-  callButtonText: {
-    color: '#1d4ed8',
-    fontSize: 13,
-    fontWeight: '700',
+  poiActionButton: {
+    flex: 1,
   },
 });
