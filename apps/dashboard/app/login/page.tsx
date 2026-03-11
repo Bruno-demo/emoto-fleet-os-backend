@@ -1,6 +1,7 @@
 'use client';
 
 import { Activity, LockKeyhole, ShieldAlert } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const loginPresentation = getLoginPresentation();
 
   const nextPath = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -115,13 +117,13 @@ export default function LoginPage() {
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-ink">Dashboard login</h2>
           <p className="mt-2 text-sm leading-6 text-ink-soft">
-            Use an email or phone-based fleet account from the seeded API users.
+            {loginPresentation.description}
           </p>
 
           <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
             <TextField
               label="Email or phone"
-              placeholder="admin@demo.emoto or +250700000101"
+              placeholder={loginPresentation.identifierPlaceholder}
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
               autoComplete="username"
@@ -146,27 +148,60 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-              Seeded operator examples
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <CredentialHint
-                label="Demo Fleet"
-                identifier="admin@demo.emoto"
-                password="ChangeMe123!"
-              />
-              <CredentialHint
-                label="North Ops Fleet"
-                identifier="admin@north.demo.emoto"
-                password="FleetTwo123!"
-              />
+          {loginPresentation.showDemoCredentials ? (
+            <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                Seeded operator examples
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <CredentialHint
+                  label="Demo Fleet"
+                  identifier="admin@demo.emoto"
+                  password="ChangeMe123!"
+                />
+                <CredentialHint
+                  label="North Ops Fleet"
+                  identifier="admin@north.demo.emoto"
+                  password="FleetTwo123!"
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                Access guidance
+              </p>
+              <p className="mt-3 text-sm leading-6 text-ink-soft">
+                Use the fleet account issued by your organization. If you do not have access,
+                contact your fleet administrator before attempting to sign in.
+              </p>
+            </div>
+          )}
         </section>
       </div>
     </div>
   );
+}
+
+// Chooses development-only helper copy without exposing seeded credentials in production-facing builds.
+function getLoginPresentation() {
+  const showDemoCredentials =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === '1';
+
+  if (showDemoCredentials) {
+    return {
+      showDemoCredentials: true,
+      description: 'Use a fleet operator email or phone account. Seeded examples are shown below for local development.',
+      identifierPlaceholder: 'admin@demo.emoto or +250700000101',
+    };
+  }
+
+  return {
+    showDemoCredentials: false,
+    description: 'Use the email address or phone number assigned to your fleet operator account.',
+    identifierPlaceholder: 'name@fleet.example or +2507...',
+  };
 }
 
 function FeatureTile({
@@ -174,7 +209,7 @@ function FeatureTile({
   title,
   description,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
 }) {
@@ -187,6 +222,7 @@ function FeatureTile({
   );
 }
 
+// Renders compact demo account hints when the login screen is running in development mode.
 function CredentialHint({
   label,
   identifier,

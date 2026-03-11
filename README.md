@@ -37,6 +37,7 @@ If host port `3000` is already in use, set a different host mapping in `.env`:
 ```env
 API_HOST_PORT=3004
 NEXT_PUBLIC_API_URL=http://localhost:3004
+NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=1
 ```
 
 To watch the API container logs, including the exposed port and URLs:
@@ -256,6 +257,7 @@ npm run format
 NODE_ENV=development
 PORT=3000
 NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=0
 EXPO_PUBLIC_API_URL=http://localhost:3000
 
 POSTGRES_HOST=localhost
