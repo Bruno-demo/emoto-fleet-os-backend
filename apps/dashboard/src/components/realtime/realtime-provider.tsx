@@ -149,8 +149,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       setConnectionState('reconnecting');
     };
 
-    // Reflects failed handshake or retry attempts as a reconnecting state.
-    const onConnectError = () => {
+    // Reflects failed handshake or retry attempts without leaving the UI in a false connected state.
+    const onConnectError = (error: Error) => {
+      if (error.message === 'Unauthorized') {
+        setConnectionState('offline');
+        return;
+      }
       setConnectionState('reconnecting');
     };
 

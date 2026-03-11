@@ -29,7 +29,12 @@ export function connectFleetSocket(): Socket | null {
 
   currentToken = token;
   fleetSocket = io(`${API_BASE_URL}/fleet-events`, {
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
+    timeout: 10_000,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1_000,
+    reconnectionDelayMax: 5_000,
     auth: {
       token,
     },
