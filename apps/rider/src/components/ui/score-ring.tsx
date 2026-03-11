@@ -19,7 +19,7 @@ export function ScoreRing({ score, size = 120 }: ScoreRingProps) {
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderColor: scoreTone.text,
+          borderColor: scoreTone.border,
         },
       ]}
     >
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 7,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surfaceMuted,
   },
   inner: {
     alignItems: 'center',

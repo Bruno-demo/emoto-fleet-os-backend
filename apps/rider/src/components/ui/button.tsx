@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.danger,
   },
   dangerPressed: {
-    backgroundColor: '#A12A20',
+    backgroundColor: theme.colors.dangerStrong,
   },
   primaryText: {
     color: theme.colors.surface,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   secondary: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderStrong,
     backgroundColor: theme.colors.surface,
   },
   secondaryPressed: {

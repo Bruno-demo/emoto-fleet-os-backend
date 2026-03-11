@@ -194,7 +194,7 @@ export function SosScreen() {
 const styles = StyleSheet.create({
   sosHero: {
     borderWidth: 1,
-    borderColor: '#F1C9C4',
+    borderColor: theme.colors.dangerBorder,
     borderRadius: theme.radius.hero,
     backgroundColor: theme.colors.dangerSoft,
     padding: theme.spacing.xxl,

@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(16, 32, 51, 0.28)',
+    backgroundColor: theme.colors.overlay,
   },
   backdrop: {
     flex: 1,

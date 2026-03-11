@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   banner: {
     backgroundColor: theme.colors.warningSoft,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3D9AA',
+    borderBottomColor: theme.colors.warningBorder,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
     gap: 2,

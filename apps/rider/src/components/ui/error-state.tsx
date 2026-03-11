@@ -44,7 +44,7 @@ export function InlineNotice({ description }: { description: string }) {
 const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
-    borderColor: '#F1C9C4',
+    borderColor: theme.colors.dangerBorder,
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.dangerSoft,
     paddingHorizontal: theme.spacing.xl,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   inlineContainer: {
     borderWidth: 1,
-    borderColor: '#F1C9C4',
+    borderColor: theme.colors.dangerBorder,
     borderRadius: theme.radius.input,
     backgroundColor: theme.colors.dangerSoft,
     paddingHorizontal: theme.spacing.lg,

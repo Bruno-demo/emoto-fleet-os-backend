@@ -258,7 +258,7 @@ export function HomeScreen() {
       <SectionHeader
         title={`Hi ${auth.riderMe?.fullName ?? 'Rider'}`}
         subtitle="Stay smooth, watch your score, and act fast if something looks wrong."
-        rightSlot={<Badge label={scoreTone.label} tone={scoreTone.text === theme.colors.success ? 'success' : scoreTone.text === theme.colors.warning ? 'warning' : scoreTone.text === theme.colors.danger ? 'danger' : 'primary'} />}
+        rightSlot={<Badge label={scoreTone.label} tone={scoreTone.badgeTone} />}
       />
 
       <AppCard
