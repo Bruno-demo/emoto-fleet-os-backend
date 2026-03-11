@@ -394,11 +394,18 @@ export function LiveMapPanel() {
               </div>
             ) : (
               <div className="h-[72vh] min-h-[560px] overflow-hidden rounded-b-[var(--radius-panel)]">
-                <MapContainer center={mapCenter} zoom={13} className="h-full w-full" zoomControl>
+                <MapContainer
+                  center={mapCenter}
+                  zoom={13}
+                  className="h-full w-full"
+                  style={{ height: '100%', width: '100%' }}
+                  zoomControl
+                >
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
+                  <MapSizeController />
                   <MapViewportController
                     centerSignal={centerSignal}
                     target={selectedState ? [selectedState.lat, selectedState.lng] : null}
@@ -771,6 +778,39 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
     </Marker>
   );
 });
+
+// Forces Leaflet to recalculate the viewport after client hydration and layout changes.
+function MapSizeController() {
+  const map = useMap();
+
+  useEffect(() => {
+    const syncMapSize = () => {
+      map.invalidateSize({ animate: false });
+    };
+
+    const animationFrame = window.requestAnimationFrame(syncMapSize);
+    const settleTimer = window.setTimeout(syncMapSize, 180);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        syncMapSize();
+      });
+      observer.observe(map.getContainer());
+    }
+
+    window.addEventListener('resize', syncMapSize);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(settleTimer);
+      observer?.disconnect();
+      window.removeEventListener('resize', syncMapSize);
+    };
+  }, [map]);
+
+  return null;
+}
 
 // Applies explicit center requests without forcing the map to refocus on every telemetry update.
 function MapViewportController({
