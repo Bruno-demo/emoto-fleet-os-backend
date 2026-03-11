@@ -384,16 +384,8 @@ export function LiveMapPanel() {
               <div className="h-[72vh] min-h-[560px] p-5">
                 <Skeleton className="h-full w-full rounded-[calc(var(--radius-panel)-6px)]" />
               </div>
-            ) : throttledStates.length === 0 ? (
-              <div className="flex h-[72vh] min-h-[560px] items-center justify-center p-6">
-                <EmptyState
-                  icon={<Bike size={18} />}
-                  title="No live bike states yet"
-                  description="The map will populate as soon as telemetry updates or Redis live-state snapshots arrive for this fleet."
-                />
-              </div>
             ) : (
-              <div className="h-[72vh] min-h-[560px] overflow-hidden rounded-b-[var(--radius-panel)]">
+              <div className="relative h-[72vh] min-h-[560px] overflow-hidden rounded-b-[var(--radius-panel)]">
                 <MapContainer
                   center={mapCenter}
                   zoom={13}
@@ -421,6 +413,18 @@ export function LiveMapPanel() {
                     />
                   ))}
                 </MapContainer>
+
+                {throttledStates.length === 0 ? (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+                    <div className="pointer-events-auto max-w-md">
+                      <EmptyState
+                        icon={<Bike size={18} />}
+                        title="No live bike states yet"
+                        description="The basemap is ready. Bike markers will appear as soon as telemetry updates or Redis live-state snapshots arrive for this fleet."
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
