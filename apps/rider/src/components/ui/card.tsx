@@ -33,30 +33,31 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.xl,
-    gap: theme.spacing.lg,
+    padding: theme.layout.cardPadding,
+    gap: theme.layout.cardGap,
     ...theme.shadow,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
   headerText: {
     flex: 1,
-    gap: theme.spacing.xs,
+    gap: theme.layout.textGap,
   },
   title: {
     fontSize: theme.typography.section,
+    lineHeight: theme.typography.lineHeight.section,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
     fontSize: theme.typography.body,
-    lineHeight: 20,
+    lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
   body: {
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
 });

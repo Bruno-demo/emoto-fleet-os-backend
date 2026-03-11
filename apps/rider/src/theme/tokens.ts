@@ -50,6 +50,16 @@ export const theme = {
     xxl: 24,
     xxxl: 32,
   },
+  layout: {
+    screenInset: 18,
+    sectionGap: 18,
+    cardPadding: 18,
+    cardGap: 14,
+    itemPaddingX: 16,
+    itemPaddingY: 14,
+    inlineGap: 12,
+    textGap: 6,
+  },
   radius: {
     input: 12,
     button: 18,
@@ -59,10 +69,17 @@ export const theme = {
   },
   typography: {
     caption: 12,
-    body: 14,
+    body: 15,
     emphasis: 16,
-    section: 20,
-    hero: 28,
+    section: 21,
+    hero: 30,
+    lineHeight: {
+      caption: 16,
+      body: 22,
+      emphasis: 24,
+      section: 28,
+      hero: 38,
+    },
   },
   shadow: Platform.select({
     ios: {

@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { LoadingState } from '../components/loading-state';
 import { OfflineBanner } from '../components/offline-banner';
@@ -25,6 +26,23 @@ const RootStack = createNativeStackNavigator<RiderRootStackParamList>();
 const AuthStack = createNativeStackNavigator<RiderAuthStackParamList>();
 const Tab = createBottomTabNavigator<RiderTabParamList>();
 const TripsStack = createNativeStackNavigator<RiderTripsStackParamList>();
+
+// Maps rider tab routes to a consistent Ionicons glyph for the mobile shell.
+function getTabIconName(
+  routeName: keyof RiderTabParamList,
+  focused: boolean,
+): keyof typeof Ionicons.glyphMap {
+  if (routeName === 'Home') {
+    return focused ? 'speedometer' : 'speedometer-outline';
+  }
+  if (routeName === 'TripsStack') {
+    return focused ? 'map' : 'map-outline';
+  }
+  if (routeName === 'SOS') {
+    return focused ? 'warning' : 'warning-outline';
+  }
+  return focused ? 'navigate' : 'navigate-outline';
+}
 
 // Keeps unauthenticated rider help and recovery screens inside a dedicated auth stack.
 function AuthStackNavigator() {
@@ -78,14 +96,21 @@ function TripsStackNavigator() {
 function RiderTabsNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size, focused }) => (
+          <Ionicons
+            color={color}
+            size={size}
+            name={getTabIconName(route.name, focused)}
+          />
+        ),
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: {
-          height: 68,
+          height: 72,
           paddingTop: 8,
-          paddingBottom: 10,
+          paddingBottom: 12,
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
         },
@@ -93,7 +118,7 @@ function RiderTabsNavigator() {
           fontSize: theme.typography.caption,
           fontWeight: '700',
         },
-      }}
+      })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
       <Tab.Screen

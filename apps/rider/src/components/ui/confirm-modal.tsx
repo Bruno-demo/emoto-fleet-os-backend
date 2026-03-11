@@ -61,23 +61,24 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: theme.radius.hero,
     borderTopRightRadius: theme.radius.hero,
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: theme.layout.cardPadding,
     paddingTop: theme.spacing.xl,
     paddingBottom: theme.spacing.xxxl,
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
   title: {
     fontSize: theme.typography.section,
+    lineHeight: theme.typography.lineHeight.section,
     fontWeight: '800',
     color: theme.colors.text,
   },
   description: {
     fontSize: theme.typography.body,
-    lineHeight: 22,
+    lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
   actions: {
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
     marginTop: theme.spacing.sm,
   },
 });

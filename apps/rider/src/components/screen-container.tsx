@@ -51,9 +51,9 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg,
-    gap: theme.spacing.md,
+    paddingHorizontal: theme.layout.screenInset,
+    paddingVertical: theme.layout.screenInset,
+    gap: theme.layout.sectionGap,
   },
   innerUnpadded: {
     paddingHorizontal: 0,

@@ -26,20 +26,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
   textWrap: {
     flex: 1,
-    gap: theme.spacing.xs,
+    gap: theme.layout.textGap,
   },
   title: {
     fontSize: theme.typography.section,
+    lineHeight: theme.typography.lineHeight.section,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
     fontSize: theme.typography.body,
-    lineHeight: 21,
+    lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
 });

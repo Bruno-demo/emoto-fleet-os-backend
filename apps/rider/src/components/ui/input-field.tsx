@@ -33,21 +33,23 @@ export function InputField({ label, hint, error, ...props }: InputFieldProps) {
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: theme.spacing.sm,
+    gap: theme.layout.textGap,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
   label: {
     fontSize: theme.typography.body,
+    lineHeight: theme.typography.lineHeight.body,
     fontWeight: '700',
     color: theme.colors.text,
   },
   hint: {
     fontSize: theme.typography.caption,
+    lineHeight: theme.typography.lineHeight.caption,
     color: theme.colors.textMuted,
   },
   input: {
@@ -59,6 +61,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     fontSize: theme.typography.emphasis,
+    lineHeight: theme.typography.lineHeight.emphasis,
     color: theme.colors.text,
   },
   inputMultiline: {
@@ -70,6 +73,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: theme.typography.caption,
+    lineHeight: theme.typography.lineHeight.caption,
     color: theme.colors.danger,
     fontWeight: '600',
   },

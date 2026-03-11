@@ -55,15 +55,15 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.button,
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.layout.itemPaddingX,
+    paddingVertical: theme.layout.itemPaddingY,
   },
   cardPressed: {
     backgroundColor: theme.colors.surfaceMuted,
   },
   container: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
   leftSlot: {
     alignItems: 'center',
@@ -71,28 +71,29 @@ const styles = StyleSheet.create({
   },
   textWrap: {
     flex: 1,
-    gap: theme.spacing.xs,
+    gap: theme.layout.textGap,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: theme.spacing.md,
+    gap: theme.layout.inlineGap,
   },
   title: {
     flex: 1,
     fontSize: theme.typography.emphasis,
+    lineHeight: theme.typography.lineHeight.emphasis,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
     fontSize: theme.typography.body,
-    lineHeight: 20,
+    lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
   meta: {
     fontSize: theme.typography.caption,
-    lineHeight: 18,
+    lineHeight: theme.typography.lineHeight.caption,
     color: theme.colors.textMuted,
   },
 });

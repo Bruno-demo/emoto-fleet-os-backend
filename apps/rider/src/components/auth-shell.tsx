@@ -35,8 +35,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.hero,
     backgroundColor: theme.colors.backgroundAccent,
-    padding: theme.spacing.xxl,
-    gap: theme.spacing.sm,
+    padding: theme.spacing.xl,
+    gap: theme.layout.textGap,
   },
   eyebrow: {
     fontSize: theme.typography.caption,
@@ -47,13 +47,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.hero,
+    lineHeight: theme.typography.lineHeight.hero,
     fontWeight: '800',
-    lineHeight: 34,
     color: theme.colors.text,
   },
   description: {
     fontSize: theme.typography.body,
-    lineHeight: 22,
+    lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
 });
