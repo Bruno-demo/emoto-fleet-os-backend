@@ -2,7 +2,7 @@
 
 import { Building2, ShieldCheck, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { InlineNotice, SelectField, TextField } from '@/components/ui/form-controls';
 import { ApiError, apiFetch } from '@/lib/api/client';
@@ -43,12 +43,13 @@ const roleOptions: Array<{ value: UserRole; label: string; description: string }
 ];
 
 type FieldErrors = Partial<
-  Record<'email' | 'phone' | 'password' | 'confirmPassword' | 'role', string>
+  Record<'fleetId' | 'email' | 'phone' | 'password' | 'confirmPassword' | 'role', string>
 >;
 
 // Renders the account provisioning screen with access gating and validation.
 export default function CreateAccountPage() {
-  const { data: currentUser, isLoading } = useCurrentUser();
+  const { data: currentUser, isLoading, isError } = useCurrentUser();
+  const [fleetId, setFleetId] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -60,33 +61,63 @@ export default function CreateAccountPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const token = typeof window !== 'undefined' ? readAuthToken() : null;
-  const canCreateAccount = currentUser
-    ? currentUser.role === 'OWNER' || currentUser.role === 'ADMIN'
-    : false;
-
-  const accessNotice = useMemo(() => {
-    if (!token) {
-      return {
-        tone: 'warning' as const,
-        message: 'Sign in with an owner or admin account to create new users for this fleet.',
-      };
+  const sessionInvalid = Boolean(token) && isError;
+  const registrationMode = useMemo(() => {
+    if (!token || sessionInvalid) {
+      return 'public';
     }
     if (isLoading) {
+      return 'checking';
+    }
+    if (!currentUser) {
+      return 'public';
+    }
+    if (currentUser.role === 'OWNER' || currentUser.role === 'ADMIN') {
+      return 'admin';
+    }
+    return 'limited';
+  }, [token, sessionInvalid, isLoading, currentUser]);
+
+  const isAdminMode = registrationMode === 'admin';
+  const isPublicMode = registrationMode === 'public';
+  const isLimitedMode = registrationMode === 'limited';
+  const isChecking = registrationMode === 'checking';
+
+  const availableRoles = isAdminMode
+    ? roleOptions
+    : roleOptions.filter((option) => option.value === 'RIDER');
+
+  const accessNotice = useMemo(() => {
+    if (isPublicMode) {
+      return {
+        tone: 'warning' as const,
+        message: sessionInvalid
+          ? 'Session expired. Sign in to create staff accounts, or continue with rider-only public sign-up.'
+          : 'Public sign-up creates rider accounts only. Enter the fleet ID provided by your admin.',
+      };
+    }
+    if (isChecking) {
       return {
         tone: 'warning' as const,
         message: 'Checking account permissions before enabling registration.',
       };
     }
-    if (currentUser && !canCreateAccount) {
+    if (isLimitedMode) {
       return {
         tone: 'warning' as const,
-        message: 'Your account does not have permission to create new users.',
+        message: 'Your role can create rider accounts only.',
       };
     }
     return null;
-  }, [token, isLoading, currentUser, canCreateAccount]);
+  }, [isPublicMode, isChecking, isLimitedMode, sessionInvalid]);
 
-  const isFormDisabled = !token || !canCreateAccount || isSubmitting || isLoading;
+  const isFormDisabled = isSubmitting || isChecking;
+
+  useEffect(() => {
+    if (!isAdminMode && role !== 'RIDER') {
+      setRole('RIDER');
+    }
+  }, [isAdminMode, role]);
 
   // Validates inputs and calls the admin-only register endpoint for the current fleet.
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -94,6 +125,18 @@ export default function CreateAccountPage() {
     setError(null);
     setSuccess(null);
     setFieldErrors({});
+
+    if (isPublicMode) {
+      const parsedFleetId = z
+        .string()
+        .uuid('Enter a valid fleet ID')
+        .safeParse(fleetId.trim());
+      if (!parsedFleetId.success) {
+        setFieldErrors({ fleetId: parsedFleetId.error.issues[0]?.message });
+        setError(parsedFleetId.error.issues[0]?.message ?? 'Fleet ID is required');
+        return;
+      }
+    }
 
     const parsed = registerFormSchema.safeParse({
       email: email.trim() ? email.trim() : undefined,
@@ -118,17 +161,34 @@ export default function CreateAccountPage() {
 
     try {
       setIsSubmitting(true);
-      await apiFetch('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: parsed.data.email,
-          phone: parsed.data.phone,
-          password: parsed.data.password,
-          role: parsed.data.role,
-        }),
-      });
+      if (isPublicMode) {
+        await apiFetch(
+          '/auth/register-public',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              fleetId: fleetId.trim(),
+              email: parsed.data.email,
+              phone: parsed.data.phone,
+              password: parsed.data.password,
+            }),
+          },
+          { auth: false },
+        );
+      } else {
+        await apiFetch('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: parsed.data.email,
+            phone: parsed.data.phone,
+            password: parsed.data.password,
+            role: parsed.data.role,
+          }),
+        });
+      }
 
       setSuccess('Account created. Share the login credentials securely with the new operator.');
+      setFleetId('');
       setEmail('');
       setPhone('');
       setPassword('');
@@ -194,6 +254,16 @@ export default function CreateAccountPage() {
             {error ? <InlineNotice message={error} /> : null}
             {success ? <InlineNotice message={success} tone="success" /> : null}
 
+            {isPublicMode ? (
+              <TextField
+                label="Fleet ID"
+                placeholder="Paste fleet UUID"
+                value={fleetId}
+                onChange={(event) => setFleetId(event.target.value)}
+                error={fieldErrors.fleetId}
+                disabled={isFormDisabled}
+              />
+            ) : null}
             <TextField
               label="Email address"
               placeholder="operator@fleet.example"
@@ -237,9 +307,9 @@ export default function CreateAccountPage() {
               value={role}
               onChange={(event) => setRole(event.target.value as UserRole)}
               error={fieldErrors.role}
-              disabled={isFormDisabled}
+              disabled={isFormDisabled || !isAdminMode}
             >
-              {roleOptions.map((option) => (
+              {availableRoles.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label} · {option.description}
                 </option>

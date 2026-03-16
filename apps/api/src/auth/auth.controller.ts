@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
+import { PublicRegisterDto } from './dto/public-register.dto';
 import { RegisterDto } from './dto/register.dto';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthService } from './auth.service';
@@ -32,7 +33,7 @@ export class AuthController {
 
   @Post('register')
   @ApiBearerAuth()
-  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
   @Throttle({
     default: { limit: 5, ttl: 60_000 },
   })
@@ -44,6 +45,20 @@ export class AuthController {
     @Body() dto: RegisterDto,
   ): Promise<AuthenticatedUser> {
     return this.authService.register(actor, dto);
+  }
+
+  @Post('register-public')
+  @Public()
+  @Throttle({
+    default: { limit: 3, ttl: 60_000 },
+  })
+  @ApiOperation({
+    summary: 'Public registration for rider accounts (disabled by default)',
+  })
+  async registerPublic(
+    @Body() dto: PublicRegisterDto,
+  ): Promise<AuthenticatedUser> {
+    return this.authService.registerPublic(dto);
   }
 }
 

@@ -13,6 +13,7 @@ import type { StringValue } from 'ms';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser, JwtPayload } from './auth.types';
 import { LoginDto } from './dto/login.dto';
+import { PublicRegisterDto } from './dto/public-register.dto';
 import { RegisterDto } from './dto/register.dto';
 
 const userSelectForAuth = {
@@ -88,12 +89,77 @@ export class AuthService {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
+    const canAssignAnyRole =
+      actor.role === UserRole.OWNER || actor.role === UserRole.ADMIN;
+    if (!canAssignAnyRole && dto.role && dto.role !== UserRole.RIDER) {
+      throw new ForbiddenException(
+        'Only rider accounts can be created by non-admin roles',
+      );
+    }
+
     const passwordHash = await this.hashPassword(dto.password);
     try {
       const createdUser = await this.prismaService.user.create({
         data: {
           fleetId: actor.fleetId,
-          role: dto.role ?? UserRole.DISPATCHER,
+          role: canAssignAnyRole ? dto.role ?? UserRole.DISPATCHER : UserRole.RIDER,
+          email: normalizedEmail,
+          phone: dto.phone,
+          passwordHash,
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          fleetId: true,
+          role: true,
+          email: true,
+          phone: true,
+          status: true,
+        },
+      });
+
+      return createdUser;
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Email or phone already exists in this fleet',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Registers a rider account for a fleet using a public sign-up flow.
+  async registerPublic(dto: PublicRegisterDto): Promise<AuthenticatedUser> {
+    const registerEnabled = this.configService.get<boolean>(
+      'AUTH_REGISTER_ENABLED',
+      false,
+    );
+    if (!registerEnabled) {
+      throw new ForbiddenException('Registration is disabled');
+    }
+
+    const normalizedEmail = dto.email?.toLowerCase();
+    this.assertIdentifierProvided(normalizedEmail, dto.phone);
+
+    const fleet = await this.prismaService.fleet.findUnique({
+      where: { id: dto.fleetId },
+      select: { id: true },
+    });
+    if (!fleet) {
+      throw new BadRequestException('Fleet not found');
+    }
+
+    const passwordHash = await this.hashPassword(dto.password);
+    try {
+      const createdUser = await this.prismaService.user.create({
+        data: {
+          fleetId: dto.fleetId,
+          role: UserRole.RIDER,
           email: normalizedEmail,
           phone: dto.phone,
           passwordHash,
