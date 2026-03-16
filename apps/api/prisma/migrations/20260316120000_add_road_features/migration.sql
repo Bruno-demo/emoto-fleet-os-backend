@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "RoadFeatureType" AS ENUM ('SCHOOL', 'HOSPITAL', 'MARKET', 'TRAFFIC_SIGN', 'SPEED_LIMIT');
 
 -- CreateEnum
