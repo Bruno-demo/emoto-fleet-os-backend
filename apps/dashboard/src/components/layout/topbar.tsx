@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Menu, Siren, Wifi } from 'lucide-react';
+import { Menu, Siren } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { ConnectionIndicator } from '@/components/ui/connection-indicator';
@@ -10,7 +10,6 @@ import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type {
   Incident,
-  LiveBikeState,
   PaginatedResponse,
 } from '@/lib/types/dashboard';
 
@@ -21,12 +20,6 @@ interface TopbarProps {
 export function Topbar({ onOpenSidebar }: TopbarProps) {
   const pathname = usePathname();
   const { data: user } = useCurrentUser();
-
-  const liveBikesQuery = useQuery({
-    queryKey: ['live', 'bikes', 'topbar-summary'],
-    queryFn: () =>
-      apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
-  });
 
   const incidentsQuery = useQuery({
     queryKey: ['incidents', 'topbar-open'],
@@ -40,8 +33,8 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const routeContext = getRouteContext(pathname);
 
   return (
-    <header className="sticky top-0 z-[880] border-b border-line bg-surface/92 px-4 py-3 backdrop-blur md:px-6 xl:px-8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <header className="sticky top-0 z-[880] border-b border-line bg-surface/92 px-4 py-2.5 backdrop-blur md:px-6 xl:px-8">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <button
             type="button"
@@ -66,11 +59,6 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
 
         <div className="flex flex-wrap items-center gap-2">
           <ConnectionIndicator />
-          <StatChip
-            icon={<Wifi size={14} />}
-            label={`${liveBikesQuery.data?.total ?? 0} live bikes`}
-            tone="success"
-          />
           <StatChip
             icon={<Siren size={14} />}
             label={`${incidentsQuery.data?.total ?? 0} open incidents`}

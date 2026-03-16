@@ -41,7 +41,7 @@ export function AppShell({ children }: AppShellProps) {
       <div
         className={cx(
           'min-h-screen bg-background transition-[padding] duration-300',
-          sidebarCollapsed ? 'lg:pl-[92px]' : 'lg:pl-[296px]',
+          sidebarCollapsed ? 'lg:pl-[84px]' : 'lg:pl-[260px]',
         )}
       >
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} />

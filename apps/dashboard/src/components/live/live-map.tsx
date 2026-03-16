@@ -369,39 +369,23 @@ export function LiveMapPanel() {
       description="Monitor active bikes, triage new alerts, and dispatch lock or unlock commands without leaving the realtime map surface."
     >
       <ToastStack items={toasts} />
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <DashboardCard
           eyebrow="Realtime Map"
           title="Fleet map"
           description="The map surface stays primary so operators can triage alerts without losing spatial context."
+          actions={
+            <MapStatusBar
+              onlineCount={onlineCount}
+              movingCount={movingCount}
+              highPriorityCount={highPriorityCount}
+              centerDisabled={!selectedState}
+              onCenter={() => setCenterSignal((currentSignal) => currentSignal + 1)}
+            />
+          }
           contentClassName="p-0"
         >
           <div className="relative">
-            <div className="pointer-events-none absolute left-4 top-4 z-[500] flex flex-wrap gap-2">
-              <MapChip label={`${onlineCount} online`} tone="success" />
-              <MapChip label={`${movingCount} moving`} tone="info" />
-              <MapChip label={`${highPriorityCount} alerts`} tone="danger" />
-            </div>
-            <div className="absolute right-4 top-4 z-[500] flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCenterSignal((currentSignal) => currentSignal + 1)}
-                disabled={!selectedState}
-                className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white/95 px-3 py-2 text-xs font-semibold text-ink shadow-[var(--shadow-soft)] transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Crosshair size={14} />
-                Center
-              </button>
-              <div className="hidden items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-[var(--shadow-soft)] xl:inline-flex">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Stable
-                <span className="h-2 w-2 rounded-full bg-accent" />
-                Moving
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
-                Critical
-              </div>
-            </div>
-
             {liveStatesQuery.isLoading ? (
               <div className="h-[76vh] min-h-[580px] p-4">
                 <Skeleton className="h-full w-full rounded-[calc(var(--radius-panel)-6px)]" />
@@ -438,7 +422,7 @@ export function LiveMapPanel() {
                   ))}
                 </MapContainer>
 
-                <div className="pointer-events-none absolute bottom-4 left-4 z-[500]">
+                <div className="pointer-events-none absolute bottom-4 right-4 z-[500]">
                   <RoadLegend
                     zoom={mapViewport?.zoom ?? 0}
                     featureCount={roadFeaturesQuery.data?.length ?? 0}
@@ -446,14 +430,8 @@ export function LiveMapPanel() {
                 </div>
 
                 {throttledStates.length === 0 ? (
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-                    <div className="pointer-events-auto max-w-md">
-                      <EmptyState
-                        icon={<Bike size={18} />}
-                        title="No live bike states yet"
-                        description="The basemap is ready. Bike markers will appear as soon as telemetry updates or Redis live-state snapshots arrive for this fleet."
-                      />
-                    </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-6">
+                    <MapEmptyBanner />
                   </div>
                 ) : null}
               </div>
@@ -513,8 +491,8 @@ export function LiveMapPanel() {
                     <Skeleton className="h-20 w-full rounded-[20px]" />
                   </div>
                 ) : (
-                  <EmptyState
-                    icon={<AlertTriangle size={18} />}
+                  <InlineEmptyCard
+                    icon={<AlertTriangle size={16} />}
                     title="No recent alerts"
                     description="New crash, theft, SOS, and scoring events will appear here as they arrive."
                   />
@@ -558,8 +536,8 @@ export function LiveMapPanel() {
                     </li>
                   ))
                 ) : (
-                  <EmptyState
-                    icon={<Lock size={18} />}
+                  <InlineEmptyCard
+                    icon={<Lock size={16} />}
                     title="No command activity yet"
                     description="Command acknowledgements will appear here after the first lock or unlock request is sent."
                   />
@@ -733,8 +711,8 @@ export function LiveMapPanel() {
                   ))}
                 </ul>
               ) : (
-                <EmptyState
-                  icon={<Radio size={18} />}
+                <InlineEmptyCard
+                  icon={<Radio size={16} />}
                   title="No bike-specific commands yet"
                   description="Command acknowledgements for this bike will appear after the first lock or unlock request."
                 />
@@ -951,7 +929,7 @@ function RoadLegend({
   }
 
   return (
-    <div className="rounded-[18px] border border-line bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-[var(--shadow-soft)]">
+    <div className="max-w-[240px] rounded-[18px] border border-line bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-[var(--shadow-soft)]">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
           Road context
@@ -984,7 +962,7 @@ function MapChip({ label, tone }: { label: string; tone: 'info' | 'success' | 'd
   return (
     <span
       className={cx(
-        'rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[var(--shadow-soft)] backdrop-blur',
+        'rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-[var(--shadow-soft)] backdrop-blur',
         tone === 'success'
           ? 'border-emerald-200 bg-emerald-50/95 text-emerald-700'
           : tone === 'danger'
@@ -1025,6 +1003,82 @@ function ActionButton({
       {icon}
       {label}
     </button>
+  );
+}
+
+// Renders the compact map status bar in the card header.
+function MapStatusBar({
+  onlineCount,
+  movingCount,
+  highPriorityCount,
+  centerDisabled,
+  onCenter,
+}: {
+  onlineCount: number;
+  movingCount: number;
+  highPriorityCount: number;
+  centerDisabled: boolean;
+  onCenter: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <MapChip label={`${onlineCount} online`} tone="success" />
+      <MapChip label={`${movingCount} moving`} tone="info" />
+      <MapChip label={`${highPriorityCount} alerts`} tone="danger" />
+      <div className="hidden items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-2.5 py-1 text-[11px] text-ink-soft shadow-sm xl:inline-flex">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        Stable
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        Moving
+        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+        Critical
+      </div>
+      <button
+        type="button"
+        onClick={onCenter}
+        disabled={centerDisabled}
+        className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink shadow-sm transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Crosshair size={14} />
+        Center
+      </button>
+    </div>
+  );
+}
+
+// Displays a compact inline empty state for side rail panels.
+function InlineEmptyCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[18px] border border-dashed border-line-strong bg-surface-muted px-4 py-4 text-center">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-white text-accent">
+        {icon}
+      </div>
+      <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-ink-soft">{description}</p>
+    </div>
+  );
+}
+
+// Renders a small banner for when no live bike telemetry is available.
+function MapEmptyBanner() {
+  return (
+    <div className="pointer-events-auto w-full max-w-lg rounded-[18px] border border-dashed border-line-strong bg-white/95 px-4 py-3 text-center shadow-[var(--shadow-soft)]">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-surface-muted text-accent">
+        <Bike size={16} />
+      </div>
+      <p className="mt-2 text-sm font-semibold text-ink">No live bike states yet</p>
+      <p className="mt-1 text-xs leading-5 text-ink-soft">
+        The basemap is ready. Bike markers appear as soon as telemetry updates arrive.
+      </p>
+    </div>
   );
 }
 
