@@ -3,6 +3,7 @@
 import { Activity, LockKeyhole, ShieldAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   buildLoginPayload,
@@ -78,21 +79,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(5,150,105,0.12),transparent_28%),var(--background)] px-6 py-10">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[32px] border border-line bg-surface p-8 shadow-[var(--shadow-strong)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(5,150,105,0.12),transparent_28%),var(--background)] px-5 py-10">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl items-center gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="rounded-[28px] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-strong)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
             E-Moto Safety & Fleet OS
           </p>
-          <h1 className="mt-4 max-w-xl font-display text-[clamp(2.5rem,2rem+1.5vw,4rem)] font-semibold leading-tight text-ink">
-            Dispatch-grade fleet visibility starts with a clean operator login.
+          <h1 className="mt-4 max-w-xl font-display text-[clamp(2.2rem,1.8rem+1.2vw,3.4rem)] font-semibold leading-tight text-ink">
+            Dispatch-grade fleet visibility starts with a secure operator login.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-ink-soft">
             Command center access gives dispatch, operations, and safety teams the same live map,
             incident workflow, and command surfaces used during daily fleet response.
           </p>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <FeatureTile
               icon={<Activity size={18} />}
               title="Realtime command center"
@@ -111,7 +112,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-line bg-surface p-8 shadow-[var(--shadow-strong)]">
+        <section className="rounded-[28px] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-strong)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
             Secure sign-in
           </p>
@@ -120,7 +121,7 @@ export default function LoginPage() {
             {loginPresentation.description}
           </p>
 
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+          <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
             <TextField
               label="Email or phone"
               placeholder={loginPresentation.identifierPlaceholder}
@@ -142,10 +143,19 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center rounded-[var(--radius-control)] bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Signing in...' : 'Sign in to dashboard'}
             </button>
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-soft">
+              <span>Need access for your fleet?</span>
+              <Link
+                href="/create-account"
+                className="font-semibold text-accent hover:text-accent-strong"
+              >
+                Create account
+              </Link>
+            </div>
           </form>
 
           {loginPresentation.showDemoCredentials ? (
@@ -214,9 +224,9 @@ function FeatureTile({
   description: string;
 }) {
   return (
-    <article className="rounded-[24px] border border-line bg-surface-muted px-5 py-5">
-      <span className="inline-flex rounded-[18px] bg-white p-3 text-accent">{icon}</span>
-      <h3 className="mt-4 font-display text-xl font-semibold text-ink">{title}</h3>
+    <article className="rounded-[22px] border border-line bg-surface-muted px-4 py-4">
+      <span className="inline-flex rounded-[16px] bg-white p-2.5 text-accent">{icon}</span>
+      <h3 className="mt-3 font-display text-lg font-semibold text-ink">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p>
     </article>
   );
