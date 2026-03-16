@@ -80,6 +80,8 @@ export default function ReportsPage() {
         )}
       </section>
 
+      <TrafficFinesCard />
+
       <section className="grid gap-4 xl:grid-cols-2">
         <DashboardCard
           eyebrow="Risk Ranking"
@@ -207,6 +209,39 @@ export default function ReportsPage() {
         )}
       </DashboardCard>
     </PageShell>
+  );
+}
+
+// Renders a static, API-ready fines panel until the Irembo feed is integrated.
+function TrafficFinesCard() {
+  return (
+    <DashboardCard
+      eyebrow="Compliance"
+      title="Traffic fines"
+      description="Irembo fines will stream here in real time once the integration is enabled."
+    >
+      <div className="rounded-[20px] border border-dashed border-line-strong bg-surface-muted px-4 py-4">
+        <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
+          <span>Vehicle</span>
+          <span>Reason</span>
+          <span>Amount</span>
+          <span>Status</span>
+          <span>Issued</span>
+        </div>
+        <div className="mt-3 grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-sm text-ink-soft">
+          <span className="font-semibold text-ink">--</span>
+          <span>Awaiting Irembo feed</span>
+          <span>--</span>
+          <span className="rounded-full bg-surface-strong px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
+            Pending
+          </span>
+          <span>--</span>
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-ink-muted">
+        Ready to map Irembo fines by plate or device UID once credentials are provided.
+      </p>
+    </DashboardCard>
   );
 }
 
