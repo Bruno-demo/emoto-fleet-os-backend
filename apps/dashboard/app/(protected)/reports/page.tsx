@@ -18,6 +18,12 @@ export default function ReportsPage() {
 
   const report = reportQuery.data;
   const crashAndSosCount = (report?.eventCounts.CRASH ?? 0) + (report?.eventCounts.SOS ?? 0);
+  const trafficFineCount =
+    (report?.eventCounts.OVERSPEED ?? 0) +
+    (report?.eventCounts.SPEED_LIMIT_VIOLATION ?? 0) +
+    (report?.eventCounts.SCHOOL_ZONE_SPEED ?? 0) +
+    (report?.eventCounts.HOSPITAL_ZONE_SPEED ?? 0) +
+    (report?.eventCounts.MARKET_ZONE_SPEED ?? 0);
 
   return (
     <PageShell
@@ -27,6 +33,7 @@ export default function ReportsPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {reportQuery.isLoading ? (
           <>
+            <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
@@ -52,6 +59,13 @@ export default function ReportsPage() {
               title="Overspeed Events"
               value={report ? String(report.eventCounts.OVERSPEED ?? 0) : '--'}
               hint="Overspeed rule hits recorded during the same range."
+              icon={<AlertTriangle size={18} />}
+              tone="warning"
+            />
+            <MetricCard
+              title="Traffic fines"
+              value={report ? String(trafficFineCount) : '--'}
+              hint="Speed and road-safety violations that can translate into fines."
               icon={<AlertTriangle size={18} />}
               tone="warning"
             />
