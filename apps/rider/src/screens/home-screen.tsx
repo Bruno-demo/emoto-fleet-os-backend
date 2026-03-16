@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   scoreHero: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xl,
+    gap: theme.spacing.lg,
   },
   scoreSummary: {
     flex: 1,
@@ -392,17 +392,17 @@ const styles = StyleSheet.create({
   },
   scoreBody: {
     fontSize: theme.typography.body,
-    lineHeight: 22,
+    lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
   metricRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: theme.layout.inlineGap,
   },
   quickStats: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   quickStat: {
     flex: 1,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.button,
     backgroundColor: theme.colors.surfaceMuted,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     gap: theme.spacing.xs,
   },
   quickStatLabel: {
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   summaryStack: {
-    gap: theme.spacing.md,
+    gap: theme.layout.cardGap,
   },
   logoutWrap: {
     paddingBottom: theme.spacing.xl,
@@ -434,10 +434,10 @@ const styles = StyleSheet.create({
   scoreSkeleton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xl,
+    gap: theme.spacing.lg,
   },
   scoreSkeletonText: {
     flex: 1,
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
 });

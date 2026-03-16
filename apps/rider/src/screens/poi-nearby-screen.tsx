@@ -306,10 +306,10 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   typeChip: {
-    minWidth: 92,
-    minHeight: 44,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
+    minWidth: 84,
+    minHeight: 40,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.pill,
@@ -333,14 +333,14 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   resultStack: {
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   poiCard: {
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   poiActions: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   poiActionButton: {
     flex: 1,

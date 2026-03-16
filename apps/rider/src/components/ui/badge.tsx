@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   text: {
     fontSize: theme.typography.caption,

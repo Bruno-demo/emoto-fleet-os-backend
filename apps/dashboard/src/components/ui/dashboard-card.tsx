@@ -29,7 +29,7 @@ export function DashboardCard({
       )}
     >
       {eyebrow || title || description || actions ? (
-        <header className="flex flex-col gap-3 border-b border-line/80 px-5 py-4 lg:flex-row lg:items-start lg:justify-between">
+        <header className="flex flex-col gap-2 border-b border-line/80 px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             {eyebrow ? (
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
@@ -37,18 +37,20 @@ export function DashboardCard({
               </p>
             ) : null}
             {title ? (
-              <h2 className="mt-2 font-display text-[clamp(1.25rem,1.1rem+0.8vw,1.75rem)] font-semibold text-ink">
+              <h2 className="mt-2 font-display text-[clamp(1.15rem,1rem+0.7vw,1.6rem)] font-semibold text-ink">
                 {title}
               </h2>
             ) : null}
             {description ? (
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-soft">{description}</p>
+              <p className="mt-2 max-w-3xl text-[13px] leading-5 text-ink-soft">
+                {description}
+              </p>
             ) : null}
           </div>
           {actions ? <div className="shrink-0">{actions}</div> : null}
         </header>
       ) : null}
-      <div className={cx('px-5 py-4', contentClassName)}>{children}</div>
+      <div className={cx('px-4 py-3', contentClassName)}>{children}</div>
     </section>
   );
 }
@@ -78,19 +80,19 @@ export function MetricCard({
   tone = 'info',
 }: MetricCardProps) {
   return (
-    <article className="rounded-[var(--radius-panel)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)]">
+    <article className="rounded-[var(--radius-panel)] border border-line bg-surface p-4 shadow-[var(--shadow-soft)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
             {title}
           </p>
-          <p className="mt-4 font-display text-4xl font-semibold tracking-tight text-ink">
+          <p className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink">
             {value}
           </p>
         </div>
-        <span className={cx('rounded-[18px] p-3', METRIC_TONE_CLASS[tone])}>{icon}</span>
+        <span className={cx('rounded-[16px] p-2.5', METRIC_TONE_CLASS[tone])}>{icon}</span>
       </div>
-      <p className="mt-4 text-sm leading-6 text-ink-soft">{hint}</p>
+      <p className="mt-3 text-[13px] leading-5 text-ink-soft">{hint}</p>
     </article>
   );
 }

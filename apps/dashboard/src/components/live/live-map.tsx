@@ -6,11 +6,9 @@ import {
   AlertTriangle,
   Bike,
   Crosshair,
-  Gauge,
   Lock,
   Radio,
   ShieldAlert,
-  Siren,
   Unlock,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -40,7 +38,7 @@ import {
 } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DashboardCard } from '@/components/ui/dashboard-card';
 import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { DrawerSkeleton, Skeleton } from '@/components/ui/skeleton';
@@ -313,64 +311,11 @@ export function LiveMapPanel() {
       description="Monitor active bikes, triage new alerts, and dispatch lock or unlock commands without leaving the realtime map surface."
     >
       <ToastStack items={toasts} />
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Bikes Online"
-          value={String(onlineCount)}
-          hint="Bikes with a fresh state sample in the last minute."
-          icon={<Radio size={18} />}
-          tone="success"
-        />
-        <MetricCard
-          title="Bikes Moving"
-          value={String(movingCount)}
-          hint="Bikes currently reporting at least 5 kph."
-          icon={<Gauge size={18} />}
-          tone="info"
-        />
-        <MetricCard
-          title="High Priority"
-          value={String(highPriorityCount)}
-          hint="High and critical alerts visible in the live feed."
-          icon={<ShieldAlert size={18} />}
-          tone="warning"
-        />
-        <MetricCard
-          title="Critical Alerts"
-          value={String(criticalCount)}
-          hint="Critical alerts needing immediate dispatcher review."
-          icon={<Siren size={18} />}
-          tone="danger"
-        />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_24rem]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <DashboardCard
           eyebrow="Realtime Map"
-          title="Fleet position"
-          description="The map refresh is throttled to keep marker movement smooth while websocket telemetry continues streaming in the background."
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCenterSignal((currentSignal) => currentSignal + 1)}
-                disabled={!selectedState}
-                className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Crosshair size={16} />
-                Center on bike
-              </button>
-              <div className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm text-ink-soft">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                Stable
-                <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-                Moving
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                Critical
-              </div>
-            </div>
-          }
+          title="Fleet map"
+          description="The map surface stays primary so operators can triage alerts without losing spatial context."
           contentClassName="p-0"
         >
           <div className="relative">
@@ -379,13 +324,32 @@ export function LiveMapPanel() {
               <MapChip label={`${movingCount} moving`} tone="info" />
               <MapChip label={`${highPriorityCount} alerts`} tone="danger" />
             </div>
+            <div className="absolute right-4 top-4 z-[500] flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCenterSignal((currentSignal) => currentSignal + 1)}
+                disabled={!selectedState}
+                className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white/95 px-3 py-2 text-xs font-semibold text-ink shadow-[var(--shadow-soft)] transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Crosshair size={14} />
+                Center
+              </button>
+              <div className="hidden items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-[var(--shadow-soft)] xl:inline-flex">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Stable
+                <span className="h-2 w-2 rounded-full bg-accent" />
+                Moving
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                Critical
+              </div>
+            </div>
 
             {liveStatesQuery.isLoading ? (
-              <div className="h-[72vh] min-h-[560px] p-5">
+              <div className="h-[76vh] min-h-[580px] p-4">
                 <Skeleton className="h-full w-full rounded-[calc(var(--radius-panel)-6px)]" />
               </div>
             ) : (
-              <div className="relative h-[72vh] min-h-[560px] overflow-hidden rounded-b-[var(--radius-panel)]">
+              <div className="relative h-[76vh] min-h-[580px] overflow-hidden rounded-b-[var(--radius-panel)]">
                 <MapContainer
                   center={mapCenter}
                   zoom={13}
@@ -433,7 +397,7 @@ export function LiveMapPanel() {
         <DashboardCard
           eyebrow="Triage Feed"
           title="Live queue"
-          description="Recent alerts and command acknowledgements stay visible even while the bike drawer is open."
+          description="Recent alerts and command acknowledgements stay visible while the bike drawer is open."
           className="h-fit xl:sticky xl:top-6"
         >
           <div className="space-y-5">

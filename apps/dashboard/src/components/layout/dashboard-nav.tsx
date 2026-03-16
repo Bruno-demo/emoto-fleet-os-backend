@@ -24,13 +24,16 @@ import { disconnectFleetSocket } from '@/lib/realtime/socket';
 import { cx } from '@/lib/ui';
 
 const NAV_LINKS = [
-  { href: '/', label: 'Overview', icon: Home },
-  { href: '/live', label: 'Live Ops', icon: Map },
+  { href: '/live', label: 'Live', icon: Map },
   { href: '/bikes', label: 'Bikes', icon: Bike },
-  { href: '/devices', label: 'Devices', icon: Router },
-  { href: '/events', label: 'Events', icon: Radio },
   { href: '/incidents', label: 'Incidents', icon: AlertCircle },
+  { href: '/events', label: 'Events', icon: Radio },
+  { href: '/devices', label: 'Devices', icon: Router },
   { href: '/zones', label: 'Zones', icon: MapPin },
+] as const;
+
+const SECONDARY_LINKS = [
+  { href: '/', label: 'Overview', icon: Home },
   { href: '/reports', label: 'Reports', icon: FileBarChart2 },
 ] as const;
 
@@ -64,6 +67,12 @@ export function DashboardNav({
     }
     return true;
   });
+  const visibleSecondaryLinks = SECONDARY_LINKS.filter((link) => {
+    if (link.href === '/zones' && user && !canManageZones(user.role)) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <>
@@ -81,8 +90,8 @@ export function DashboardNav({
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between border-b border-line px-4 py-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <Link href="/" onClick={onClose} className="flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-[20px] bg-gradient-to-br from-accent to-accent-strong text-white shadow-lg">
               <Command size={20} />
             </span>
@@ -91,10 +100,10 @@ export function DashboardNav({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
                   E-Moto Safety
                 </p>
-                <h2 className="mt-1 font-display text-xl font-semibold text-ink">Fleet OS</h2>
+                <h2 className="mt-1 font-display text-lg font-semibold text-ink">Fleet OS</h2>
               </div>
             ) : null}
-          </div>
+          </Link>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -115,20 +124,7 @@ export function DashboardNav({
           </div>
         </div>
 
-        {!collapsed ? (
-          <div className="px-4 pt-4">
-            <div className="rounded-[20px] bg-surface-muted px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-                Control plane
-              </p>
-              <p className="mt-2 text-sm leading-6 text-ink-soft">
-                Live telemetry, incidents, command actions, and evidence workflows.
-              </p>
-            </div>
-          </div>
-        ) : null}
-
-        <nav className="dashboard-scrollbar flex-1 overflow-y-auto px-3 py-4">
+        <nav className="dashboard-scrollbar flex-1 overflow-y-auto px-3 py-3">
           <div className="grid gap-2">
             {visibleLinks.map((link) => {
               const Icon = link.icon;
@@ -139,7 +135,7 @@ export function DashboardNav({
                   href={link.href}
                   onClick={onClose}
                   className={cx(
-                    'group flex items-center gap-3 rounded-[18px] px-3 py-3 text-sm',
+                    'group flex items-center gap-3 rounded-[16px] px-3 py-2 text-sm',
                     isActive
                       ? 'bg-accent text-white shadow-sm'
                       : 'text-ink-soft hover:bg-surface-hover hover:text-ink',
@@ -148,7 +144,7 @@ export function DashboardNav({
                 >
                   <span
                     className={cx(
-                      'rounded-2xl p-2',
+                      'rounded-2xl p-1.5',
                       isActive
                         ? 'bg-white/16 text-white'
                         : 'bg-surface-muted text-ink-soft group-hover:bg-white',
@@ -161,11 +157,49 @@ export function DashboardNav({
               );
             })}
           </div>
+          {!collapsed ? (
+            <div className="mt-4 border-t border-line pt-3">
+              <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
+                Secondary
+              </p>
+              <div className="mt-2 grid gap-2">
+                {visibleSecondaryLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={onClose}
+                      className={cx(
+                        'group flex items-center gap-3 rounded-[16px] px-3 py-2 text-xs',
+                        isActive
+                          ? 'bg-accent text-white shadow-sm'
+                          : 'text-ink-soft hover:bg-surface-hover hover:text-ink',
+                      )}
+                    >
+                      <span
+                        className={cx(
+                          'rounded-2xl p-1.5',
+                          isActive
+                            ? 'bg-white/16 text-white'
+                            : 'bg-surface-muted text-ink-soft group-hover:bg-white',
+                        )}
+                      >
+                        <Icon size={16} />
+                      </span>
+                      <span className="font-medium">{link.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </nav>
 
-        <div className="border-t border-line px-3 py-4">
+        <div className="border-t border-line px-3 py-3">
           {!collapsed ? (
-            <div className="rounded-[20px] bg-surface-muted px-4 py-4">
+            <div className="rounded-[18px] bg-surface-muted px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
                 Signed in
               </p>
@@ -180,7 +214,7 @@ export function DashboardNav({
             type="button"
             onClick={handleLogout}
             className={cx(
-              'mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-hover',
+              'mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-hover',
               collapsed && 'px-3',
             )}
           >

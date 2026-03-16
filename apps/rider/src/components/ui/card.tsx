@@ -16,8 +16,16 @@ export function AppCard({ title, subtitle, rightSlot, children }: AppCardProps) 
       {title || subtitle || rightSlot ? (
         <View style={styles.header}>
           <View style={styles.headerText}>
-            {title ? <Text style={styles.title}>{title}</Text> : null}
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            {title ? (
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
+            ) : null}
+            {subtitle ? (
+              <Text style={styles.subtitle} numberOfLines={2}>
+                {subtitle}
+              </Text>
+            ) : null}
           </View>
           {rightSlot ? <View>{rightSlot}</View> : null}
         </View>

@@ -45,7 +45,7 @@ export function AppShell({ children }: AppShellProps) {
         )}
       >
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
-        <main className="px-4 py-5 md:px-6 md:py-6 xl:px-8">
+        <main className="px-4 py-4 md:px-5 md:py-5 xl:px-6">
           <div className="mx-auto max-w-[1600px]">{children}</div>
         </main>
       </div>

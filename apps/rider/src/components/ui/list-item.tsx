@@ -25,11 +25,21 @@ export function ListItem({
       {leftSlot ? <View style={styles.leftSlot}>{leftSlot}</View> : null}
       <View style={styles.textWrap}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
           {rightSlot ? <View>{rightSlot}</View> : null}
         </View>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : null}
+        {meta ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {meta}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

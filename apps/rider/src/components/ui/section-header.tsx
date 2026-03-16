@@ -13,8 +13,14 @@ export function SectionHeader({ title, subtitle, rightSlot }: SectionHeaderProps
   return (
     <View style={styles.row}>
       <View style={styles.textWrap}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       {rightSlot ? <View>{rightSlot}</View> : null}
     </View>

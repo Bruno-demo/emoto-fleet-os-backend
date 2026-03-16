@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.xl,
-    gap: theme.spacing.md,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.sm,
     ...theme.shadow,
   },
   pageLabel: {
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   paginationActions: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   paginationButton: {
     flex: 1,
