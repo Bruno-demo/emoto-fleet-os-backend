@@ -125,6 +125,8 @@ textarea:focus-visible {
 .leaflet-container {
   background: #dbe7f5;
   font-family: var(--font-manrope), sans-serif;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .dashboard-scrollbar {
