@@ -20,6 +20,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { ReportsModule } from './reports/reports.module';
 import { RidersModule } from './riders/riders.module';
+import { RoadsModule } from './roads/roads.module';
 import { TripsModule } from './trips/trips.module';
 import { ZonesModule } from './zones/zones.module';
 
@@ -134,6 +135,7 @@ const buildLoggerOptions = (configService: ConfigService) => {
     TripsModule,
     ReportsModule,
     RidersModule,
+    RoadsModule,
     PrismaModule,
     RedisModule,
     HealthModule,

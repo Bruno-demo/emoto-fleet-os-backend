@@ -1,5 +1,9 @@
 export interface TripEventCounts {
   OVERSPEED: number;
+  SPEED_LIMIT_VIOLATION: number;
+  SCHOOL_ZONE_SPEED: number;
+  HOSPITAL_ZONE_SPEED: number;
+  MARKET_ZONE_SPEED: number;
   HARSH_BRAKE: number;
   HARSH_ACCEL: number;
   HARSH_CORNER: number;
@@ -9,6 +13,10 @@ export interface TripEventCounts {
 
 export interface TripScoreWeights {
   overspeed: number;
+  speedLimitViolation: number;
+  schoolZoneSpeed: number;
+  hospitalZoneSpeed: number;
+  marketZoneSpeed: number;
   harshBrake: number;
   harshAccel: number;
   harshCorner: number;
@@ -18,6 +26,10 @@ export interface TripScoreWeights {
 
 export const EMPTY_TRIP_EVENT_COUNTS: TripEventCounts = {
   OVERSPEED: 0,
+  SPEED_LIMIT_VIOLATION: 0,
+  SCHOOL_ZONE_SPEED: 0,
+  HOSPITAL_ZONE_SPEED: 0,
+  MARKET_ZONE_SPEED: 0,
   HARSH_BRAKE: 0,
   HARSH_ACCEL: 0,
   HARSH_CORNER: 0,
@@ -52,6 +64,10 @@ export function computeTripScore(
 
   const weightedPenalty =
     (counts.OVERSPEED * weights.overspeed +
+      counts.SPEED_LIMIT_VIOLATION * weights.speedLimitViolation +
+      counts.SCHOOL_ZONE_SPEED * weights.schoolZoneSpeed +
+      counts.HOSPITAL_ZONE_SPEED * weights.hospitalZoneSpeed +
+      counts.MARKET_ZONE_SPEED * weights.marketZoneSpeed +
       counts.HARSH_BRAKE * weights.harshBrake +
       counts.HARSH_ACCEL * weights.harshAccel +
       counts.HARSH_CORNER * weights.harshCorner +

@@ -69,6 +69,10 @@ export interface RiderTripScoreBreakdown {
   weights: TripScoreWeights;
   penalties: {
     OVERSPEED: number;
+    SPEED_LIMIT_VIOLATION: number;
+    SCHOOL_ZONE_SPEED: number;
+    HOSPITAL_ZONE_SPEED: number;
+    MARKET_ZONE_SPEED: number;
     HARSH_BRAKE: number;
     HARSH_ACCEL: number;
     HARSH_CORNER: number;

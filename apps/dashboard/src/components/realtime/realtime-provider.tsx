@@ -37,6 +37,10 @@ const eventSchema = z.object({
   ts: z.string(),
   type: z.enum([
     'OVERSPEED',
+    'SPEED_LIMIT_VIOLATION',
+    'SCHOOL_ZONE_SPEED',
+    'HOSPITAL_ZONE_SPEED',
+    'MARKET_ZONE_SPEED',
     'HARSH_BRAKE',
     'HARSH_ACCEL',
     'HARSH_CORNER',

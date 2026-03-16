@@ -1,11 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventSeverity, GeofenceZone, Prisma, ZoneType } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import {
+  EventSeverity,
+  GeofenceZone,
+  Prisma,
+  RoadFeatureType,
+  ZoneType,
+} from '@prisma/client';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { point } from '@turf/helpers';
 import { TelemetryPayload } from '../mqtt/mqtt-validation.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { EventsService } from '../events/events.service';
+import { RoadFeaturesService } from '../roads/roads.service';
 import { polygonGeoJsonSchema } from '../zones/geojson.schema';
 
 const OVERSPEED_MIN_DURATION_MS = 5_000;
@@ -24,6 +32,10 @@ const CRASH_TILT_Z_THRESHOLD = 4.5;
 const NIGHT_START_HOUR_UTC = 22;
 const NIGHT_END_HOUR_UTC = 5;
 const LAST_SPEED_STATE_TTL_SECONDS = 600;
+const ROAD_EVENT_COOLDOWN_SECONDS = 60;
+const DEFAULT_ROAD_SPEED_LIMIT_RADIUS_METERS = 80;
+const DEFAULT_ROAD_SAFETY_RADIUS_METERS = 200;
+const DEFAULT_ROAD_SPEED_TOLERANCE_KPH = 5;
 
 export interface RuleDeviceContext {
   id: string;
@@ -35,12 +47,45 @@ export interface RuleDeviceContext {
 @Injectable()
 export class RulesEngineService {
   private readonly logger = new Logger(RulesEngineService.name);
+  private readonly roadSpeedLimitRadiusMeters: number;
+  private readonly roadSafetyRadiusMeters: number;
+  private readonly roadSpeedToleranceKph: number;
+  private readonly schoolZoneSpeedKph: number;
+  private readonly hospitalZoneSpeedKph: number;
+  private readonly marketZoneSpeedKph: number;
 
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
     private readonly eventsService: EventsService,
-  ) {}
+    private readonly roadFeaturesService: RoadFeaturesService,
+    private readonly configService: ConfigService,
+  ) {
+    this.roadSpeedLimitRadiusMeters = this.configService.get<number>(
+      'ROAD_SPEED_LIMIT_RADIUS_METERS',
+      DEFAULT_ROAD_SPEED_LIMIT_RADIUS_METERS,
+    );
+    this.roadSafetyRadiusMeters = this.configService.get<number>(
+      'ROAD_SAFETY_RADIUS_METERS',
+      DEFAULT_ROAD_SAFETY_RADIUS_METERS,
+    );
+    this.roadSpeedToleranceKph = this.configService.get<number>(
+      'ROAD_SPEED_TOLERANCE_KPH',
+      DEFAULT_ROAD_SPEED_TOLERANCE_KPH,
+    );
+    this.schoolZoneSpeedKph = this.configService.get<number>(
+      'ROAD_SCHOOL_SPEED_KPH',
+      30,
+    );
+    this.hospitalZoneSpeedKph = this.configService.get<number>(
+      'ROAD_HOSPITAL_SPEED_KPH',
+      30,
+    );
+    this.marketZoneSpeedKph = this.configService.get<number>(
+      'ROAD_MARKET_SPEED_KPH',
+      25,
+    );
+  }
 
   // Evaluates all configured safety/security rules for one telemetry message.
   async evaluateTelemetry(
@@ -57,6 +102,7 @@ export class RulesEngineService {
     await this.evaluateHarshDynamics(device, payload);
     await this.evaluateCrash(device, payload);
     await this.evaluateTheft(device, payload, insideParkZone);
+    await this.evaluateRoadSafety(device, payload);
     await this.storeLastSpeedState(device, payload);
   }
 
@@ -311,6 +357,145 @@ export class RulesEngineService {
     );
   }
 
+  // Emits speed-limit and sensitive-zone violations using OSM road feature data.
+  private async evaluateRoadSafety(
+    device: RuleDeviceContext,
+    payload: TelemetryPayload,
+  ): Promise<void> {
+    const radiusMeters = Math.max(
+      this.roadSafetyRadiusMeters,
+      this.roadSpeedLimitRadiusMeters,
+    );
+    const nearbyFeatures = await this.roadFeaturesService.getNearbyFeatures(
+      payload.lat,
+      payload.lng,
+      radiusMeters,
+    );
+
+    await this.evaluateSpeedLimitViolation(device, payload, nearbyFeatures);
+    await this.evaluateSensitiveZoneViolations(device, payload, nearbyFeatures);
+  }
+
+  // Emits SPEED_LIMIT_VIOLATION when nearby maxspeed tags are exceeded.
+  private async evaluateSpeedLimitViolation(
+    device: RuleDeviceContext,
+    payload: TelemetryPayload,
+    features: Array<{
+      id: string;
+      type: RoadFeatureType;
+      speedLimitKph: number | null;
+      lat: number;
+      lng: number;
+    }>,
+  ): Promise<void> {
+    const nearest = findNearestFeature(
+      features.filter(
+        (feature) =>
+          feature.type === RoadFeatureType.SPEED_LIMIT &&
+          feature.speedLimitKph !== null,
+      ),
+      payload.lat,
+      payload.lng,
+      this.roadSpeedLimitRadiusMeters,
+    );
+    if (!nearest || nearest.speedLimitKph === null) {
+      return;
+    }
+
+    if (payload.speedKph <= nearest.speedLimitKph + this.roadSpeedToleranceKph) {
+      return;
+    }
+
+    await this.emitWithCooldown(
+      this.eventCooldownKey(device.id, `SPEED_LIMIT_${nearest.id}`),
+      ROAD_EVENT_COOLDOWN_SECONDS,
+      {
+        fleetId: device.fleetId,
+        bikeId: device.bikeId,
+        deviceId: device.id,
+        ts: new Date(payload.ts),
+        type: 'SPEED_LIMIT_VIOLATION',
+        severity: EventSeverity.MEDIUM,
+        metaJson: {
+          speedKph: payload.speedKph,
+          speedLimitKph: nearest.speedLimitKph,
+          featureId: nearest.id,
+          distanceMeters: nearest.distanceMeters,
+        } as Prisma.InputJsonValue,
+      },
+    );
+  }
+
+  // Emits SCHOOL/HOSPITAL/MARKET zone violations for nearby sensitive POIs.
+  private async evaluateSensitiveZoneViolations(
+    device: RuleDeviceContext,
+    payload: TelemetryPayload,
+    features: Array<{
+      id: string;
+      type: RoadFeatureType;
+      speedLimitKph: number | null;
+      lat: number;
+      lng: number;
+    }>,
+  ): Promise<void> {
+    const zones = [
+      {
+        type: RoadFeatureType.SCHOOL,
+        eventType: 'SCHOOL_ZONE_SPEED' as const,
+        severity: EventSeverity.HIGH,
+        speedLimitKph: this.schoolZoneSpeedKph,
+      },
+      {
+        type: RoadFeatureType.HOSPITAL,
+        eventType: 'HOSPITAL_ZONE_SPEED' as const,
+        severity: EventSeverity.MEDIUM,
+        speedLimitKph: this.hospitalZoneSpeedKph,
+      },
+      {
+        type: RoadFeatureType.MARKET,
+        eventType: 'MARKET_ZONE_SPEED' as const,
+        severity: EventSeverity.MEDIUM,
+        speedLimitKph: this.marketZoneSpeedKph,
+      },
+    ];
+
+    for (const zone of zones) {
+      if (payload.speedKph <= zone.speedLimitKph + this.roadSpeedToleranceKph) {
+        continue;
+      }
+
+      const nearest = findNearestFeature(
+        features.filter((feature) => feature.type === zone.type),
+        payload.lat,
+        payload.lng,
+        this.roadSafetyRadiusMeters,
+      );
+      if (!nearest) {
+        continue;
+      }
+
+      await this.emitWithCooldown(
+        this.eventCooldownKey(device.id, `${zone.eventType}_${nearest.id}`),
+        ROAD_EVENT_COOLDOWN_SECONDS,
+        {
+          fleetId: device.fleetId,
+          bikeId: device.bikeId,
+          deviceId: device.id,
+          ts: new Date(payload.ts),
+          type: zone.eventType,
+          severity: zone.severity,
+          metaJson: {
+            speedKph: payload.speedKph,
+            speedLimitKph: zone.speedLimitKph,
+            featureId: nearest.id,
+            distanceMeters: nearest.distanceMeters,
+            featureType: zone.type,
+          } as Prisma.InputJsonValue,
+        },
+      );
+    }
+  }
+
   // Tracks ignition-off movement duration and emits theft when threshold is exceeded.
   private async evaluateIgnitionOffMovementTheft(
     device: RuleDeviceContext,
@@ -466,4 +651,47 @@ export class RulesEngineService {
   private lastSpeedStateKey(deviceId: string): string {
     return `rules:last-speed:${deviceId}`;
   }
+}
+
+// Finds the nearest feature within the requested radius for road-safety checks.
+function findNearestFeature(
+  features: Array<{ id: string; lat: number; lng: number; speedLimitKph: number | null }>,
+  lat: number,
+  lng: number,
+  radiusMeters: number,
+): { id: string; lat: number; lng: number; speedLimitKph: number | null; distanceMeters: number } | null {
+  let nearest: { id: string; lat: number; lng: number; speedLimitKph: number | null; distanceMeters: number } | null = null;
+
+  for (const feature of features) {
+    const distanceMeters = haversineDistanceMeters(lat, lng, feature.lat, feature.lng);
+    if (distanceMeters > radiusMeters) {
+      continue;
+    }
+    if (!nearest || distanceMeters < nearest.distanceMeters) {
+      nearest = { ...feature, distanceMeters };
+    }
+  }
+
+  return nearest;
+}
+
+// Calculates haversine distance between two points in meters.
+function haversineDistanceMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const toRadians = (value: number): number => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c * 1000;
 }

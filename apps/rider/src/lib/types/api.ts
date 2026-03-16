@@ -49,6 +49,10 @@ export interface RiderTripSummary {
 
 export interface RiderTripEventCounts {
   OVERSPEED: number;
+  SPEED_LIMIT_VIOLATION: number;
+  SCHOOL_ZONE_SPEED: number;
+  HOSPITAL_ZONE_SPEED: number;
+  MARKET_ZONE_SPEED: number;
   HARSH_BRAKE: number;
   HARSH_ACCEL: number;
   HARSH_CORNER: number;
@@ -62,6 +66,10 @@ export interface RiderTripScoreBreakdown {
   penaltyMultiplier: number;
   weights: {
     overspeed: number;
+    speedLimitViolation: number;
+    schoolZoneSpeed: number;
+    hospitalZoneSpeed: number;
+    marketZoneSpeed: number;
     harshBrake: number;
     harshAccel: number;
     harshCorner: number;
@@ -70,6 +78,10 @@ export interface RiderTripScoreBreakdown {
   };
   penalties: {
     OVERSPEED: number;
+    SPEED_LIMIT_VIOLATION: number;
+    SCHOOL_ZONE_SPEED: number;
+    HOSPITAL_ZONE_SPEED: number;
+    MARKET_ZONE_SPEED: number;
     HARSH_BRAKE: number;
     HARSH_ACCEL: number;
     HARSH_CORNER: number;
@@ -127,6 +139,10 @@ export interface RiderEventSummary {
   ts: string;
   type:
     | 'OVERSPEED'
+    | 'SPEED_LIMIT_VIOLATION'
+    | 'SCHOOL_ZONE_SPEED'
+    | 'HOSPITAL_ZONE_SPEED'
+    | 'MARKET_ZONE_SPEED'
     | 'HARSH_BRAKE'
     | 'HARSH_ACCEL'
     | 'HARSH_CORNER'

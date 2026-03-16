@@ -103,12 +103,34 @@ enum EventSeverity {
 
 enum EventType {
   OVERSPEED
+  SPEED_LIMIT_VIOLATION
+  SCHOOL_ZONE_SPEED
+  HOSPITAL_ZONE_SPEED
+  MARKET_ZONE_SPEED
   HARSH_BRAKE
   HARSH_ACCEL
   HARSH_CORNER
   CRASH
   THEFT_SUSPECTED
   SOS
+}
+
+enum RoadFeatureType {
+  SCHOOL
+  HOSPITAL
+  MARKET
+  TRAFFIC_SIGN
+  SPEED_LIMIT
+}
+
+enum RoadFeatureSource {
+  OSM
+}
+
+enum RoadFeatureOsmType {
+  NODE
+  WAY
+  RELATION
 }
 
 enum ScoreScope {
@@ -388,6 +410,25 @@ model GeofenceZone {
 
   @@index([fleetId])
   @@index([fleetId, active, type])
+}
+
+model RoadFeature {
+  id            String             @id @default(uuid()) @db.Uuid
+  source        RoadFeatureSource  @default(OSM)
+  osmId         String
+  osmType       RoadFeatureOsmType
+  type          RoadFeatureType
+  name          String?
+  speedLimitKph Int?
+  lat           Decimal            @db.Decimal(9, 6)
+  lng           Decimal            @db.Decimal(9, 6)
+  tagsJson      Json?
+  createdAt     DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@unique([source, osmId, osmType])
+  @@index([type])
+  @@index([lat, lng])
 }
 
 model AuditLog {

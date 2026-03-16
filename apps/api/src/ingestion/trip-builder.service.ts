@@ -66,6 +66,22 @@ export class TripBuilderService {
         'TRIP_SCORE_WEIGHT_OVERSPEED',
         1.2,
       ),
+      speedLimitViolation: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_SPEED_LIMIT',
+        1.1,
+      ),
+      schoolZoneSpeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_SCHOOL_ZONE',
+        1.4,
+      ),
+      hospitalZoneSpeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_HOSPITAL_ZONE',
+        1.2,
+      ),
+      marketZoneSpeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_MARKET_ZONE',
+        1.2,
+      ),
       harshBrake: this.configService.get<number>(
         'TRIP_SCORE_WEIGHT_HARSH_BRAKE',
         1.0,

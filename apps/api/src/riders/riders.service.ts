@@ -109,6 +109,22 @@ export class RidersService {
         'TRIP_SCORE_WEIGHT_OVERSPEED',
         1.2,
       ),
+      speedLimitViolation: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_SPEED_LIMIT',
+        1.1,
+      ),
+      schoolZoneSpeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_SCHOOL_ZONE',
+        1.4,
+      ),
+      hospitalZoneSpeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_HOSPITAL_ZONE',
+        1.2,
+      ),
+      marketZoneSpeed: this.configService.get<number>(
+        'TRIP_SCORE_WEIGHT_MARKET_ZONE',
+        1.2,
+      ),
       harshBrake: this.configService.get<number>(
         'TRIP_SCORE_WEIGHT_HARSH_BRAKE',
         1,
@@ -806,6 +822,10 @@ export class RidersService {
         type: {
           in: [
             EventType.OVERSPEED,
+            EventType.SPEED_LIMIT_VIOLATION,
+            EventType.SCHOOL_ZONE_SPEED,
+            EventType.HOSPITAL_ZONE_SPEED,
+            EventType.MARKET_ZONE_SPEED,
             EventType.HARSH_BRAKE,
             EventType.HARSH_ACCEL,
             EventType.HARSH_CORNER,
@@ -838,6 +858,14 @@ export class RidersService {
     );
     const weightedBaseByType = {
       OVERSPEED: counts.OVERSPEED * this.tripScoreWeights.overspeed,
+      SPEED_LIMIT_VIOLATION:
+        counts.SPEED_LIMIT_VIOLATION * this.tripScoreWeights.speedLimitViolation,
+      SCHOOL_ZONE_SPEED:
+        counts.SCHOOL_ZONE_SPEED * this.tripScoreWeights.schoolZoneSpeed,
+      HOSPITAL_ZONE_SPEED:
+        counts.HOSPITAL_ZONE_SPEED * this.tripScoreWeights.hospitalZoneSpeed,
+      MARKET_ZONE_SPEED:
+        counts.MARKET_ZONE_SPEED * this.tripScoreWeights.marketZoneSpeed,
       HARSH_BRAKE: counts.HARSH_BRAKE * this.tripScoreWeights.harshBrake,
       HARSH_ACCEL: counts.HARSH_ACCEL * this.tripScoreWeights.harshAccel,
       HARSH_CORNER: counts.HARSH_CORNER * this.tripScoreWeights.harshCorner,
@@ -849,6 +877,22 @@ export class RidersService {
     const penalties = {
       OVERSPEED: this.roundScorePenalty(
         (weightedBaseByType.OVERSPEED / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      SPEED_LIMIT_VIOLATION: this.roundScorePenalty(
+        (weightedBaseByType.SPEED_LIMIT_VIOLATION / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      SCHOOL_ZONE_SPEED: this.roundScorePenalty(
+        (weightedBaseByType.SCHOOL_ZONE_SPEED / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      HOSPITAL_ZONE_SPEED: this.roundScorePenalty(
+        (weightedBaseByType.HOSPITAL_ZONE_SPEED / normalizedDistanceKm) *
+          this.tripPenaltyMultiplier,
+      ),
+      MARKET_ZONE_SPEED: this.roundScorePenalty(
+        (weightedBaseByType.MARKET_ZONE_SPEED / normalizedDistanceKm) *
           this.tripPenaltyMultiplier,
       ),
       HARSH_BRAKE: this.roundScorePenalty(
@@ -875,6 +919,10 @@ export class RidersService {
 
     const total = this.roundScorePenalty(
       penalties.OVERSPEED +
+        penalties.SPEED_LIMIT_VIOLATION +
+        penalties.SCHOOL_ZONE_SPEED +
+        penalties.HOSPITAL_ZONE_SPEED +
+        penalties.MARKET_ZONE_SPEED +
         penalties.HARSH_BRAKE +
         penalties.HARSH_ACCEL +
         penalties.HARSH_CORNER +

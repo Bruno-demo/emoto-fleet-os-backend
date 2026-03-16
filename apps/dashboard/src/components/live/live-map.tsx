@@ -20,7 +20,15 @@ import {
   useRef,
   useState,
 } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
 import { PageShell } from '@/components/layout/page-shell';
 import { useRealtime } from '@/components/realtime/realtime-provider';
 import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
@@ -34,6 +42,7 @@ import {
   DeviceCommand,
   FleetEvent,
   LiveBikeState,
+  RoadFeature,
   PaginatedResponse,
 } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
@@ -50,8 +59,22 @@ const EVENT_FEED_LIMIT = 10;
 const FRESH_STATE_WINDOW_MS = 60_000;
 const MAP_DEFAULT_CENTER: [number, number] = [-1.944, 30.061];
 const MAP_REFRESH_THROTTLE_MS = 750;
+const ROAD_LAYER_MIN_ZOOM = 13;
+const ROAD_BOUNDS_EPSILON = 0.0001;
 
 type CommandIntent = 'LOCK' | 'UNLOCK';
+
+type RoadBounds = {
+  minLat: number;
+  minLng: number;
+  maxLat: number;
+  maxLng: number;
+};
+
+type MapViewport = {
+  bounds: RoadBounds;
+  zoom: number;
+};
 
 export function LiveMapPanel() {
   const searchParams = useSearchParams();
@@ -64,6 +87,7 @@ export function LiveMapPanel() {
   const [localCommandStatuses, setLocalCommandStatuses] = useState<CommandStatusEvent[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [centerSignal, setCenterSignal] = useState(0);
+  const [mapViewport, setMapViewport] = useState<MapViewport | null>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
   const toastFlushTimerRef = useRef<number | null>(null);
@@ -77,6 +101,24 @@ export function LiveMapPanel() {
   const liveStatesQuery = useQuery({
     queryKey: ['live', 'bikes', 'initial'],
     queryFn: () => apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
+  });
+
+  const roadFeatureKey = mapViewport
+    ? `${formatBounds(mapViewport.bounds)}:${mapViewport.zoom}`
+    : 'none';
+  const roadFeaturesQuery = useQuery({
+    queryKey: ['roads', 'features', roadFeatureKey],
+    queryFn: () => {
+      if (!mapViewport) {
+        return Promise.resolve([] as RoadFeature[]);
+      }
+      const bbox = formatBounds(mapViewport.bounds);
+      return apiFetch<RoadFeature[]>(
+        `/roads/features?bbox=${bbox}`,
+      );
+    },
+    enabled: Boolean(mapViewport && mapViewport.zoom >= ROAD_LAYER_MIN_ZOOM),
+    staleTime: 60_000,
   });
 
   const initialEventsQuery = useQuery({
@@ -184,6 +226,22 @@ export function LiveMapPanel() {
     }
     return MAP_DEFAULT_CENTER;
   }, [selectedState, throttledStates]);
+
+  // Tracks map bounds and zoom so road feature queries stay scoped to the viewport.
+  const handleViewportChange = useCallback((nextViewport: MapViewport) => {
+    setMapViewport((currentViewport) => {
+      if (!currentViewport) {
+        return nextViewport;
+      }
+      if (
+        currentViewport.zoom === nextViewport.zoom &&
+        areBoundsEqual(currentViewport.bounds, nextViewport.bounds)
+      ) {
+        return currentViewport;
+      }
+      return nextViewport;
+    });
+  }, []);
 
   // Applies the bikeId route hint so deep links can open a bike drawer directly.
   useEffect(() => {
@@ -366,6 +424,8 @@ export function LiveMapPanel() {
                     centerSignal={centerSignal}
                     target={selectedState ? [selectedState.lat, selectedState.lng] : null}
                   />
+                  <MapBoundsTracker onViewportChange={handleViewportChange} />
+                  <RoadFeatureLayer features={roadFeaturesQuery.data ?? []} />
                   {throttledStates.map((state) => (
                     <LiveBikeMarker
                       key={state.bikeId}
@@ -377,6 +437,13 @@ export function LiveMapPanel() {
                     />
                   ))}
                 </MapContainer>
+
+                <div className="pointer-events-none absolute bottom-4 left-4 z-[500]">
+                  <RoadLegend
+                    zoom={mapViewport?.zoom ?? 0}
+                    featureCount={roadFeaturesQuery.data?.length ?? 0}
+                  />
+                </div>
 
                 {throttledStates.length === 0 ? (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
@@ -803,6 +870,105 @@ function MapViewportController({
   return null;
 }
 
+// Tracks map bounds and zoom so road feature queries stay anchored to the viewport.
+function MapBoundsTracker({
+  onViewportChange,
+}: {
+  onViewportChange: (viewport: MapViewport) => void;
+}) {
+  const map = useMap();
+
+  useMapEvents({
+    moveend: () => {
+      onViewportChange(buildViewport(map));
+    },
+    zoomend: () => {
+      onViewportChange(buildViewport(map));
+    },
+  });
+
+  useEffect(() => {
+    onViewportChange(buildViewport(map));
+  }, [map, onViewportChange]);
+
+  return null;
+}
+
+// Renders road and safety features with lightweight markers.
+function RoadFeatureLayer({ features }: { features: RoadFeature[] }) {
+  if (!features.length) {
+    return null;
+  }
+
+  return (
+    <>
+      {features.map((feature) => {
+        const style = getRoadFeatureStyle(feature);
+        return (
+          <CircleMarker
+            key={feature.id}
+            center={[feature.lat, feature.lng]}
+            radius={style.radius}
+            pathOptions={{
+              color: style.stroke,
+              fillColor: style.fill,
+              fillOpacity: 0.85,
+              weight: 1,
+            }}
+          >
+            <Popup>
+              <div className="space-y-1">
+                <p className="font-semibold text-ink">{style.label}</p>
+                {feature.name ? (
+                  <p className="text-sm text-ink-soft">{feature.name}</p>
+                ) : null}
+                {feature.speedLimitKph ? (
+                  <p className="text-sm text-ink-soft">Limit {feature.speedLimitKph} kph</p>
+                ) : null}
+              </div>
+            </Popup>
+          </CircleMarker>
+        );
+      })}
+    </>
+  );
+}
+
+// Summarizes which road safety overlays are active at the current zoom level.
+function RoadLegend({
+  zoom,
+  featureCount,
+}: {
+  zoom: number;
+  featureCount: number;
+}) {
+  if (zoom < ROAD_LAYER_MIN_ZOOM) {
+    return (
+      <div className="rounded-[18px] border border-line bg-white/95 px-3 py-2 text-xs font-semibold text-ink-soft shadow-[var(--shadow-soft)]">
+        Zoom in to view road safety layers.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[18px] border border-line bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-[var(--shadow-soft)]">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+          Road context
+        </span>
+        <span className="text-[11px] font-semibold text-ink">{featureCount} points</span>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-ink">
+        <LegendItem label="School" tone="school" />
+        <LegendItem label="Hospital" tone="hospital" />
+        <LegendItem label="Market" tone="market" />
+        <LegendItem label="Signs" tone="sign" />
+        <LegendItem label="Speed limit" tone="speed" />
+      </div>
+    </div>
+  );
+}
+
 function KeyMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
@@ -898,6 +1064,33 @@ function SeverityBadge({ severity }: { severity: FleetEvent['severity'] }) {
       )}
     >
       {severity}
+    </span>
+  );
+}
+
+// Renders a compact legend row with a colored dot.
+function LegendItem({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: 'school' | 'hospital' | 'market' | 'sign' | 'speed';
+}) {
+  const color =
+    tone === 'school'
+      ? '#f97316'
+      : tone === 'hospital'
+        ? '#ef4444'
+        : tone === 'market'
+          ? '#0ea5e9'
+          : tone === 'speed'
+            ? '#6366f1'
+            : '#94a3b8';
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+      {label}
     </span>
   );
 }
@@ -1089,5 +1282,70 @@ function maskIdentifier(value: string | null | undefined) {
     return null;
   }
   return `${value.slice(0, 8)}...`;
+}
+
+// Formats Leaflet bounds into a normalized bbox string for the road feature endpoint.
+function formatBounds(bounds: RoadBounds): string {
+  const values = [
+    roundBoundsValue(bounds.minLat),
+    roundBoundsValue(bounds.minLng),
+    roundBoundsValue(bounds.maxLat),
+    roundBoundsValue(bounds.maxLng),
+  ];
+  return values.join(',');
+}
+
+// Builds a viewport descriptor from Leaflet's bounds and zoom.
+function buildViewport(map: L.Map): MapViewport {
+  const bounds = map.getBounds();
+  const southWest = bounds.getSouthWest();
+  const northEast = bounds.getNorthEast();
+  return {
+    bounds: {
+      minLat: southWest.lat,
+      minLng: southWest.lng,
+      maxLat: northEast.lat,
+      maxLng: northEast.lng,
+    },
+    zoom: map.getZoom(),
+  };
+}
+
+// Compares two bounds with a small epsilon to avoid redundant viewport updates.
+function areBoundsEqual(left: RoadBounds, right: RoadBounds): boolean {
+  return (
+    Math.abs(left.minLat - right.minLat) <= ROAD_BOUNDS_EPSILON &&
+    Math.abs(left.minLng - right.minLng) <= ROAD_BOUNDS_EPSILON &&
+    Math.abs(left.maxLat - right.maxLat) <= ROAD_BOUNDS_EPSILON &&
+    Math.abs(left.maxLng - right.maxLng) <= ROAD_BOUNDS_EPSILON
+  );
+}
+
+// Rounds bounds values to reduce cache key churn for nearby map pans.
+function roundBoundsValue(value: number): number {
+  return Number(value.toFixed(4));
+}
+
+// Maps road feature types into consistent marker colors and radii.
+function getRoadFeatureStyle(feature: RoadFeature): {
+  label: string;
+  fill: string;
+  stroke: string;
+  radius: number;
+} {
+  switch (feature.type) {
+    case 'SCHOOL':
+      return { label: 'School zone', fill: '#fb923c', stroke: '#c2410c', radius: 6 };
+    case 'HOSPITAL':
+      return { label: 'Hospital', fill: '#f87171', stroke: '#b91c1c', radius: 6 };
+    case 'MARKET':
+      return { label: 'Market', fill: '#38bdf8', stroke: '#0284c7', radius: 5 };
+    case 'SPEED_LIMIT':
+      return { label: 'Speed limit', fill: '#818cf8', stroke: '#4f46e5', radius: 5 };
+    case 'TRAFFIC_SIGN':
+      return { label: 'Traffic sign', fill: '#94a3b8', stroke: '#475569', radius: 4 };
+    default:
+      return { label: 'Road feature', fill: '#94a3b8', stroke: '#475569', radius: 4 };
+  }
 }
 

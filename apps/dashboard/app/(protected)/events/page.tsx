@@ -186,6 +186,10 @@ export default function EventsPage() {
             <SelectField label="Event type" value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}>
               <option value="">All event types</option>
               <option value="OVERSPEED">Overspeed</option>
+              <option value="SPEED_LIMIT_VIOLATION">Speed limit violation</option>
+              <option value="SCHOOL_ZONE_SPEED">School zone speed</option>
+              <option value="HOSPITAL_ZONE_SPEED">Hospital zone speed</option>
+              <option value="MARKET_ZONE_SPEED">Market zone speed</option>
               <option value="HARSH_BRAKE">Harsh brake</option>
               <option value="HARSH_ACCEL">Harsh accel</option>
               <option value="HARSH_CORNER">Harsh corner</option>

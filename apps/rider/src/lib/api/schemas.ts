@@ -55,6 +55,10 @@ export const riderTripSchema = z.object({
 
 const riderTripEventCountsSchema = z.object({
   OVERSPEED: z.number(),
+  SPEED_LIMIT_VIOLATION: z.number(),
+  SCHOOL_ZONE_SPEED: z.number(),
+  HOSPITAL_ZONE_SPEED: z.number(),
+  MARKET_ZONE_SPEED: z.number(),
   HARSH_BRAKE: z.number(),
   HARSH_ACCEL: z.number(),
   HARSH_CORNER: z.number(),
@@ -68,6 +72,10 @@ const riderTripScoreBreakdownSchema = z.object({
   penaltyMultiplier: z.number(),
   weights: z.object({
     overspeed: z.number(),
+    speedLimitViolation: z.number(),
+    schoolZoneSpeed: z.number(),
+    hospitalZoneSpeed: z.number(),
+    marketZoneSpeed: z.number(),
     harshBrake: z.number(),
     harshAccel: z.number(),
     harshCorner: z.number(),
@@ -76,6 +84,10 @@ const riderTripScoreBreakdownSchema = z.object({
   }),
   penalties: z.object({
     OVERSPEED: z.number(),
+    SPEED_LIMIT_VIOLATION: z.number(),
+    SCHOOL_ZONE_SPEED: z.number(),
+    HOSPITAL_ZONE_SPEED: z.number(),
+    MARKET_ZONE_SPEED: z.number(),
     HARSH_BRAKE: z.number(),
     HARSH_ACCEL: z.number(),
     HARSH_CORNER: z.number(),
@@ -134,6 +146,10 @@ export const riderEventSchema = z.object({
   ts: z.string(),
   type: z.enum([
     'OVERSPEED',
+    'SPEED_LIMIT_VIOLATION',
+    'SCHOOL_ZONE_SPEED',
+    'HOSPITAL_ZONE_SPEED',
+    'MARKET_ZONE_SPEED',
     'HARSH_BRAKE',
     'HARSH_ACCEL',
     'HARSH_CORNER',

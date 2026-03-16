@@ -67,6 +67,15 @@ export interface LiveBikeState {
   ignition?: boolean;
 }
 
+export interface RoadFeature {
+  id: string;
+  type: 'SCHOOL' | 'HOSPITAL' | 'MARKET' | 'TRAFFIC_SIGN' | 'SPEED_LIMIT';
+  name: string | null;
+  speedLimitKph: number | null;
+  lat: number;
+  lng: number;
+}
+
 export interface FleetEvent {
   id: string;
   bikeId: string | null;
@@ -74,6 +83,10 @@ export interface FleetEvent {
   ts: string;
   type:
     | 'OVERSPEED'
+    | 'SPEED_LIMIT_VIOLATION'
+    | 'SCHOOL_ZONE_SPEED'
+    | 'HOSPITAL_ZONE_SPEED'
+    | 'MARKET_ZONE_SPEED'
     | 'HARSH_BRAKE'
     | 'HARSH_ACCEL'
     | 'HARSH_CORNER'
