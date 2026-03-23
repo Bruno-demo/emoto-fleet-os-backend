@@ -143,6 +143,26 @@ export class RedisService implements OnModuleDestroy {
     await this.client!.del(key);
   }
 
+  // Appends a record to a Redis stream with optional approximate max length.
+  async addToStream(
+    streamKey: string,
+    fields: Record<string, string>,
+    maxLen?: number,
+  ): Promise<string | null> {
+    if (this.useInMemoryStore) {
+      this.logger.debug(`Skipping stream write in memory mode: ${streamKey}`);
+      return null;
+    }
+
+    await this.ensureConnected();
+    const entries = Object.entries(fields).flat();
+    if (maxLen && maxLen > 0) {
+      return this.client!.xadd(streamKey, 'MAXLEN', '~', maxLen, '*', ...entries);
+    }
+
+    return this.client!.xadd(streamKey, '*', ...entries);
+  }
+
   // Closes the Redis connection during app shutdown.
   async onModuleDestroy(): Promise<void> {
     if (this.useInMemoryStore) {

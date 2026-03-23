@@ -51,6 +51,9 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
   private readonly mqttUrl: string;
   private readonly deviceSecretMasterKey: string;
   private readonly mqttDisabled: boolean;
+  private readonly streamKey: string | null;
+  private readonly streamMaxLen: number;
+  private readonly streamEnabled: boolean;
   private mqttClient: MqttClient | null = null;
 
   constructor(
@@ -69,6 +72,9 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       'DEVICE_SECRET_MASTER_KEY',
     );
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
+    this.streamKey = this.configService.get<string>('STREAM_KEY', '') || null;
+    this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
+    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
   }
 
   // Opens MQTT connection and subscribes to ingestion topics.
@@ -219,6 +225,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       await this.liveStateService.setLatestBikeState(latestState);
     }
 
+    await this.publishStreamTelemetry(device, telemetryPayload, telemetryTimestamp);
+
     await this.rulesEngineService.evaluateTelemetry(device, telemetryPayload);
     await this.tripBuilderService.processTelemetryForTrips(
       device,
@@ -265,6 +273,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       severity: eventPayload.severity as EventSeverity,
       metaJson: eventPayload.meta as Prisma.InputJsonValue,
     });
+
+    await this.publishStreamEvent(device, eventPayload, eventTimestamp);
   }
 
   // Validates command-ack payload and forwards acknowledgement to command service.
@@ -298,6 +308,95 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     await this.commandsService.handleCommandAckFromDevice(
       device,
       commandAckPayload,
+    );
+
+    await this.publishStreamCommandAck(device, commandAckPayload, ackTimestamp);
+  }
+
+  // Writes telemetry payloads to the stream processor input.
+  private async publishStreamTelemetry(
+    device: DeviceForIngestion,
+    telemetryPayload: TelemetryPayload,
+    timestamp: Date,
+  ): Promise<void> {
+    if (!this.streamEnabled || !this.streamKey) {
+      return;
+    }
+
+    await this.redisService.addToStream(
+      this.streamKey,
+      {
+        kind: 'telemetry',
+        deviceId: device.id,
+        deviceUid: device.deviceUid,
+        fleetId: device.fleetId,
+        bikeId: device.bikeId ?? '',
+        ts: timestamp.toISOString(),
+        lat: telemetryPayload.lat.toString(),
+        lng: telemetryPayload.lng.toString(),
+        speedKph: telemetryPayload.speedKph.toString(),
+        heading: telemetryPayload.heading?.toString() ?? '',
+        accelX: telemetryPayload.accel?.x?.toString() ?? '',
+        accelY: telemetryPayload.accel?.y?.toString() ?? '',
+        accelZ: telemetryPayload.accel?.z?.toString() ?? '',
+        batteryV: telemetryPayload.batteryV?.toString() ?? '',
+        ignition: telemetryPayload.ignition ? 'true' : 'false',
+      },
+      this.streamMaxLen,
+    );
+  }
+
+  // Writes event payloads to the stream processor input.
+  private async publishStreamEvent(
+    device: DeviceForIngestion,
+    eventPayload: EventPayload,
+    timestamp: Date,
+  ): Promise<void> {
+    if (!this.streamEnabled || !this.streamKey) {
+      return;
+    }
+
+    await this.redisService.addToStream(
+      this.streamKey,
+      {
+        kind: 'event',
+        deviceId: device.id,
+        deviceUid: device.deviceUid,
+        fleetId: device.fleetId,
+        bikeId: device.bikeId ?? '',
+        ts: timestamp.toISOString(),
+        type: eventPayload.type,
+        severity: eventPayload.severity,
+        metaJson: JSON.stringify(eventPayload.meta ?? {}),
+      },
+      this.streamMaxLen,
+    );
+  }
+
+  // Writes command acknowledgements to the stream processor input.
+  private async publishStreamCommandAck(
+    device: DeviceForIngestion,
+    payload: CommandAckPayload,
+    timestamp: Date,
+  ): Promise<void> {
+    if (!this.streamEnabled || !this.streamKey) {
+      return;
+    }
+
+    await this.redisService.addToStream(
+      this.streamKey,
+      {
+        kind: 'command_ack',
+        deviceId: device.id,
+        deviceUid: device.deviceUid,
+        fleetId: device.fleetId,
+        bikeId: device.bikeId ?? '',
+        ts: timestamp.toISOString(),
+        commandId: payload.commandId,
+        status: payload.status,
+        errorMessage: payload.errorMessage ?? '',
+      },
+      this.streamMaxLen,
     );
   }
 

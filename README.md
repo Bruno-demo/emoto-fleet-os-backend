@@ -75,6 +75,7 @@ npm run dev:gateway
 ```bash
 npm run dev:stream
 ```
+The processor reads from `telemetry:stream` and emits to `telemetry:enriched`, `telemetry:score`, and `webhooks:outbox`.
 
 8. Start dashboard:
 ```bash
