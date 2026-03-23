@@ -4,8 +4,10 @@ Monorepo scaffold for e-moto telematics using NestJS + TypeScript backend and Ne
 
 ## Stack
 - NestJS API in `apps/api`
+- API gateway in `apps/gateway`
 - Next.js dashboard in `apps/dashboard`
 - Expo React Native rider app in `apps/rider`
+- Stream processor skeleton in `apps/stream-processor`
 - PostgreSQL (TimescaleDB image) via Docker Compose
 - Redis via Docker Compose
 - EMQX MQTT broker via Docker Compose
@@ -32,6 +34,8 @@ This now starts:
 - EMQX
 - MinIO
 - API on `http://localhost:3000`
+- API gateway on `http://localhost:8080`
+- Stream processor skeleton
 
 If host port `3000` is already in use, set a different host mapping in `.env`:
 ```env
@@ -62,14 +66,24 @@ npm run dev:api
 
 API should run at `http://localhost:3000`.
 
-5. Start dashboard:
+6. (Optional) Start the gateway on the host if you are not using the Dockerized gateway:
+```bash
+npm run dev:gateway
+```
+
+7. (Optional) Start the stream processor on the host if you are not using the Dockerized service:
+```bash
+npm run dev:stream
+```
+
+8. Start dashboard:
 ```bash
 npm run dev:dashboard
 ```
 
 Dashboard runs at `http://localhost:3001`.
 
-6. Start rider app (Expo):
+9. Start rider app (Expo):
 ```bash
 npm run dev:rider
 ```
@@ -86,7 +100,7 @@ cp .env.prod.example .env.prod
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 ```
 
-API runs at `http://localhost:3000`, dashboard runs at `http://localhost:3001`.
+API runs at `http://localhost:3000`, gateway runs at `http://localhost:8080`, dashboard runs at `http://localhost:3001`.
 
 ## Monitoring (Prometheus + Grafana)
 1. Start monitoring stack:

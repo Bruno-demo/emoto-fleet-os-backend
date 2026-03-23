@@ -1,0 +1,20 @@
+{
+  "name": "gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/http-proxy": "^1.17.16",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -146,6 +146,48 @@ services:
         condition: service_completed_successfully
     command: ['node', 'apps/api/dist/src/worker.js']
 
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      GATEWAY_PORT: 8080
+      GATEWAY_API_URL: http://api:3000
+      GATEWAY_CORS_ORIGIN: http://localhost:3001,http://localhost:8082
+      LOG_LEVEL: info
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${GATEWAY_PORT:-8080}:8080'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8080/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  stream-processor:
+    build:
+      context: .
+      dockerfile: apps/stream-processor/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      STREAM_REDIS_URL: redis://redis:6379
+      STREAM_KEY: telemetry:stream
+      STREAM_GROUP: telemetry-processors
+      STREAM_POLL_MS: 1000
+      LOG_LEVEL: info
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
