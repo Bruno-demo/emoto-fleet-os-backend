@@ -53,6 +53,9 @@ export class RulesEngineService {
   private readonly schoolZoneSpeedKph: number;
   private readonly hospitalZoneSpeedKph: number;
   private readonly marketZoneSpeedKph: number;
+  private readonly rulesStreamKey: string | null;
+  private readonly streamMaxLen: number;
+  private readonly streamEnabled: boolean;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -85,6 +88,10 @@ export class RulesEngineService {
       'ROAD_MARKET_SPEED_KPH',
       25,
     );
+    this.rulesStreamKey =
+      this.configService.get<string>('STREAM_RULES_KEY', '') || null;
+    this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
+    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
   }
 
   // Evaluates all configured safety/security rules for one telemetry message.
@@ -193,7 +200,7 @@ export class RulesEngineService {
         continue;
       }
 
-      await this.eventsService.createFleetEvent({
+      await this.createRuleEvent({
         fleetId: device.fleetId,
         bikeId: device.bikeId,
         deviceId: device.id,
@@ -538,7 +545,7 @@ export class RulesEngineService {
       return;
     }
 
-    await this.eventsService.createFleetEvent({
+    await this.createRuleEvent({
       fleetId: device.fleetId,
       bikeId: device.bikeId,
       deviceId: device.id,
@@ -568,7 +575,33 @@ export class RulesEngineService {
       return;
     }
 
-    await this.eventsService.createFleetEvent(eventInput);
+    await this.createRuleEvent(eventInput);
+  }
+
+  // Persists rule-generated events and publishes them to the rules stream.
+  private async createRuleEvent(
+    eventInput: Parameters<EventsService['createFleetEvent']>[0],
+  ): Promise<void> {
+    const createdEvent = await this.eventsService.createFleetEvent(eventInput);
+    if (!this.streamEnabled || !this.rulesStreamKey) {
+      return;
+    }
+
+    await this.redisService.addToStream(
+      this.rulesStreamKey,
+      {
+        kind: 'rule_event',
+        eventId: createdEvent.id,
+        fleetId: createdEvent.fleetId,
+        bikeId: createdEvent.bikeId ?? '',
+        deviceId: createdEvent.deviceId,
+        ts: createdEvent.ts.toISOString(),
+        type: createdEvent.type,
+        severity: createdEvent.severity,
+        metaJson: JSON.stringify(createdEvent.metaJson ?? {}),
+      },
+      this.streamMaxLen,
+    );
   }
 
   // Stores the most recent speed sample for crash speed-drop calculations.

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { TelemetryPayload } from '../mqtt/mqtt-validation.util';
@@ -33,6 +34,9 @@ export class TripBuilderService {
   private readonly minDistanceForScoringKm: number;
   private readonly penaltyMultiplier: number;
   private readonly scoreWeights: TripScoreWeights;
+  private readonly tripStreamKey: string | null;
+  private readonly streamMaxLen: number;
+  private readonly streamEnabled: boolean;
 
   constructor(
     private readonly configService: ConfigService,
@@ -100,6 +104,10 @@ export class TripBuilderService {
         3.0,
       ),
     };
+    this.tripStreamKey =
+      this.configService.get<string>('STREAM_TRIPS_KEY', '') || null;
+    this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
+    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
   }
 
   // Updates trip runtime state for each telemetry point and persists completed trips.
@@ -272,7 +280,7 @@ export class TripBuilderService {
       },
     });
 
-    await this.prismaService.trip.create({
+    const createdTrip = await this.prismaService.trip.create({
       data: {
         fleetId: device.fleetId,
         bikeId: device.bikeId,
@@ -285,8 +293,47 @@ export class TripBuilderService {
       },
     });
 
+    await this.publishTripSummary(createdTrip);
+
     this.logger.debug(
       `Trip finalized for device ${this.truncateDeviceUid(device.deviceUid)} score=${score.toFixed(2)}`,
+    );
+  }
+
+  // Publishes completed trip summaries to the trips stream for downstream consumers.
+  private async publishTripSummary(trip: {
+    id: string;
+    fleetId: string;
+    bikeId: string;
+    riderId: string | null;
+    startTs: Date;
+    endTs: Date;
+    distanceKm: Prisma.Decimal | number;
+    durationSec: number;
+    score: Prisma.Decimal | number;
+  }): Promise<void> {
+    if (!this.streamEnabled || !this.tripStreamKey) {
+      return;
+    }
+
+    const distanceKm = Number(trip.distanceKm);
+    const score = Number(trip.score);
+
+    await this.redisService.addToStream(
+      this.tripStreamKey,
+      {
+        kind: 'trip_summary',
+        tripId: trip.id,
+        fleetId: trip.fleetId,
+        bikeId: trip.bikeId,
+        riderId: trip.riderId ?? '',
+        startTs: trip.startTs.toISOString(),
+        endTs: trip.endTs.toISOString(),
+        distanceKm: Number.isFinite(distanceKm) ? distanceKm.toString() : '0',
+        durationSec: trip.durationSec.toString(),
+        score: Number.isFinite(score) ? score.toString() : '0',
+      },
+      this.streamMaxLen,
     );
   }
 

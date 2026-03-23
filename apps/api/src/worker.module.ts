@@ -4,6 +4,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { envSchema } from './config/env.schema';
 import { IngestionWorkerModule } from './ingestion/ingestion-worker.module';
 import { buildLoggerOptions } from './logger/logger-options';
+import { WebhookDispatcherModule } from './webhooks/webhook-dispatcher.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { buildLoggerOptions } from './logger/logger-options';
         buildLoggerOptions(configService),
     }),
     IngestionWorkerModule,
+    WebhookDispatcherModule,
   ],
 })
 export class WorkerModule {}

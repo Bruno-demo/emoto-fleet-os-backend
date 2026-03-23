@@ -4,6 +4,10 @@ const booleanString = z
   .enum(['true', 'false'])
   .default('false')
   .transform((value) => value === 'true');
+const booleanStringDefaultTrue = z
+  .enum(['true', 'false'])
+  .default('true')
+  .transform((value) => value === 'true');
 
 export const envSchema = z.object({
   NODE_ENV: z
@@ -28,6 +32,15 @@ export const envSchema = z.object({
   ROAD_SCHOOL_SPEED_KPH: z.coerce.number().int().positive().default(30),
   ROAD_HOSPITAL_SPEED_KPH: z.coerce.number().int().positive().default(30),
   ROAD_MARKET_SPEED_KPH: z.coerce.number().int().positive().default(25),
+  STREAM_ENABLED: booleanStringDefaultTrue,
+  STREAM_KEY: z.string().default('telemetry:stream'),
+  STREAM_RULES_KEY: z.string().default('rules:stream'),
+  STREAM_TRIPS_KEY: z.string().default('trips:stream'),
+  STREAM_WEBHOOK_KEY: z.string().default('webhooks:outbox'),
+  STREAM_MAX_LEN: z.coerce.number().int().positive().default(10000),
+  STREAM_OUTPUT_MAX_LEN: z.coerce.number().int().positive().default(10000),
+  WEBHOOK_STREAM_GROUP: z.string().default('webhook-dispatchers'),
+  WEBHOOK_STREAM_POLL_MS: z.coerce.number().int().positive().default(1000),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),

@@ -158,14 +158,29 @@ const server = http.createServer((req, res) => {
   const requestId = ensureRequestId(req);
   res.setHeader('x-request-id', requestId);
   applyCors(res);
+  const requestStart = process.hrtime.bigint();
+  const pathname = req.url ? new URL(req.url, 'http://gateway').pathname : '/';
+
+  // Emits structured access logs with request duration.
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - requestStart) / 1_000_000;
+    logger.info(
+      {
+        requestId,
+        method: req.method,
+        path: pathname,
+        statusCode: res.statusCode,
+        durationMs: Number(durationMs.toFixed(2)),
+      },
+      'gateway_request',
+    );
+  });
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
   }
-
-  const pathname = req.url ? new URL(req.url, 'http://gateway').pathname : '/';
 
   if (pathname === '/health' || pathname === '/healthz') {
     handleHealth(res);
