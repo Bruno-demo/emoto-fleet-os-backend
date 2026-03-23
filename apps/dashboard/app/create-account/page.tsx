@@ -92,7 +92,20 @@ export default function CreateAccountPage() {
   const availableRoles = isAdminMode
     ? roleOptions
     : roleOptions.filter((option) => option.value === 'RIDER');
-  const inviteRoleOptions = roleOptions.filter((option) => option.value !== 'ADMIN');
+  const inviteRoleOptions = useMemo(() => {
+    if (!currentUser || !isAdminMode) {
+      return roleOptions.filter((option) => option.value === 'RIDER');
+    }
+    if (currentUser.role === 'OWNER') {
+      return roleOptions.filter((option) => option.value !== 'OWNER');
+    }
+    if (currentUser.role === 'ADMIN') {
+      return roleOptions.filter(
+        (option) => option.value !== 'OWNER' && option.value !== 'ADMIN',
+      );
+    }
+    return roleOptions.filter((option) => option.value === 'RIDER');
+  }, [currentUser, isAdminMode]);
 
   const accessNotice = useMemo(() => {
     if (isPublicMode) {
@@ -125,6 +138,16 @@ export default function CreateAccountPage() {
       setRole('RIDER');
     }
   }, [isAdminMode, role]);
+
+  // Keeps invite role aligned with the available role options.
+  useEffect(() => {
+    if (inviteRoleOptions.length === 0) {
+      return;
+    }
+    if (!inviteRoleOptions.some((option) => option.value === inviteRole)) {
+      setInviteRole(inviteRoleOptions[0]!.value);
+    }
+  }, [inviteRoleOptions, inviteRole]);
 
   // Validates inputs and calls the admin-only register endpoint for the current fleet.
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

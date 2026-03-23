@@ -225,6 +225,9 @@ export class AuthService {
     if (role === UserRole.OWNER || role === UserRole.INSURER) {
       throw new ForbiddenException('Invite role is not allowed');
     }
+    if (role === UserRole.ADMIN && actor.role !== UserRole.OWNER) {
+      throw new ForbiddenException('Only owners can invite admins');
+    }
 
     const token = this.generateInviteToken();
     const tokenHash = this.hashInviteToken(token);

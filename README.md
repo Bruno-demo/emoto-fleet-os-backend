@@ -238,6 +238,7 @@ npm run partner:create-client
 - MinIO console: `9001`
 
 TimescaleDB extension is auto-enabled on first database initialization via `docker/postgres/init/01-timescaledb.sql`.
+TelemetryPoint is configured as a Timescale hypertable with compression after 7 days and retention at 180 days.
 
 ## Root npm Scripts
 ```bash
