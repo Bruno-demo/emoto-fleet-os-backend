@@ -43,13 +43,13 @@ const roleOptions: Array<{ value: UserRole; label: string; description: string }
 ];
 
 type FieldErrors = Partial<
-  Record<'fleetId' | 'email' | 'phone' | 'password' | 'confirmPassword' | 'role', string>
+  Record<'inviteToken' | 'email' | 'phone' | 'password' | 'confirmPassword' | 'role', string>
 >;
 
 // Renders the account provisioning screen with access gating and validation.
 export default function CreateAccountPage() {
   const { data: currentUser, isLoading, isError } = useCurrentUser();
-  const [fleetId, setFleetId] = useState('');
+  const [inviteToken, setInviteToken] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -59,6 +59,12 @@ export default function CreateAccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inviteRole, setInviteRole] = useState<UserRole>('RIDER');
+  const [inviteExpiresInHours, setInviteExpiresInHours] = useState('');
+  const [inviteTokenValue, setInviteTokenValue] = useState<string | null>(null);
+  const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
   const token = typeof window !== 'undefined' ? readAuthToken() : null;
   const sessionInvalid = Boolean(token) && isError;
@@ -86,6 +92,7 @@ export default function CreateAccountPage() {
   const availableRoles = isAdminMode
     ? roleOptions
     : roleOptions.filter((option) => option.value === 'RIDER');
+  const inviteRoleOptions = roleOptions.filter((option) => option.value !== 'ADMIN');
 
   const accessNotice = useMemo(() => {
     if (isPublicMode) {
@@ -93,7 +100,7 @@ export default function CreateAccountPage() {
         tone: 'warning' as const,
         message: sessionInvalid
           ? 'Session expired. Sign in to create staff accounts, or continue with rider-only public sign-up.'
-          : 'Public sign-up creates rider accounts only. Enter the fleet ID provided by your admin.',
+          : 'Public sign-up creates rider accounts only. Enter the invite code provided by your admin.',
       };
     }
     if (isChecking) {
@@ -127,13 +134,13 @@ export default function CreateAccountPage() {
     setFieldErrors({});
 
     if (isPublicMode) {
-      const parsedFleetId = z
+      const parsedToken = z
         .string()
-        .uuid('Enter a valid fleet ID')
-        .safeParse(fleetId.trim());
-      if (!parsedFleetId.success) {
-        setFieldErrors({ fleetId: parsedFleetId.error.issues[0]?.message });
-        setError(parsedFleetId.error.issues[0]?.message ?? 'Fleet ID is required');
+        .min(12, 'Invite code is required')
+        .safeParse(inviteToken.trim());
+      if (!parsedToken.success) {
+        setFieldErrors({ inviteToken: parsedToken.error.issues[0]?.message });
+        setError(parsedToken.error.issues[0]?.message ?? 'Invite code is required');
         return;
       }
     }
@@ -163,11 +170,11 @@ export default function CreateAccountPage() {
       setIsSubmitting(true);
       if (isPublicMode) {
         await apiFetch(
-          '/auth/register-public',
+          '/auth/register-invite',
           {
             method: 'POST',
             body: JSON.stringify({
-              fleetId: fleetId.trim(),
+              token: inviteToken.trim(),
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
@@ -187,8 +194,12 @@ export default function CreateAccountPage() {
         });
       }
 
-      setSuccess('Account created. Share the login credentials securely with the new operator.');
-      setFleetId('');
+      setSuccess(
+        isPublicMode
+          ? 'Account created. You can now sign in with your new credentials.'
+          : 'Account created. Share the login credentials securely with the new operator.',
+      );
+      setInviteToken('');
       setEmail('');
       setPhone('');
       setPassword('');
@@ -202,6 +213,50 @@ export default function CreateAccountPage() {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Generates a one-time invite token for fleet onboarding.
+  const handleInviteCreate = async () => {
+    setInviteError(null);
+    setInviteTokenValue(null);
+    setInviteExpiresAt(null);
+
+    const trimmedHours = inviteExpiresInHours.trim();
+    let expiresInHours: number | undefined;
+    if (trimmedHours.length > 0) {
+      const parsedHours = Number(trimmedHours);
+      if (!Number.isFinite(parsedHours) || parsedHours < 1 || parsedHours > 720) {
+        setInviteError('Expiry must be between 1 and 720 hours');
+        return;
+      }
+      expiresInHours = parsedHours;
+    }
+
+    try {
+      setInviteSubmitting(true);
+      const response = await apiFetch<{
+        token: string;
+        expiresAt: string;
+      }>('/auth/invites', {
+        method: 'POST',
+        body: JSON.stringify({
+          role: inviteRole,
+          expiresInHours,
+        }),
+      });
+
+      setInviteTokenValue(response.token);
+      setInviteExpiresAt(response.expiresAt);
+      setInviteExpiresInHours('');
+    } catch (requestError: unknown) {
+      if (requestError instanceof ApiError) {
+        setInviteError(requestError.message);
+      } else {
+        setInviteError('Unable to generate invite right now');
+      }
+    } finally {
+      setInviteSubmitting(false);
     }
   };
 
@@ -256,11 +311,11 @@ export default function CreateAccountPage() {
 
             {isPublicMode ? (
               <TextField
-                label="Fleet ID"
-                placeholder="Paste fleet UUID"
-                value={fleetId}
-                onChange={(event) => setFleetId(event.target.value)}
-                error={fieldErrors.fleetId}
+                label="Invite code"
+                placeholder="Paste invite code"
+                value={inviteToken}
+                onChange={(event) => setInviteToken(event.target.value)}
+                error={fieldErrors.inviteToken}
                 disabled={isFormDisabled}
               />
             ) : null}
@@ -330,6 +385,64 @@ export default function CreateAccountPage() {
               </Link>
             </div>
           </form>
+
+          {isAdminMode ? (
+            <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                Invite codes
+              </p>
+              <p className="mt-2 text-sm leading-6 text-ink-soft">
+                Generate a one-time invite for operators who should self-register. Invite tokens are
+                intended for short-lived sharing only.
+              </p>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <SelectField
+                  label="Invite role"
+                  value={inviteRole}
+                  onChange={(event) => setInviteRole(event.target.value as UserRole)}
+                  disabled={inviteSubmitting}
+                >
+                  {inviteRoleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </SelectField>
+                <TextField
+                  label="Expires in (hours)"
+                  placeholder="168"
+                  value={inviteExpiresInHours}
+                  onChange={(event) => setInviteExpiresInHours(event.target.value)}
+                  disabled={inviteSubmitting}
+                />
+              </div>
+
+              {inviteError ? <InlineNotice message={inviteError} /> : null}
+              {inviteTokenValue ? (
+                <div className="mt-3 rounded-[18px] border border-line bg-white px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                    Invite code
+                  </p>
+                  <p className="mt-2 break-all font-mono text-xs text-ink">{inviteTokenValue}</p>
+                  {inviteExpiresAt ? (
+                    <p className="mt-2 text-xs text-ink-muted">
+                      Expires {new Date(inviteExpiresAt).toLocaleString()}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => void handleInviteCreate()}
+                disabled={inviteSubmitting}
+                className="mt-4 inline-flex w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {inviteSubmitting ? 'Generating invite...' : 'Generate invite'}
+              </button>
+            </div>
+          ) : null}
         </section>
       </div>
     </div>

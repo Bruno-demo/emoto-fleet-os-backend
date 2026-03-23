@@ -9,11 +9,14 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser, JwtPayload } from './auth.types';
+import { CreateInviteDto } from './dto/create-invite.dto';
 import { LoginDto } from './dto/login.dto';
 import { PublicRegisterDto } from './dto/public-register.dto';
+import { RedeemInviteDto } from './dto/redeem-invite.dto';
 import { RegisterDto } from './dto/register.dto';
 
 const userSelectForAuth = {
@@ -142,6 +145,13 @@ export class AuthService {
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');
     }
+    const publicRegisterEnabled = this.configService.get<boolean>(
+      'AUTH_PUBLIC_REGISTER_ENABLED',
+      false,
+    );
+    if (!publicRegisterEnabled) {
+      throw new ForbiddenException('Public registration is disabled');
+    }
 
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
@@ -173,6 +183,165 @@ export class AuthService {
           phone: true,
           status: true,
         },
+      });
+
+      return createdUser;
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Email or phone already exists in this fleet',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Creates a one-time registration invite for the caller's fleet.
+  async createInvite(
+    actor: AuthenticatedUser,
+    dto: CreateInviteDto,
+  ): Promise<{
+    inviteId: string;
+    token: string;
+    fleetId: string;
+    role: UserRole;
+    email: string | null;
+    phone: string | null;
+    expiresAt: Date;
+  }> {
+    const registerEnabled = this.configService.get<boolean>(
+      'AUTH_REGISTER_ENABLED',
+      false,
+    );
+    if (!registerEnabled) {
+      throw new ForbiddenException('Registration is disabled');
+    }
+
+    const role = dto.role ?? UserRole.RIDER;
+    if (role === UserRole.OWNER || role === UserRole.INSURER) {
+      throw new ForbiddenException('Invite role is not allowed');
+    }
+
+    const token = this.generateInviteToken();
+    const tokenHash = this.hashInviteToken(token);
+    const normalizedEmail = dto.email?.toLowerCase();
+    const expiresInHours =
+      dto.expiresInHours ??
+      this.configService.get<number>('INVITE_TOKEN_TTL_HOURS', 168);
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+
+    const createdInvite =
+      await this.prismaService.registrationInvite.create({
+        data: {
+          fleetId: actor.fleetId,
+          role,
+          email: normalizedEmail,
+          phone: dto.phone,
+          tokenHash,
+          expiresAt,
+        },
+        select: {
+          id: true,
+          fleetId: true,
+          role: true,
+          email: true,
+          phone: true,
+          expiresAt: true,
+        },
+      });
+
+    return {
+      inviteId: createdInvite.id,
+      token,
+      fleetId: createdInvite.fleetId,
+      role: createdInvite.role,
+      email: createdInvite.email,
+      phone: createdInvite.phone,
+      expiresAt: createdInvite.expiresAt,
+    };
+  }
+
+  // Redeems an invite token and creates the corresponding fleet user.
+  async redeemInvite(dto: RedeemInviteDto): Promise<AuthenticatedUser> {
+    const registerEnabled = this.configService.get<boolean>(
+      'AUTH_REGISTER_ENABLED',
+      false,
+    );
+    if (!registerEnabled) {
+      throw new ForbiddenException('Registration is disabled');
+    }
+
+    const tokenHash = this.hashInviteToken(dto.token);
+    const invite = await this.prismaService.registrationInvite.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!invite || invite.status !== 'ACTIVE') {
+      throw new ForbiddenException('Invite is invalid or already used');
+    }
+
+    const now = new Date();
+    if (invite.expiresAt <= now) {
+      await this.prismaService.registrationInvite.update({
+        where: { id: invite.id },
+        data: { status: 'EXPIRED' },
+      });
+      throw new ForbiddenException('Invite has expired');
+    }
+
+    const normalizedEmail = dto.email?.toLowerCase();
+    this.assertIdentifierProvided(normalizedEmail, dto.phone);
+
+    if (invite.email && !normalizedEmail) {
+      throw new ForbiddenException('Email required for this invite');
+    }
+    if (invite.email && invite.email !== normalizedEmail) {
+      throw new ForbiddenException('Email does not match invite');
+    }
+    if (invite.phone && !dto.phone) {
+      throw new ForbiddenException('Phone required for this invite');
+    }
+    if (invite.phone && invite.phone !== dto.phone) {
+      throw new ForbiddenException('Phone does not match invite');
+    }
+
+    const passwordHash = await this.hashPassword(dto.password);
+
+    try {
+      const createdUser = await this.prismaService.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            fleetId: invite.fleetId,
+            role: invite.role,
+            email: normalizedEmail ?? invite.email,
+            phone: dto.phone ?? invite.phone,
+            passwordHash,
+            status: 'ACTIVE',
+          },
+          select: {
+            id: true,
+            fleetId: true,
+            role: true,
+            email: true,
+            phone: true,
+            status: true,
+          },
+        });
+
+        await tx.registrationInvite.update({
+          where: { id: invite.id },
+          data: {
+            status: 'USED',
+            usedAt: now,
+            usedByUserId: user.id,
+          },
+        });
+
+        return user;
       });
 
       return createdUser;
@@ -252,6 +421,16 @@ export class AuthService {
   private async hashPassword(password: string): Promise<string> {
     const saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 10);
     return await bcrypt.hash(password, saltRounds);
+  }
+
+  // Creates a random invite token safe for sharing out of band.
+  private generateInviteToken(): string {
+    return `invite_${randomBytes(24).toString('base64url')}`;
+  }
+
+  // Hashes invite tokens before storing them in the database.
+  private hashInviteToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   // Validates that at least one login identifier is supplied.

@@ -95,6 +95,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
       MQTT_URL: mqtt://emqx:1883
+      MQTT_DISABLED: 'true'
       S3_ENDPOINT: http://minio:9000
       RUN_MIGRATIONS: 'true'
       LOG_PRETTY: 'true'
@@ -116,6 +117,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      MQTT_URL: mqtt://emqx:1883
+      MQTT_DISABLED: 'false'
+      S3_ENDPOINT: http://minio:9000
+      LOG_PRETTY: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    command: ['node', 'apps/api/dist/src/worker.js']
 
 volumes:
   postgres_data:

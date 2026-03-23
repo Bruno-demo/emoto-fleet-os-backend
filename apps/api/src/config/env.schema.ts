@@ -64,6 +64,8 @@ export const envSchema = z.object({
     .min(32)
     .default('change_me_partner_webhook_secret_master_key_32chars'),
   AUTH_REGISTER_ENABLED: booleanString,
+  AUTH_PUBLIC_REGISTER_ENABLED: booleanString,
+  INVITE_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(168),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10),
   TRIP_START_SPEED_KPH: z.coerce.number().positive().default(5),
   TRIP_END_SPEED_KPH: z.coerce.number().positive().default(5),

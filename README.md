@@ -49,7 +49,13 @@ docker compose logs -f api
 npm run db:migrate
 npm run db:seed
 ```
-4. Start API on the host only if you are not using the Dockerized API:
+4. (Optional) Run the dedicated ingestion worker if you want MQTT processing outside the API:
+```bash
+npm run dev:worker
+```
+When running the worker locally, set `MQTT_DISABLED=true` for the API process to avoid double ingestion.
+
+5. Start API on the host only if you are not using the Dockerized API:
 ```bash
 npm run dev:api
 ```
@@ -176,7 +182,10 @@ WebSocket stream:
 
 ## Auth Endpoints
 - `POST /auth/login` with `email+password` or `phone+password`
-- `POST /auth/register` (OWNER/ADMIN only, disabled by default via env)
+- `POST /auth/register` (OWNER/ADMIN/limited roles, disabled by default via env)
+- `POST /auth/invites` (OWNER/ADMIN only, returns a one-time invite token)
+- `POST /auth/register-invite` (public, invite-token redemption)
+- `POST /auth/register-public` (public, disabled unless `AUTH_PUBLIC_REGISTER_ENABLED=true`)
 - `GET /me` (requires JWT bearer token)
 - Auth rate limits:
   - `/auth/login`: 8 requests/minute per client
@@ -236,6 +245,7 @@ npm run dev:stack:up
 npm run dev:stack:down
 npm run dev:stack:logs
 npm run dev:api
+npm run dev:worker
 npm run dev:dashboard
 npm run dev:rider
 npm run dev
@@ -274,6 +284,7 @@ REDIS_URL=redis://localhost:6379
 MQTT_HOST=localhost
 MQTT_PORT=1883
 MQTT_URL=mqtt://localhost:1883
+MQTT_DISABLED=false
 MQTT_SAMPLE_DEVICE_UID=DEV-0001
 MQTT_SAMPLE_DEVICE_SECRET=device-secret-0001
 MQTT_SAMPLE_COMMAND_ID=00000000-0000-0000-0000-000000000000
@@ -303,6 +314,8 @@ PARTNER_JWT_SECRET=change_me_partner_jwt_secret
 PARTNER_JWT_EXPIRES_IN=1h
 PARTNER_WEBHOOK_SECRET_MASTER_KEY=change_me_partner_webhook_secret_master_key_32chars
 AUTH_REGISTER_ENABLED=false
+AUTH_PUBLIC_REGISTER_ENABLED=false
+INVITE_TOKEN_TTL_HOURS=168
 BCRYPT_SALT_ROUNDS=10
 SEED_ADMIN_PASSWORD=ChangeMe123!
 SEED_DEVICE_UID=DEV-0001

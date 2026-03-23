@@ -84,6 +84,13 @@ enum NotificationStatus {
   FAILED
 }
 
+enum InviteStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
 enum PartnerStatus {
   ACTIVE
   DISABLED
@@ -186,6 +193,7 @@ model Fleet {
   incidents         Incident[]
   emergencyContacts EmergencyContact[]
   notifications     Notification[]
+  registrationInvites RegistrationInvite[]
   partnerAccesses   PartnerFleetAccess[]
   bikeAssignments   BikeAssignment[]
   pois              Poi[]
@@ -209,11 +217,33 @@ model User {
   resolvedIncidents     Incident[]       @relation("IncidentResolvedBy")
   riderProfile          RiderProfile?
   bikeAssignments       BikeAssignment[] @relation("BikeAssignmentRider")
+  usedInvites           RegistrationInvite[] @relation("InviteUsedBy")
 
   @@unique([fleetId, email])
   @@unique([fleetId, phone])
   @@index([fleetId])
   @@index([fleetId, role])
+}
+
+model RegistrationInvite {
+  id            String       @id @default(uuid()) @db.Uuid
+  fleetId       String       @db.Uuid
+  role          UserRole     @default(RIDER)
+  email         String?
+  phone         String?
+  tokenHash     String
+  status        InviteStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6)
+  expiresAt     DateTime     @db.Timestamptz(6)
+  usedAt        DateTime?    @db.Timestamptz(6)
+  usedByUserId  String?      @db.Uuid
+  fleet         Fleet        @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  usedByUser    User?        @relation("InviteUsedBy", fields: [usedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tokenHash])
+  @@index([fleetId])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model Bike {

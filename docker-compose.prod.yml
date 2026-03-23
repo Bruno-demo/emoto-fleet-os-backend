@@ -99,6 +99,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env.prod
+    environment:
+      MQTT_DISABLED: 'true'
     depends_on:
       postgres:
         condition: service_healthy
@@ -113,6 +115,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - emoto
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      MQTT_DISABLED: 'false'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+    command: ['node', 'apps/api/dist/src/worker.js']
     networks:
       - emoto
 
