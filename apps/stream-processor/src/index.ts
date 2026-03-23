@@ -132,18 +132,18 @@ async function handleEntry(entryId: string, fields: string[]): Promise<void> {
 // Poll the stream group continuously and dispatch entries for processing.
 async function pollLoop(): Promise<void> {
   while (true) {
-    const result = await redis.xreadgroup(
+    const result = (await (redis as unknown as { xreadgroup: (...args: string[]) => Promise<unknown> }).xreadgroup(
       'GROUP',
       streamGroup,
       streamConsumer,
       'BLOCK',
-      pollMs,
+      pollMs.toString(),
       'COUNT',
-      50,
+      '50',
       'STREAMS',
       streamKey,
       '>'
-    );
+    )) as Array<[string, Array<[string, string[]]>]> | null;
 
     if (!result) {
       continue;
