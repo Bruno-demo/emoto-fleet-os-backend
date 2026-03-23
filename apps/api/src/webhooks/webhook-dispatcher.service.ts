@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NotificationChannel, NotificationType, PartnerStatus } from '@prisma/client';
+import { NotificationChannel, NotificationType, PartnerStatus, Prisma } from '@prisma/client';
 import Redis from 'ioredis';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -47,6 +47,7 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
 
   // Boots the dispatcher and begins consuming webhook stream entries.
   async onModuleInit(): Promise<void> {
+    await this.redis.connect();
     await this.ensureGroup();
     void this.pollLoop();
   }
@@ -82,18 +83,18 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
   // Main loop that reads new webhook entries from Redis Streams.
   private async pollLoop(): Promise<void> {
     while (!this.stopped) {
-      const result = await this.redis.xreadgroup(
+      const result = (await (this.redis as unknown as { xreadgroup: (...args: string[]) => Promise<unknown> }).xreadgroup(
         'GROUP',
         this.streamGroup,
         this.streamConsumer,
         'BLOCK',
-        this.pollMs,
+        this.pollMs.toString(),
         'COUNT',
-        50,
+        '50',
         'STREAMS',
         this.streamKey,
         '>'
-      );
+      )) as Array<[string, Array<[string, string[]]>]> | null;
 
       if (!result) {
         continue;
@@ -139,7 +140,7 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      const payloadEnvelope = {
+      const payloadEnvelope: Prisma.InputJsonValue = {
         event: 'fleet.alert',
         data: {
           sourceEntryId: entryId,
@@ -203,7 +204,7 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Parses JSON payloads safely without throwing in stream processing.
-  private safeJsonParse(value: string | undefined): Record<string, unknown> {
+  private safeJsonParse(value: string | undefined): Prisma.InputJsonValue {
     if (!value) {
       return {};
     }
@@ -211,9 +212,9 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
     try {
       const parsed = JSON.parse(value);
       if (parsed && typeof parsed === 'object') {
-        return parsed as Record<string, unknown>;
+        return parsed as Prisma.InputJsonValue;
       }
-      return { data: parsed };
+      return { data: parsed } as Prisma.InputJsonValue;
     } catch {
       return { raw: value };
     }

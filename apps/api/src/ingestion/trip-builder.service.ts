@@ -307,7 +307,7 @@ export class TripBuilderService {
     bikeId: string;
     riderId: string | null;
     startTs: Date;
-    endTs: Date;
+    endTs: Date | null;
     distanceKm: Prisma.Decimal | number;
     durationSec: number;
     score: Prisma.Decimal | number;
@@ -318,6 +318,7 @@ export class TripBuilderService {
 
     const distanceKm = Number(trip.distanceKm);
     const score = Number(trip.score);
+    const endTs = trip.endTs ?? trip.startTs;
 
     await this.redisService.addToStream(
       this.tripStreamKey,
@@ -328,7 +329,7 @@ export class TripBuilderService {
         bikeId: trip.bikeId,
         riderId: trip.riderId ?? '',
         startTs: trip.startTs.toISOString(),
-        endTs: trip.endTs.toISOString(),
+        endTs: endTs.toISOString(),
         distanceKm: Number.isFinite(distanceKm) ? distanceKm.toString() : '0',
         durationSec: trip.durationSec.toString(),
         score: Number.isFinite(score) ? score.toString() : '0',

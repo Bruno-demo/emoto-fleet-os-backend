@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  Prisma,
   RoadFeatureOsmType,
   RoadFeatureSource,
   RoadFeatureType,
@@ -117,8 +118,9 @@ export class RoadFeaturesService {
     }
 
     await this.prismaService.$transaction(
-      fetched.map((feature) =>
-        this.prismaService.roadFeature.upsert({
+      fetched.map((feature) => {
+        const tagsJson = feature.tagsJson ?? Prisma.JsonNull;
+        return this.prismaService.roadFeature.upsert({
           where: {
             source_osmId_osmType: {
               source: RoadFeatureSource.OSM,
@@ -132,7 +134,7 @@ export class RoadFeaturesService {
             speedLimitKph: feature.speedLimitKph,
             lat: feature.lat,
             lng: feature.lng,
-            tagsJson: feature.tagsJson,
+            tagsJson,
           },
           create: {
             id: feature.id,
@@ -144,10 +146,10 @@ export class RoadFeaturesService {
             speedLimitKph: feature.speedLimitKph,
             lat: feature.lat,
             lng: feature.lng,
-            tagsJson: feature.tagsJson,
+            tagsJson,
           },
-        }),
-      ),
+        });
+      }),
     );
   }
 
