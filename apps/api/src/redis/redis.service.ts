@@ -31,8 +31,8 @@ export class RedisService implements OnModuleDestroy {
       this.configService.getOrThrow<string>('REDIS_URL'),
       {
         lazyConnect: true,
-        maxRetriesPerRequest: 1,
-        enableOfflineQueue: false,
+        maxRetriesPerRequest: 3,
+        enableOfflineQueue: true,
       },
     );
 
