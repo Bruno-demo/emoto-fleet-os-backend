@@ -1,14 +1,34 @@
-﻿'use client';
+'use client';
 
-import { Building2, ShieldCheck, UserPlus } from 'lucide-react';
+import {
+  Building2,
+  ShieldCheck,
+  UserPlus,
+  UsersRound,
+  Eye,
+  EyeOff,
+  User,
+  AtSign,
+  Phone,
+  Lock,
+} from 'lucide-react';
 import Link from 'next/link';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
-import { InlineNotice, SelectField, TextField } from '@/components/ui/form-controls';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { readAuthToken } from '@/lib/auth/session';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type { UserRole } from '@/lib/types/dashboard';
+import {
+  AuthButton,
+  AuthCheckbox,
+  AuthInput,
+  AuthNotice,
+  AuthPanelHeader,
+  AuthSelect,
+  AuthShell,
+  AuthTabs,
+} from '@/components/auth/auth-ui';
 
 const registerFormSchema = z
   .object({
@@ -43,18 +63,32 @@ const roleOptions: Array<{ value: UserRole; label: string; description: string }
 ];
 
 type FieldErrors = Partial<
-  Record<'inviteToken' | 'email' | 'phone' | 'password' | 'confirmPassword' | 'role', string>
+  Record<
+    | 'inviteToken'
+    | 'fullName'
+    | 'email'
+    | 'phone'
+    | 'password'
+    | 'confirmPassword'
+    | 'role'
+    | 'terms',
+    string
+  >
 >;
 
 // Renders the account provisioning screen with access gating and validation.
 export default function CreateAccountPage() {
   const { data: currentUser, isLoading, isError } = useCurrentUser();
   const [inviteToken, setInviteToken] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole>('DISPATCHER');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -65,6 +99,15 @@ export default function CreateAccountPage() {
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [touched, setTouched] = useState({
+    inviteToken: false,
+    fullName: false,
+    email: false,
+    phone: false,
+    password: false,
+    confirmPassword: false,
+    terms: false,
+  });
 
   const token = typeof window !== 'undefined' ? readAuthToken() : null;
   const sessionInvalid = Boolean(token) && isError;
@@ -132,6 +175,32 @@ export default function CreateAccountPage() {
   }, [isPublicMode, isChecking, isLimitedMode, sessionInvalid]);
 
   const isFormDisabled = isSubmitting || isChecking;
+  const inlineErrors = useMemo(
+    () =>
+      getRegisterFieldErrors({
+        inviteToken,
+        fullName,
+        email,
+        phone,
+        password,
+        confirmPassword,
+        termsAccepted,
+        touched,
+        isPublicMode,
+      }),
+    [
+      inviteToken,
+      fullName,
+      email,
+      phone,
+      password,
+      confirmPassword,
+      termsAccepted,
+      touched,
+      isPublicMode,
+    ],
+  );
+  const mergedErrors: FieldErrors = { ...inlineErrors, ...fieldErrors };
 
   useEffect(() => {
     if (!isAdminMode && role !== 'RIDER') {
@@ -155,6 +224,28 @@ export default function CreateAccountPage() {
     setError(null);
     setSuccess(null);
     setFieldErrors({});
+    setTouched((prev) => ({
+      ...prev,
+      inviteToken: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      password: true,
+      confirmPassword: true,
+      terms: true,
+    }));
+
+    if (fullName.trim().length < 2) {
+      setFieldErrors({ fullName: 'Enter full name' });
+      setError('Full name is required');
+      return;
+    }
+
+    if (!termsAccepted) {
+      setFieldErrors({ terms: 'Accept the terms to continue' });
+      setError('Please accept the terms to continue');
+      return;
+    }
 
     if (isPublicMode) {
       const parsedToken = z
@@ -223,10 +314,12 @@ export default function CreateAccountPage() {
           : 'Account created. Share the login credentials securely with the new operator.',
       );
       setInviteToken('');
+      setFullName('');
       setEmail('');
       setPhone('');
       setPassword('');
       setConfirmPassword('');
+      setTermsAccepted(false);
       setRole('DISPATCHER');
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {
@@ -284,209 +377,338 @@ export default function CreateAccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(5,150,105,0.12),transparent_28%),var(--background)] px-5 py-10">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl items-center gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[28px] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-strong)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-            Fleet identity
-          </p>
-          <h1 className="mt-4 max-w-xl font-display text-[clamp(2.1rem,1.7rem+1.1vw,3.1rem)] font-semibold leading-tight text-ink">
-            Provision operator access with the right roles and scope for each team.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-ink-soft">
-            Create dispatcher, technician, admin, or rider accounts inside the current fleet.
-            Registration is gated by fleet policy and is disabled by default in production.
-          </p>
+    <AuthShell
+      eyebrow="Fleet identity"
+      title="Create safe access for every rider and operator."
+      subtitle="Provision accounts with the right roles and invite codes so each team member sees only the data they need."
+      securityHint="Your data is सुरक्षित / secure"
+      features={[
+        {
+          icon: <UserPlus size={16} />,
+          title: 'Guided onboarding',
+          description: 'Create riders or staff in minutes with clear role separation.',
+        },
+        {
+          icon: <ShieldCheck size={16} />,
+          title: 'Fleet isolation',
+          description: 'Every account is tied to a single fleet with enforced RBAC.',
+        },
+        {
+          icon: <Building2 size={16} />,
+          title: 'Scales with growth',
+          description: 'Add dispatchers, technicians, and admins as your network expands.',
+        },
+      ]}
+    >
+      <AuthPanelHeader
+        eyebrow="Create account"
+        title="Join Fleet OS"
+        description="Fast onboarding for riders and operators. Admin roles require fleet approval."
+      />
+      <AuthTabs active="signup" />
 
-          <div className="mt-7 grid gap-3 md:grid-cols-2">
-            <FeatureTile
-              icon={<UserPlus size={18} />}
-              title="Controlled onboarding"
-              description="Issue credentials only after verifying the operator and required role."
-            />
-            <FeatureTile
-              icon={<ShieldCheck size={18} />}
-              title="Fleet-scoped access"
-              description="Every account stays locked to a single fleet for data isolation."
-            />
-            <FeatureTile
-              icon={<Building2 size={18} />}
-              title="Ready for scaling"
-              description="Add riders or dispatchers as your fleet footprint grows."
-            />
-          </div>
-        </section>
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        {accessNotice ? <AuthNotice message={accessNotice.message} tone={accessNotice.tone} /> : null}
+        {error ? <AuthNotice message={error} tone="error" /> : null}
+        {success ? <AuthNotice message={success} tone="success" /> : null}
 
-        <section className="rounded-[28px] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-strong)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-            Create account
-          </p>
-          <h2 className="mt-3 font-display text-3xl font-semibold text-ink">New operator</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-soft">
-            Add a new user in your fleet. Share credentials securely and remind the operator to
-            reset their password after first login.
-          </p>
+        {isPublicMode ? (
+          <AuthInput
+            label="Invite code"
+            placeholder="Paste invite code"
+            value={inviteToken}
+            onChange={(event) => setInviteToken(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
+            error={mergedErrors.inviteToken}
+            disabled={isFormDisabled}
+            icon={<UsersRound size={16} />}
+          />
+        ) : null}
 
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-            {accessNotice ? <InlineNotice message={accessNotice.message} tone={accessNotice.tone} /> : null}
-            {error ? <InlineNotice message={error} /> : null}
-            {success ? <InlineNotice message={success} tone="success" /> : null}
+        <AuthInput
+          label="Full name"
+          placeholder="e.g. Aisha N."
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, fullName: true }))}
+          error={mergedErrors.fullName}
+          disabled={isFormDisabled}
+          icon={<User size={16} />}
+          helper="Used to personalize your Fleet OS profile after first login."
+        />
 
-            {isPublicMode ? (
-              <TextField
-                label="Invite code"
-                placeholder="Paste invite code"
-                value={inviteToken}
-                onChange={(event) => setInviteToken(event.target.value)}
-                error={fieldErrors.inviteToken}
-                disabled={isFormDisabled}
-              />
-            ) : null}
-            <TextField
-              label="Email address"
-              placeholder="operator@fleet.example"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              error={fieldErrors.email}
-              disabled={isFormDisabled}
-            />
-            <TextField
-              label="Phone number"
-              placeholder="+2507..."
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              error={fieldErrors.phone}
-              disabled={isFormDisabled}
-            />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AuthInput
+            label="Email address"
+            placeholder="operator@fleet.example"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+            error={mergedErrors.email}
+            disabled={isFormDisabled}
+            icon={<AtSign size={16} />}
+          />
+          <AuthInput
+            label="Phone number"
+            placeholder="+2507..."
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
+            error={mergedErrors.phone}
+            disabled={isFormDisabled}
+            icon={<Phone size={16} />}
+          />
+        </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <TextField
-                label="Password"
-                type="password"
-                placeholder="Minimum 8 characters"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                error={fieldErrors.password}
-                disabled={isFormDisabled}
-              />
-              <TextField
-                label="Confirm password"
-                type="password"
-                placeholder="Re-enter password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                error={fieldErrors.confirmPassword}
-                disabled={isFormDisabled}
-              />
-            </div>
-
-            <SelectField
-              label="Role"
-              value={role}
-              onChange={(event) => setRole(event.target.value as UserRole)}
-              error={fieldErrors.role}
-              disabled={isFormDisabled || !isAdminMode}
-            >
-              {availableRoles.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label} · {option.description}
-                </option>
-              ))}
-            </SelectField>
-
-            <button
-              type="submit"
-              disabled={isFormDisabled}
-              className="inline-flex w-full items-center justify-center rounded-[var(--radius-control)] bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? 'Creating account...' : 'Create account'}
-            </button>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-soft">
-              <span>Already have credentials?</span>
-              <Link href="/login" className="font-semibold text-accent hover:text-accent-strong">
-                Return to login
-              </Link>
-            </div>
-          </form>
-
-          {isAdminMode ? (
-            <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-                Invite codes
-              </p>
-              <p className="mt-2 text-sm leading-6 text-ink-soft">
-                Generate a one-time invite for operators who should self-register. Invite tokens are
-                intended for short-lived sharing only.
-              </p>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <SelectField
-                  label="Invite role"
-                  value={inviteRole}
-                  onChange={(event) => setInviteRole(event.target.value as UserRole)}
-                  disabled={inviteSubmitting}
-                >
-                  {inviteRoleOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </SelectField>
-                <TextField
-                  label="Expires in (hours)"
-                  placeholder="168"
-                  value={inviteExpiresInHours}
-                  onChange={(event) => setInviteExpiresInHours(event.target.value)}
-                  disabled={inviteSubmitting}
-                />
-              </div>
-
-              {inviteError ? <InlineNotice message={inviteError} /> : null}
-              {inviteTokenValue ? (
-                <div className="mt-3 rounded-[18px] border border-line bg-white px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                    Invite code
-                  </p>
-                  <p className="mt-2 break-all font-mono text-xs text-ink">{inviteTokenValue}</p>
-                  {inviteExpiresAt ? (
-                    <p className="mt-2 text-xs text-ink-muted">
-                      Expires {new Date(inviteExpiresAt).toLocaleString()}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AuthInput
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Minimum 8 characters"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+            error={mergedErrors.password}
+            disabled={isFormDisabled}
+            icon={<Lock size={16} />}
+            rightElement={
               <button
                 type="button"
-                onClick={() => void handleInviteCreate()}
-                disabled={inviteSubmitting}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
               >
-                {inviteSubmitting ? 'Generating invite...' : 'Generate invite'}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
+          />
+          <AuthInput
+            label="Confirm password"
+            type={showConfirmPassword ? 'text' : 'password'}
+            placeholder="Re-enter password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, confirmPassword: true }))}
+            error={mergedErrors.confirmPassword}
+            disabled={isFormDisabled}
+            icon={<Lock size={16} />}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
+          />
+        </div>
+
+        {isAdminMode ? (
+          <AuthSelect
+            label="Role"
+            value={role}
+            onChange={(event) => setRole(event.target.value as UserRole)}
+            error={mergedErrors.role}
+            disabled={isFormDisabled}
+          >
+            {availableRoles.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} · {option.description}
+              </option>
+            ))}
+          </AuthSelect>
+        ) : (
+          <div>
+            <p className="text-sm font-medium text-[#0F172A]">Role</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setRole('RIDER')}
+                className="rounded-[14px] border border-[#22C55E]/40 bg-[#22C55E]/10 px-3 py-2 text-[#0F172A]"
+              >
+                Rider
+              </button>
+              <button
+                type="button"
+                disabled
+                className="rounded-[14px] border border-[#0F172A]/10 bg-white px-3 py-2 text-[#0F172A]/40"
+              >
+                Admin
               </button>
             </div>
+            <p className="mt-2 text-xs text-[#0F172A]/60">
+              Admin roles require fleet approval and cannot be self-selected.
+            </p>
+          </div>
+        )}
+
+        <AuthCheckbox
+          checked={termsAccepted}
+          onChange={setTermsAccepted}
+          label="I agree to the Terms & Conditions and Privacy Policy."
+          disabled={isFormDisabled}
+        />
+        {mergedErrors.terms ? (
+          <p className="text-xs font-medium text-rose-600">{mergedErrors.terms}</p>
+        ) : null}
+
+        <AuthButton
+          type="submit"
+          label={isSubmitting ? 'Creating account...' : 'Create account'}
+          isLoading={isSubmitting}
+          disabled={isFormDisabled}
+        />
+
+        <div className="flex items-center gap-3 text-xs text-[#0F172A]/40">
+          <span className="h-px flex-1 bg-[#0F172A]/10" />
+          <span>Or sign up with</span>
+          <span className="h-px flex-1 bg-[#0F172A]/10" />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AuthButton
+            type="button"
+            variant="secondary"
+            label="Google"
+            icon={<span className="text-base font-semibold">G</span>}
+          />
+          <AuthButton
+            type="button"
+            variant="secondary"
+            label="Apple"
+            icon={<span className="text-base font-semibold">A</span>}
+          />
+        </div>
+
+        <p className="text-center text-xs text-[#0F172A]/60">
+          Already have credentials?{' '}
+          <Link href="/login" className="font-semibold text-[#0F172A]">
+            Return to login
+          </Link>
+        </p>
+      </form>
+
+      {isAdminMode ? (
+        <div className="mt-6 rounded-[20px] border border-[#0F172A]/10 bg-white/70 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0F172A]/50">
+            Invite codes
+          </p>
+          <p className="mt-2 text-xs leading-5 text-[#0F172A]/60">
+            Generate a one-time invite token for operators who should self-register. Tokens are
+            short-lived and should be shared securely.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <AuthSelect
+              label="Invite role"
+              value={inviteRole}
+              onChange={(event) => setInviteRole(event.target.value as UserRole)}
+              disabled={inviteSubmitting}
+            >
+              {inviteRoleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </AuthSelect>
+            <AuthInput
+              label="Expires in (hours)"
+              placeholder="168"
+              value={inviteExpiresInHours}
+              onChange={(event) => setInviteExpiresInHours(event.target.value)}
+              disabled={inviteSubmitting}
+              icon={<ShieldCheck size={16} />}
+            />
+          </div>
+
+          {inviteError ? <AuthNotice message={inviteError} tone="error" /> : null}
+          {inviteTokenValue ? (
+            <div className="mt-3 rounded-[16px] border border-[#0F172A]/10 bg-white px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0F172A]/50">
+                Invite code
+              </p>
+              <p className="mt-2 break-all font-mono text-xs text-[#0F172A]">
+                {inviteTokenValue}
+              </p>
+              {inviteExpiresAt ? (
+                <p className="mt-2 text-xs text-[#0F172A]/60">
+                  Expires {new Date(inviteExpiresAt).toLocaleString()}
+                </p>
+              ) : null}
+            </div>
           ) : null}
-        </section>
-      </div>
-    </div>
+
+          <AuthButton
+            type="button"
+            variant="secondary"
+            label={inviteSubmitting ? 'Generating invite...' : 'Generate invite'}
+            onClick={() => void handleInviteCreate()}
+            disabled={inviteSubmitting}
+            isLoading={inviteSubmitting}
+          />
+        </div>
+      ) : null}
+    </AuthShell>
   );
 }
 
-// Displays a compact capability card for the create-account overview panel.
-function FeatureTile({
-  icon,
-  title,
-  description,
+// Computes validation errors for the sign-up form based on touch state.
+function getRegisterFieldErrors({
+  inviteToken,
+  fullName,
+  email,
+  phone,
+  password,
+  confirmPassword,
+  termsAccepted,
+  touched,
+  isPublicMode,
 }: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <article className="rounded-[22px] border border-line bg-surface-muted px-4 py-4">
-      <span className="inline-flex rounded-[16px] bg-white p-2.5 text-accent">{icon}</span>
-      <h3 className="mt-3 font-display text-lg font-semibold text-ink">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p>
-    </article>
-  );
+  inviteToken: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+  termsAccepted: boolean;
+  touched: {
+    inviteToken: boolean;
+    fullName: boolean;
+    email: boolean;
+    phone: boolean;
+    password: boolean;
+    confirmPassword: boolean;
+    terms: boolean;
+  };
+  isPublicMode: boolean;
+}): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (isPublicMode && touched.inviteToken && inviteToken.trim().length < 12) {
+    errors.inviteToken = 'Invite code is required';
+  }
+  if (touched.fullName && fullName.trim().length < 2) {
+    errors.fullName = 'Enter full name';
+  }
+  if (touched.email && email.trim().length > 0 && !z.string().email().safeParse(email).success) {
+    errors.email = 'Enter a valid email';
+  }
+  if (touched.phone && phone.trim().length > 0 && phone.trim().length < 6) {
+    errors.phone = 'Enter a valid phone number';
+  }
+  if ((touched.email || touched.phone) && !email.trim() && !phone.trim()) {
+    errors.email = 'Provide either email or phone';
+  }
+  if (touched.password && password.length < 8) {
+    errors.password = 'Password must be at least 8 characters';
+  }
+  if (touched.confirmPassword && confirmPassword.length > 0 && confirmPassword !== password) {
+    errors.confirmPassword = 'Passwords do not match';
+  }
+  if (touched.terms && !termsAccepted) {
+    errors.terms = 'Accept the terms to continue';
+  }
+  return errors;
 }

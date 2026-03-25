@@ -1,24 +1,47 @@
 'use client';
 
-import { Activity, LockKeyhole, ShieldAlert } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  AtSign,
+  Eye,
+  EyeOff,
+  Lock,
+  Navigation2,
+  ShieldCheck,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { ApiError, apiFetch } from '@/lib/api/client';
 import {
   buildLoginPayload,
   loginFormSchema,
   loginResponseSchema,
 } from '@/lib/api/schemas';
 import { readAuthToken, writeAuthToken } from '@/lib/auth/session';
-import { ApiError, apiFetch } from '@/lib/api/client';
-import { InlineNotice, TextField } from '@/components/ui/form-controls';
+import {
+  AuthButton,
+  AuthCheckbox,
+  AuthInput,
+  AuthNotice,
+  AuthPanelHeader,
+  AuthShell,
+  AuthTabs,
+} from '@/components/auth/auth-ui';
+
+type LoginFieldErrors = {
+  identifier?: string;
+  password?: string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const loginPresentation = getLoginPresentation();
 
@@ -33,6 +56,18 @@ export default function LoginPage() {
     return requestedPath;
   }, []);
 
+  const fieldErrors = useMemo<LoginFieldErrors>(() => {
+    const errors: LoginFieldErrors = {};
+
+    if (touched.identifier && identifier.trim().length < 3) {
+      errors.identifier = 'Provide email or phone';
+    }
+    if (touched.password && password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    }
+    return errors;
+  }, [identifier, password, touched.identifier, touched.password]);
+
   useEffect(() => {
     if (readAuthToken()) {
       router.replace(nextPath);
@@ -43,6 +78,7 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setTouched({ identifier: true, password: true });
 
     const parsed = loginFormSchema.safeParse({ identifier, password });
     if (!parsed.success) {
@@ -65,7 +101,7 @@ export default function LoginPage() {
         },
       );
 
-      writeAuthToken(response.accessToken);
+      writeAuthToken(response.accessToken, { persist: rememberMe });
       router.replace(nextPath);
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {
@@ -79,117 +115,153 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(5,150,105,0.12),transparent_28%),var(--background)] px-5 py-10">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl items-center gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[28px] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-strong)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-            E-Moto Safety & Fleet OS
-          </p>
-          <h1 className="mt-4 max-w-xl font-display text-[clamp(2.2rem,1.8rem+1.2vw,3.4rem)] font-semibold leading-tight text-ink">
-            Dispatch-grade fleet visibility starts with a secure operator login.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-ink-soft">
-            Command center access gives dispatch, operations, and safety teams the same live map,
-            incident workflow, and command surfaces used during daily fleet response.
-          </p>
+    <AuthShell
+      eyebrow="Secure Access"
+      title="Trusted access for live fleet operations."
+      subtitle="Log in to the Fleet OS command center to monitor riders, resolve incidents, and coordinate safer journeys in real time."
+      securityHint="Your data is सुरक्षित / secure"
+      features={[
+        {
+          icon: <Navigation2 size={16} />,
+          title: 'Realtime telemetry',
+          description: 'Track speed, battery, and trip activity with live fleet visibility.',
+        },
+        {
+          icon: <Activity size={16} />,
+          title: 'Incident response',
+          description: 'Handle crashes and SOS alerts with guided workflows.',
+        },
+        {
+          icon: <ShieldCheck size={16} />,
+          title: 'Policy controls',
+          description: 'Role-based access, audit trails, and command safety checks.',
+        },
+      ]}
+    >
+      <AuthPanelHeader
+        eyebrow="Welcome back"
+        title="Login to Fleet OS"
+        description="Use your fleet email or phone number to continue. Login stays secure even on low-bandwidth networks."
+      />
+      <AuthTabs active="login" />
 
-          <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <FeatureTile
-              icon={<Activity size={18} />}
-              title="Realtime command center"
-              description="Live bike telemetry, command acknowledgements, and grouped alerts."
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <AuthInput
+          label="Email or phone"
+          placeholder={loginPresentation.identifierPlaceholder}
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, identifier: true }))}
+          autoComplete="username"
+          icon={<AtSign size={16} />}
+          error={fieldErrors.identifier}
+          helper="Use the phone or email issued by your fleet admin."
+        />
+        <AuthInput
+          label="Password"
+          placeholder="Enter your password"
+          type={showPassword ? 'text' : 'password'}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+          autoComplete="current-password"
+          icon={<Lock size={16} />}
+          error={fieldErrors.password}
+          rightElement={
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
+        />
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <AuthCheckbox
+            checked={rememberMe}
+            onChange={setRememberMe}
+            label="Remember me for 30 days"
+            disabled={isSubmitting}
+          />
+          <Link
+            href="/forgot-password"
+            className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
+        {error ? <AuthNotice message={error} tone="error" /> : null}
+
+        <AuthButton
+          type="submit"
+          label={isSubmitting ? 'Signing in...' : 'Login'}
+          isLoading={isSubmitting}
+          disabled={isSubmitting}
+        />
+
+        <div className="flex items-center gap-3 text-xs text-[#0F172A]/40">
+          <span className="h-px flex-1 bg-[#0F172A]/10" />
+          <span>Or continue with</span>
+          <span className="h-px flex-1 bg-[#0F172A]/10" />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AuthButton
+            type="button"
+            variant="secondary"
+            label="Google"
+            icon={<span className="text-base font-semibold">G</span>}
+          />
+          <AuthButton
+            type="button"
+            variant="secondary"
+            label="Apple"
+            icon={<span className="text-base font-semibold">A</span>}
+          />
+        </div>
+
+        <p className="text-center text-xs text-[#0F172A]/60">
+          New to Fleet OS?{' '}
+          <Link href="/create-account" className="font-semibold text-[#0F172A]">
+            Create an account
+          </Link>
+        </p>
+      </form>
+
+      {loginPresentation.showDemoCredentials ? (
+        <div className="mt-6 rounded-[20px] border border-[#0F172A]/10 bg-white/70 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0F172A]/50">
+            Demo credentials
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <CredentialHint
+              label="Demo Fleet"
+              identifier="admin@demo.emoto"
+              password="ChangeMe123!"
             />
-            <FeatureTile
-              icon={<ShieldAlert size={18} />}
-              title="Incident triage"
-              description="Crash, SOS, and theft workflows with evidence-pack exports."
-            />
-            <FeatureTile
-              icon={<LockKeyhole size={18} />}
-              title="Role-aware access"
-              description="Fleet-scoped routes, command gating, and protected evidence access."
+            <CredentialHint
+              label="North Ops Fleet"
+              identifier="admin@north.demo.emoto"
+              password="FleetTwo123!"
             />
           </div>
-        </section>
-
-        <section className="rounded-[28px] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-strong)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-            Secure sign-in
+        </div>
+      ) : (
+        <div className="mt-6 rounded-[20px] border border-[#0F172A]/10 bg-white/70 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0F172A]/50">
+            Access help
           </p>
-          <h2 className="mt-3 font-display text-3xl font-semibold text-ink">Dashboard login</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-soft">
-            {loginPresentation.description}
+          <p className="mt-2 text-xs leading-5 text-[#0F172A]/60">
+            Use the credentials issued by your fleet administrator. If you need access, request an invite
+            or contact your operations lead.
           </p>
-
-          <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
-            <TextField
-              label="Email or phone"
-              placeholder={loginPresentation.identifierPlaceholder}
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              autoComplete="username"
-            />
-            <TextField
-              label="Password"
-              type="password"
-              placeholder="Your password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-            />
-
-            {error ? <InlineNotice message={error} /> : null}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center rounded-[var(--radius-control)] bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign in to dashboard'}
-            </button>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-soft">
-              <span>Need access for your fleet?</span>
-              <Link
-                href="/create-account"
-                className="font-semibold text-accent hover:text-accent-strong"
-              >
-                Create account
-              </Link>
-            </div>
-          </form>
-
-          {loginPresentation.showDemoCredentials ? (
-            <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-                Seeded operator examples
-              </p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <CredentialHint
-                  label="Demo Fleet"
-                  identifier="admin@demo.emoto"
-                  password="ChangeMe123!"
-                />
-                <CredentialHint
-                  label="North Ops Fleet"
-                  identifier="admin@north.demo.emoto"
-                  password="FleetTwo123!"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-[24px] border border-line bg-surface-muted px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-                Access guidance
-              </p>
-              <p className="mt-3 text-sm leading-6 text-ink-soft">
-                Use the fleet account issued by your organization. If you do not have access,
-                contact your fleet administrator before attempting to sign in.
-              </p>
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+        </div>
+      )}
+    </AuthShell>
   );
 }
 
@@ -202,7 +274,8 @@ function getLoginPresentation() {
   if (showDemoCredentials) {
     return {
       showDemoCredentials: true,
-      description: 'Use a fleet operator email or phone account. Seeded examples are shown below for local development.',
+      description:
+        'Use a fleet operator email or phone account. Seeded examples are shown below for local development.',
       identifierPlaceholder: 'admin@demo.emoto or +250700000101',
     };
   }
@@ -212,24 +285,6 @@ function getLoginPresentation() {
     description: 'Use the email address or phone number assigned to your fleet operator account.',
     identifierPlaceholder: 'name@fleet.example or +2507...',
   };
-}
-
-function FeatureTile({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <article className="rounded-[22px] border border-line bg-surface-muted px-4 py-4">
-      <span className="inline-flex rounded-[16px] bg-white p-2.5 text-accent">{icon}</span>
-      <h3 className="mt-3 font-display text-lg font-semibold text-ink">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p>
-    </article>
-  );
 }
 
 // Renders compact demo account hints when the login screen is running in development mode.
@@ -243,10 +298,10 @@ function CredentialHint({
   password: string;
 }) {
   return (
-    <div className="rounded-[18px] border border-line bg-white px-4 py-3">
-      <p className="text-sm font-semibold text-ink">{label}</p>
-      <p className="mt-2 text-xs leading-5 text-ink-soft">{identifier}</p>
-      <p className="text-xs leading-5 text-ink-soft">{password}</p>
+    <div className="rounded-[16px] border border-[#0F172A]/10 bg-white px-3 py-3">
+      <p className="text-xs font-semibold text-[#0F172A]">{label}</p>
+      <p className="mt-2 text-xs leading-5 text-[#0F172A]/60">{identifier}</p>
+      <p className="text-xs leading-5 text-[#0F172A]/60">{password}</p>
     </div>
   );
 }
