@@ -210,6 +210,13 @@ WebSocket stream:
   - Phone: `+250700000001`
   - Password: `ChangeMe123!`
 
+## Dashboard Auth Feature Flags
+The dashboard auth UI can wire into optional backend capabilities via environment flags:
+- `NEXT_PUBLIC_GOOGLE_OAUTH_URL`: OAuth URL for Google sign-in (leave blank to disable).
+- `NEXT_PUBLIC_APPLE_OAUTH_URL`: OAuth URL for Apple sign-in (leave blank to disable).
+- `NEXT_PUBLIC_PASSWORD_RESET_ENDPOINT`: Relative or absolute endpoint for reset requests (e.g. `/auth/forgot-password`).
+- `NEXT_PUBLIC_ENABLE_FULLNAME`: Set to `1` when the API supports `fullName` on registration payloads.
+
 ## Swagger
 - `http://localhost:3000/docs`
 - Swagger JSON: `http://localhost:3000/docs-json`
