@@ -30,6 +30,8 @@ import {
   AuthTabs,
 } from '@/components/auth/auth-ui';
 
+const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
+
 const registerFormSchema = z
   .object({
     email: z.string().email('Enter a valid email').optional(),
@@ -91,6 +93,7 @@ export default function CreateAccountPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
+  const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inviteRole, setInviteRole] = useState<UserRole>('RIDER');
@@ -222,6 +225,7 @@ export default function CreateAccountPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setSocialNotice(null);
     setSuccess(null);
     setFieldErrors({});
     setTouched((prev) => ({
@@ -292,6 +296,7 @@ export default function CreateAccountPage() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
+              ...(enableFullNameCapture ? { fullName: fullName.trim() } : {}),
             }),
           },
           { auth: false },
@@ -304,6 +309,7 @@ export default function CreateAccountPage() {
             phone: parsed.data.phone,
             password: parsed.data.password,
             role: parsed.data.role,
+            ...(enableFullNameCapture ? { fullName: fullName.trim() } : {}),
           }),
         });
       }
@@ -410,6 +416,7 @@ export default function CreateAccountPage() {
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         {accessNotice ? <AuthNotice message={accessNotice.message} tone={accessNotice.tone} /> : null}
         {error ? <AuthNotice message={error} tone="error" /> : null}
+        {socialNotice ? <AuthNotice message={socialNotice} tone="warning" /> : null}
         {success ? <AuthNotice message={success} tone="success" /> : null}
 
         {isPublicMode ? (
@@ -434,7 +441,11 @@ export default function CreateAccountPage() {
           error={mergedErrors.fullName}
           disabled={isFormDisabled}
           icon={<User size={16} />}
-          helper="Used to personalize your Fleet OS profile after first login."
+          helper={
+            enableFullNameCapture
+              ? 'Saved to your Fleet OS profile after account creation.'
+              : 'Stored once profile capture is enabled on the backend.'
+          }
         />
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -573,12 +584,14 @@ export default function CreateAccountPage() {
             variant="secondary"
             label="Google"
             icon={<span className="text-base font-semibold">G</span>}
+            onClick={() => handleSocialLogin('google', setSocialNotice)}
           />
           <AuthButton
             type="button"
             variant="secondary"
             label="Apple"
             icon={<span className="text-base font-semibold">A</span>}
+            onClick={() => handleSocialLogin('apple', setSocialNotice)}
           />
         </div>
 
@@ -652,6 +665,24 @@ export default function CreateAccountPage() {
       ) : null}
     </AuthShell>
   );
+}
+
+// Routes the user to the configured OAuth endpoint or displays a warning if unavailable.
+function handleSocialLogin(
+  provider: 'google' | 'apple',
+  setNotice: (message: string | null) => void,
+) {
+  const oauthUrl =
+    provider === 'google'
+      ? process.env.NEXT_PUBLIC_GOOGLE_OAUTH_URL
+      : process.env.NEXT_PUBLIC_APPLE_OAUTH_URL;
+
+  if (!oauthUrl) {
+    setNotice('Social sign-up is not configured for this environment yet.');
+    return;
+  }
+
+  window.location.href = oauthUrl;
 }
 
 // Computes validation errors for the sign-up form based on touch state.

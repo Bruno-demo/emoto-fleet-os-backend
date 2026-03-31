@@ -6,14 +6,58 @@ import { useState } from 'react';
 import {
   AuthButton,
   AuthInput,
+  AuthNotice,
   AuthPanelHeader,
   AuthShell,
   AuthTabs,
 } from '@/components/auth/auth-ui';
+import { ApiError, apiFetch } from '@/lib/api/client';
+
+const resetEndpoint = process.env.NEXT_PUBLIC_PASSWORD_RESET_ENDPOINT ?? '';
 
 // Provides a lightweight password reset landing page for fleets using admin-managed resets.
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<'warning' | 'success' | 'error'>('warning');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Requests a password reset when an endpoint is configured.
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setNotice(null);
+
+    if (!resetEndpoint) {
+      setNoticeTone('warning');
+      setNotice('Password reset is not configured yet. Contact your fleet admin for access.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await apiFetch(
+        resetEndpoint,
+        {
+          method: 'POST',
+          body: JSON.stringify({ identifier: identifier.trim() }),
+        },
+        { auth: false },
+      );
+      setNoticeTone('success');
+      setNotice('Request sent. Check your email or phone for next steps.');
+      setIdentifier('');
+    } catch (requestError: unknown) {
+      if (requestError instanceof ApiError) {
+        setNoticeTone('error');
+        setNotice(requestError.message);
+      } else {
+        setNoticeTone('error');
+        setNotice('Unable to request a reset right now');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <AuthShell
@@ -46,7 +90,7 @@ export default function ForgotPasswordPage() {
       />
       <AuthTabs active="login" />
 
-      <form className="mt-6 space-y-4">
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <AuthInput
           label="Email or phone"
           placeholder="name@fleet.example or +2507..."
@@ -54,10 +98,12 @@ export default function ForgotPasswordPage() {
           onChange={(event) => setIdentifier(event.target.value)}
           icon={<Mail size={16} />}
         />
+        {notice ? <AuthNotice message={notice} tone={noticeTone} /> : null}
         <AuthButton
-          type="button"
-          label="Request reset support"
-          disabled={identifier.trim().length < 3}
+          type="submit"
+          label={isSubmitting ? 'Requesting support...' : 'Request reset support'}
+          isLoading={isSubmitting}
+          disabled={identifier.trim().length < 3 || isSubmitting}
         />
         <p className="text-center text-xs text-[#0F172A]/60">
           Remembered your password?{' '}

@@ -41,6 +41,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const loginPresentation = getLoginPresentation();
@@ -78,6 +79,7 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setSocialNotice(null);
     setTouched({ identifier: true, password: true });
 
     const parsed = loginFormSchema.safeParse({ identifier, password });
@@ -195,6 +197,7 @@ export default function LoginPage() {
         </div>
 
         {error ? <AuthNotice message={error} tone="error" /> : null}
+        {socialNotice ? <AuthNotice message={socialNotice} tone="warning" /> : null}
 
         <AuthButton
           type="submit"
@@ -215,12 +218,14 @@ export default function LoginPage() {
             variant="secondary"
             label="Google"
             icon={<span className="text-base font-semibold">G</span>}
+            onClick={() => handleSocialLogin('google', setSocialNotice)}
           />
           <AuthButton
             type="button"
             variant="secondary"
             label="Apple"
             icon={<span className="text-base font-semibold">A</span>}
+            onClick={() => handleSocialLogin('apple', setSocialNotice)}
           />
         </div>
 
@@ -285,6 +290,24 @@ function getLoginPresentation() {
     description: 'Use the email address or phone number assigned to your fleet operator account.',
     identifierPlaceholder: 'name@fleet.example or +2507...',
   };
+}
+
+// Routes the user to the configured OAuth endpoint or displays a warning if unavailable.
+function handleSocialLogin(
+  provider: 'google' | 'apple',
+  setNotice: (message: string | null) => void,
+) {
+  const oauthUrl =
+    provider === 'google'
+      ? process.env.NEXT_PUBLIC_GOOGLE_OAUTH_URL
+      : process.env.NEXT_PUBLIC_APPLE_OAUTH_URL;
+
+  if (!oauthUrl) {
+    setNotice('Social login is not configured for this environment yet.');
+    return;
+  }
+
+  window.location.href = oauthUrl;
 }
 
 // Renders compact demo account hints when the login screen is running in development mode.
