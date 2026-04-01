@@ -39,15 +39,15 @@
 .landing-theme {
   --background: #0b1120;
   --background-strong: #0f172a;
-  --surface: rgba(15, 23, 42, 0.86);
-  --surface-muted: rgba(30, 41, 59, 0.7);
-  --surface-strong: rgba(30, 41, 59, 0.88);
-  --surface-hover: rgba(51, 65, 85, 0.6);
-  --ink: #f8fafc;
-  --ink-soft: rgba(226, 232, 240, 0.78);
-  --ink-muted: rgba(148, 163, 184, 0.72);
-  --line: rgba(148, 163, 184, 0.2);
-  --line-strong: rgba(148, 163, 184, 0.35);
+  --surface: rgba(15, 23, 42, 0.92);
+  --surface-muted: rgba(30, 41, 59, 0.82);
+  --surface-strong: rgba(30, 41, 59, 0.92);
+  --surface-hover: rgba(51, 65, 85, 0.7);
+  --ink: #f1f5f9;
+  --ink-soft: rgba(226, 232, 240, 0.84);
+  --ink-muted: rgba(148, 163, 184, 0.78);
+  --line: rgba(148, 163, 184, 0.28);
+  --line-strong: rgba(148, 163, 184, 0.45);
   --accent: #22c55e;
   --accent-strong: #16a34a;
   --accent-soft: rgba(34, 197, 94, 0.16);
@@ -64,7 +64,7 @@
   --ring: rgba(34, 197, 94, 0.28);
   --shadow-soft: 0 18px 40px rgba(2, 6, 23, 0.5);
   --shadow-strong: 0 28px 72px rgba(2, 6, 23, 0.6);
-  --accent-foreground: #052e16;
+  --accent-foreground: #042f1a;
 }
 
 @theme inline {
