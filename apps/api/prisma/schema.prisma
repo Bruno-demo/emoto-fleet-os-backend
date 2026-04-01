@@ -298,7 +298,7 @@ model Device {
 }
 
 model TelemetryPoint {
-  id        BigInt   @id @default(autoincrement())
+  id        BigInt   @default(autoincrement())
   deviceId  String   @db.Uuid
   ts        DateTime @db.Timestamptz(6)
   lat       Decimal  @db.Decimal(9, 6)
@@ -313,6 +313,7 @@ model TelemetryPoint {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
+  @@id([id, ts])
   @@index([deviceId])
   @@index([ts])
   @@index([deviceId, ts])
