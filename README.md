@@ -114,6 +114,18 @@ docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env
 
 The API metrics endpoint is available at `http://localhost:3000/metrics`.
 
+## Healthcheck Status
+Quickly verify the API and gateway health endpoints:
+```bash
+curl http://localhost:3000/health
+curl http://localhost:8080/health
+```
+
+Check Docker container health at a glance:
+```bash
+docker compose ps
+```
+
 ## Backups
 The production compose includes a `backup` service that runs a daily Postgres dump into the `postgres_backups` volume.
 
