@@ -105,9 +105,9 @@ export default function ForgotPasswordPage() {
           isLoading={isSubmitting}
           disabled={identifier.trim().length < 3 || isSubmitting}
         />
-        <p className="text-center text-xs text-[#0F172A]/60">
+        <p className="text-center text-xs text-ink-muted">
           Remembered your password?{' '}
-          <Link href="/login" className="font-semibold text-[#0F172A]">
+          <Link href="/login" className="font-semibold text-ink">
             Return to login
           </Link>
         </p>
