@@ -27,7 +27,15 @@ const userSelectForAuth = {
   phone: true,
   passwordHash: true,
   status: true,
+  fleet: {
+    select: {
+      plan: true,
+      subscriptionStatus: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
+
+type AuthUserRecord = Prisma.UserGetPayload<{ select: typeof userSelectForAuth }>;
 
 @Injectable()
 export class AuthService {
@@ -73,7 +81,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.buildAuthResponse(user, dto.rememberMe ?? false);
+    const authenticatedUser = this.toAuthenticatedUser(user);
+    this.assertDashboardAccess(authenticatedUser);
+
+    return this.buildAuthResponse(authenticatedUser, dto.rememberMe ?? false);
   }
 
   // Registers a new user inside the caller's fleet when self-registration is enabled.
@@ -382,13 +393,14 @@ export class AuthService {
     if (user.status !== 'ACTIVE') {
       throw new UnauthorizedException('User is not active');
     }
+    this.assertDashboardAccess(user);
 
     return user;
   }
 
   // Signs and returns a JWT access token and public user payload.
   private async buildAuthResponse(
-    user: Prisma.UserGetPayload<{ select: typeof userSelectForAuth }>,
+    user: AuthenticatedUser,
     rememberMe: boolean,
   ): Promise<{
     accessToken: string;
@@ -412,14 +424,7 @@ export class AuthService {
     return {
       accessToken,
       tokenType: 'Bearer',
-      user: {
-        id: user.id,
-        fleetId: user.fleetId,
-        role: user.role,
-        email: user.email,
-        phone: user.phone,
-        status: user.status,
-      },
+      user,
     };
   }
 
@@ -450,20 +455,42 @@ export class AuthService {
   private async loadUserOrThrow(userId: string): Promise<AuthenticatedUser> {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        fleetId: true,
-        role: true,
-        email: true,
-        phone: true,
-        status: true,
-      },
+      select: userSelectForAuth,
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    return user;
+    return this.toAuthenticatedUser(user);
+  }
+
+  // Maps user records into the authenticated user payload used by the API and dashboard.
+  private toAuthenticatedUser(user: AuthUserRecord): AuthenticatedUser {
+    return {
+      id: user.id,
+      fleetId: user.fleetId,
+      fleetPlan: user.fleet.plan,
+      subscriptionStatus: user.fleet.subscriptionStatus,
+      role: user.role,
+      email: user.email,
+      phone: user.phone,
+      status: user.status,
+    };
+  }
+
+  // Blocks non-rider access unless the fleet is in demo mode or an active premium subscription.
+  private assertDashboardAccess(user: AuthenticatedUser): void {
+    if (user.role === UserRole.RIDER) {
+      return;
+    }
+    if (user.fleetPlan === 'DEMO') {
+      return;
+    }
+    if (user.fleetPlan === 'PREMIUM' && user.subscriptionStatus === 'ACTIVE') {
+      return;
+    }
+
+    throw new ForbiddenException('Subscription required');
   }
 }

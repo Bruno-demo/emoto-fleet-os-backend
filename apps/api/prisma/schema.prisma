@@ -12,6 +12,17 @@ enum FleetType {
   DELIVERY
 }
 
+enum FleetPlan {
+  DEMO
+  PREMIUM
+}
+
+enum FleetSubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
 enum UserRole {
   OWNER
   ADMIN
@@ -180,6 +191,8 @@ model Fleet {
   id                String               @id @default(uuid()) @db.Uuid
   name              String
   type              FleetType
+  plan              FleetPlan            @default(DEMO)
+  subscriptionStatus FleetSubscriptionStatus @default(ACTIVE)
   createdAt         DateTime             @default(now()) @db.Timestamptz(6)
   users             User[]
   bikes             Bike[]

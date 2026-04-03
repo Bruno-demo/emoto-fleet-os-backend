@@ -18,6 +18,8 @@ export interface SessionUser {
   id: string;
   fleetId: string;
   fleetName?: string | null;
+  fleetPlan?: 'DEMO' | 'PREMIUM';
+  subscriptionStatus?: 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
   role: UserRole;
   email: string | null;
   phone: string | null;

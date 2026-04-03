@@ -12,11 +12,15 @@ export const userRoleSchema = z.enum([
 ]);
 
 export const userStatusSchema = z.enum(['INVITED', 'ACTIVE', 'SUSPENDED', 'DISABLED']);
+export const fleetPlanSchema = z.enum(['DEMO', 'PREMIUM']);
+export const subscriptionStatusSchema = z.enum(['ACTIVE', 'PAST_DUE', 'CANCELED']);
 
 export const authUserSchema = z.object({
   id: z.string().uuid(),
   fleetId: fleetIdSchema,
   fleetName: z.string().nullable().optional(),
+  fleetPlan: fleetPlanSchema.optional(),
+  subscriptionStatus: subscriptionStatusSchema.optional(),
   role: userRoleSchema,
   email: z.string().nullable(),
   phone: z.string().nullable(),

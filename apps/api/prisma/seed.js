@@ -665,11 +665,15 @@ async function seedSecondFleet({
     update: {
       name: 'North Ops Fleet',
       type: 'COOP',
+      plan: 'PREMIUM',
+      subscriptionStatus: 'ACTIVE',
     },
     create: {
       id: SECOND_FLEET_ID,
       name: 'North Ops Fleet',
       type: 'COOP',
+      plan: 'PREMIUM',
+      subscriptionStatus: 'ACTIVE',
     },
   });
 
@@ -943,11 +947,15 @@ async function seed() {
     update: {
       name: 'Demo Fleet',
       type: 'DELIVERY',
+      plan: 'DEMO',
+      subscriptionStatus: 'ACTIVE',
     },
     create: {
       id: DEMO_FLEET_ID,
       name: 'Demo Fleet',
       type: 'DELIVERY',
+      plan: 'DEMO',
+      subscriptionStatus: 'ACTIVE',
     },
   });
 
