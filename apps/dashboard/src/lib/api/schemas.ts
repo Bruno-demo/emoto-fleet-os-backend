@@ -43,7 +43,7 @@ export function buildLoginPayload(
   rememberMe: boolean,
 ) {
   const normalizedIdentifier = identifier.trim();
-  const commonFields = { password, rememberMe };
+  const commonFields = rememberMe ? { password, rememberMe } : { password };
 
   if (normalizedIdentifier.includes('@')) {
     return {
