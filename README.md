@@ -262,6 +262,7 @@ npm run gen:types -w apps/dashboard
 
 ## Partner API
 - Partner auth and endpoint contract: `docs/partner-api.md`
+- Partner documentation page: `http://localhost:3000/partner/docs`
 - Create or rotate partner clients locally:
 ```bash
 cd apps/api

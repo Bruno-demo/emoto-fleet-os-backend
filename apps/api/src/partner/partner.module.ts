@@ -9,6 +9,7 @@ import { PartnerAuthController } from './partner-auth.controller';
 import { PartnerAuthGuard } from './partner-auth.guard';
 import { PartnerAuthService } from './partner-auth.service';
 import { PartnerController } from './partner.controller';
+import { PartnerDocsController } from './partner-docs.controller';
 import { PartnerService } from './partner.service';
 
 @Module({
@@ -26,7 +27,7 @@ import { PartnerService } from './partner.service';
       }),
     }),
   ],
-  controllers: [PartnerAuthController, PartnerController],
+  controllers: [PartnerAuthController, PartnerController, PartnerDocsController],
   providers: [PartnerAuthService, PartnerAuthGuard, PartnerService],
   exports: [PartnerService],
 })
