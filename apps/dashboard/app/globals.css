@@ -116,14 +116,6 @@ body {
   font-feature-settings: "ss01" 1, "cv03" 1;
 }
 
-body.landing-theme {
-  background:
-    radial-gradient(circle at 10% 0%, rgba(34, 197, 94, 0.16) 0%, transparent 28%),
-    radial-gradient(circle at 96% 12%, rgba(56, 189, 248, 0.12) 0%, transparent 28%),
-    radial-gradient(circle at 70% 100%, rgba(14, 116, 144, 0.16) 0%, transparent 30%),
-    var(--background);
-  color: var(--ink);
-}
 
 a {
   color: inherit;
