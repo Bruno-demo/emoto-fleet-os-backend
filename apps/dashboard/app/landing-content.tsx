@@ -157,8 +157,8 @@ const pricingPlans = [
 ];
 
 // Renders the dashboard marketing landing page based on the supplied Figma layout.
-export default function LandingContent() {
-  const cookieStore = cookies();
+export default async function LandingContent() {
+  const cookieStore = await cookies();
   const authCookieName = process.env.AUTH_COOKIE_NAME ?? 'emoto_access_token';
   const hasSession = Boolean(cookieStore.get(authCookieName)?.value);
 
