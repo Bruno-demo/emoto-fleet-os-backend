@@ -20,31 +20,29 @@ export function AuthShell({
   children,
 }: AuthShellProps) {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] px-5 py-10 text-[#0F172A]">
+    <div className="landing-theme min-h-screen bg-[var(--background)] px-5 py-10 text-ink">
       <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-5xl items-center gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[28px] border border-white/60 bg-white/70 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#0F172A]/70">
+        <section className="rounded-[28px] border border-line bg-surface p-7 shadow-[var(--shadow-strong)] backdrop-blur">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ink-muted">
             {eyebrow}
           </p>
           <div className="mt-5 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#0F172A] text-white shadow-[0_12px_30px_rgba(15,23,42,0.3)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-ink text-background shadow-[var(--shadow-soft)]">
               <span className="text-lg font-semibold">E</span>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0F172A]/60">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
                 E-Moto Fleet OS
               </p>
-              <p className="text-sm font-semibold text-[#22C55E]">
-                Smart Mobility Starts Here
-              </p>
+              <p className="text-sm font-semibold text-accent">Smart Mobility Starts Here</p>
             </div>
           </div>
-          <h1 className="mt-5 text-[clamp(2rem,1.8rem+1vw,3rem)] font-semibold leading-tight text-[#0F172A]">
+          <h1 className="mt-5 text-[clamp(2rem,1.8rem+1vw,3rem)] font-semibold leading-tight text-ink">
             {title}
           </h1>
-          <p className="mt-3 text-base leading-7 text-[#0F172A]/70">{subtitle}</p>
+          <p className="mt-3 text-base leading-7 text-ink-soft">{subtitle}</p>
           {securityHint ? (
-            <p className="mt-4 inline-flex items-center rounded-full border border-[#22C55E]/30 bg-[#22C55E]/10 px-3 py-1 text-xs font-semibold text-[#0F172A]">
+            <p className="mt-4 inline-flex items-center rounded-full border border-accent/40 bg-accent-soft px-3 py-1 text-xs font-semibold text-ink">
               {securityHint}
             </p>
           ) : null}
@@ -53,23 +51,19 @@ export function AuthShell({
             {features.map((feature) => (
               <article
                 key={feature.title}
-                className="rounded-[20px] border border-white/70 bg-white/70 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
+                className="rounded-[20px] border border-line bg-surface-muted px-4 py-4 shadow-[var(--shadow-soft)]"
               >
-                <span className="inline-flex rounded-[14px] bg-[#0F172A] p-2 text-white">
+                <span className="inline-flex rounded-[14px] bg-ink p-2 text-background">
                   {feature.icon}
                 </span>
-                <h3 className="mt-3 text-sm font-semibold text-[#0F172A]">
-                  {feature.title}
-                </h3>
-                <p className="mt-2 text-xs leading-5 text-[#0F172A]/65">
-                  {feature.description}
-                </p>
+                <h3 className="mt-3 text-sm font-semibold text-ink">{feature.title}</h3>
+                <p className="mt-2 text-xs leading-5 text-ink-soft">{feature.description}</p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-white/60 bg-white/80 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur">
+        <section className="rounded-[28px] border border-line bg-surface-muted p-7 shadow-[var(--shadow-strong)] backdrop-blur">
           {children}
         </section>
       </div>
@@ -87,11 +81,11 @@ interface AuthPanelHeaderProps {
 export function AuthPanelHeader({ eyebrow, title, description }: AuthPanelHeaderProps) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#0F172A]/60">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-ink-muted">
         {eyebrow}
       </p>
-      <h2 className="mt-3 text-3xl font-semibold text-[#0F172A]">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-[#0F172A]/70">{description}</p>
+      <h2 className="mt-3 text-3xl font-semibold text-ink">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p>
     </div>
   );
 }
@@ -115,21 +109,21 @@ export function AuthInput({
   ...props
 }: AuthInputProps) {
   return (
-    <label className="block text-sm font-medium text-[#0F172A]">
+    <label className="block text-sm font-medium text-ink">
       <span>{label}</span>
       <div className="relative mt-2">
         {icon ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/55">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
             {icon}
           </span>
         ) : null}
         <input
           {...props}
           className={cx(
-            'w-full rounded-[16px] border bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/25',
+            'w-full rounded-[16px] border bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
             icon ? 'pl-11' : 'pl-4',
             rightElement ? 'pr-12' : 'pr-4',
-            error ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-200/50' : 'border-[#0F172A]/10',
+            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line',
             className,
           )}
         />
@@ -137,8 +131,8 @@ export function AuthInput({
           <div className="absolute right-3 top-1/2 -translate-y-1/2">{rightElement}</div>
         ) : null}
       </div>
-      {helper ? <p className="mt-2 text-xs text-[#0F172A]/60">{helper}</p> : null}
-      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+      {helper ? <p className="mt-2 text-xs text-ink-muted">{helper}</p> : null}
+      {error ? <p className="mt-2 text-xs text-danger-ink">{error}</p> : null}
     </label>
   );
 }
@@ -153,9 +147,9 @@ interface AuthNoticeProps {
 // Renders inline feedback for errors, warnings, and success states.
 export function AuthNotice({ message, tone = 'error' }: AuthNoticeProps) {
   const toneStyles = {
-    error: 'border-rose-200 bg-rose-50 text-rose-700',
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    warning: 'border-amber-200 bg-amber-50 text-amber-700',
+    error: 'border-danger-ink/30 bg-danger-soft text-danger-ink',
+    success: 'border-success-ink/30 bg-success-soft text-success-ink',
+    warning: 'border-warning-ink/30 bg-warning-soft text-warning-ink',
   };
 
   return (
@@ -193,8 +187,8 @@ export function AuthButton({
       className={cx(
         'inline-flex w-full items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-sm font-semibold transition',
         variant === 'primary'
-          ? 'bg-[#22C55E] text-white shadow-[0_16px_40px_rgba(34,197,94,0.35)] hover:bg-[#1FA755]'
-          : 'border border-[#0F172A]/10 bg-white text-[#0F172A] hover:border-[#0F172A]/20',
+          ? 'bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)] hover:bg-accent-strong'
+          : 'border border-line bg-surface text-ink hover:border-line-strong',
         (disabled || isLoading) ? 'cursor-not-allowed opacity-60' : '',
       )}
     >
@@ -216,25 +210,25 @@ interface AuthSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 // Provides a branded select input for role and mode selection.
 export function AuthSelect({ label, error, helper, className, children, ...props }: AuthSelectProps) {
   return (
-    <label className="block text-sm font-medium text-[#0F172A]">
+    <label className="block text-sm font-medium text-ink">
       <span>{label}</span>
       <div className="relative mt-2">
         <select
           {...props}
           className={cx(
-            'w-full appearance-none rounded-[16px] border bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/25',
-            error ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-200/50' : 'border-[#0F172A]/10',
+            'w-full appearance-none rounded-[16px] border bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
+            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line',
             className,
           )}
         >
           {children}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#0F172A]/50">
-          ▾
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted">
+          v
         </span>
       </div>
-      {helper ? <p className="mt-2 text-xs text-[#0F172A]/60">{helper}</p> : null}
-      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+      {helper ? <p className="mt-2 text-xs text-ink-muted">{helper}</p> : null}
+      {error ? <p className="mt-2 text-xs text-danger-ink">{error}</p> : null}
     </label>
   );
 }
@@ -249,10 +243,10 @@ interface AuthCheckboxProps {
 // Renders a branded checkbox with accessible hit target.
 export function AuthCheckbox({ checked, onChange, label, disabled }: AuthCheckboxProps) {
   return (
-    <label className="flex items-center gap-2 text-xs font-medium text-[#0F172A]/70">
+    <label className="flex items-center gap-2 text-xs font-medium text-ink-muted">
       <input
         type="checkbox"
-        className="h-4 w-4 rounded border-[#0F172A]/20 text-[#22C55E] focus:ring-[#22C55E]/30"
+        className="h-4 w-4 rounded border-line text-accent focus:ring-[var(--ring)]"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
         disabled={disabled}
@@ -269,12 +263,12 @@ interface AuthTabsProps {
 // Creates a simple two-tab switcher between login and signup routes.
 export function AuthTabs({ active }: AuthTabsProps) {
   return (
-    <div className="mt-6 grid grid-cols-2 rounded-[14px] bg-[#F1F5F9] p-1 text-xs font-semibold">
+    <div className="mt-6 grid grid-cols-2 rounded-[14px] bg-surface-hover p-1 text-xs font-semibold">
       <a
         href="/login"
         className={cx(
           'rounded-[12px] px-3 py-2 text-center transition',
-          active === 'login' ? 'bg-white text-[#0F172A] shadow' : 'text-[#0F172A]/60',
+          active === 'login' ? 'bg-surface text-ink shadow' : 'text-ink-muted',
         )}
       >
         Login
@@ -283,7 +277,7 @@ export function AuthTabs({ active }: AuthTabsProps) {
         href="/create-account"
         className={cx(
           'rounded-[12px] px-3 py-2 text-center transition',
-          active === 'signup' ? 'bg-white text-[#0F172A] shadow' : 'text-[#0F172A]/60',
+          active === 'signup' ? 'bg-surface text-ink shadow' : 'text-ink-muted',
         )}
       >
         Sign up

@@ -487,7 +487,7 @@ export default function CreateAccountPage() {
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+                className="text-xs font-semibold text-ink-muted transition hover:text-ink"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -508,7 +508,7 @@ export default function CreateAccountPage() {
                 type="button"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
                 aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+                className="text-xs font-semibold text-ink-muted transition hover:text-ink"
               >
                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -532,24 +532,24 @@ export default function CreateAccountPage() {
           </AuthSelect>
         ) : (
           <div>
-            <p className="text-sm font-medium text-[#0F172A]">Role</p>
+            <p className="text-sm font-medium text-ink">Role</p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setRole('RIDER')}
-                className="rounded-[14px] border border-[#22C55E]/40 bg-[#22C55E]/10 px-3 py-2 text-[#0F172A]"
+                className="rounded-[14px] border border-accent/40 bg-accent-soft px-3 py-2 text-ink"
               >
                 Rider
               </button>
               <button
                 type="button"
                 disabled
-                className="rounded-[14px] border border-[#0F172A]/10 bg-white px-3 py-2 text-[#0F172A]/40"
+                className="rounded-[14px] border border-line bg-surface px-3 py-2 text-ink-muted"
               >
                 Admin
               </button>
             </div>
-            <p className="mt-2 text-xs text-[#0F172A]/60">
+            <p className="mt-2 text-xs text-ink-muted">
               Admin roles require fleet approval and cannot be self-selected.
             </p>
           </div>
@@ -562,7 +562,7 @@ export default function CreateAccountPage() {
           disabled={isFormDisabled}
         />
         {mergedErrors.terms ? (
-          <p className="text-xs font-medium text-rose-600">{mergedErrors.terms}</p>
+          <p className="text-xs font-medium text-danger-ink">{mergedErrors.terms}</p>
         ) : null}
 
         <AuthButton
@@ -572,10 +572,10 @@ export default function CreateAccountPage() {
           disabled={isFormDisabled}
         />
 
-        <div className="flex items-center gap-3 text-xs text-[#0F172A]/40">
-          <span className="h-px flex-1 bg-[#0F172A]/10" />
+        <div className="flex items-center gap-3 text-xs text-ink-muted">
+          <span className="h-px flex-1 bg-line" />
           <span>Or sign up with</span>
-          <span className="h-px flex-1 bg-[#0F172A]/10" />
+          <span className="h-px flex-1 bg-line" />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -595,20 +595,20 @@ export default function CreateAccountPage() {
           />
         </div>
 
-        <p className="text-center text-xs text-[#0F172A]/60">
+        <p className="text-center text-xs text-ink-muted">
           Already have credentials?{' '}
-          <Link href="/login" className="font-semibold text-[#0F172A]">
+          <Link href="/login" className="font-semibold text-ink">
             Return to login
           </Link>
         </p>
       </form>
 
       {isAdminMode ? (
-        <div className="mt-6 rounded-[20px] border border-[#0F172A]/10 bg-white/70 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0F172A]/50">
+        <div className="mt-6 rounded-[20px] border border-line bg-surface-muted p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
             Invite codes
           </p>
-          <p className="mt-2 text-xs leading-5 text-[#0F172A]/60">
+          <p className="mt-2 text-xs leading-5 text-ink-muted">
             Generate a one-time invite token for operators who should self-register. Tokens are
             short-lived and should be shared securely.
           </p>
@@ -638,15 +638,15 @@ export default function CreateAccountPage() {
 
           {inviteError ? <AuthNotice message={inviteError} tone="error" /> : null}
           {inviteTokenValue ? (
-            <div className="mt-3 rounded-[16px] border border-[#0F172A]/10 bg-white px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0F172A]/50">
+            <div className="mt-3 rounded-[16px] border border-line bg-surface px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
                 Invite code
               </p>
-              <p className="mt-2 break-all font-mono text-xs text-[#0F172A]">
+              <p className="mt-2 break-all font-mono text-xs text-ink">
                 {inviteTokenValue}
               </p>
               {inviteExpiresAt ? (
-                <p className="mt-2 text-xs text-[#0F172A]/60">
+                <p className="mt-2 text-xs text-ink-muted">
                   Expires {new Date(inviteExpiresAt).toLocaleString()}
                 </p>
               ) : null}

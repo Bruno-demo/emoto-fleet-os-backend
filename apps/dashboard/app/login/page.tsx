@@ -171,7 +171,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+              className="text-xs font-semibold text-ink-muted transition hover:text-ink"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -187,7 +187,7 @@ export default function LoginPage() {
           />
           <Link
             href="/forgot-password"
-            className="text-xs font-semibold text-[#0F172A]/60 transition hover:text-[#0F172A]"
+            className="text-xs font-semibold text-ink-muted transition hover:text-ink"
           >
             Forgot password?
           </Link>
@@ -203,10 +203,10 @@ export default function LoginPage() {
           disabled={isSubmitting}
         />
 
-        <div className="flex items-center gap-3 text-xs text-[#0F172A]/40">
-          <span className="h-px flex-1 bg-[#0F172A]/10" />
+        <div className="flex items-center gap-3 text-xs text-ink-muted">
+          <span className="h-px flex-1 bg-line" />
           <span>Or continue with</span>
-          <span className="h-px flex-1 bg-[#0F172A]/10" />
+          <span className="h-px flex-1 bg-line" />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -226,17 +226,17 @@ export default function LoginPage() {
           />
         </div>
 
-        <p className="text-center text-xs text-[#0F172A]/60">
+        <p className="text-center text-xs text-ink-muted">
           New to Fleet OS?{' '}
-          <Link href="/create-account" className="font-semibold text-[#0F172A]">
+          <Link href="/create-account" className="font-semibold text-ink">
             Create an account
           </Link>
         </p>
       </form>
 
       {loginPresentation.showDemoCredentials ? (
-        <div className="mt-6 rounded-[20px] border border-[#0F172A]/10 bg-white/70 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0F172A]/50">
+        <div className="mt-6 rounded-[20px] border border-line bg-surface-muted p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
             Demo credentials
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -253,11 +253,11 @@ export default function LoginPage() {
           </div>
         </div>
       ) : (
-        <div className="mt-6 rounded-[20px] border border-[#0F172A]/10 bg-white/70 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0F172A]/50">
+        <div className="mt-6 rounded-[20px] border border-line bg-surface-muted p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
             Access help
           </p>
-          <p className="mt-2 text-xs leading-5 text-[#0F172A]/60">
+          <p className="mt-2 text-xs leading-5 text-ink-muted">
             Use the credentials issued by your fleet administrator. If you need access, request an invite
             or contact your operations lead.
           </p>
@@ -318,10 +318,10 @@ function CredentialHint({
   password: string;
 }) {
   return (
-    <div className="rounded-[16px] border border-[#0F172A]/10 bg-white px-3 py-3">
-      <p className="text-xs font-semibold text-[#0F172A]">{label}</p>
-      <p className="mt-2 text-xs leading-5 text-[#0F172A]/60">{identifier}</p>
-      <p className="text-xs leading-5 text-[#0F172A]/60">{password}</p>
+    <div className="rounded-[16px] border border-line bg-surface px-3 py-3">
+      <p className="text-xs font-semibold text-ink">{label}</p>
+      <p className="mt-2 text-xs leading-5 text-ink-muted">{identifier}</p>
+      <p className="text-xs leading-5 text-ink-muted">{password}</p>
     </div>
   );
 }
