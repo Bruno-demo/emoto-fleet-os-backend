@@ -79,6 +79,7 @@ type FieldErrors = Partial<
 
 // Renders the account provisioning screen with access gating and validation.
 export default function CreateAccountPage() {
+  const hasWindow = typeof window !== 'undefined';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
   const [inviteToken, setInviteToken] = useState('');
   const [fullName, setFullName] = useState('');
@@ -112,6 +113,9 @@ export default function CreateAccountPage() {
   });
 
   const registrationMode = useMemo(() => {
+    if (!hasWindow) {
+      return 'checking';
+    }
     if (isError) {
       return 'public';
     }
@@ -125,7 +129,7 @@ export default function CreateAccountPage() {
       return 'admin';
     }
     return 'limited';
-  }, [isError, isLoading, currentUser]);
+  }, [hasWindow, isError, isLoading, currentUser]);
 
   const isAdminMode = registrationMode === 'admin';
   const isPublicMode = registrationMode === 'public';
