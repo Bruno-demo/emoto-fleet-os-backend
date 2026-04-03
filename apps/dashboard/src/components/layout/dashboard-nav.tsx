@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { canManageZones } from '@/lib/auth/roles';
+import { apiFetch } from '@/lib/api/client';
 import { clearAuthToken } from '@/lib/auth/session';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
@@ -48,8 +49,13 @@ export function DashboardNav({
   const { data: user } = useCurrentUser();
 
   // Clears current auth state and websocket connection before returning to login.
-  const handleLogout = () => {
+  const handleLogout = async () => {
     disconnectFleetSocket();
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+    } catch {
+      // Ignore logout errors; session cookie will expire server-side.
+    }
     clearAuthToken();
     router.replace('/login');
   };

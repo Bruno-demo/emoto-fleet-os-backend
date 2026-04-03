@@ -11,14 +11,13 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import {
   buildLoginPayload,
   loginFormSchema,
   loginResponseSchema,
 } from '@/lib/api/schemas';
-import { readAuthToken, writeAuthToken } from '@/lib/auth/session';
 import {
   AuthButton,
   AuthCheckbox,
@@ -69,12 +68,6 @@ export default function LoginPage() {
     return errors;
   }, [identifier, password, touched.identifier, touched.password]);
 
-  useEffect(() => {
-    if (readAuthToken()) {
-      router.replace(nextPath);
-    }
-  }, [nextPath, router]);
-
   // Validates credentials then requests a JWT from the Nest auth endpoint.
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -103,7 +96,7 @@ export default function LoginPage() {
         },
       );
 
-      writeAuthToken(response.accessToken, { persist: rememberMe });
+      void response;
       router.replace(nextPath);
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {

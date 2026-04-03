@@ -16,7 +16,6 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { ApiError, apiFetch } from '@/lib/api/client';
-import { readAuthToken } from '@/lib/auth/session';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type { UserRole } from '@/lib/types/dashboard';
 import {
@@ -112,10 +111,8 @@ export default function CreateAccountPage() {
     terms: false,
   });
 
-  const token = typeof window !== 'undefined' ? readAuthToken() : null;
-  const sessionInvalid = Boolean(token) && isError;
   const registrationMode = useMemo(() => {
-    if (!token || sessionInvalid) {
+    if (isError) {
       return 'public';
     }
     if (isLoading) {
@@ -128,7 +125,7 @@ export default function CreateAccountPage() {
       return 'admin';
     }
     return 'limited';
-  }, [token, sessionInvalid, isLoading, currentUser]);
+  }, [isError, isLoading, currentUser]);
 
   const isAdminMode = registrationMode === 'admin';
   const isPublicMode = registrationMode === 'public';
@@ -157,9 +154,8 @@ export default function CreateAccountPage() {
     if (isPublicMode) {
       return {
         tone: 'warning' as const,
-        message: sessionInvalid
-          ? 'Session expired. Sign in to create staff accounts, or continue with rider-only public sign-up.'
-          : 'Public sign-up creates rider accounts only. Enter the invite code provided by your admin.',
+        message:
+          'Public sign-up creates rider accounts only. Enter the invite code provided by your admin.',
       };
     }
     if (isChecking) {
@@ -175,7 +171,7 @@ export default function CreateAccountPage() {
       };
     }
     return null;
-  }, [isPublicMode, isChecking, isLimitedMode, sessionInvalid]);
+  }, [isPublicMode, isChecking, isLimitedMode]);
 
   const isFormDisabled = isSubmitting || isChecking;
   const inlineErrors = useMemo(

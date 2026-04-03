@@ -1,7 +1,9 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
+import type { Response } from 'express';
 import { CurrentUser } from './current-user.decorator';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { LoginDto } from './dto/login.dto';
@@ -16,7 +18,10 @@ import { Roles } from './roles.decorator';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('login')
   @Public()
@@ -25,12 +30,28 @@ export class AuthController {
     default: { limit: 8, ttl: 60_000 },
   })
   @ApiOperation({ summary: 'Login with email/password or phone/password' })
-  async login(@Body() dto: LoginDto): Promise<{
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{
     accessToken: string;
     tokenType: 'Bearer';
     user: AuthenticatedUser;
   }> {
-    return this.authService.login(dto);
+    const result = await this.authService.login(dto);
+    this.setAuthCookie(response, result.accessToken);
+    return result;
+  }
+
+  @Post('logout')
+  @Public()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Clear the access token cookie' })
+  async logout(@Res({ passthrough: true }) response: Response): Promise<{
+    ok: true;
+  }> {
+    this.clearAuthCookie(response);
+    return { ok: true };
   }
 
   @Post('register')
@@ -99,6 +120,45 @@ export class AuthController {
     @Body() dto: RedeemInviteDto,
   ): Promise<AuthenticatedUser> {
     return this.authService.redeemInvite(dto);
+  }
+
+  // Sets the httpOnly auth cookie used by browser clients.
+  private setAuthCookie(response: Response, token: string): void {
+    const cookieName = this.configService.get<string>(
+      'AUTH_COOKIE_NAME',
+      'emoto_access_token',
+    );
+    const secure = this.configService.get<boolean>(
+      'AUTH_COOKIE_SECURE',
+      false,
+    );
+    const configuredSameSite = this.configService.get<
+      'lax' | 'strict' | 'none'
+    >('AUTH_COOKIE_SAMESITE', 'lax');
+    const sameSite =
+      configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
+    const domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
+
+    response.cookie(cookieName, token, {
+      httpOnly: true,
+      secure: secure || configuredSameSite === 'none',
+      sameSite,
+      path: '/',
+      domain: domain || undefined,
+    });
+  }
+
+  // Clears the httpOnly auth cookie in browser sessions.
+  private clearAuthCookie(response: Response): void {
+    const cookieName = this.configService.get<string>(
+      'AUTH_COOKIE_NAME',
+      'emoto_access_token',
+    );
+    const domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
+    response.clearCookie(cookieName, {
+      path: '/',
+      domain: domain || undefined,
+    });
   }
 }
 

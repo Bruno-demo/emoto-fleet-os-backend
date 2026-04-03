@@ -8,6 +8,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DeviceCommandStatus } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { Public } from '../auth/public.decorator';
@@ -36,6 +37,7 @@ export interface CommandStatusPayload {
   namespace: '/fleet-events',
   cors: {
     origin: true,
+    credentials: true,
   },
 })
 export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
@@ -45,7 +47,10 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
   @WebSocketServer()
   private server!: Server;
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   // Installs handshake middleware that authenticates websocket JWT tokens.
   afterInit(server: Server): void {
@@ -158,7 +163,32 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
       return fromAuthPayload;
     }
 
-    return this.normalizeToken(socket.handshake.headers.authorization);
+    const headerToken = this.normalizeToken(socket.handshake.headers.authorization);
+    if (headerToken) {
+      return headerToken;
+    }
+
+    return this.extractCookieToken(socket.handshake.headers.cookie);
+  }
+
+  // Extracts the access token from the httpOnly auth cookie for browser clients.
+  private extractCookieToken(cookieHeader: string | undefined): string | null {
+    if (!cookieHeader) {
+      return null;
+    }
+    const cookieName = this.configService.get<string>(
+      'AUTH_COOKIE_NAME',
+      'emoto_access_token',
+    );
+    const cookies = cookieHeader.split(';').map((cookie) => cookie.trim());
+    for (const cookie of cookies) {
+      if (!cookie.startsWith(`${cookieName}=`)) {
+        continue;
+      }
+      const rawValue = cookie.slice(cookieName.length + 1).trim();
+      return rawValue || null;
+    }
+    return null;
   }
 
   // Normalizes supported token formats into raw JWT token string.

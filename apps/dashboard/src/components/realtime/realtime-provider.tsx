@@ -9,7 +9,6 @@ import {
   useState,
 } from 'react';
 import { z } from 'zod';
-import { readAuthToken } from '@/lib/auth/session';
 import { connectFleetSocket, disconnectFleetSocket } from '@/lib/realtime/socket';
 import type {
   CommandStatusEvent,
@@ -91,10 +90,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [connectionState, setConnectionState] = useState<
     'connecting' | 'connected' | 'reconnecting' | 'offline'
   >(() => {
-    if (typeof window === 'undefined') {
-      return 'offline';
-    }
-    return readAuthToken() ? 'connecting' : 'offline';
+    return typeof window === 'undefined' ? 'offline' : 'connecting';
   });
 
   // Stores synthetic or websocket-delivered command updates in a capped local stream.

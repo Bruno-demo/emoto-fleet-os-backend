@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { readAuthToken } from '@/lib/auth/session';
-
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
   /\/$/,
   '',
@@ -76,24 +74,15 @@ export async function apiFetch<T = unknown>(
   init: RequestInit = {},
   options: ApiFetchOptions<T> = {},
 ): Promise<T> {
-  const shouldAttachAuth = options.auth !== false;
-  const token = shouldAttachAuth ? readAuthToken() : null;
-
-  if (shouldAttachAuth && !token) {
-    throw new ApiError(401, 'Authentication required');
-  }
-
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');
-  }
-  if (shouldAttachAuth && token) {
-    headers.set('authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(resolveApiUrl(path), {
     ...init,
     headers,
+    credentials: 'include',
   });
 
   const body = await parseResponseBody(response);
