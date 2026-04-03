@@ -213,7 +213,7 @@ WebSocket stream:
 - `POST /auth/invites` (OWNER/ADMIN only, returns a one-time invite token)
 - `POST /auth/register-invite` (public, invite-token redemption)
 - `POST /auth/register-public` (public, disabled unless `AUTH_PUBLIC_REGISTER_ENABLED=true`)
-- `GET /me` (requires JWT bearer token)
+- `GET /me` (requires JWT bearer token or auth cookie)
 - Auth rate limits:
   - `/auth/login`: 8 requests/minute per client
   - `/auth/register`: 5 requests/minute per client
@@ -228,6 +228,12 @@ The dashboard auth UI can wire into optional backend capabilities via environmen
 - `NEXT_PUBLIC_APPLE_OAUTH_URL`: OAuth URL for Apple sign-in (leave blank to disable).
 - `NEXT_PUBLIC_PASSWORD_RESET_ENDPOINT`: Relative or absolute endpoint for reset requests (e.g. `/auth/forgot-password`).
 - `NEXT_PUBLIC_ENABLE_FULLNAME`: Set to `1` when the API supports `fullName` on registration payloads.
+- `AUTH_COOKIE_NAME`: Name of the httpOnly cookie storing the access token.
+- `AUTH_COOKIE_SECURE`: Set to `true` in production HTTPS deployments.
+- `AUTH_COOKIE_SAMESITE`: Cookie SameSite policy (`lax`, `strict`, or `none`).
+- `AUTH_COOKIE_DOMAIN`: Optional cookie domain for multi-subdomain setups.
+- `AUTH_REMEMBER_ME_EXPIRES_IN`: JWT expiry used when `rememberMe=true` (e.g. `30d`).
+- `AUTH_REMEMBER_ME_DAYS`: Cookie max-age in days when `rememberMe=true`.
 
 ## Swagger
 - `http://localhost:3000/docs`

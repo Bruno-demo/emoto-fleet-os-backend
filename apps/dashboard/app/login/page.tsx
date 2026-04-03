@@ -83,7 +83,11 @@ export default function LoginPage() {
 
     try {
       setIsSubmitting(true);
-      const payload = buildLoginPayload(parsed.data.identifier, parsed.data.password);
+      const payload = buildLoginPayload(
+        parsed.data.identifier,
+        parsed.data.password,
+        rememberMe,
+      );
       const response = await apiFetch(
         '/auth/login',
         {

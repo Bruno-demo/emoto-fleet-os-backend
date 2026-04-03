@@ -37,9 +37,13 @@ export const loginResponseSchema = z.object({
 export const meResponseSchema = authUserSchema;
 
 // Builds the backend login payload by mapping identifier to email or phone.
-export function buildLoginPayload(identifier: string, password: string) {
+export function buildLoginPayload(
+  identifier: string,
+  password: string,
+  rememberMe: boolean,
+) {
   const normalizedIdentifier = identifier.trim();
-  const commonFields = { password };
+  const commonFields = { password, rememberMe };
 
   if (normalizedIdentifier.includes('@')) {
     return {

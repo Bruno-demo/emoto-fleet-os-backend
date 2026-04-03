@@ -39,7 +39,7 @@ export class AuthController {
     user: AuthenticatedUser;
   }> {
     const result = await this.authService.login(dto);
-    this.setAuthCookie(response, result.accessToken);
+    this.setAuthCookie(response, result.accessToken, dto.rememberMe ?? false);
     return result;
   }
 
@@ -123,7 +123,11 @@ export class AuthController {
   }
 
   // Sets the httpOnly auth cookie used by browser clients.
-  private setAuthCookie(response: Response, token: string): void {
+  private setAuthCookie(
+    response: Response,
+    token: string,
+    rememberMe: boolean,
+  ): void {
     const cookieName = this.configService.get<string>(
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
@@ -138,6 +142,11 @@ export class AuthController {
     const sameSite =
       configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
     const domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
+    const rememberDays = this.configService.get<number>(
+      'AUTH_REMEMBER_ME_DAYS',
+      30,
+    );
+    const maxAgeMs = rememberMe ? rememberDays * 24 * 60 * 60 * 1000 : undefined;
 
     response.cookie(cookieName, token, {
       httpOnly: true,
@@ -145,6 +154,7 @@ export class AuthController {
       sameSite,
       path: '/',
       domain: domain || undefined,
+      maxAge: maxAgeMs,
     });
   }
 

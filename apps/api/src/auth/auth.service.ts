@@ -73,7 +73,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.buildAuthResponse(user);
+    return this.buildAuthResponse(user, dto.rememberMe ?? false);
   }
 
   // Registers a new user inside the caller's fleet when self-registration is enabled.
@@ -389,6 +389,7 @@ export class AuthService {
   // Signs and returns a JWT access token and public user payload.
   private async buildAuthResponse(
     user: Prisma.UserGetPayload<{ select: typeof userSelectForAuth }>,
+    rememberMe: boolean,
   ): Promise<{
     accessToken: string;
     tokenType: 'Bearer';
@@ -400,12 +401,14 @@ export class AuthService {
       role: user.role,
     };
 
-    const expiresIn = this.configService.getOrThrow<string>(
+    const defaultExpiresIn = this.configService.getOrThrow<string>(
       'JWT_EXPIRES_IN',
     ) as StringValue;
-    const accessToken = await this.jwtService.signAsync(payload, {
-      expiresIn,
-    });
+    const rememberExpiresIn = this.configService.get<string>(
+      'AUTH_REMEMBER_ME_EXPIRES_IN',
+    ) as StringValue | undefined;
+    const expiresIn = rememberMe && rememberExpiresIn ? rememberExpiresIn : defaultExpiresIn;
+    const accessToken = await this.jwtService.signAsync(payload, { expiresIn });
     return {
       accessToken,
       tokenType: 'Bearer',

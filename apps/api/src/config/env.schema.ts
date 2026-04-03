@@ -82,6 +82,8 @@ export const envSchema = z.object({
   AUTH_COOKIE_SECURE: booleanString,
   AUTH_COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
   AUTH_COOKIE_DOMAIN: z.string().optional(),
+  AUTH_REMEMBER_ME_EXPIRES_IN: z.string().min(2).default('30d'),
+  AUTH_REMEMBER_ME_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   INVITE_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(168),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10),
   TRIP_START_SPEED_KPH: z.coerce.number().positive().default(5),
