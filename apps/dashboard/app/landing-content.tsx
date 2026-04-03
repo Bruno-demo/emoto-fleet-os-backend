@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect } from 'react';
 import {
   Activity,
   AlarmClock,
@@ -157,6 +160,13 @@ const pricingPlans = [
 
 // Renders the dashboard marketing landing page based on the supplied Figma layout.
 export default function LandingContent() {
+  useEffect(() => {
+    document.body.classList.add('landing-theme');
+    return () => {
+      document.body.classList.remove('landing-theme');
+    };
+  }, []);
+
   return (
     <div className="landing-theme min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.22),transparent_42%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(14,116,144,0.16),transparent_45%),var(--background)] text-ink">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
