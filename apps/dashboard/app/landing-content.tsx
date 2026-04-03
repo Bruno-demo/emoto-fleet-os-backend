@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import {
   Activity,
   AlarmClock,
@@ -157,6 +158,10 @@ const pricingPlans = [
 
 // Renders the dashboard marketing landing page based on the supplied Figma layout.
 export default function LandingContent() {
+  const cookieStore = cookies();
+  const authCookieName = process.env.AUTH_COOKIE_NAME ?? 'emoto_access_token';
+  const hasSession = Boolean(cookieStore.get(authCookieName)?.value);
+
   return (
     <div className="landing-theme min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.22),transparent_42%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(14,116,144,0.16),transparent_45%),var(--background)] text-ink">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
@@ -186,18 +191,29 @@ export default function LandingContent() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/login"
-            className="rounded-[var(--radius-control)] border border-line px-4 py-2 text-sm font-semibold text-ink"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/create-account"
-            className="rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
-          >
-            Create account
-          </Link>
+          {hasSession ? (
+            <Link
+              href="/live"
+              className="rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
+            >
+              Account
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-[var(--radius-control)] border border-line px-4 py-2 text-sm font-semibold text-ink"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/create-account"
+                className="rounded-[var(--radius-control)] bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
+              >
+                Create account
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -218,18 +234,29 @@ export default function LandingContent() {
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
-              >
-                Enter command center
-              </Link>
-              <Link
-                href="/create-account"
-                className="inline-flex items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink"
-              >
-                Request fleet access
-              </Link>
+              {hasSession ? (
+                <Link
+                  href="/live"
+                  className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
+                >
+                  Account
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
+                  >
+                    Enter command center
+                  </Link>
+                  <Link
+                    href="/create-account"
+                    className="inline-flex items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink"
+                  >
+                    Request fleet access
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="grid gap-4 pt-3 sm:grid-cols-2">
@@ -465,18 +492,29 @@ export default function LandingContent() {
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)]"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/create-account"
-                className="inline-flex items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink"
-              >
-                Create account
-              </Link>
+              {hasSession ? (
+                <Link
+                  href="/live"
+                  className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)]"
+                >
+                  Account
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)]"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/create-account"
+                    className="inline-flex items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink"
+                  >
+                    Create account
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
