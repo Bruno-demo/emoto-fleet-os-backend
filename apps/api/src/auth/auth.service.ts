@@ -122,17 +122,10 @@ export class AuthService {
           passwordHash,
           status: 'ACTIVE',
         },
-        select: {
-          id: true,
-          fleetId: true,
-          role: true,
-          email: true,
-          phone: true,
-          status: true,
-        },
+        select: userSelectForAuth,
       });
 
-      return createdUser;
+      return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -186,17 +179,10 @@ export class AuthService {
           passwordHash,
           status: 'ACTIVE',
         },
-        select: {
-          id: true,
-          fleetId: true,
-          role: true,
-          email: true,
-          phone: true,
-          status: true,
-        },
+        select: userSelectForAuth,
       });
 
-      return createdUser;
+      return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -336,14 +322,7 @@ export class AuthService {
             passwordHash,
             status: 'ACTIVE',
           },
-          select: {
-            id: true,
-            fleetId: true,
-            role: true,
-            email: true,
-            phone: true,
-            status: true,
-          },
+          select: userSelectForAuth,
         });
 
         await tx.registrationInvite.update({
@@ -358,7 +337,7 @@ export class AuthService {
         return user;
       });
 
-      return createdUser;
+      return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

@@ -163,10 +163,10 @@ export default async function LandingContent() {
   const hasSession = Boolean(cookieStore.get(authCookieName)?.value);
 
   return (
-    <div className="landing-theme min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.22),transparent_42%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_45%),radial-gradient(circle_at_bottom_left,rgba(14,116,144,0.16),transparent_45%),var(--background)] text-ink">
+    <div className="min-h-screen text-ink">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] bg-surface text-ink shadow-[var(--shadow-soft)]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] bg-accent/20 border border-line text-accent shadow-[var(--shadow-soft)] hover:scale-105 hover:bg-accent/30 transition-all">
             <Bike size={18} />
           </div>
           <div>
@@ -272,8 +272,9 @@ export default async function LandingContent() {
             </div>
           </div>
 
-          <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-5 shadow-[var(--shadow-strong)]">
-            <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted p-4">
+          <div className="glass-panel rounded-[var(--radius-panel)] p-5 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="rounded-[var(--radius-panel)] border border-line/50 bg-black/20 backdrop-blur-md p-4 relative z-10">
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
                 <span>Live command preview</span>
                 <span className="rounded-full border border-line bg-surface px-3 py-1">Connected</span>
@@ -403,8 +404,8 @@ export default async function LandingContent() {
       </section>
 
       <section className="mx-auto w-full max-w-6xl px-6 py-12">
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[var(--radius-panel)] border border-line bg-surface px-6 py-6">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] group">
+          <div className="glass-panel rounded-[var(--radius-panel)] px-6 py-6 hover:scale-[1.01] transition-transform">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Benefits</p>
             <h2 className="mt-3 text-2xl font-semibold">Built for safety, compliance, and growth.</h2>
             <p className="mt-3 text-sm text-ink-soft">
@@ -413,7 +414,7 @@ export default async function LandingContent() {
             </p>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {benefits.map((benefit) => (
-                <div key={benefit.title} className="rounded-[var(--radius-panel)] border border-line bg-surface-muted p-4">
+                <div key={benefit.title} className="rounded-[var(--radius-panel)] border border-line/50 bg-black/20 p-4 hover:-translate-y-1 transition-transform">
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] bg-accent-soft text-accent">
                     {benefit.icon}
                   </span>

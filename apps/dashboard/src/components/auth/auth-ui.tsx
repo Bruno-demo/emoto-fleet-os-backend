@@ -20,53 +20,76 @@ export function AuthShell({
   children,
 }: AuthShellProps) {
   return (
-    <div className="landing-theme min-h-screen bg-[var(--background)] px-5 py-10 text-ink">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-5xl items-center gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[28px] border border-line bg-surface p-7 shadow-[var(--shadow-strong)] backdrop-blur">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ink-muted">
+    <div className="min-h-screen w-full flex flex-col lg:grid lg:grid-cols-2 bg-[var(--background)] text-ink">
+      {/* Left Pane - Immersive Brand Area */}
+      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden p-12">
+        {/* Deep, immersive abstract background */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center brightness-50"
+          style={{ backgroundImage: 'linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(11, 15, 25, 0.4)), url(https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80)' }}
+        />
+        
+        {/* Glow Effects */}
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.3)_0%,transparent_50%)]" />
+
+        {/* Top Logo */}
+        <div className="relative z-10 flex items-center gap-3 mt-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-strong)]">
+            <span className="text-xl font-bold">E</span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
+              E-Moto Fleet OS
+            </p>
+            <p className="text-sm font-semibold text-accent">Smart Mobility</p>
+          </div>
+        </div>
+
+        {/* Content Box */}
+        <div className="relative z-10 mb-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-accent">
             {eyebrow}
           </p>
-          <div className="mt-5 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-ink text-background shadow-[var(--shadow-soft)]">
-              <span className="text-lg font-semibold">E</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
-                E-Moto Fleet OS
-              </p>
-              <p className="text-sm font-semibold text-accent">Smart Mobility Starts Here</p>
-            </div>
-          </div>
-          <h1 className="mt-5 text-[clamp(2rem,1.8rem+1vw,3rem)] font-semibold leading-tight text-ink">
+          <h1 className="mt-4 text-[clamp(2rem,2.5vw,3rem)] font-semibold leading-tight text-ink max-w-lg">
             {title}
           </h1>
-          <p className="mt-3 text-base leading-7 text-ink-soft">{subtitle}</p>
-          {securityHint ? (
-            <p className="mt-4 inline-flex items-center rounded-full border border-accent/40 bg-accent-soft px-3 py-1 text-xs font-semibold text-ink">
+          <p className="mt-4 text-base leading-7 text-ink-soft max-w-lg">
+            {subtitle}
+          </p>
+          {securityHint && (
+            <p className="mt-5 inline-flex items-center rounded-full border border-accent/40 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink">
               {securityHint}
             </p>
-          ) : null}
+          )}
 
-          <div className="mt-7 grid gap-3 sm:grid-cols-2">
+          <div className="mt-12 grid gap-4">
             {features.map((feature) => (
-              <article
-                key={feature.title}
-                className="rounded-[20px] border border-line bg-surface-muted px-4 py-4 shadow-[var(--shadow-soft)]"
-              >
-                <span className="inline-flex rounded-[14px] bg-ink p-2 text-background">
+              <div key={feature.title} className="flex items-start gap-4 p-4 rounded-[20px] bg-surface/30 backdrop-blur-sm border border-line">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-accent/20 border border-line text-accent">
                   {feature.icon}
                 </span>
-                <h3 className="mt-3 text-sm font-semibold text-ink">{feature.title}</h3>
-                <p className="mt-2 text-xs leading-5 text-ink-soft">{feature.description}</p>
-              </article>
+                <div>
+                  <h3 className="text-sm font-semibold text-ink">{feature.title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-ink-muted">{feature.description}</p>
+                </div>
+              </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="rounded-[28px] border border-line bg-surface-muted p-7 shadow-[var(--shadow-strong)] backdrop-blur">
-          {children}
-        </section>
-      </div>
+      {/* Right Pane - Centered Auth Form */}
+      <section className="flex flex-col justify-center items-center p-6 sm:p-12 lg:p-20 relative z-10">
+        <div className="w-full max-w-[440px] glass-panel rounded-[28px] p-8 md:p-10 transition-all shadow-[var(--shadow-strong)] relative overflow-hidden">
+           <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-100 pointer-events-none"></div>
+           <div className="relative z-10">
+             {children}
+           </div>
+        </div>
+        <p className="absolute bottom-8 text-xs text-ink-muted hidden lg:block">
+          (C) 2026 E-Moto Safety.
+        </p>
+      </section>
     </div>
   );
 }
@@ -120,10 +143,10 @@ export function AuthInput({
         <input
           {...props}
           className={cx(
-            'w-full rounded-[16px] border bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
+            'w-full rounded-[16px] border bg-black/20 backdrop-blur-md px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)] placeholder:text-ink-muted/50 hover:border-line-strong',
             icon ? 'pl-11' : 'pl-4',
             rightElement ? 'pr-12' : 'pr-4',
-            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line',
+            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line/50',
             className,
           )}
         />
@@ -185,10 +208,10 @@ export function AuthButton({
       onClick={onClick}
       disabled={disabled || isLoading}
       className={cx(
-        'inline-flex w-full items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-sm font-semibold transition',
+        'inline-flex w-full items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95',
         variant === 'primary'
-          ? 'bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)] hover:bg-accent-strong'
-          : 'border border-line bg-surface text-ink hover:border-line-strong',
+          ? 'bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-strong)] hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+          : 'glass-panel text-ink hover:bg-surface-hover',
         (disabled || isLoading) ? 'cursor-not-allowed opacity-60' : '',
       )}
     >
@@ -263,12 +286,12 @@ interface AuthTabsProps {
 // Creates a simple two-tab switcher between login and signup routes.
 export function AuthTabs({ active }: AuthTabsProps) {
   return (
-    <div className="mt-6 grid grid-cols-2 rounded-[14px] bg-surface-hover p-1 text-xs font-semibold">
+    <div className="mt-6 grid grid-cols-2 rounded-[14px] bg-black/20 p-1 text-xs font-semibold border border-line/30">
       <a
         href="/login"
         className={cx(
-          'rounded-[12px] px-3 py-2 text-center transition',
-          active === 'login' ? 'bg-surface text-ink shadow' : 'text-ink-muted',
+          'rounded-[12px] px-3 py-2 text-center transition-all',
+          active === 'login' ? 'bg-surface text-ink shadow-[var(--shadow-strong)]' : 'text-ink-muted hover:text-ink',
         )}
       >
         Login
