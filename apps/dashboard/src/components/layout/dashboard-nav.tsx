@@ -21,6 +21,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { canManageZones } from '@/lib/auth/roles';
 import { apiFetch } from '@/lib/api/client';
 import { clearAuthToken } from '@/lib/auth/session';
@@ -87,6 +88,7 @@ export function DashboardNav({
 }: DashboardNavProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
 
   const handleLogout = async () => {
@@ -97,6 +99,7 @@ export function DashboardNav({
       // Ignore logout errors; session cookie will expire server-side.
     }
     clearAuthToken();
+    queryClient.clear();
     router.replace('/login');
   };
 

@@ -123,7 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Clears secure session state and moves app back to the login flow.
   const logout = useCallback(async (): Promise<void> => {
-    await clearAuthToken();
+    try {
+      await clearAuthToken();
+    } catch {
+      // Ensure state is always cleared even if SecureStore fails.
+    }
     setToken(null);
     setUser(null);
     setRiderMe(null);

@@ -159,13 +159,26 @@ export class AuthController {
   }
 
   // Clears the httpOnly auth cookie in browser sessions.
+  // Attributes must match setAuthCookie so the browser identifies the correct cookie.
   private clearAuthCookie(response: Response): void {
     const cookieName = this.configService.get<string>(
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
     );
+    const secure = this.configService.get<boolean>(
+      'AUTH_COOKIE_SECURE',
+      false,
+    );
+    const configuredSameSite = this.configService.get<
+      'lax' | 'strict' | 'none'
+    >('AUTH_COOKIE_SAMESITE', 'lax');
+    const sameSite =
+      configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
     const domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
     response.clearCookie(cookieName, {
+      httpOnly: true,
+      secure: secure || configuredSameSite === 'none',
+      sameSite,
       path: '/',
       domain: domain || undefined,
     });

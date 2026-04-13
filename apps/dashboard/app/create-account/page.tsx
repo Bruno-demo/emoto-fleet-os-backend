@@ -28,6 +28,7 @@ import {
   AuthShell,
   AuthTabs,
 } from '@/components/auth/auth-ui';
+import { RedirectIfAuthenticated } from '@/components/auth/redirect-if-authenticated';
 
 const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
 
@@ -383,6 +384,7 @@ export default function CreateAccountPage() {
   };
 
   return (
+    <RedirectIfAuthenticated>
     <AuthShell
       eyebrow="Fleet identity"
       title="Create safe access for every rider and operator."
@@ -664,6 +666,7 @@ export default function CreateAccountPage() {
         </div>
       ) : null}
     </AuthShell>
+    </RedirectIfAuthenticated>
   );
 }
 
