@@ -52,7 +52,8 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     paddingHorizontal: theme.layout.screenInset,
-    paddingVertical: theme.layout.screenInset,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxxl,
     gap: theme.layout.sectionGap,
   },
   innerUnpadded: {

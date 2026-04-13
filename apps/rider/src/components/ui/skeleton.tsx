@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { DimensionValue } from 'react-native';
-import { StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { theme } from '../../theme/tokens';
 
 interface SkeletonBlockProps {
@@ -8,13 +9,26 @@ interface SkeletonBlockProps {
   radius?: number;
 }
 
-// Renders lightweight placeholder blocks for loading cards and rows.
+// Renders lightweight placeholder blocks with a subtle shimmer pulse.
 export function SkeletonBlock({
   height,
   width = '100%',
   radius = theme.radius.button,
 }: SkeletonBlockProps) {
-  return <View style={[styles.block, { height, width, borderRadius: radius }]} />;
+  const opacity = useRef(new Animated.Value(0.35)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.7, duration: 900, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.35, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [opacity]);
+
+  return <Animated.View style={[styles.block, { height, width, borderRadius: radius, opacity }]} />;
 }
 
 // Builds stacked placeholders for loading list-based screens.

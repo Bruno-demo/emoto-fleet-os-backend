@@ -217,116 +217,93 @@ export default async function LandingContent() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-6 pb-16">
-        <section className="grid gap-8 pb-12 pt-4 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-muted px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
-              <Sparkles size={14} />
-              Smart mobility command center
-            </span>
-            <h1 className="text-[clamp(2.2rem,2rem+1.6vw,3.4rem)] font-semibold leading-tight">
-              Real-time safety and performance for electric motorcycle fleets.
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-ink-soft">
-              Track live riders, coordinate response, and automate compliance reporting. Built for
-              operations teams across Africa with secure telemetry, incident workflows, and rider
-              scoring in one dashboard.
-            </p>
+      <main className="relative mx-auto w-full max-w-6xl px-6 py-20 lg:py-32 flex flex-col items-center text-center overflow-hidden">
+        {/* Intense background flares */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-accent/20 blur-[120px] rounded-[100%] pointer-events-none" />
+        <div className="absolute top-1/4 right-0 w-[500px] h-[400px] bg-success-ink/10 blur-[100px] rounded-[100%] pointer-events-none" />
+        
+        <span className="relative z-10 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-accent backdrop-blur-md mb-8 shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+          <Sparkles size={14} />
+          Smart mobility command center
+        </span>
+        
+        <h1 className="relative z-10 text-[clamp(2.5rem,5vw,5rem)] font-bold leading-[1.05] tracking-tight max-w-4xl text-transparent bg-clip-text bg-gradient-to-br from-white to-white/50">
+          Real-time safety and performance for electric motorcycle fleets.
+        </h1>
+        
+        <p className="relative z-10 mt-6 max-w-2xl text-lg leading-8 text-ink-soft">
+          Track live riders, coordinate response, and automate compliance reporting. Built for operations teams across Africa with secure telemetry, incident workflows, and rider scoring.
+        </p>
 
-            <div className="flex flex-wrap gap-3">
-              {hasSession ? (
-                <Link
-                  href="/live"
-                  className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
-                >
-                  Account
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 py-3 text-sm font-semibold text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]"
-                  >
-                    Enter command center
-                  </Link>
-                  <Link
-                    href="/create-account"
-                    className="inline-flex items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface px-5 py-3 text-sm font-semibold text-ink"
-                  >
-                    Request fleet access
-                  </Link>
-                </>
-              )}
-            </div>
+        <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
+          {hasSession ? (
+            <Link
+              href="/live"
+              className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-8 py-4 text-sm font-bold text-[color:var(--accent-foreground)] shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:scale-105 transition-transform"
+            >
+              Open Account
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-[var(--radius-control)] bg-accent px-8 py-4 text-sm font-bold text-[color:var(--accent-foreground)] shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:scale-105 transition-transform"
+              >
+                Enter command center
+              </Link>
+              <Link
+                href="/create-account"
+                className="inline-flex glass-panel items-center justify-center rounded-[var(--radius-control)] border border-line px-8 py-4 text-sm font-semibold text-ink hover:bg-surface-hover transition-colors"
+              >
+                Request fleet access
+              </Link>
+            </>
+          )}
+        </div>
 
-            <div className="grid gap-4 pt-3 sm:grid-cols-2">
+        {/* Floating Dashboard Visual / Metrics overlay */}
+        <div className="relative w-full max-w-5xl mt-24 glass-panel rounded-[32px] p-2 border border-line/50 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] animate-[pulse_4s_ease-in-out_infinite]">
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 rounded-[32px] pointer-events-none" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-8 bg-black/40 rounded-[28px] backdrop-blur-xl border border-white/5 relative z-20">
               {metrics.map((metric) => (
-                <HeroStatCard key={metric.label} label={metric.label} value={metric.value} />
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-              <span className="rounded-full border border-line bg-surface-muted px-3 py-1">Dashboard</span>
-              <span className="rounded-full border border-line bg-surface-muted px-3 py-1">Rider app</span>
-              <span className="rounded-full border border-line bg-surface-muted px-3 py-1">Partner API</span>
-            </div>
-          </div>
-
-          <div className="glass-panel rounded-[var(--radius-panel)] p-5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="rounded-[var(--radius-panel)] border border-line/50 bg-black/20 backdrop-blur-md p-4 relative z-10">
-              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
-                <span>Live command preview</span>
-                <span className="rounded-full border border-line bg-surface px-3 py-1">Connected</span>
-              </div>
-
-              <div className="mt-4 grid gap-4">
-                <DashboardStatCard label="Live bikes" value="128" hint="online now" accent="success" />
-                <DashboardStatCard label="Open incidents" value="4" hint="triage ready" accent="danger" />
-                <DashboardStatCard label="Avg score" value="86.4" hint="weekly" accent="warning" />
-                <DashboardStatCard label="Commands sent" value="31" hint="today" accent="info" />
-              </div>
-
-              <div className="mt-5 rounded-[var(--radius-panel)] border border-line bg-surface px-4 py-3">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
-                  <span>Alerts</span>
-                  <span className="rounded-full border border-line bg-surface px-3 py-1">Realtime</span>
+                <div key={metric.label} className="text-left space-y-2">
+                  <p className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-white">{metric.value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">{metric.label}</p>
                 </div>
-                <DashboardListCard
-                  title="Overspeed"
-                  subtitle="North-001"
-                  badge="Medium"
-                  badgeTone="warning"
-                />
-                <DashboardListCard
-                  title="Crash detected"
-                  subtitle="KGL-090"
-                  badge="Critical"
-                  badgeTone="danger"
-                />
-              </div>
-            </div>
+              ))}
           </div>
-        </section>
+        </div>
       </main>
 
-      <section id="features" className="mx-auto w-full max-w-6xl px-6 py-12">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Features</p>
-          <h2 className="text-2xl font-semibold">Everything dispatch needs to respond faster.</h2>
-          <p className="max-w-2xl text-sm leading-6 text-ink-soft">
+      <section id="features" className="mx-auto w-full max-w-6xl px-6 py-24">
+        <div className="flex flex-col items-center text-center gap-4 mb-16">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">Capabilities grid</p>
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white max-w-3xl">Everything dispatch needs to respond faster.</h2>
+          <p className="max-w-2xl text-base leading-7 text-ink-muted mt-2">
             Manage riders, devices, incidents, and partner reporting without switching tools. Built for
             real-time operations and low-latency decision making.
           </p>
         </div>
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featureRows.map((feature) => (
-            <article key={feature.title} className="rounded-[var(--radius-panel)] border border-line bg-surface px-5 py-4">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] bg-accent-soft text-accent">
-                {feature.icon}
-              </span>
-              <h3 className="mt-4 text-base font-semibold">{feature.title}</h3>
-              <p className="mt-2 text-sm text-ink-soft">{feature.description}</p>
+        
+        {/* Asymmetrical Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 lg:gap-6 auto-rows-[280px]">
+          {featureRows.map((feature, idx) => (
+            <article 
+              key={feature.title} 
+              className={`glass-panel group relative overflow-hidden rounded-[32px] border border-white/10 p-8 transition-all hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(59,130,246,0.15)] ${idx === 0 || idx === 3 ? 'md:col-span-2' : 'md:col-span-1'}`}
+            >
+              {/* Subtle hover gradient flare */}
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-[16px] bg-white/5 border border-white/10 text-accent backdrop-blur-md shadow-inner">
+                  {feature.icon}
+                </span>
+                <div>
+                  <h3 className="mt-6 text-xl font-bold text-white">{feature.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-ink-soft max-w-sm">{feature.description}</p>
+                </div>
+              </div>
             </article>
           ))}
         </div>
@@ -441,37 +418,49 @@ export default async function LandingContent() {
         </div>
       </section>
 
-      <section id="pricing" className="mx-auto w-full max-w-6xl px-6 py-12">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Pricing</p>
-          <h2 className="text-2xl font-semibold">Choose a plan that scales with your fleet.</h2>
-          <p className="text-sm text-ink-soft">Flexible pricing for every stage of growth.</p>
+      <section id="pricing" className="mx-auto w-full max-w-6xl px-6 py-24 relative">
+        <div className="flex flex-col items-center text-center gap-4 mb-16">
+          <p className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-accent backdrop-blur-md">
+            Pricing Maps
+          </p>
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white max-w-2xl">Choose a plan that scales with your fleet.</h2>
+          <p className="text-base text-ink-muted">Flexible pricing for every stage of growth.</p>
         </div>
-        <div className="mt-7 grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3 relative z-10 items-center">
           {pricingPlans.map((plan) => (
             <div
               key={plan.title}
-              className={`rounded-[var(--radius-panel)] border p-6 ${
-                plan.featured ? 'border-accent bg-accent-soft' : 'border-line bg-surface'
+              className={`glass-panel relative rounded-[32px] p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col ${
+                plan.featured ? 'border-accent bg-accent/10 lg:scale-[1.08] shadow-[0_0_30px_rgba(59,130,246,0.3)] z-10 py-12' : 'border-white/10 bg-black/20'
               }`}
             >
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink-muted">{plan.title}</p>
-              <h3 className="mt-3 text-2xl font-semibold">{plan.price}</h3>
-              <p className="mt-3 text-sm text-ink-soft">{plan.description}</p>
-              <ul className="mt-5 space-y-3 text-sm text-ink-soft">
+              {plan.featured && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-[color:var(--accent-foreground)] px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+                  Most Popular
+                </div>
+              )}
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-2">{plan.title}</p>
+              <h3 className="mt-3 text-4xl font-bold text-white mb-4">{plan.price}</h3>
+              <p className="text-sm text-ink-soft leading-relaxed min-h-[60px]">{plan.description}</p>
+              
+              <div className="my-8 h-px w-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              
+              <ul className="space-y-4 text-sm text-ink-soft mb-8 flex-1">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
-                    <span className="h-2 w-2 rounded-full bg-accent" />
-                    {feature}
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/20 text-accent shrink-0">
+                      <BadgeCheck size={12} />
+                    </span>
+                    <span className="text-white/80">{feature}</span>
                   </li>
                 ))}
               </ul>
               <Link
                 href="/create-account"
-                className={`mt-6 inline-flex w-full items-center justify-center rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold ${
+                className={`mt-auto inline-flex w-full items-center justify-center rounded-[var(--radius-control)] px-4 py-4 text-sm font-bold transition-transform hover:scale-105 ${
                   plan.featured
-                    ? 'bg-accent text-[color:var(--accent-foreground)]'
-                    : 'border border-line text-ink'
+                    ? 'bg-accent text-[color:var(--accent-foreground)] shadow-[0_0_20px_rgba(59,130,246,0.4)]'
+                    : 'glass-panel border border-white/20 text-white hover:bg-white/5'
                 }`}
               >
                 Get started

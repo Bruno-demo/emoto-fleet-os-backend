@@ -7,12 +7,12 @@ interface AppCardProps {
   subtitle?: string;
   rightSlot?: ReactNode;
   children: ReactNode;
+  tone?: 'default' | 'accent';
 }
 
-// Wraps rider content in a consistent high-contrast card surface.
-export function AppCard({ title, subtitle, rightSlot, children }: AppCardProps) {
+export function AppCard({ title, subtitle, rightSlot, children, tone = 'default' }: AppCardProps) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, tone === 'accent' ? styles.cardAccent : null]}>
       {title || subtitle || rightSlot ? (
         <View style={styles.header}>
           <View style={styles.headerText}>
@@ -27,7 +27,7 @@ export function AppCard({ title, subtitle, rightSlot, children }: AppCardProps) 
               </Text>
             ) : null}
           </View>
-          {rightSlot ? <View>{rightSlot}</View> : null}
+          {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
         </View>
       ) : null}
       <View style={styles.body}>{children}</View>
@@ -45,19 +45,27 @@ const styles = StyleSheet.create({
     gap: theme.layout.cardGap,
     ...theme.shadow,
   },
+  cardAccent: {
+    borderColor: theme.colors.primaryBorder,
+    backgroundColor: theme.colors.primaryGlow,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: theme.layout.inlineGap,
   },
   headerText: {
     flex: 1,
     gap: theme.layout.textGap,
   },
+  rightSlot: {
+    alignSelf: 'center',
+  },
   title: {
-    fontSize: theme.typography.section,
-    lineHeight: theme.typography.lineHeight.section,
-    fontWeight: '700',
+    fontSize: theme.typography.subtitle,
+    lineHeight: theme.typography.lineHeight.subtitle,
+    fontWeight: '800',
     color: theme.colors.text,
   },
   subtitle: {

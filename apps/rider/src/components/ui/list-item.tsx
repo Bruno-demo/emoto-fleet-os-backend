@@ -67,9 +67,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.layout.itemPaddingX,
     paddingVertical: theme.layout.itemPaddingY,
+    ...theme.shadowLight,
   },
   cardPressed: {
-    backgroundColor: theme.colors.surfaceMuted,
+    backgroundColor: theme.colors.surfaceRaised,
+    borderColor: theme.colors.borderStrong,
   },
   container: {
     flexDirection: 'row',

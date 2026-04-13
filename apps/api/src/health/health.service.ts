@@ -1,4 +1,5 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import {
@@ -9,17 +10,25 @@ import {
 
 @Injectable()
 export class HealthService {
+  private readonly mqttDisabled: boolean;
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
+  }
 
-  // Checks database and Redis connectivity and returns a combined health snapshot.
+  // Checks database, Redis, and optionally MQTT connectivity and returns a combined health snapshot.
   async check(): Promise<HealthResponse> {
     const checks: HealthChecks = {
       db: 'down',
       redis: 'down',
     };
+    if (!this.mqttDisabled) {
+      checks.mqtt = 'down';
+    }
     const errors: HealthErrorResponse['errors'] = {};
 
     try {
@@ -40,7 +49,17 @@ export class HealthService {
       errors.redis = this.getErrorMessage(error);
     }
 
-    if (checks.db === 'up' && checks.redis === 'up') {
+    if (!this.mqttDisabled) {
+      try {
+        await this.checkMqtt();
+        checks.mqtt = 'up';
+      } catch (error: unknown) {
+        errors.mqtt = this.getErrorMessage(error);
+      }
+    }
+
+    const allUp = Object.values(checks).every((status) => status === 'up');
+    if (allUp) {
       return {
         status: 'ok',
         checks,
@@ -52,6 +71,33 @@ export class HealthService {
       checks,
       errors,
     } satisfies HealthErrorResponse);
+  }
+
+  // Performs a lightweight MQTT connection to verify broker reachability.
+  private async checkMqtt(): Promise<void> {
+    const mqtt = await import('mqtt');
+    const mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
+
+    await new Promise<void>((resolve, reject) => {
+      const client = mqtt.connect(mqttUrl, {
+        connectTimeout: 5_000,
+        reconnectPeriod: 0,
+      });
+      const timeout = setTimeout(() => {
+        client.end(true);
+        reject(new Error('MQTT connection timed out'));
+      }, 5_000);
+      client.once('connect', () => {
+        clearTimeout(timeout);
+        client.end(true);
+        resolve();
+      });
+      client.once('error', (err) => {
+        clearTimeout(timeout);
+        client.end(true);
+        reject(err);
+      });
+    });
   }
 
   // Normalizes unknown thrown values into a safe message string.

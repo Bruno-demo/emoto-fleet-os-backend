@@ -17,12 +17,16 @@ WORKDIR /app
 
 RUN apk add --no-cache curl
 
+RUN addgroup -S app && adduser -S app -G app
+
 COPY package.json package-lock.json ./
 COPY apps/gateway/package.json ./apps/gateway/package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/gateway/dist ./apps/gateway/dist
 
 ENV NODE_ENV=production
+
+USER app
 
 EXPOSE 8080
 

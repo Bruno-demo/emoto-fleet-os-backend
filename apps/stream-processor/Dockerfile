@@ -20,6 +20,10 @@ COPY apps/stream-processor/package.json ./apps/stream-processor/package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/stream-processor/dist ./apps/stream-processor/dist
 
+RUN addgroup -S app && adduser -S app -G app
+
 ENV NODE_ENV=production
+
+USER app
 
 CMD ["node", "apps/stream-processor/dist/index.js"]

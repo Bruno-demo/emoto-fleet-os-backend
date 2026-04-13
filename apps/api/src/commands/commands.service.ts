@@ -4,6 +4,8 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -16,7 +18,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { timingSafeEqual, randomUUID } from 'crypto';
-import mqtt, { IClientOptions, MqttClient } from 'mqtt';
+import mqtt, { MqttClient } from 'mqtt';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -44,12 +46,14 @@ interface LiveStateSnapshot {
 }
 
 @Injectable()
-export class CommandsService {
+export class CommandsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CommandsService.name);
   private readonly mqttUrl: string;
   private readonly deviceSecretMasterKey: string;
   private readonly commandTtlSeconds: number;
   private readonly mqttDisabled: boolean;
+  private mqttClient: MqttClient | null = null;
+  private mqttConnected = false;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -68,6 +72,43 @@ export class CommandsService {
       45,
     );
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (this.mqttDisabled) {
+      this.logger.log('MQTT is disabled — skipping client initialization');
+      return;
+    }
+
+    this.mqttClient = mqtt.connect(this.mqttUrl, {
+      reconnectPeriod: 5_000,
+      connectTimeout: MQTT_PUBLISH_TIMEOUT_MS,
+    });
+
+    this.mqttClient.on('connect', () => {
+      this.mqttConnected = true;
+      this.logger.log('MQTT client connected');
+    });
+
+    this.mqttClient.on('offline', () => {
+      this.mqttConnected = false;
+      this.logger.warn('MQTT client offline');
+    });
+
+    this.mqttClient.on('error', (err) => {
+      this.logger.error(`MQTT client error: ${err.message}`);
+    });
+
+    await this.waitForConnect(this.mqttClient);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.mqttClient) {
+      await new Promise<void>((resolve) => this.mqttClient!.end(false, {}, () => resolve()));
+      this.mqttClient = null;
+      this.mqttConnected = false;
+      this.logger.log('MQTT client disconnected');
+    }
   }
 
   // Creates and dispatches a LOCK command for a fleet bike.
@@ -421,27 +462,24 @@ export class CommandsService {
       return;
     }
 
-    const options: IClientOptions = {
-      reconnectPeriod: 0,
-      connectTimeout: MQTT_PUBLISH_TIMEOUT_MS,
-    };
-    const client = mqtt.connect(this.mqttUrl, options);
+    if (!this.mqttClient || !this.mqttConnected) {
+      throw new Error('MQTT client is not connected');
+    }
 
-    try {
-      await this.waitForConnect(client);
-      await new Promise<void>((resolve, reject) => {
-        client.publish(topic, JSON.stringify(payload), { qos: 1 }, (error) => {
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
+        this.mqttClient!.publish(topic, JSON.stringify(payload), { qos: 1 }, (error) => {
           if (error) {
             reject(error);
             return;
           }
-
           resolve();
         });
-      });
-    } finally {
-      client.end(true);
-    }
+      }),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('MQTT publish timeout')), MQTT_PUBLISH_TIMEOUT_MS),
+      ),
+    ]);
   }
 
   // Waits for MQTT connect event and rejects on timeout or client errors.

@@ -1,0 +1,4 @@
+-- Add login/lockout audit action types
+ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'LOGIN_SUCCESS';
+ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'LOGIN_FAILED';
+ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'ACCOUNT_LOCKED';

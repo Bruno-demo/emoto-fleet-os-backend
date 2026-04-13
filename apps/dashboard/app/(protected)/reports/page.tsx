@@ -1,14 +1,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertCircle, AlertTriangle, TrendingUp } from 'lucide-react';
-import { PageShell } from '@/components/layout/page-shell';
+import { Activity, AlertCircle, AlertTriangle, Calendar, TrendingUp } from 'lucide-react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api/client';
-import { WeeklyReport } from '@/lib/types/dashboard';
-import { formatEnumLabel } from '@/lib/ui';
+import type { WeeklyReport } from '@/lib/types/dashboard';
+import { cx, formatEnumLabel } from '@/lib/ui';
 
 export default function ReportsPage() {
   const reportQuery = useQuery({
@@ -26,10 +25,18 @@ export default function ReportsPage() {
     (report?.eventCounts.MARKET_ZONE_SPEED ?? 0);
 
   return (
-    <PageShell
-      title="Reports"
-      description="Weekly KPI reporting for dispatch and risk teams, using the same fleet summary, scoring, and event models that power the command center."
-    >
+    <div className="space-y-6">
+      {/* Date range */}
+      {report && (
+        <div className="flex items-center gap-2 text-xs text-ink-muted animate-fade-in">
+          <Calendar size={12} />
+          <span>
+            {new Date(report.range.from).toLocaleDateString()} &mdash;{' '}
+            {new Date(report.range.to).toLocaleDateString()}
+          </span>
+          <span className="text-ink-faint">&middot; Rolling 7 days</span>
+        </div>
+      )}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {reportQuery.isLoading ? (
           <>
@@ -208,7 +215,7 @@ export default function ReportsPage() {
           />
         )}
       </DashboardCard>
-    </PageShell>
+    </div>
   );
 }
 
@@ -263,11 +270,12 @@ function ScorePill({ score }: { score: number }) {
 
 function ScoreBar({ score }: { score: number }) {
   return (
-    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+    <div className="progress-bar mt-3">
       <div
-        className={
-          score >= 85 ? 'h-full bg-emerald-500' : score >= 70 ? 'h-full bg-amber-500' : 'h-full bg-rose-500'
-        }
+        className={cx(
+          'progress-bar-fill',
+          score >= 85 ? '!bg-success-ink' : score >= 70 ? '!bg-warning-ink' : '!bg-danger-ink',
+        )}
         style={{ width: `${Math.max(5, Math.min(100, score))}%` }}
       />
     </div>

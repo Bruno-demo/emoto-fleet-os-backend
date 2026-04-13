@@ -10,6 +10,7 @@ import { HomeScreen } from '../screens/home-screen';
 import { LoginScreen } from '../screens/login-screen';
 import { OtpHelpScreen } from '../screens/otp-help-screen';
 import { PoiNearbyScreen } from '../screens/poi-nearby-screen';
+import { ProfileScreen } from '../screens/profile-screen';
 import { ResetAccessScreen } from '../screens/reset-access-screen';
 import { SosScreen } from '../screens/sos-screen';
 import { TripDetailScreen } from '../screens/trip-detail-screen';
@@ -27,7 +28,6 @@ const AuthStack = createNativeStackNavigator<RiderAuthStackParamList>();
 const Tab = createBottomTabNavigator<RiderTabParamList>();
 const TripsStack = createNativeStackNavigator<RiderTripsStackParamList>();
 
-// Maps rider tab routes to a consistent Ionicons glyph for the mobile shell.
 function getTabIconName(
   routeName: keyof RiderTabParamList,
   focused: boolean,
@@ -40,6 +40,9 @@ function getTabIconName(
   }
   if (routeName === 'SOS') {
     return focused ? 'warning' : 'warning-outline';
+  }
+  if (routeName === 'Profile') {
+    return focused ? 'person-circle' : 'person-circle-outline';
   }
   return focused ? 'navigate' : 'navigate-outline';
 }
@@ -108,15 +111,17 @@ function RiderTabsNavigator() {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: {
-          height: 72,
-          paddingTop: 8,
-          paddingBottom: 12,
+          height: 76,
+          paddingTop: 10,
+          paddingBottom: 14,
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
+          borderTopWidth: 1,
         },
         tabBarLabelStyle: {
           fontSize: theme.typography.caption,
           fontWeight: '700',
+          marginTop: 2,
         },
       })}
     >
@@ -130,7 +135,12 @@ function RiderTabsNavigator() {
       <Tab.Screen
         name="PoiNearby"
         component={PoiNearbyScreen}
-        options={{ title: 'POIs' }}
+        options={{ title: 'Nearby' }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: 'Profile' }}
       />
     </Tab.Navigator>
   );

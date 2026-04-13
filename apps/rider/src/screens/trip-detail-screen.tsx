@@ -6,9 +6,9 @@ import { AppCard } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
 import { ErrorState } from '../components/ui/error-state';
 import { Badge, ScoreBadge } from '../components/ui/badge';
-import { ListItem } from '../components/ui/list-item';
 import { SectionHeader } from '../components/ui/section-header';
 import { CardSkeleton, ListSkeleton } from '../components/ui/skeleton';
+import { ScoreRing } from '../components/ui/score-ring';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { riderTripDetailSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
@@ -21,29 +21,17 @@ type TripDetailScreenProps = NativeStackScreenProps<
   'TripDetail'
 >;
 
-// Formats duration seconds into a short label for trip summary cards.
 function formatDuration(seconds: number): string {
   const totalMinutes = Math.max(1, Math.round(seconds / 60));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-
-  if (hours === 0) {
-    return `${totalMinutes} min`;
-  }
-
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-
+  if (hours === 0) return `${totalMinutes} min`;
+  if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
 }
 
-// Formats timestamps into concise trip timeline entries.
 function formatTimestamp(iso: string | null): string {
-  if (!iso) {
-    return 'In progress';
-  }
-
+  if (!iso) return 'In progress';
   return new Date(iso).toLocaleString([], {
     month: 'short',
     day: 'numeric',
@@ -52,7 +40,49 @@ function formatTimestamp(iso: string | null): string {
   });
 }
 
-// Loads rider-owned trip details with clearer scoring and event diagnostics.
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+interface EventCountBarProps {
+  label: string;
+  icon: string;
+  count: number;
+  maxCount: number;
+  color: string;
+  bgColor: string;
+}
+
+function EventCountBar({ label, icon, count, maxCount, color, bgColor }: EventCountBarProps) {
+  const widthPct = maxCount > 0 ? Math.max(8, (count / maxCount) * 100) : 0;
+  return (
+    <View style={styles.eventBarRow}>
+      <View style={styles.eventBarLabel}>
+        <Text style={styles.eventBarIcon}>{icon}</Text>
+        <Text style={styles.eventBarText}>{label}</Text>
+      </View>
+      <View style={styles.eventBarTrack}>
+        {count > 0 ? (
+          <View
+            style={[
+              styles.eventBarFill,
+              { width: `${widthPct}%`, backgroundColor: bgColor },
+            ]}
+          >
+            <Text style={[styles.eventBarCount, { color }]}>{count}</Text>
+          </View>
+        ) : (
+          <Text style={styles.eventBarZero}>0</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export function TripDetailScreen({ route }: TripDetailScreenProps) {
   const { tripId } = route.params;
 
@@ -81,11 +111,24 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
       trip.eventCounts.HARSH_ACCEL +
       trip.eventCounts.HARSH_CORNER
     : 0;
+  const criticalTotal = trip
+    ? trip.eventCounts.CRASH + trip.eventCounts.THEFT_SUSPECTED
+    : 0;
+  const maxEventCount = trip
+    ? Math.max(
+        trip.eventCounts.OVERSPEED,
+        trip.eventCounts.HARSH_BRAKE,
+        trip.eventCounts.HARSH_ACCEL,
+        trip.eventCounts.HARSH_CORNER,
+        trip.eventCounts.CRASH,
+        1,
+      )
+    : 1;
 
   if (tripDetailQuery.isLoading && !trip) {
     return (
       <ScreenContainer>
-        <SectionHeader title="Trip detail" subtitle="Loading score breakdown and event counts." />
+        <SectionHeader title="Trip Detail" />
         <CardSkeleton />
         <ListSkeleton rows={3} />
       </ScreenContainer>
@@ -97,7 +140,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
       <ScreenContainer>
         <ErrorState
           title="Unable to load trip detail"
-          description="This trip could not be fetched right now. Try again or return to the list and refresh."
+          description="This trip could not be fetched right now."
           onRetry={() => {
             void tripDetailQuery.refetch();
           }}
@@ -111,7 +154,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
       <ScreenContainer>
         <EmptyState
           title="Trip not available"
-          description="The selected trip is missing or no longer accessible from this rider account."
+          description="The selected trip is missing or no longer accessible."
         />
       </ScreenContainer>
     );
@@ -124,90 +167,153 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
         void tripDetailQuery.refetch();
       }}
     >
-      <SectionHeader
-        title="Trip detail"
-        subtitle="See how event counts affected your score on this ride."
-        rightSlot={<ScoreBadge score={trip.score} />}
-      />
-
-      <AppCard title="Trip summary" subtitle="A clean ride lowers harsh event penalties and raises your weekly score.">
-        <View style={styles.metricRow}>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>Distance</Text>
-            <Text style={styles.metricValue}>{trip.distanceKm.toFixed(1)} km</Text>
+      {/* Hero section with score ring */}
+      <View style={styles.heroSection}>
+        <View style={styles.heroDateRow}>
+          <Text style={styles.heroDate}>{formatDate(trip.startTs)}</Text>
+          <Badge label={`Bike ${trip.bikeId.slice(0, 8)}`} tone="primary" />
+        </View>
+        <View style={styles.heroContent}>
+          <ScoreRing score={trip.score} size={110} />
+          <View style={styles.heroMetrics}>
+            <View style={styles.heroMetric}>
+              <Text style={styles.heroMetricValue}>
+                {trip.distanceKm.toFixed(1)}
+              </Text>
+              <Text style={styles.heroMetricUnit}>km</Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetric}>
+              <Text style={styles.heroMetricValue}>
+                {formatDuration(trip.durationSec)}
+              </Text>
+              <Text style={styles.heroMetricUnit}>duration</Text>
+            </View>
           </View>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>Duration</Text>
-            <Text style={styles.metricValue}>{formatDuration(trip.durationSec)}</Text>
+        </View>
+      </View>
+
+      {/* Timeline card */}
+      <View style={styles.timelineCard}>
+        <View style={styles.timelineRow}>
+          <View style={[styles.timelineDot, { backgroundColor: theme.colors.success }]} />
+          <View style={styles.timelineContent}>
+            <Text style={styles.timelineLabel}>Start</Text>
+            <Text style={styles.timelineTime}>{formatTimestamp(trip.startTs)}</Text>
           </View>
         </View>
-        <View style={styles.badgeRow}>
-          <Badge label={`Bike ${trip.bikeId.slice(0, 8)}`} />
-          <Badge label={`Started ${formatTimestamp(trip.startTs)}`} tone="primary" />
+        <View style={styles.timelineConnector} />
+        <View style={styles.timelineRow}>
+          <View style={[styles.timelineDot, { backgroundColor: trip.endTs ? theme.colors.primary : theme.colors.warning }]} />
+          <View style={styles.timelineContent}>
+            <Text style={styles.timelineLabel}>End</Text>
+            <Text style={styles.timelineTime}>{formatTimestamp(trip.endTs)}</Text>
+          </View>
         </View>
-      </AppCard>
+      </View>
 
-      <AppCard title="Timeline" subtitle="Trip start and end times are shown in your local time zone.">
-        <View style={styles.stack}>
-          <ListItem title="Start" meta={formatTimestamp(trip.startTs)} />
-          <ListItem title="End" meta={formatTimestamp(trip.endTs)} />
+      {/* Event counts with visual bars */}
+      <SectionHeader title="Events" subtitle="Penalties by type" />
+      <View style={styles.eventsCard}>
+        <EventCountBar
+          label="Overspeed"
+          icon="⚡"
+          count={trip.eventCounts.OVERSPEED}
+          maxCount={maxEventCount}
+          color={theme.colors.warning}
+          bgColor={theme.colors.warningSoft}
+        />
+        <EventCountBar
+          label="Hard Brake"
+          icon="🛑"
+          count={trip.eventCounts.HARSH_BRAKE}
+          maxCount={maxEventCount}
+          color={theme.colors.danger}
+          bgColor={theme.colors.dangerSoft}
+        />
+        <EventCountBar
+          label="Hard Accel"
+          icon="🏎️"
+          count={trip.eventCounts.HARSH_ACCEL}
+          maxCount={maxEventCount}
+          color={theme.colors.primary}
+          bgColor={theme.colors.primarySoft}
+        />
+        <EventCountBar
+          label="Hard Corner"
+          icon="↩️"
+          count={trip.eventCounts.HARSH_CORNER}
+          maxCount={maxEventCount}
+          color={theme.colors.purple}
+          bgColor={theme.colors.purpleSoft}
+        />
+        <EventCountBar
+          label="Crash"
+          icon="💥"
+          count={trip.eventCounts.CRASH}
+          maxCount={maxEventCount}
+          color={theme.colors.danger}
+          bgColor={theme.colors.dangerSoft}
+        />
+
+        {/* Summary row */}
+        <View style={styles.eventSummaryRow}>
+          <View style={styles.eventSummaryItem}>
+            <Text style={styles.eventSummaryValue}>{harshEventTotal}</Text>
+            <Text style={styles.eventSummaryLabel}>Harsh total</Text>
+          </View>
+          <View style={styles.eventSummaryItem}>
+            <Text style={styles.eventSummaryValue}>{trip.eventCounts.OVERSPEED}</Text>
+            <Text style={styles.eventSummaryLabel}>Overspeed</Text>
+          </View>
+          <View style={styles.eventSummaryItem}>
+            <Text style={[styles.eventSummaryValue, criticalTotal > 0 ? { color: theme.colors.danger } : null]}>
+              {criticalTotal}
+            </Text>
+            <Text style={styles.eventSummaryLabel}>Critical</Text>
+          </View>
         </View>
-      </AppCard>
+      </View>
 
-      <AppCard title="Event counts" subtitle="Harsh riding and overspeed events contribute directly to score penalties.">
-        <View style={styles.stack}>
-          <ListItem
-            title="Harsh riding"
-            subtitle={`Brake ${trip.eventCounts.HARSH_BRAKE} | Accel ${trip.eventCounts.HARSH_ACCEL} | Corner ${trip.eventCounts.HARSH_CORNER}`}
-            rightSlot={<Badge label={`${harshEventTotal} total`} tone={harshEventTotal > 0 ? 'warning' : 'success'} />}
-          />
-          <ListItem
-            title="Overspeed"
-            subtitle="Triggered when you exceed allowed speed thresholds."
-            rightSlot={<Badge label={`${trip.eventCounts.OVERSPEED}`} tone={trip.eventCounts.OVERSPEED > 0 ? 'warning' : 'success'} />}
-          />
-          <ListItem
-            title="Critical incidents"
-            subtitle="Crash and theft suspected events carry the heaviest penalties."
-            rightSlot={
-              <Badge
-                label={`${trip.eventCounts.CRASH + trip.eventCounts.THEFT_SUSPECTED}`}
-                tone={trip.eventCounts.CRASH + trip.eventCounts.THEFT_SUSPECTED > 0 ? 'danger' : 'success'}
-              />
-            }
-          />
+      {/* Score breakdown */}
+      <SectionHeader title="Score Breakdown" subtitle="Penalty details" />
+      <View style={styles.breakdownCard}>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Total penalty</Text>
+          <Text style={[styles.breakdownValue, { color: theme.colors.danger }]}>
+            -{trip.scoreBreakdown.penalties.total.toFixed(2)}
+          </Text>
         </View>
-      </AppCard>
-
-      <AppCard title="Score breakdown" subtitle="These penalties were applied over your normalized trip distance.">
-        <View style={styles.stack}>
-          <ListItem
-            title="Total penalty"
-            meta={trip.scoreBreakdown.penalties.total.toFixed(2)}
-          />
-          <ListItem
-            title="Overspeed penalty"
-            meta={trip.scoreBreakdown.penalties.OVERSPEED.toFixed(2)}
-          />
-          <ListItem
-            title="Harsh riding penalty"
-            meta={(
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Overspeed</Text>
+          <Text style={styles.breakdownValue}>
+            -{trip.scoreBreakdown.penalties.OVERSPEED.toFixed(2)}
+          </Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Harsh riding</Text>
+          <Text style={styles.breakdownValue}>
+            -{(
               trip.scoreBreakdown.penalties.HARSH_BRAKE +
               trip.scoreBreakdown.penalties.HARSH_ACCEL +
               trip.scoreBreakdown.penalties.HARSH_CORNER
             ).toFixed(2)}
-          />
-          <ListItem
-            title="Distance used for scoring"
-            meta={`${trip.scoreBreakdown.normalizedDistanceKm.toFixed(2)} km`}
-          />
+          </Text>
         </View>
-      </AppCard>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Scored distance</Text>
+          <Text style={styles.breakdownValue}>
+            {trip.scoreBreakdown.normalizedDistanceKm.toFixed(2)} km
+          </Text>
+        </View>
+      </View>
 
       {tripDetailQuery.isError ? (
         <ErrorState
-          title="Some trip details may be stale"
-          description="The trip summary is visible, but the latest server refresh did not complete."
+          title="Some details may be stale"
+          description="The latest refresh did not complete."
           retryLabel="Reload trip"
           onRetry={() => {
             void tripDetailQuery.refetch();
@@ -219,37 +325,200 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  metricRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-  },
-  metricCard: {
-    flex: 1,
+  heroSection: {
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.button,
-    backgroundColor: theme.colors.surfaceMuted,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.xs,
+    borderRadius: theme.radius.hero,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
+    gap: theme.spacing.lg,
+    ...theme.shadow,
   },
-  metricLabel: {
+  heroDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroDate: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xl,
+  },
+  heroMetrics: {
+    flex: 1,
+    gap: theme.spacing.lg,
+  },
+  heroMetric: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  heroMetricValue: {
+    fontSize: theme.typography.hero,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  heroMetricUnit: {
     fontSize: theme.typography.caption,
     fontWeight: '700',
     color: theme.colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  metricValue: {
-    fontSize: theme.typography.section,
+  heroMetricDivider: {
+    height: 1,
+    backgroundColor: theme.colors.borderFaint,
+    marginHorizontal: theme.spacing.lg,
+  },
+  timelineCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
+    ...theme.shadowLight,
+  },
+  timelineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  timelineConnector: {
+    width: 2,
+    height: 20,
+    backgroundColor: theme.colors.border,
+    marginLeft: 5,
+    marginVertical: theme.spacing.xs,
+  },
+  timelineContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timelineLabel: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  timelineTime: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  eventsCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
+    gap: theme.spacing.md,
+    ...theme.shadowLight,
+  },
+  eventBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  eventBarLabel: {
+    width: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  eventBarIcon: {
+    fontSize: 14,
+  },
+  eventBarText: {
+    fontSize: theme.typography.small,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  eventBarTrack: {
+    flex: 1,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surfaceMuted,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  eventBarFill: {
+    height: '100%',
+    borderRadius: 8,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.sm,
+  },
+  eventBarCount: {
+    fontSize: theme.typography.small,
+    fontWeight: '800',
+  },
+  eventBarZero: {
+    fontSize: theme.typography.small,
+    fontWeight: '600',
+    color: theme.colors.textFaint,
+    paddingLeft: theme.spacing.sm,
+  },
+  eventSummaryRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderFaint,
+  },
+  eventSummaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  eventSummaryValue: {
+    fontSize: theme.typography.subtitle,
     fontWeight: '800',
     color: theme.colors.text,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+  eventSummaryLabel: {
+    fontSize: theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
   },
-  stack: {
+  breakdownCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
     gap: theme.spacing.md,
+    ...theme.shadowLight,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownLabel: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  breakdownValue: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  breakdownDivider: {
+    height: 1,
+    backgroundColor: theme.colors.borderFaint,
   },
 });

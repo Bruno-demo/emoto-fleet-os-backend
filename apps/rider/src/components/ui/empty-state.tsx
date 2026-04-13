@@ -5,13 +5,15 @@ import { theme } from '../../theme/tokens';
 interface EmptyStateProps {
   title: string;
   description: string;
+  icon?: string;
   action?: ReactNode;
 }
 
 // Provides consistent empty-state guidance with a clear next step.
-export function EmptyState({ title, description, action }: EmptyStateProps) {
+export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
   return (
     <View style={styles.container}>
+      {icon ? <Text style={styles.icon}>{icon}</Text> : null}
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
       {action ? <View style={styles.action}>{action}</View> : null}
@@ -27,9 +29,13 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.layout.cardPadding,
-    paddingVertical: theme.spacing.xl,
+    paddingVertical: theme.spacing.xxl,
     alignItems: 'center',
-    gap: theme.layout.textGap,
+    gap: theme.spacing.sm,
+  },
+  icon: {
+    fontSize: 36,
+    marginBottom: theme.spacing.xs,
   },
   title: {
     fontSize: theme.typography.emphasis,

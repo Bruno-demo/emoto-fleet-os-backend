@@ -80,17 +80,24 @@ export class ConsoleNotificationProvider implements NotificationProvider {
       .digest('hex');
     const timestamp = new Date().toISOString();
 
-    const response = await fetch(webhook.url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-emoto-signature': signature,
-        'x-emoto-timestamp': timestamp,
-      },
-      body: payloadString,
-    });
-    if (!response.ok) {
-      throw new Error(`Webhook delivery failed with status ${response.status}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(webhook.url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-emoto-signature': signature,
+          'x-emoto-timestamp': timestamp,
+        },
+        body: payloadString,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Webhook delivery failed with status ${response.status}`);
+      }
+    } finally {
+      clearTimeout(timeout);
     }
 
     this.logger.log(

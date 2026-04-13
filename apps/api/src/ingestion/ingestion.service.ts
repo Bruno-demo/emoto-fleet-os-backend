@@ -150,6 +150,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       const payload = JSON.parse(rawMessage) as unknown;
       const device = await this.loadDeviceByUid(parsedTopic.deviceUid);
       if (!device || device.status !== 'ACTIVE') {
+        this.metricsService.incrementMqttIngestion(kindLabel, 'rejected', 'unknown_device');
         this.logger.warn(
           `Ignoring message from unknown/inactive device ${this.truncateDeviceUid(parsedTopic.deviceUid)}`,
         );
@@ -167,7 +168,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       }
       this.metricsService.incrementMqttIngestion(kindLabel, 'accepted');
     } catch (error: unknown) {
-      this.metricsService.incrementMqttIngestion(kindLabel, 'rejected');
+      const reason = this.classifyIngestionError(error);
+      this.metricsService.incrementMqttIngestion(kindLabel, 'rejected', reason);
       const message = error instanceof Error ? error.message : 'unknown error';
       this.logger.warn(
         `Failed to process MQTT message for ${this.truncateDeviceUid(parsedTopic.deviceUid)}: ${message}`,
@@ -323,27 +325,33 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.redisService.addToStream(
-      this.streamKey,
-      {
-        kind: 'telemetry',
-        deviceId: device.id,
-        deviceUid: device.deviceUid,
-        fleetId: device.fleetId,
-        bikeId: device.bikeId ?? '',
-        ts: timestamp.toISOString(),
-        lat: telemetryPayload.lat.toString(),
-        lng: telemetryPayload.lng.toString(),
-        speedKph: telemetryPayload.speedKph.toString(),
-        heading: telemetryPayload.heading?.toString() ?? '',
-        accelX: telemetryPayload.accel?.x?.toString() ?? '',
-        accelY: telemetryPayload.accel?.y?.toString() ?? '',
-        accelZ: telemetryPayload.accel?.z?.toString() ?? '',
-        batteryV: telemetryPayload.batteryV?.toString() ?? '',
-        ignition: telemetryPayload.ignition ? 'true' : 'false',
-      },
-      this.streamMaxLen,
-    );
+    try {
+      await this.redisService.addToStream(
+        this.streamKey,
+        {
+          kind: 'telemetry',
+          deviceId: device.id,
+          deviceUid: device.deviceUid,
+          fleetId: device.fleetId,
+          bikeId: device.bikeId ?? '',
+          ts: timestamp.toISOString(),
+          lat: telemetryPayload.lat.toString(),
+          lng: telemetryPayload.lng.toString(),
+          speedKph: telemetryPayload.speedKph.toString(),
+          heading: telemetryPayload.heading?.toString() ?? '',
+          accelX: telemetryPayload.accel?.x?.toString() ?? '',
+          accelY: telemetryPayload.accel?.y?.toString() ?? '',
+          accelZ: telemetryPayload.accel?.z?.toString() ?? '',
+          batteryV: telemetryPayload.batteryV?.toString() ?? '',
+          ignition: telemetryPayload.ignition ? 'true' : 'false',
+        },
+        this.streamMaxLen,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to publish telemetry stream for device=${device.id}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
   }
 
   // Writes event payloads to the stream processor input.
@@ -356,21 +364,27 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.redisService.addToStream(
-      this.streamKey,
-      {
-        kind: 'event',
-        deviceId: device.id,
-        deviceUid: device.deviceUid,
-        fleetId: device.fleetId,
-        bikeId: device.bikeId ?? '',
-        ts: timestamp.toISOString(),
-        type: eventPayload.type,
-        severity: eventPayload.severity,
-        metaJson: JSON.stringify(eventPayload.meta ?? {}),
-      },
-      this.streamMaxLen,
-    );
+    try {
+      await this.redisService.addToStream(
+        this.streamKey,
+        {
+          kind: 'event',
+          deviceId: device.id,
+          deviceUid: device.deviceUid,
+          fleetId: device.fleetId,
+          bikeId: device.bikeId ?? '',
+          ts: timestamp.toISOString(),
+          type: eventPayload.type,
+          severity: eventPayload.severity,
+          metaJson: JSON.stringify(eventPayload.meta ?? {}),
+        },
+        this.streamMaxLen,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to publish event stream for device=${device.id}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
   }
 
   // Writes command acknowledgements to the stream processor input.
@@ -383,21 +397,27 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.redisService.addToStream(
-      this.streamKey,
-      {
-        kind: 'command_ack',
-        deviceId: device.id,
-        deviceUid: device.deviceUid,
-        fleetId: device.fleetId,
-        bikeId: device.bikeId ?? '',
-        ts: timestamp.toISOString(),
-        commandId: payload.commandId,
-        status: payload.status,
-        errorMessage: payload.errorMessage ?? '',
-      },
-      this.streamMaxLen,
-    );
+    try {
+      await this.redisService.addToStream(
+        this.streamKey,
+        {
+          kind: 'command_ack',
+          deviceId: device.id,
+          deviceUid: device.deviceUid,
+          fleetId: device.fleetId,
+          bikeId: device.bikeId ?? '',
+          ts: timestamp.toISOString(),
+          commandId: payload.commandId,
+          status: payload.status,
+          errorMessage: payload.errorMessage ?? '',
+        },
+        this.streamMaxLen,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to publish command_ack stream for device=${device.id}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
   }
 
   // Loads device security context by incoming MQTT device UID.
@@ -492,5 +512,19 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     }
 
     return `${deviceUid.slice(0, 4)}...${deviceUid.slice(-4)}`;
+  }
+
+  // Maps ingestion errors to stable metric labels for observability dashboards.
+  private classifyIngestionError(error: unknown): string {
+    if (error instanceof SyntaxError) return 'parse_error';
+    if (error instanceof MqttValidationError) return 'validation';
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('signature')) return 'signature';
+      if (msg.includes('nonce') || msg.includes('replay')) return 'replay';
+      if (msg.includes('timestamp') || msg.includes('drift')) return 'timestamp_drift';
+      if (msg.includes('secret') || msg.includes('hash mismatch')) return 'crypto';
+    }
+    return 'unknown';
   }
 }

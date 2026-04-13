@@ -14,7 +14,7 @@ export class PartnerAuthController {
   @Post('token')
   @HttpCode(200)
   @Throttle({
-    default: { limit: 15, ttl: 60_000 },
+    default: { limit: 5, ttl: 60_000 },
   })
   @ApiOperation({
     summary: 'Issue insurer partner token with OAuth2 client-credentials flow',

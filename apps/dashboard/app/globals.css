@@ -2,60 +2,75 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #0B0F19; /* Deep space midnight */
+  --background: #0B0F19;
   --background-strong: #070B14;
-  --surface: rgba(15, 23, 42, 0.45); /* High transparency for glass */
+  --background-subtle: #101827;
+  --surface: rgba(15, 23, 42, 0.45);
   --surface-muted: rgba(30, 41, 59, 0.35);
   --surface-strong: rgba(15, 23, 42, 0.75);
   --surface-hover: rgba(51, 65, 85, 0.5);
+  --surface-raised: rgba(15, 23, 42, 0.85);
   --ink: #FFFFFF;
   --ink-soft: #A3B3CB;
   --ink-muted: #64748B;
-  --line: rgba(255, 255, 255, 0.08); /* Faint glass borders */
+  --ink-faint: #475569;
+  --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.15);
-  --accent: #3B82F6; /* Neon Blue */
+  --line-faint: rgba(255, 255, 255, 0.04);
+  --accent: #3B82F6;
   --accent-strong: #2563EB;
   --accent-soft: rgba(59, 130, 246, 0.15);
-  /* Success: Vibrant Emerald */
+  --accent-glow: rgba(59, 130, 246, 0.25);
   --success-soft: rgba(16, 185, 129, 0.15);
   --success-ink: #34D399;
-  /* Warning: Bright Amber */
+  --success-strong: #10B981;
   --warning-soft: rgba(245, 158, 11, 0.15);
   --warning-ink: #FBBF24;
-  /* Danger/Critical: Rose / Neon Pink */
+  --warning-strong: #F59E0B;
   --danger-soft: rgba(225, 29, 72, 0.15);
   --danger-ink: #FB7185;
+  --danger-strong: #E11D48;
   --critical-soft: rgba(244, 63, 94, 0.2);
   --critical-ink: #FDA4AF;
-  /* Low / Info */
   --low-soft: rgba(148, 163, 184, 0.15);
   --low-ink: #CBD5E1;
+  --purple-soft: rgba(139, 92, 246, 0.15);
+  --purple-ink: #A78BFA;
   --ring: rgba(59, 130, 246, 0.4);
-  /* Glowing / Deep Shadows */
   --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
   --shadow-strong: 0 20px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.15);
   --shadow: var(--shadow-soft);
   --radius-control: 12px;
-  --radius-panel: 24px;
+  --radius-panel: 20px;
   --radius-pill: 999px;
+  --radius-card: 16px;
   --accent-foreground: #FFFFFF;
+  --sidebar-width: 272px;
+  --sidebar-collapsed: 76px;
+  --topbar-height: 64px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-background-strong: var(--background-strong);
+  --color-background-subtle: var(--background-subtle);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-surface-strong: var(--surface-strong);
   --color-surface-hover: var(--surface-hover);
+  --color-surface-raised: var(--surface-raised);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-line-faint: var(--line-faint);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
   --color-success-soft: var(--success-soft);
   --color-success-ink: var(--success-ink);
   --color-warning-soft: var(--warning-soft);
@@ -66,6 +81,8 @@
   --color-critical-ink: var(--critical-ink);
   --color-low-soft: var(--low-soft);
   --color-low-ink: var(--low-ink);
+  --color-purple-soft: var(--purple-soft);
+  --color-purple-ink: var(--purple-ink);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-space-grotesk);
 }
@@ -81,11 +98,10 @@ body {
 }
 
 body {
-  /* Rich animated mesh gradient aesthetic for the whole app */
-  background: 
-    radial-gradient(circle at 15% 10%, rgba(59, 130, 246, 0.15) 0%, transparent 35%),
-    radial-gradient(circle at 85% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 30%),
-    radial-gradient(circle at 50% 90%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 5%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 90% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 55% at 50% 95%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
     var(--background);
   background-attachment: fixed;
   color: var(--ink);
@@ -102,6 +118,14 @@ body {
   box-shadow: var(--shadow-strong);
 }
 
+.glass-panel-raised {
+  background: var(--surface-raised);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-strong);
+}
+
 a {
   color: inherit;
 }
@@ -114,13 +138,13 @@ textarea {
   background-color: transparent;
 }
 
-/* Enhancing component hover states to feel extremely dynamic */
 button,
 a,
 input,
 select,
 textarea,
-.glass-panel {
+.glass-panel,
+.glass-panel-raised {
   transition:
     all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -137,6 +161,82 @@ textarea:focus-visible {
 ::selection {
   background: rgba(37, 99, 235, 0.18);
 }
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* Progress bar */
+.progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Metric trend indicator */
+.trend-up { color: var(--success-ink); }
+.trend-down { color: var(--danger-ink); }
+.trend-flat { color: var(--ink-muted); }
 
 .leaflet-container {
   background: #dbe7f5;
@@ -156,8 +256,8 @@ textarea:focus-visible {
 }
 
 .dashboard-scrollbar::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .dashboard-scrollbar::-webkit-scrollbar-thumb {
@@ -165,4 +265,8 @@ textarea:focus-visible {
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }

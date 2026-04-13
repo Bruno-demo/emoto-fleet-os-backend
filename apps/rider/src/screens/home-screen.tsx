@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/screen-container';
 import { AppCard } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
@@ -32,27 +32,19 @@ import { z } from 'zod';
 interface CoachingTip {
   title: string;
   detail: string;
+  icon: string;
   tone: 'primary' | 'success' | 'warning' | 'danger';
 }
 
-// Formats trip durations into short, rider-readable text.
 function formatDuration(durationSec: number): string {
   const totalMinutes = Math.max(1, Math.round(durationSec / 60));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-
-  if (hours === 0) {
-    return `${totalMinutes} min`;
-  }
-
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-
+  if (hours === 0) return `${totalMinutes} min`;
+  if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
 }
 
-// Formats timestamps into concise local rider-friendly labels.
 function formatTimestamp(iso: string): string {
   return new Date(iso).toLocaleString([], {
     month: 'short',
@@ -62,7 +54,27 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-// Builds short coaching guidance from weekly score, latest trip, and recent alerts.
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function getEventIcon(type: string): string {
+  if (type === 'OVERSPEED') return '⚡';
+  if (type === 'HARSH_BRAKE') return '🛑';
+  if (type === 'HARSH_ACCEL') return '🏎️';
+  if (type === 'HARSH_CORNER') return '↩️';
+  if (type === 'CRASH') return '💥';
+  if (type === 'THEFT_SUSPECTED') return '🔒';
+  if (type === 'SOS') return '🆘';
+  return '📍';
+}
+
 function buildCoachingTips(
   weeklyScore: RiderWeeklyScoreResponse | undefined,
   latestTrip: RiderTripSummary | null,
@@ -73,7 +85,8 @@ function buildCoachingTips(
   if (recentAlerts.some((event) => event.type === 'OVERSPEED')) {
     tips.push({
       title: 'Ease off in slow zones',
-      detail: 'One recent overspeed alert was recorded. Holding a steadier pace will protect your score.',
+      detail: 'Recent overspeed detected. A steadier pace protects your score.',
+      icon: '⚡',
       tone: 'warning',
     });
   }
@@ -84,43 +97,48 @@ function buildCoachingTips(
     )
   ) {
     tips.push({
-      title: 'Smooth your braking and throttle',
-      detail: 'Leave a little more room ahead so you can brake and accelerate progressively.',
+      title: 'Smooth your braking',
+      detail: 'Leave more room ahead to brake and accelerate progressively.',
+      icon: '🎯',
       tone: 'primary',
     });
   }
 
   if ((weeklyScore?.avgScore ?? 0) >= 85) {
     tips.push({
-      title: 'Keep the streak going',
-      detail: 'Your weekly score is strong. Focus on another clean trip to hold the lead.',
+      title: 'Keep momentum',
+      detail: 'Strong week! One more clean ride to hold the lead.',
+      icon: '🏆',
       tone: 'success',
     });
   }
 
   if (!latestTrip) {
     tips.push({
-      title: 'Start with one calm trip',
-      detail: 'Your first scored ride will unlock personalized coaching and trend tracking.',
+      title: 'Start your first ride',
+      detail: 'Your first scored ride unlocks coaching and trends.',
+      icon: '🚀',
       tone: 'primary',
     });
   } else if (latestTrip.distanceKm < 5) {
     tips.push({
-      title: 'Build a steadier sample',
-      detail: 'A slightly longer smooth ride gives the app better data for your weekly score.',
+      title: 'Ride a bit longer',
+      detail: 'A longer smooth ride gives better data for your score.',
+      icon: '📏',
       tone: 'primary',
     });
   }
 
   if (tips.length < 2) {
     tips.push({
-      title: 'Check your assigned bike before departure',
-      detail: 'A quick tire, brake, and battery check reduces avoidable harsh events later on the route.',
+      title: 'Pre-ride check',
+      detail: 'Quick tire, brake & battery check saves events later.',
+      icon: '🔧',
       tone: 'primary',
     });
   }
 
-  return tips.slice(0, 2);
+  return tips.slice(0, 3);
 }
 
 // Shows rider home insights including weekly score, latest trip, and recent alerts.
@@ -205,6 +223,7 @@ export function HomeScreen() {
   const activeAssignment = auth.riderMe?.assignments.find((assignment) => assignment.active) ?? null;
   const scoreTone = getScoreTone(weeklyScore?.avgScore);
   const coachingTips = buildCoachingTips(weeklyScore, latestTrip, recentAlerts);
+  const firstName = (auth.riderMe?.fullName ?? 'Rider').split(' ')[0];
 
   if (
     (weeklyScoreQuery.isLoading && !weeklyScore) ||
@@ -212,13 +231,13 @@ export function HomeScreen() {
   ) {
     return (
       <ScreenContainer>
-        <SectionHeader
-          title="Rider Home"
-          subtitle="Loading your weekly score, recent trip, and coaching tips."
-        />
+        <View style={styles.greetingSection}>
+          <SkeletonBlock height={28} width="55%" />
+          <SkeletonBlock height={16} width="70%" />
+        </View>
         <AppCard>
           <View style={styles.scoreSkeleton}>
-            <SkeletonBlock height={120} width={120} radius={60} />
+            <SkeletonBlock height={130} width={130} radius={65} />
             <View style={styles.scoreSkeletonText}>
               <SkeletonBlock height={18} width="48%" />
               <SkeletonBlock height={14} width="72%" />
@@ -255,118 +274,191 @@ export function HomeScreen() {
       }
       onRefresh={() => void refreshAll()}
     >
-      <SectionHeader
-        title={`Hi ${auth.riderMe?.fullName ?? 'Rider'}`}
-        subtitle="Stay smooth, watch your score, and act fast if something looks wrong."
-        rightSlot={<Badge label={scoreTone.label} tone={scoreTone.badgeTone} />}
-      />
+      {/* Greeting banner */}
+      <View style={styles.greetingSection}>
+        <View style={styles.greetingRow}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>
+              {firstName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.greetingText}>
+            <Text style={styles.greetingName}>Hi, {firstName}</Text>
+            <Text style={styles.greetingSubtitle}>
+              {weeklyScore?.tripCount
+                ? `${weeklyScore.tripCount} rides this week`
+                : 'Stay smooth, ride safe'}
+            </Text>
+          </View>
+          <Badge label={scoreTone.label} tone={scoreTone.badgeTone} />
+        </View>
+      </View>
 
-      <AppCard
-        title="Weekly score"
-        subtitle="A smoother week keeps your score high and your risk low."
-      >
-        <View style={styles.scoreHero}>
-          <ScoreRing score={weeklyScore?.avgScore ?? null} />
+      {/* Score hero card */}
+      <View style={styles.scoreCard}>
+        <View style={styles.scoreCardInner}>
+          <ScoreRing score={weeklyScore?.avgScore ?? null} size={130} />
           <View style={styles.scoreSummary}>
-            <Text style={styles.scoreHeadline}>
-              {scoreTone.label}
-            </Text>
+            <Text style={styles.scoreCardTitle}>Weekly Score</Text>
+            <Text style={styles.scoreHeadline}>{scoreTone.label}</Text>
             <Text style={styles.scoreBody}>
-              {weeklyScore?.tripCount ?? 0} trips logged this week.
+              {weeklyScore?.tripCount ?? 0} trips scored this week
             </Text>
-            <View style={styles.metricRow}>
-              <Badge
-                label={`Best ${weeklyScore?.bestScore?.toFixed(1) ?? '--'}`}
-                tone="success"
-              />
-              <Badge
-                label={`Worst ${weeklyScore?.worstScore?.toFixed(1) ?? '--'}`}
-                tone="warning"
-              />
+            <View style={styles.bestWorstRow}>
+              <View style={[styles.miniStat, { borderColor: theme.colors.successBorder, backgroundColor: theme.colors.successSoft }]}>
+                <Text style={[styles.miniStatValue, { color: theme.colors.success }]}>
+                  {weeklyScore?.bestScore?.toFixed(0) ?? '--'}
+                </Text>
+                <Text style={styles.miniStatLabel}>Best</Text>
+              </View>
+              <View style={[styles.miniStat, { borderColor: theme.colors.warningBorder, backgroundColor: theme.colors.warningSoft }]}>
+                <Text style={[styles.miniStatValue, { color: theme.colors.warning }]}>
+                  {weeklyScore?.worstScore?.toFixed(0) ?? '--'}
+                </Text>
+                <Text style={styles.miniStatLabel}>Worst</Text>
+              </View>
             </View>
           </View>
         </View>
-        <View style={styles.quickStats}>
-          <View style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Assigned bikes</Text>
-            <Text style={styles.quickStatValue}>{assignmentCount}</Text>
-          </View>
-          <View style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Primary bike</Text>
-            <Text style={styles.quickStatValue}>
-              {activeAssignment?.bikeLabel ?? 'Not assigned'}
-            </Text>
-          </View>
-        </View>
-      </AppCard>
+      </View>
 
+      {/* Quick stats row */}
+      <View style={styles.quickStatsRow}>
+        <View style={styles.quickStatCard}>
+          <Text style={styles.quickStatIcon}>🏍️</Text>
+          <Text style={styles.quickStatValue}>{assignmentCount}</Text>
+          <Text style={styles.quickStatLabel}>Bikes</Text>
+        </View>
+        <View style={styles.quickStatCard}>
+          <Text style={styles.quickStatIcon}>📍</Text>
+          <Text style={styles.quickStatValue} numberOfLines={1}>
+            {activeAssignment?.bikeLabel ?? '—'}
+          </Text>
+          <Text style={styles.quickStatLabel}>Primary</Text>
+        </View>
+        <View style={styles.quickStatCard}>
+          <Text style={styles.quickStatIcon}>⚠️</Text>
+          <Text style={styles.quickStatValue}>{recentAlerts.length}</Text>
+          <Text style={styles.quickStatLabel}>Alerts</Text>
+        </View>
+      </View>
+
+      {/* Last trip card */}
       <AppCard
-        title="Last trip"
-        subtitle="Your latest ride summary appears here as soon as scoring completes."
+        title="Last Trip"
         rightSlot={<ScoreBadge score={latestTrip?.score ?? null} />}
       >
         {latestTrip ? (
-          <View style={styles.summaryStack}>
-            <ListItem
-              title={`${latestTrip.distanceKm.toFixed(1)} km ride`}
-              subtitle={`Duration ${formatDuration(latestTrip.durationSec)}`}
-              meta={`Started ${formatTimestamp(latestTrip.startTs)}`}
-            />
+          <View style={styles.lastTripContent}>
+            <View style={styles.tripMetrics}>
+              <View style={styles.tripMetric}>
+                <Text style={styles.tripMetricValue}>
+                  {latestTrip.distanceKm.toFixed(1)}
+                </Text>
+                <Text style={styles.tripMetricUnit}>km</Text>
+              </View>
+              <View style={styles.tripMetricDivider} />
+              <View style={styles.tripMetric}>
+                <Text style={styles.tripMetricValue}>
+                  {formatDuration(latestTrip.durationSec)}
+                </Text>
+                <Text style={styles.tripMetricUnit}>duration</Text>
+              </View>
+            </View>
+            <Text style={styles.tripTimestamp}>
+              Started {formatTimestamp(latestTrip.startTs)}
+            </Text>
           </View>
         ) : (
           <EmptyState
             title="No trips yet"
-            description="Take your first ride with the app connected to see score trends and coaching."
+            description="Your first ride will unlock scoring and coaching."
           />
         )}
       </AppCard>
 
-      <AppCard title="Coaching tips" subtitle="Two quick actions to keep you safer this week.">
-        <View style={styles.summaryStack}>
-          {coachingTips.map((tip) => (
-            <ListItem
-              key={tip.title}
-              title={tip.title}
-              subtitle={tip.detail}
-              leftSlot={<Badge label="Tip" tone={tip.tone} />}
-            />
+      {/* Coaching tips */}
+      <SectionHeader title="Coaching" subtitle="Quick actions for a safer week" />
+      <View style={styles.tipsGrid}>
+        {coachingTips.map((tip) => {
+          const toneColor =
+            tip.tone === 'success'
+              ? theme.colors.success
+              : tip.tone === 'warning'
+                ? theme.colors.warning
+                : tip.tone === 'danger'
+                  ? theme.colors.danger
+                  : theme.colors.primary;
+          const toneBg =
+            tip.tone === 'success'
+              ? theme.colors.successSoft
+              : tip.tone === 'warning'
+                ? theme.colors.warningSoft
+                : tip.tone === 'danger'
+                  ? theme.colors.dangerSoft
+                  : theme.colors.primarySoft;
+
+          return (
+            <View key={tip.title} style={[styles.tipCard, { borderColor: toneColor + '30' }]}>
+              <View style={[styles.tipIconWrap, { backgroundColor: toneBg }]}>
+                <Text style={styles.tipIcon}>{tip.icon}</Text>
+              </View>
+              <Text style={styles.tipTitle}>{tip.title}</Text>
+              <Text style={styles.tipDetail}>{tip.detail}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Recent alerts */}
+      <SectionHeader
+        title="Recent Alerts"
+        rightSlot={
+          recentAlerts.length > 0 ? (
+            <Badge label={`${recentAlerts.length} recent`} tone="warning" />
+          ) : undefined
+        }
+      />
+      {latestAlertQuery.isLoading ? (
+        <ListSkeleton rows={3} />
+      ) : recentAlerts.length > 0 ? (
+        <View style={styles.alertsList}>
+          {recentAlerts.map((event) => (
+            <View key={event.id} style={styles.alertRow}>
+              <View style={styles.alertIconWrap}>
+                <Text style={styles.alertIcon}>{getEventIcon(event.type)}</Text>
+              </View>
+              <View style={styles.alertContent}>
+                <View style={styles.alertTopRow}>
+                  <Text style={styles.alertType}>
+                    {event.type.replaceAll('_', ' ')}
+                  </Text>
+                  <SeverityBadge severity={event.severity} />
+                </View>
+                <Text style={styles.alertMeta}>
+                  Bike {event.bikeId ? event.bikeId.slice(0, 8) : 'unassigned'} · {formatTimeAgo(event.ts)}
+                </Text>
+              </View>
+            </View>
           ))}
         </View>
-      </AppCard>
+      ) : (
+        <EmptyState
+          title="All clear"
+          description="No recent alerts. Clean riding keeps this feed quiet."
+        />
+      )}
 
-      <AppCard title="Recent alerts" subtitle="The latest events from your assigned bike help explain score changes.">
-        {latestAlertQuery.isLoading ? (
-          <ListSkeleton rows={3} />
-        ) : recentAlerts.length > 0 ? (
-          <View style={styles.summaryStack}>
-            {recentAlerts.map((event) => (
-              <ListItem
-                key={event.id}
-                title={event.type.replaceAll('_', ' ')}
-                subtitle={`Bike ${event.bikeId ? event.bikeId.slice(0, 8) : 'unassigned'}`}
-                meta={formatTimestamp(event.ts)}
-                rightSlot={<SeverityBadge severity={event.severity} />}
-              />
-            ))}
-          </View>
-        ) : (
-          <EmptyState
-            title="No recent alerts"
-            description="Clean riding keeps this feed quiet. New overspeed, harsh riding, crash, theft, or SOS events will appear here."
-          />
-        )}
-
-        {latestAlertQuery.isError ? (
-          <ErrorState
-            title="Recent alerts are unavailable"
-            description="The rest of your home screen is ready, but alerts could not be refreshed just now."
-            retryLabel="Reload alerts"
-            onRetry={() => {
-              void latestAlertQuery.refetch();
-            }}
-          />
-        ) : null}
-      </AppCard>
+      {latestAlertQuery.isError ? (
+        <ErrorState
+          title="Alerts unavailable"
+          description="Alerts could not be refreshed right now."
+          retryLabel="Reload alerts"
+          onRetry={() => {
+            void latestAlertQuery.refetch();
+          }}
+        />
+      ) : null}
 
       <View style={styles.logoutWrap}>
         <SecondaryButton label="Sign out" onPress={() => void auth.logout()} />
@@ -376,17 +468,68 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  scoreHero: {
+  greetingSection: {
+    gap: theme.spacing.sm,
+  },
+  greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  avatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: theme.colors.primarySoft,
+    borderWidth: 2,
+    borderColor: theme.colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: theme.typography.section,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  greetingText: {
+    flex: 1,
+    gap: 2,
+  },
+  greetingName: {
+    fontSize: theme.typography.section,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  greetingSubtitle: {
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+  },
+  scoreCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.hero,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
+    ...theme.shadow,
+  },
+  scoreCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xl,
   },
   scoreSummary: {
     flex: 1,
     gap: theme.spacing.sm,
   },
+  scoreCardTitle: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   scoreHeadline: {
-    fontSize: theme.typography.section,
+    fontSize: theme.typography.subtitle,
     fontWeight: '800',
     color: theme.colors.text,
   },
@@ -395,23 +538,50 @@ const styles = StyleSheet.create({
     lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
   },
-  metricRow: {
+  bestWorstRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.layout.inlineGap,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
   },
-  quickStats: {
+  miniStat: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: theme.radius.input,
+    paddingVertical: theme.spacing.sm,
+    alignItems: 'center',
+    gap: 2,
+  },
+  miniStatValue: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '800',
+  },
+  miniStatLabel: {
+    fontSize: theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+  },
+  quickStatsRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
   },
-  quickStat: {
+  quickStatCard: {
     flex: 1,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.button,
-    backgroundColor: theme.colors.surfaceMuted,
-    padding: theme.spacing.md,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
     gap: theme.spacing.xs,
+    ...theme.shadowLight,
+  },
+  quickStatIcon: {
+    fontSize: 22,
+  },
+  quickStatValue: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '800',
+    color: theme.colors.text,
   },
   quickStatLabel: {
     fontSize: theme.typography.caption,
@@ -420,13 +590,120 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  quickStatValue: {
+  lastTripContent: {
+    gap: theme.spacing.md,
+  },
+  tripMetrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.lg,
+  },
+  tripMetric: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  tripMetricValue: {
+    fontSize: theme.typography.hero,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  tripMetricUnit: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tripMetricDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: theme.colors.border,
+  },
+  tripTimestamp: {
+    fontSize: theme.typography.small,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+  },
+  tipsGrid: {
+    gap: theme.spacing.sm,
+  },
+  tipCard: {
+    borderWidth: 1,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
+    gap: theme.spacing.sm,
+    ...theme.shadowLight,
+  },
+  tipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipIcon: {
+    fontSize: 18,
+  },
+  tipTitle: {
     fontSize: theme.typography.emphasis,
     fontWeight: '700',
     color: theme.colors.text,
   },
-  summaryStack: {
-    gap: theme.layout.cardGap,
+  tipDetail: {
+    fontSize: theme.typography.body,
+    lineHeight: theme.typography.lineHeight.body,
+    color: theme.colors.textSecondary,
+  },
+  alertsList: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    overflow: 'hidden',
+    ...theme.shadowLight,
+  },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingHorizontal: theme.layout.cardPadding,
+    paddingVertical: theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderFaint,
+  },
+  alertIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertIcon: {
+    fontSize: 16,
+  },
+  alertContent: {
+    flex: 1,
+    gap: 3,
+  },
+  alertTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  alertType: {
+    flex: 1,
+    fontSize: theme.typography.emphasis,
+    fontWeight: '700',
+    color: theme.colors.text,
+    textTransform: 'capitalize',
+  },
+  alertMeta: {
+    fontSize: theme.typography.caption,
+    color: theme.colors.textMuted,
   },
   logoutWrap: {
     paddingBottom: theme.spacing.xl,

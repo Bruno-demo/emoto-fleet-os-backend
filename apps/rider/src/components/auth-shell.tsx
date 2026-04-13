@@ -32,16 +32,17 @@ export function AuthShell({
 const styles = StyleSheet.create({
   hero: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.primaryBorder,
     borderRadius: theme.radius.hero,
     backgroundColor: theme.colors.backgroundAccent,
-    padding: theme.spacing.xl,
-    gap: theme.layout.textGap,
+    padding: theme.spacing.xxl,
+    gap: theme.spacing.sm,
+    ...theme.shadow,
   },
   eyebrow: {
-    fontSize: theme.typography.caption,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontSize: theme.typography.small,
+    fontWeight: '800',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: theme.colors.primary,
   },
@@ -55,5 +56,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body,
     lineHeight: theme.typography.lineHeight.body,
     color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
   },
 });

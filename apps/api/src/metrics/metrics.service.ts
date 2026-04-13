@@ -37,7 +37,7 @@ export class MetricsService {
     this.mqttIngestionTotal = new Counter({
       name: 'mqtt_ingest_total',
       help: 'Total MQTT ingestion messages processed.',
-      labelNames: ['kind', 'status'],
+      labelNames: ['kind', 'status', 'reason'],
       registers: [this.registry],
     });
 
@@ -77,8 +77,8 @@ export class MetricsService {
   }
 
   // Tracks MQTT ingestion counts for telemetry, event, and command acknowledgements.
-  incrementMqttIngestion(kind: string, status: 'accepted' | 'rejected'): void {
-    this.mqttIngestionTotal.labels(kind, status).inc();
+  incrementMqttIngestion(kind: string, status: 'accepted' | 'rejected', reason?: string): void {
+    this.mqttIngestionTotal.labels(kind, status, reason ?? (status === 'accepted' ? 'ok' : 'unknown')).inc();
   }
 
   // Tracks event creation counts by type and severity.

@@ -1,0 +1,58 @@
+groups:
+  - name: emoto-api
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API error rate above 5% for 5 minutes'
+
+      - alert: HighP95Latency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+          > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'API P95 latency above 1s for 5 minutes'
+
+      - alert: MqttIngestionDrop
+        expr: |
+          sum(rate(mqtt_ingest_total{status="rejected"}[5m]))
+          / sum(rate(mqtt_ingest_total[5m])) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'MQTT ingestion rejection rate above 10%'
+
+      - alert: MqttIngestionStopped
+        expr: sum(rate(mqtt_ingest_total{status="accepted"}[10m])) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'No MQTT telemetry ingested for 10 minutes'
+
+      - alert: CommandFailureSpike
+        expr: |
+          sum(rate(command_status_total{status="FAILED"}[5m]))
+          / sum(rate(command_status_total[5m])) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Device command failure rate above 20%'
+
+      - alert: ApiTargetDown
+        expr: up{job="emoto-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API target is down — Prometheus cannot scrape metrics'

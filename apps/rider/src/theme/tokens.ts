@@ -2,30 +2,51 @@ import { Platform } from 'react-native';
 
 export const theme = {
   colors: {
+    // Core surfaces
     background: '#0B0F19',
     backgroundAccent: '#070B14',
     surface: '#0F172A',
     surfaceMuted: '#1E293B',
     surfaceStrong: '#0F172A',
+    surfaceRaised: 'rgba(30, 41, 59, 0.65)',
+
+    // Borders
     border: 'rgba(255, 255, 255, 0.08)',
     borderStrong: 'rgba(255, 255, 255, 0.15)',
+    borderFaint: 'rgba(255, 255, 255, 0.04)',
+
+    // Text
     text: '#FFFFFF',
     textSecondary: '#A3B3CB',
     textMuted: '#64748B',
+    textFaint: '#475569',
+
+    // Primary / accent
     primary: '#3B82F6',
     primaryStrong: '#2563EB',
     primarySoft: 'rgba(59, 130, 246, 0.15)',
     primaryBorder: 'rgba(59, 130, 246, 0.3)',
+    primaryGlow: 'rgba(59, 130, 246, 0.08)',
+
+    // Semantic: Success
     success: '#34D399',
+    successStrong: '#10B981',
     successSoft: 'rgba(16, 185, 129, 0.15)',
     successBorder: 'rgba(16, 185, 129, 0.3)',
+
+    // Semantic: Warning
     warning: '#FBBF24',
+    warningStrong: '#F59E0B',
     warningSoft: 'rgba(245, 158, 11, 0.15)',
     warningBorder: 'rgba(245, 158, 11, 0.3)',
+
+    // Semantic: Danger
     danger: '#FB7185',
     dangerStrong: '#E11D48',
     dangerSoft: 'rgba(225, 29, 72, 0.15)',
     dangerBorder: 'rgba(225, 29, 72, 0.3)',
+
+    // Severity scale
     low: '#CBD5E1',
     lowSoft: 'rgba(148, 163, 184, 0.15)',
     lowBorder: 'rgba(148, 163, 184, 0.3)',
@@ -38,30 +59,38 @@ export const theme = {
     critical: '#FDA4AF',
     criticalSoft: 'rgba(244, 63, 94, 0.2)',
     criticalBorder: 'rgba(244, 63, 94, 0.4)',
+
+    // Feature
+    purple: '#A78BFA',
+    purpleSoft: 'rgba(167, 139, 250, 0.15)',
+    purpleBorder: 'rgba(167, 139, 250, 0.3)',
+
+    // System
     offline: '#FBBF24',
-    overlay: 'rgba(0, 0, 0, 0.7)',
+    overlay: 'rgba(0, 0, 0, 0.75)',
+    shimmer: 'rgba(255, 255, 255, 0.03)',
   },
   spacing: {
     xs: 4,
     sm: 8,
-    md: 10,
-    lg: 14,
-    xl: 18,
-    xxl: 22,
-    xxxl: 28,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    xxl: 24,
+    xxxl: 32,
   },
   layout: {
     screenInset: 16,
-    sectionGap: 14,
-    cardPadding: 16,
-    cardGap: 12,
-    itemPaddingX: 14,
-    itemPaddingY: 12,
-    inlineGap: 10,
-    textGap: 5,
+    sectionGap: 16,
+    cardPadding: 18,
+    cardGap: 14,
+    itemPaddingX: 16,
+    itemPaddingY: 14,
+    inlineGap: 12,
+    textGap: 6,
   },
   radius: {
-    input: 10,
+    input: 12,
     button: 16,
     card: 20,
     hero: 28,
@@ -69,33 +98,56 @@ export const theme = {
   },
   typography: {
     caption: 11,
+    small: 12,
     body: 14,
     emphasis: 15,
+    subtitle: 17,
     section: 20,
     hero: 28,
+    display: 34,
     lineHeight: {
       caption: 15,
+      small: 16,
       body: 20,
       emphasis: 22,
+      subtitle: 24,
       section: 26,
       hero: 36,
+      display: 42,
     },
   },
   shadow: Platform.select({
     ios: {
-      shadowColor: '#142433',
+      shadowColor: '#000000',
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 8 },
+    },
+    android: {
+      elevation: 4,
+    },
+    default: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 8 },
+    },
+  }),
+  shadowLight: Platform.select({
+    ios: {
+      shadowColor: '#000000',
       shadowOpacity: 0.06,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
     },
     android: {
       elevation: 2,
     },
     default: {
-      shadowColor: '#142433',
+      shadowColor: '#000000',
       shadowOpacity: 0.06,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
     },
   }),
 } as const;

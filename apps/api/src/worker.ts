@@ -6,4 +6,7 @@ async function bootstrap(): Promise<void> {
   await NestFactory.createApplicationContext(WorkerModule);
 }
 
-void bootstrap();
+bootstrap().catch((error) => {
+  console.error('Fatal: Worker bootstrap failed', error);
+  process.exit(1);
+});

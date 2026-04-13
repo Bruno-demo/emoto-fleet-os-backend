@@ -94,6 +94,13 @@ export class NotificationOutboxService
       {
         connection: this.connection,
         concurrency: 5,
+        settings: {
+          backoffStrategy: (attemptsMade: number) => {
+            const base = NOTIFICATION_BACKOFF_DELAY_MS * Math.pow(2, attemptsMade - 1);
+            const jitter = Math.random() * base * 0.3;
+            return Math.round(base + jitter);
+          },
+        },
       },
     );
 
@@ -309,7 +316,7 @@ export class NotificationOutboxService
   // Creates default retry/backoff behavior used for notification outbox jobs.
   private defaultJobOptions(notificationId: string): JobsOptions {
     const backoff: BackoffOptions = {
-      type: 'exponential',
+      type: 'custom',
       delay: NOTIFICATION_BACKOFF_DELAY_MS,
     };
 

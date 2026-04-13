@@ -75,11 +75,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 4,
+    paddingVertical: 5,
+    minHeight: 26,
+    justifyContent: 'center',
   },
   text: {
-    fontSize: theme.typography.caption,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: theme.typography.small,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
 });

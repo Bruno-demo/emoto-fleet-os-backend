@@ -99,17 +99,40 @@ export class RulesEngineService {
     device: RuleDeviceContext,
     payload: TelemetryPayload,
   ): Promise<void> {
-    const activeZones = await this.loadActiveZones(device.fleetId);
-    const insideZoneIds = this.resolveContainingZoneIds(payload, activeZones);
-    const insideParkZone = activeZones.some(
-      (zone) => zone.type === ZoneType.PARK && insideZoneIds.has(zone.id),
-    );
+    let activeZones: GeofenceZone[] = [];
+    let insideZoneIds = new Set<string>();
+    let insideParkZone = false;
 
-    await this.evaluateOverspeed(device, payload, activeZones, insideZoneIds);
-    await this.evaluateHarshDynamics(device, payload);
-    await this.evaluateCrash(device, payload);
-    await this.evaluateTheft(device, payload, insideParkZone);
-    await this.evaluateRoadSafety(device, payload);
+    try {
+      activeZones = await this.loadActiveZones(device.fleetId);
+      insideZoneIds = this.resolveContainingZoneIds(payload, activeZones);
+      insideParkZone = activeZones.some(
+        (zone) => zone.type === ZoneType.PARK && insideZoneIds.has(zone.id),
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Zone loading failed for device=${device.id}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
+
+    const evaluations: Array<[string, () => Promise<void>]> = [
+      ['overspeed', () => this.evaluateOverspeed(device, payload, activeZones, insideZoneIds)],
+      ['harshDynamics', () => this.evaluateHarshDynamics(device, payload)],
+      ['crash', () => this.evaluateCrash(device, payload)],
+      ['theft', () => this.evaluateTheft(device, payload, insideParkZone)],
+      ['roadSafety', () => this.evaluateRoadSafety(device, payload)],
+    ];
+
+    for (const [name, evaluate] of evaluations) {
+      try {
+        await evaluate();
+      } catch (error: unknown) {
+        this.logger.error(
+          `Rule "${name}" failed for device=${device.id}: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
+      }
+    }
+
     await this.storeLastSpeedState(device, payload);
   }
 
@@ -587,21 +610,27 @@ export class RulesEngineService {
       return;
     }
 
-    await this.redisService.addToStream(
-      this.rulesStreamKey,
-      {
-        kind: 'rule_event',
-        eventId: createdEvent.id,
-        fleetId: createdEvent.fleetId,
-        bikeId: createdEvent.bikeId ?? '',
-        deviceId: createdEvent.deviceId,
-        ts: createdEvent.ts.toISOString(),
-        type: createdEvent.type,
-        severity: createdEvent.severity,
-        metaJson: JSON.stringify(createdEvent.metaJson ?? {}),
-      },
-      this.streamMaxLen,
-    );
+    try {
+      await this.redisService.addToStream(
+        this.rulesStreamKey,
+        {
+          kind: 'rule_event',
+          eventId: createdEvent.id,
+          fleetId: createdEvent.fleetId,
+          bikeId: createdEvent.bikeId ?? '',
+          deviceId: createdEvent.deviceId,
+          ts: createdEvent.ts.toISOString(),
+          type: createdEvent.type,
+          severity: createdEvent.severity,
+          metaJson: JSON.stringify(createdEvent.metaJson ?? {}),
+        },
+        this.streamMaxLen,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to publish rule_event stream for event=${createdEvent.id}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
   }
 
   // Stores the most recent speed sample for crash speed-drop calculations.

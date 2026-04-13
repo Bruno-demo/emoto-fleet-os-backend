@@ -181,11 +181,13 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
           },
         });
       }
+
+      // Only ACK after successful processing.
+      await this.redis.xack(this.streamKey, this.streamGroup, entryId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Webhook stream processing failed';
-      this.logger.warn(`Webhook stream entry failed: ${message}`);
-    } finally {
-      await this.redis.xack(this.streamKey, this.streamGroup, entryId);
+      this.logger.warn(`Webhook stream entry ${entryId} failed (will be retried): ${message}`);
+      // Do NOT ACK — the entry remains pending for re-delivery.
     }
   }
 

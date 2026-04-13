@@ -9,18 +9,48 @@ const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 const gatewayPort = Number(process.env.GATEWAY_PORT ?? 8080);
 const apiUrl = process.env.GATEWAY_API_URL ?? 'http://localhost:3000';
 const corsOrigin = process.env.GATEWAY_CORS_ORIGIN ?? '*';
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+
+// Block wildcard CORS in production to prevent credential leakage.
+if (nodeEnv === 'production' && corsOrigin === '*') {
+  logger.error('GATEWAY_CORS_ORIGIN must not be * in production');
+  process.exit(1);
+}
 const corsMethods = process.env.GATEWAY_CORS_METHODS ?? 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
 const corsHeaders = process.env.GATEWAY_CORS_HEADERS ?? 'Authorization,Content-Type,X-Request-Id';
 const rateWindowMs = Number(process.env.GATEWAY_RATE_WINDOW_MS ?? 60_000);
-const rateLimitLogin = Number(process.env.GATEWAY_RATE_LIMIT_LOGIN ?? 10);
+const rateLimitLogin = Number(process.env.GATEWAY_RATE_LIMIT_LOGIN ?? 5);
 const rateLimitRegister = Number(process.env.GATEWAY_RATE_LIMIT_REGISTER ?? 5);
-const rateLimitPartner = Number(process.env.GATEWAY_RATE_LIMIT_PARTNER ?? 10);
+const rateLimitPartner = Number(process.env.GATEWAY_RATE_LIMIT_PARTNER ?? 5);
+const maxRequestBodyBytes = Number(process.env.GATEWAY_MAX_BODY_BYTES ?? 1_048_576); // 1 MB
+const proxyTimeoutMs = Number(process.env.GATEWAY_PROXY_TIMEOUT_MS ?? 30_000);
 const jwtSecrets = [process.env.JWT_SECRET, process.env.PARTNER_JWT_SECRET].filter(
   (secret): secret is string => Boolean(secret && secret.length > 0),
 );
 
-const proxy = httpProxy.createProxyServer({ target: apiUrl, ws: true, changeOrigin: true, xfwd: true });
+const proxy = httpProxy.createProxyServer({ target: apiUrl, ws: true, changeOrigin: true, xfwd: true, proxyTimeout: proxyTimeoutMs, timeout: proxyTimeoutMs });
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
+const rateLimitMaxEntries = Number(process.env.GATEWAY_RATE_LIMIT_MAX_ENTRIES ?? 50_000);
+
+// Prunes expired rate limit entries to prevent memory leaks.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, state] of rateLimits) {
+    if (state.resetAt <= now) {
+      rateLimits.delete(key);
+    }
+  }
+  // Hard cap: if the map is still too large after pruning, drop oldest entries.
+  if (rateLimits.size > rateLimitMaxEntries) {
+    const excess = rateLimits.size - rateLimitMaxEntries;
+    const keys = rateLimits.keys();
+    for (let i = 0; i < excess; i++) {
+      const next = keys.next();
+      if (!next.done) rateLimits.delete(next.value);
+    }
+    logger.warn({ pruned: excess }, 'rate_limit_map_overflow');
+  }
+}, 60_000).unref();
 
 // Assign or create a request id so downstream services can correlate logs.
 function ensureRequestId(req: http.IncomingMessage): string {
@@ -33,20 +63,34 @@ function ensureRequestId(req: http.IncomingMessage): string {
   return id;
 }
 
-// Derives the client IP for rate limiting using x-forwarded-for if present.
+const trustProxy = process.env.GATEWAY_TRUST_PROXY === 'true';
+
+// Derives the client IP for rate limiting. Only trusts x-forwarded-for when explicitly configured.
 function getClientIp(req: http.IncomingMessage): string {
-  const header = req.headers['x-forwarded-for'];
-  if (typeof header === 'string' && header.length > 0) {
-    return header.split(',')[0].trim();
+  if (trustProxy) {
+    const header = req.headers['x-forwarded-for'];
+    if (typeof header === 'string' && header.length > 0) {
+      const candidate = header.split(',')[0].trim();
+      if (candidate.length <= 45 && /^[\d.:a-fA-F]+$/.test(candidate)) {
+        return candidate;
+      }
+    }
   }
   return req.socket.remoteAddress ?? 'unknown';
 }
 
-// Apply CORS headers for browser clients, including preflight handling.
+// Apply CORS and security headers for browser clients, including preflight handling.
 function applyCors(res: http.ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', corsMethods);
   res.setHeader('Access-Control-Allow-Headers', corsHeaders);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '0');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 }
 
 // Identifies gateway paths that do not require auth at the edge.
@@ -54,10 +98,7 @@ function isAuthBypassPath(pathname: string): boolean {
   if (pathname === '/health' || pathname === '/healthz') {
     return true;
   }
-  if (pathname === '/docs' || pathname === '/docs-json') {
-    return true;
-  }
-  if (pathname.startsWith('/metrics')) {
+  if (nodeEnv !== 'production' && (pathname === '/docs' || pathname === '/docs-json')) {
     return true;
   }
   if (pathname.startsWith('/socket.io')) {
@@ -85,7 +126,7 @@ function isValidBearerToken(token: string | null): boolean {
   }
   return jwtSecrets.some((secret) => {
     try {
-      jwt.verify(token, secret);
+      jwt.verify(token, secret, { algorithms: ['HS256'] });
       return true;
     } catch {
       return false;
@@ -187,6 +228,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Block access to internal-only endpoints from external traffic.
+  if (pathname === '/metrics' || pathname === '/metrics/') {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+  if (nodeEnv === 'production' && (pathname === '/docs' || pathname === '/docs-json')) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+
   if (!enforceRateLimit(req, res, pathname)) {
     return;
   }
@@ -203,6 +256,14 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // Reject requests whose declared Content-Length exceeds the allowed body size.
+  const contentLength = Number(req.headers['content-length'] ?? 0);
+  if (contentLength > maxRequestBodyBytes) {
+    res.writeHead(413, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Payload too large' }));
+    return;
+  }
+
   proxy.web(req, res);
 });
 
@@ -214,3 +275,17 @@ server.on('upgrade', (req, socket, head) => {
 server.listen(gatewayPort, () => {
   logger.info({ port: gatewayPort, apiUrl }, 'gateway_listening');
 });
+
+// Graceful shutdown — drain connections before exiting.
+function shutdown(signal: string): void {
+  logger.info({ signal }, 'gateway_shutting_down');
+  server.close(() => {
+    proxy.close();
+    process.exit(0);
+  });
+  // Force exit after 10s if connections don't drain.
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

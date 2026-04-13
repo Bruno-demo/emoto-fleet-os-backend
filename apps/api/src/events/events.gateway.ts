@@ -36,7 +36,25 @@ export interface CommandStatusPayload {
 @WebSocketGateway({
   namespace: '/fleet-events',
   cors: {
-    origin: true,
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow connections with no origin (e.g. server-to-server, mobile apps).
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      // In production, restrict to configured origins. In dev, allow all.
+      const allowedRaw = process.env.CORS_ORIGINS;
+      if (!allowedRaw) {
+        callback(null, true);
+        return;
+      }
+      const allowedOrigins = allowedRaw.split(',').map((o) => o.trim());
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('WebSocket CORS rejected'));
+      }
+    },
     credentials: true,
   },
 })

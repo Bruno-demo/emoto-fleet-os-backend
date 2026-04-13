@@ -3,6 +3,7 @@ export type DependencyStatus = 'up' | 'down';
 export interface HealthChecks {
   db: DependencyStatus;
   redis: DependencyStatus;
+  mqtt?: DependencyStatus;
 }
 
 export interface HealthResponse {

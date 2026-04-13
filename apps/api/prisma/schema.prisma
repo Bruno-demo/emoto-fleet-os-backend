@@ -185,6 +185,9 @@ enum AuditActionType {
   RIDER_CREATED
   BIKE_ASSIGNMENT_CHANGED
   SOS_TRIGGERED
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  ACCOUNT_LOCKED
 }
 
 model Fleet {
@@ -352,6 +355,7 @@ model Event {
   @@index([ts])
   @@index([fleetId, ts])
   @@index([deviceId, ts])
+  @@index([severity, createdAt])
 }
 
 model RiderProfile {
@@ -518,6 +522,7 @@ model DeviceCommand {
   @@index([deviceId])
   @@index([requestedAt])
   @@index([status])
+  @@index([status, expiresAt])
 }
 
 model Incident {
@@ -543,6 +548,7 @@ model Incident {
   evidencePack         EvidencePack?
 
   @@index([fleetId, status, createdAt])
+  @@index([fleetId, createdAt])
   @@index([bikeId])
   @@index([deviceId])
 }
@@ -593,6 +599,7 @@ model Notification {
   @@index([status])
   @@index([createdAt])
   @@index([partnerWebhookId])
+  @@index([status, createdAt])
 }
 
 model Partner {

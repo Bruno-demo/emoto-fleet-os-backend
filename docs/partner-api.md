@@ -1,13 +1,14 @@
 # Partner API (Insurer Integrations)
 
-This API is separated from fleet-user auth and uses partner client credentials.
+This API allows authorized partners (e.g., insurance providers, enterprise compliance auditors) to retrieve fleet telemetry summaries, incident reports, and subscribe to real-time events via webhooks. It is structurally separated from standard fleet-user authentication and relies on dedicated Partner Client Credentials.
 
-## Auth Flow
+## 1. Authentication flow
+
+Partners authenticate using the OAuth2 Client Credentials flow.
 
 `POST /partner/oauth/token`
 
-Request:
-
+**Request:**
 ```json
 {
   "clientId": "partner-demo-client",
@@ -15,8 +16,7 @@ Request:
 }
 ```
 
-Response:
-
+**Response:**
 ```json
 {
   "accessToken": "<jwt>",
@@ -26,48 +26,94 @@ Response:
 }
 ```
 
-Use the token for all partner endpoints:
-
+Include the resulting token in the `Authorization` header for all requests:
 ```bash
 curl -H "Authorization: Bearer <jwt>" \
-  http://localhost:3000/partner/fleets/<fleetId>/weekly-summary
+  https://api.emotofleet.com/partner/fleets/<fleetId>/weekly-summary
 ```
 
-## Authorization Rules
+## 2. Authorization & Scopes
 
-- Partner access is enforced via `PartnerFleetAccess` rows.
-- Requests to non-granted fleets return `403`.
-- Read endpoints require scope `insurer:read`.
-- Webhook registration requires scope `webhooks:write`.
+- Partner access is explicitly enforced via `PartnerFleetAccess` grants. Attempting to query data or subscribe to webhooks for non-granted fleets will return a `403 Forbidden`.
+- **Read APIs** (summaries, incidents, trips) require the `insurer:read` scope.
+- **Subscription APIs** (webhooks) require the `webhooks:write` scope.
 
-## Endpoints
+## 3. Data Retrieval Endpoints
 
 - `GET /partner/fleets/:fleetId/weekly-summary?from&to`
-  - Returns aggregate-only metrics: trip/event/incident/crash counts and average score.
+  - Returns aggregate-only fleet performance metrics including total trip bounds, incident counts, crash occurrences, and the average fleet score.
 - `GET /partner/bikes/:bikeId/trips?from&to&page&pageSize`
-  - Returns trip summaries only (no point-by-point telemetry).
+  - Returns generalized trip summaries (excludes raw point-by-point spatial telemetry for privacy).
 - `GET /partner/incidents/:incidentId`
-  - Returns incident metadata + nearby event timeline.
-  - Event metadata is location-sanitized (rounded coordinates).
+  - Returns incident details combined with a surrounding event timeline. Note: All event data has its coordinate precision rounded to 3 decimal places to sanitize exact locations.
 - `GET /partner/incidents/:incidentId/evidence-pack`
-  - Returns short-lived presigned URLs for summary JSON + telemetry CSV.
-  - Access is allowed only when partner has active `PartnerFleetAccess` for the incident fleet.
-- `POST /partner/webhooks`
-  - Registers an HMAC-signed webhook endpoint for incident alerts.
+  - Generates and returns short-lived, presigned URLs allowing partners to download the full evidence pack (Summary JSON + Telemetry CSV). Access is rigorously gatekept to active `PartnerFleetAccess` relationships.
 
-## Webhook Event
+---
 
-CRASH incidents create webhook outbox deliveries for active partner webhooks with fleet access.
+## 4. Webhook Event Subscription Process
 
-- Notification outbox retries up to 3 attempts with exponential backoff.
-- Delivery records are persisted in `Notification` with status and attempt counts.
+Partners can subscribe to real-time critical events (e.g., `CRASH` alerts) utilizing the webhook subscription workflow. When an event triggers, E-Moto Fleet OS securely posts the payload to the partner's registered URL.
 
-Headers:
+### 4.1. Creating a Subscription
 
-- `X-Emoto-Signature`: `hex(hmac_sha256(webhookSecret, rawBody))`
-- `X-Emoto-Timestamp`: ISO timestamp
+To subscribe, register a secure `https://` callback endpoint.
 
-Payload example:
+`POST /partner/webhooks`
+
+**Request:**
+```json
+{
+  "url": "https://insurer.example.com/webhooks/emoto",
+  "secret": "optional-custom-secret-string",
+  "active": true
+}
+```
+*Note: If `secret` is omitted, the API will securely generate and return a one-time 24-byte hex secret.*
+
+**Response:**
+```json
+{
+  "id": 105,
+  "url": "https://insurer.example.com/webhooks/emoto",
+  "active": true,
+  "secret": "generated-or-provided-secret"
+}
+```
+*Store this `secret` safely on your end. It is never returned again and is required to verify payload authenticity.*
+
+### 4.2. Event Delivery & Retries
+
+When a `CRASH` incident occurs within an authorized fleet, our backend Notification Outbox enqueues the delivery.
+- **Retries**: If your server fails to respond with a `2xx` success code, the outbox automatically retries delivery up to **3 times** using exponential backoff.
+- **Audit Logs**: Webhook delivery attempts (along with status and attempt counts) are permanently persisted in the `Notification` system and partner audit logs.
+
+### 4.3. Verifying the Webhook Payload
+
+E-Moto Fleet OS signs every webhook payload request using your endpoint's `secret`. 
+
+**Included Headers:**
+- `X-Emoto-Timestamp`: ISO timestamp of when the request was dispatched.
+- `X-Emoto-Signature`: The hex representation of the HMAC-SHA256 signature calculated against the raw stringified body.
+
+**Verification Example (Node.js):**
+```javascript
+const crypto = require('crypto');
+
+function verifySignature(rawBody, signatureHeader, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signatureHeader),
+    Buffer.from(expectedSignature)
+  );
+}
+```
+
+### 4.4. Example Payload (`incident.crash.created`)
 
 ```json
 {

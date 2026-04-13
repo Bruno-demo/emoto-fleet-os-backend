@@ -6,10 +6,10 @@ interface ScoreRingProps {
   size?: number;
 }
 
-// Renders a lightweight score ring without adding SVG or chart dependencies.
 export function ScoreRing({ score, size = 120 }: ScoreRingProps) {
   const scoreTone = getScoreTone(score);
   const progress = Math.max(0, Math.min(100, Math.round(score ?? 0)));
+  const ringWidth = Math.max(5, Math.round(size * 0.06));
 
   return (
     <View
@@ -19,6 +19,7 @@ export function ScoreRing({ score, size = 120 }: ScoreRingProps) {
           width: size,
           height: size,
           borderRadius: size / 2,
+          borderWidth: ringWidth,
           borderColor: scoreTone.border,
         },
       ]}
@@ -27,17 +28,19 @@ export function ScoreRing({ score, size = 120 }: ScoreRingProps) {
         style={[
           styles.inner,
           {
-            width: size - 22,
-            height: size - 22,
-            borderRadius: (size - 22) / 2,
+            width: size - ringWidth * 2 - 8,
+            height: size - ringWidth * 2 - 8,
+            borderRadius: (size - ringWidth * 2 - 8) / 2,
             backgroundColor: scoreTone.background,
           },
         ]}
       >
-        <Text style={[styles.scoreValue, { color: scoreTone.text }]}>
+        <Text style={[styles.scoreValue, { color: scoreTone.text, fontSize: Math.round(size * 0.28) }]}>
           {score === null || score === undefined ? '--' : progress}
         </Text>
-        <Text style={styles.scoreLabel}>{scoreTone.label}</Text>
+        <Text style={styles.scoreLabel}>
+          {score === null || score === undefined ? 'No data' : 'SCORE'}
+        </Text>
       </View>
     </View>
   );
@@ -47,23 +50,21 @@ const styles = StyleSheet.create({
   outer: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 7,
     backgroundColor: theme.colors.surfaceMuted,
   },
   inner: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.xs,
+    gap: 2,
   },
   scoreValue: {
-    fontSize: 32,
     fontWeight: '800',
   },
   scoreLabel: {
     fontSize: theme.typography.caption,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
   },
 });

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, CalendarDays, Filter, ShieldAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { PageShell } from '@/components/layout/page-shell';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -12,7 +11,7 @@ import { PaginationControls } from '@/components/ui/pagination-controls';
 import { SelectField, TextField } from '@/components/ui/form-controls';
 import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import { Bike, FleetEvent, PaginatedResponse } from '@/lib/types/dashboard';
+import type { Bike, FleetEvent, PaginatedResponse } from '@/lib/types/dashboard';
 import { formatEnumLabel, formatTimestamp } from '@/lib/ui';
 
 const PAGE_SIZE = 20;
@@ -102,13 +101,13 @@ export default function EventsPage() {
               <>
                 <Link
                   href={`/bikes?bikeId=${event.bikeId}`}
-                  className="rounded-[var(--radius-control)] border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-hover"
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08]"
                 >
                   Open bike
                 </Link>
                 <Link
                   href={`/live?bikeId=${event.bikeId}`}
-                  className="rounded-[var(--radius-control)] border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-hover"
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/[0.08]"
                 >
                   View live
                 </Link>
@@ -124,10 +123,7 @@ export default function EventsPage() {
   );
 
   return (
-    <PageShell
-      title="Events"
-      description="Search the fleet event stream by severity, type, bike, and time range without losing the direct jump paths into bike and live-map views."
-    >
+    <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Events"
@@ -176,7 +172,7 @@ export default function EventsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+              className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
             >
               Reset filters
             </button>
@@ -265,7 +261,7 @@ export default function EventsPage() {
           onPageChange={setPage}
         />
       </DashboardCard>
-    </PageShell>
+    </div>
   );
 }
 

@@ -14,6 +14,13 @@ const webhookStreamKey = process.env.STREAM_WEBHOOK_KEY ?? 'webhooks:outbox';
 const outputMaxLen = Number(process.env.STREAM_OUTPUT_MAX_LEN ?? 10000);
 
 const redis = new Redis(redisUrl);
+let stopping = false;
+let inflightCount = 0;
+
+// Handle Redis connection errors gracefully.
+redis.on('error', (error) => {
+  logger.error({ err: error }, 'redis_connection_error');
+});
 
 // Ensure the consumer group exists so the processor can claim messages.
 async function ensureGroup(): Promise<void> {
@@ -76,6 +83,7 @@ async function writeStream(stream: string, fields: Record<string, string>): Prom
 
 // Handle a single stream entry with enrichment, scoring, and webhook fan-out.
 async function handleEntry(entryId: string, fields: string[]): Promise<void> {
+  inflightCount++;
   const payload = toFieldMap(fields);
   logger.info({ entryId, streamKey, payloadKeys: Object.keys(payload) }, 'stream_entry_received');
 
@@ -122,16 +130,49 @@ async function handleEntry(entryId: string, fields: string[]): Promise<void> {
         });
       }
     }
+
+    // Only ACK the entry after successful processing.
+    await redis.xack(streamKey, streamGroup, entryId);
   } catch (error) {
     logger.error({ err: error, entryId }, 'stream_entry_failed');
+    // Do NOT ACK — the entry remains pending for re-delivery via XPENDING/XAUTOCLAIM.
   } finally {
-    await redis.xack(streamKey, streamGroup, entryId);
+    inflightCount--;
+  }
+}
+
+// Reclaims stale pending entries from crashed consumers after 60s of inactivity.
+async function reclaimPendingEntries(): Promise<void> {
+  try {
+    const result = await (redis as unknown as { xautoclaim: (...args: (string | number)[]) => Promise<unknown> }).xautoclaim(
+      streamKey,
+      streamGroup,
+      streamConsumer,
+      60_000,
+      '0-0',
+      'COUNT',
+      50,
+    ) as [string, Array<[string, string[]]>] | null;
+
+    if (!result || !result[1] || result[1].length === 0) {
+      return;
+    }
+
+    logger.info({ count: result[1].length }, 'reclaimed_pending_entries');
+    for (const [entryId, fields] of result[1]) {
+      await handleEntry(entryId, fields as string[]);
+    }
+  } catch (error) {
+    logger.warn({ err: error }, 'xautoclaim_failed');
   }
 }
 
 // Poll the stream group continuously and dispatch entries for processing.
 async function pollLoop(): Promise<void> {
-  while (true) {
+  // Reclaim any pending entries from previous crashed consumers on startup.
+  await reclaimPendingEntries();
+
+  while (!stopping) {
     const result = (await (redis as unknown as { xreadgroup: (...args: string[]) => Promise<unknown> }).xreadgroup(
       'GROUP',
       streamGroup,
@@ -157,6 +198,30 @@ async function pollLoop(): Promise<void> {
   }
 }
 
+// Graceful shutdown handler for container orchestration.
+function shutdown(signal: string): void {
+  logger.info({ signal }, 'stream_processor_shutting_down');
+  stopping = true;
+
+  const drainInterval = setInterval(() => {
+    if (inflightCount === 0) {
+      clearInterval(drainInterval);
+      redis.quit().catch(() => {});
+      process.exit(0);
+    }
+  }, 100);
+
+  // Hard exit after 5s if in-flight entries don't drain.
+  setTimeout(() => {
+    logger.warn({ inflightCount }, 'forcing_exit_inflight_not_drained');
+    redis.quit().catch(() => {});
+    process.exit(1);
+  }, 5_000);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 // Initialize the processor and begin stream consumption.
 async function start(): Promise<void> {
   logger.info({ redisUrl, streamKey, streamGroup, streamConsumer }, 'stream_processor_starting');
@@ -167,10 +232,4 @@ async function start(): Promise<void> {
 start().catch((error) => {
   logger.error({ err: error }, 'stream_processor_failed');
   process.exitCode = 1;
-});
-
-process.on('SIGINT', async () => {
-  logger.info('stream_processor_shutdown');
-  await redis.quit();
-  process.exit(0);
 });

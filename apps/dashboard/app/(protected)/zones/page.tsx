@@ -263,10 +263,7 @@ export default function ZonesPage() {
 
   if (currentUser && !isAdmin) {
     return (
-      <PageShell
-        title="Zones"
-        description="Zone editing is available only to roles allowed to manage policy boundaries."
-      >
+      <div className="space-y-6">
         <DashboardCard eyebrow="Access" title="Zone management is restricted" description="This account cannot create, edit, or delete geofence policy boundaries.">
           <EmptyState
             icon={<ShieldCheck size={18} />}
@@ -274,15 +271,12 @@ export default function ZonesPage() {
             description="Switch to an admin account to manage slow, no-go, or parking boundaries."
           />
         </DashboardCard>
-      </PageShell>
+      </div>
     );
   }
 
   return (
-    <PageShell
-      title="Zones"
-      description="Manage slow zones, no-go zones, and parking boundaries using the GeoJSON fallback editor until a map drawing flow is added."
-    >
+    <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Total Zones"
@@ -433,6 +427,6 @@ export default function ZonesPage() {
           void deleteZone();
         }}
       />
-    </PageShell>
+    </div>
   );
 }

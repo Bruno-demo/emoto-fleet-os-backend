@@ -10,11 +10,10 @@ import {
   Siren,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { PageShell } from '@/components/layout/page-shell';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import { Bike, FleetEvent, Incident, IncidentEvidencePack, PaginatedResponse } from '@/lib/types/dashboard';
-import { formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
+import type { Bike, FleetEvent, Incident, IncidentEvidencePack, PaginatedResponse } from '@/lib/types/dashboard';
+import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
@@ -222,7 +221,7 @@ export default function IncidentsPage() {
         <button
           type="button"
           onClick={() => setSelectedIncidentId(incident.id)}
-          className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+          className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
         >
           Open detail
         </button>
@@ -231,10 +230,7 @@ export default function IncidentsPage() {
   ], [bikeLabelById]);
 
   return (
-    <PageShell
-      title="Incidents"
-      description="Triage crash, SOS, and theft workflows with fewer clicks, clearer status transitions, and faster evidence-pack access."
-    >
+    <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Open"
@@ -277,7 +273,7 @@ export default function IncidentsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+              className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
             >
               Reset to open queue
             </button>
@@ -509,7 +505,7 @@ export default function IncidentsPage() {
           }
         }}
       />
-    </PageShell>
+    </div>
   );
 }
 
@@ -526,23 +522,29 @@ function StatusTab({
   tone?: 'neutral' | 'danger' | 'warning' | 'success';
   onClick: () => void;
 }) {
+  const toneClasses = active
+    ? tone === 'danger'
+      ? 'border-danger-ink/30 bg-danger-soft text-danger-ink'
+      : tone === 'warning'
+        ? 'border-warning-ink/30 bg-warning-soft text-warning-ink'
+        : tone === 'success'
+          ? 'border-success-ink/30 bg-success-soft text-success-ink'
+          : 'border-white/[0.12] bg-white/[0.08] text-ink'
+    : 'border-white/[0.06] bg-white/[0.02] text-ink-muted hover:bg-white/[0.05]';
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={
-        active
-          ? tone === 'danger'
-            ? 'rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700'
-            : tone === 'warning'
-              ? 'rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700'
-              : tone === 'success'
-                ? 'rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
-                : 'rounded-full border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink'
-          : 'rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink-soft transition hover:bg-surface-hover'
-      }
+      className={cx(
+        'rounded-xl border px-4 py-2 text-sm font-semibold transition-all',
+        toneClasses,
+      )}
     >
-      {label} <span className="ml-2 rounded-full bg-white/80 px-2 py-0.5 text-[11px]">{count}</span>
+      {label}{' '}
+      <span className="ml-1.5 rounded-md bg-black/20 px-1.5 py-0.5 text-[10px] tabular-nums">
+        {count}
+      </span>
     </button>
   );
 }
@@ -565,7 +567,7 @@ function FilterField({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+        className="mt-2 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
       />
     </label>
   );
@@ -598,23 +600,24 @@ function ActionCard({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={
+      className={cx(
+        'rounded-xl border px-4 py-4 text-left transition disabled:cursor-not-allowed disabled:opacity-50',
         tone === 'success'
-          ? 'rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-left transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50'
+          ? 'border-success-ink/20 bg-success-soft/40 hover:bg-success-soft/60'
           : tone === 'warning'
-            ? 'rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4 text-left transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50'
-            : 'rounded-[18px] border border-sky-200 bg-sky-50 px-4 py-4 text-left transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50'
-      }
+            ? 'border-warning-ink/20 bg-warning-soft/40 hover:bg-warning-soft/60'
+            : 'border-accent/20 bg-accent/10 hover:bg-accent/20',
+      )}
     >
       <p className="font-semibold text-ink">{label}</p>
-      <p className="mt-2 text-xs leading-5 text-ink-soft">{description}</p>
+      <p className="mt-2 text-xs leading-5 text-ink-muted">{description}</p>
     </button>
   );
 }
 
 function InlineNotice({ message }: { message: string }) {
   return (
-    <p className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+    <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">
       {message}
     </p>
   );

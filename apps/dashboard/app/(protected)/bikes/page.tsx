@@ -13,13 +13,13 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { PageShell } from '@/components/layout/page-shell';
 import { useRealtime } from '@/components/realtime/realtime-provider';
+import { Badge } from '@/components/ui/badge';
 import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import {
+import type {
   Assignment,
   Bike as FleetBike,
   BikeTrip,
@@ -29,7 +29,7 @@ import {
   FleetEvent,
   PaginatedResponse,
 } from '@/lib/types/dashboard';
-import { formatEnumLabel, formatTimestamp } from '@/lib/ui';
+import { cx, formatEnumLabel, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
@@ -242,7 +242,7 @@ export default function BikesPage() {
         render: (bike) => (
           <button
             type="button"
-            className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+            className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
             onClick={() => setSelectedBikeId(bike.id)}
           >
             View detail
@@ -254,10 +254,7 @@ export default function BikesPage() {
   );
 
   return (
-    <PageShell
-      title="Bikes"
-      description="Asset operations, rider assignment context, and remote-control history for every bike in the fleet."
-    >
+    <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Fleet Bikes"
@@ -391,7 +388,7 @@ export default function BikesPage() {
                   type="button"
                   disabled={!currentUser || !canProvisionDevices(currentUser.role) || isSendingCommand}
                   onClick={() => setCommandIntent('LOCK')}
-                  className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Lock size={16} />
                   Lock bike
@@ -400,7 +397,7 @@ export default function BikesPage() {
                   type="button"
                   disabled={!currentUser || !canProvisionDevices(currentUser.role) || isSendingCommand}
                   onClick={() => setCommandIntent('UNLOCK')}
-                  className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Unlock size={16} />
                   Unlock bike
@@ -492,7 +489,7 @@ export default function BikesPage() {
           }
         }}
       />
-    </PageShell>
+    </div>
   );
 }
 

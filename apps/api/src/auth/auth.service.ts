@@ -3,21 +3,27 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, UserRole } from '@prisma/client';
+import { AuditActionType, Prisma, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { AuthenticatedUser, JwtPayload } from './auth.types';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { LoginDto } from './dto/login.dto';
 import { PublicRegisterDto } from './dto/public-register.dto';
 import { RedeemInviteDto } from './dto/redeem-invite.dto';
 import { RegisterDto } from './dto/register.dto';
+
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_SECONDS = 900; // 15 minutes
 
 const userSelectForAuth = {
   id: true,
@@ -39,10 +45,14 @@ type AuthUserRecord = Prisma.UserGetPayload<{ select: typeof userSelectForAuth }
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+    private readonly auditService: AuditService,
   ) {}
 
   // Authenticates with email/password or phone/password and returns an access token.
@@ -53,6 +63,9 @@ export class AuthService {
   }> {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
+
+    const identifier = normalizedEmail ?? dto.phone ?? 'unknown';
+    await this.assertNotLockedOut(identifier);
 
     const whereClauses: Prisma.UserWhereInput[] = [];
     if (normalizedEmail) {
@@ -70,6 +83,7 @@ export class AuthService {
     });
 
     if (!user || user.status !== 'ACTIVE') {
+      await this.recordFailedLogin(identifier);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -78,13 +92,85 @@ export class AuthService {
       user.passwordHash,
     );
     if (!passwordMatches) {
+      await this.recordFailedLogin(identifier, user.id, user.fleetId);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.clearFailedAttempts(identifier);
 
     const authenticatedUser = this.toAuthenticatedUser(user);
     this.assertDashboardAccess(authenticatedUser);
 
+    this.auditService.createAuditLog({
+      fleetId: authenticatedUser.fleetId,
+      actorUserId: authenticatedUser.id,
+      actionType: AuditActionType.LOGIN_SUCCESS,
+      targetType: 'User',
+      targetId: authenticatedUser.id,
+    }).catch((error: unknown) => {
+      this.logger.warn(`Failed to log login audit: ${error instanceof Error ? error.message : 'unknown'}`);
+    });
+
     return this.buildAuthResponse(authenticatedUser, dto.rememberMe ?? false);
+  }
+
+  // Checks Redis for too many failed attempts and blocks login if locked out.
+  private async assertNotLockedOut(identifier: string): Promise<void> {
+    const key = `login_attempts:${identifier}`;
+    const raw = await this.redisService.get(key);
+    if (!raw) return;
+
+    const attempts = Number(raw);
+    if (attempts >= LOGIN_MAX_ATTEMPTS) {
+      throw new UnauthorizedException(
+        'Account temporarily locked due to too many failed login attempts. Try again in 15 minutes.',
+      );
+    }
+  }
+
+  // Records a failed login attempt in Redis with TTL-based auto-expiry.
+  private async recordFailedLogin(
+    identifier: string,
+    userId?: string,
+    fleetId?: string,
+  ): Promise<void> {
+    const key = `login_attempts:${identifier}`;
+    const raw = await this.redisService.get(key);
+    const currentAttempts = raw ? Number(raw) : 0;
+    const newAttempts = currentAttempts + 1;
+
+    await this.redisService.set(key, String(newAttempts), LOGIN_LOCKOUT_SECONDS);
+
+    if (fleetId) {
+      this.auditService.createAuditLog({
+        fleetId,
+        actorUserId: userId,
+        actionType: AuditActionType.LOGIN_FAILED,
+        targetType: 'User',
+        targetId: userId,
+        metaJson: { identifier, attempt: newAttempts },
+      }).catch(() => {});
+    }
+
+    if (newAttempts >= LOGIN_MAX_ATTEMPTS) {
+      this.logger.warn(`Account locked: ${identifier} after ${newAttempts} failed attempts`);
+      if (fleetId) {
+        this.auditService.createAuditLog({
+          fleetId,
+          actorUserId: userId,
+          actionType: AuditActionType.ACCOUNT_LOCKED,
+          targetType: 'User',
+          targetId: userId,
+          metaJson: { identifier, lockoutSeconds: LOGIN_LOCKOUT_SECONDS },
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // Clears failed login attempts after a successful login.
+  private async clearFailedAttempts(identifier: string): Promise<void> {
+    const key = `login_attempts:${identifier}`;
+    await this.redisService.del(key);
   }
 
   // Registers a new user inside the caller's fleet when self-registration is enabled.

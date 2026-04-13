@@ -27,7 +27,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Throttle({
-    default: { limit: 8, ttl: 60_000 },
+    default: { limit: 3, ttl: 60_000 },
   })
   @ApiOperation({ summary: 'Login with email/password or phone/password' })
   async login(

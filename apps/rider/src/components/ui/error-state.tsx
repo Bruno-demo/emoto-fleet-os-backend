@@ -22,6 +22,7 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <View style={styles.container}>
+      <Text style={styles.icon}>⚠️</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
       {onRetry ? <PrimaryButton label={retryLabel} onPress={onRetry} /> : null}
@@ -48,14 +49,20 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.dangerSoft,
     paddingHorizontal: theme.layout.cardPadding,
-    paddingVertical: theme.spacing.xl,
-    gap: theme.layout.inlineGap,
+    paddingVertical: theme.spacing.xxl,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  icon: {
+    fontSize: 36,
+    marginBottom: theme.spacing.xs,
   },
   title: {
     fontSize: theme.typography.section,
     lineHeight: theme.typography.lineHeight.section,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.text,
+    textAlign: 'center',
   },
   description: {
     fontSize: theme.typography.body,

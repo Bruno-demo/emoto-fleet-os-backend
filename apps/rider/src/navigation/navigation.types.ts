@@ -17,6 +17,7 @@ export type RiderTabParamList = {
   TripsStack: undefined;
   SOS: undefined;
   PoiNearby: undefined;
+  Profile: undefined;
 };
 
 export type RiderTripsStackParamList = {

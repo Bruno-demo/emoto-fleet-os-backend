@@ -9,7 +9,7 @@ RUN npm ci
 
 COPY apps/api ./apps/api
 
-RUN DATABASE_URL=postgresql://postgres:postgres@postgres:5432/emoto_fleet \
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" \
     npm exec --workspace apps/api prisma generate --schema apps/api/prisma/schema.prisma
 RUN npm run build -w apps/api
 
@@ -17,7 +17,9 @@ FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl postgresql-client
+
+RUN addgroup -S app && adduser -S app -G app
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
@@ -31,6 +33,8 @@ ENV NODE_ENV=production
 ENV NODE_PATH=/app/apps/api/node_modules:/app/node_modules
 
 RUN chmod +x /entrypoint.sh
+
+USER app
 
 EXPOSE 3000
 

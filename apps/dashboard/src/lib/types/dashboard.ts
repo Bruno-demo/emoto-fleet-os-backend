@@ -211,3 +211,53 @@ export interface WeeklyReport {
     avgScore: number;
   }>;
 }
+
+export interface Rider {
+  id: string;
+  fleetId: string;
+  phone: string | null;
+  email: string | null;
+  status: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  fullName: string | null;
+  activeAssignments: Array<{
+    id: string;
+    bikeId: string;
+    bikeLabel: string;
+    bikeStatus: string;
+  }>;
+}
+
+export type AuditActionType =
+  | 'DEVICE_SECRET_ROTATED'
+  | 'ZONE_CREATED'
+  | 'ZONE_UPDATED'
+  | 'ZONE_DELETED'
+  | 'LOCK_ACTION_REQUESTED'
+  | 'DEVICE_COMMAND_REQUESTED'
+  | 'DEVICE_COMMAND_STATUS_CHANGED'
+  | 'PARTNER_TOKEN_ISSUED'
+  | 'PARTNER_API_ACCESS'
+  | 'PARTNER_WEBHOOK_REGISTERED'
+  | 'PARTNER_WEBHOOK_DELIVERY'
+  | 'RIDER_CREATED'
+  | 'BIKE_ASSIGNMENT_CHANGED'
+  | 'SOS_TRIGGERED'
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
+  | 'ACCOUNT_LOCKED';
+
+export interface AuditLogEntry {
+  id: string;
+  fleetId: string;
+  actorUserId: string | null;
+  actionType: AuditActionType;
+  targetType: string;
+  targetId: string | null;
+  metaJson: Record<string, unknown>;
+  createdAt: string;
+  actorUser?: {
+    id: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
+}

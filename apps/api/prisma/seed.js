@@ -3,6 +3,12 @@ const bcrypt = require('bcrypt');
 const Redis = require('ioredis');
 const { PrismaClient } = require('@prisma/client');
 
+// Prevents accidental execution of demo seed data in production.
+if (process.env.NODE_ENV === 'production') {
+  console.error('ERROR: seed.js must not run in production (NODE_ENV=production)');
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 const DEVICE_SECRET_FORMAT_VERSION = 'v1';

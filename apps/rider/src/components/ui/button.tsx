@@ -74,14 +74,15 @@ export function SecondaryButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: theme.radius.button,
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xxl,
   },
   primary: {
     backgroundColor: theme.colors.primary,
+    ...theme.shadow,
   },
   primaryPressed: {
     backgroundColor: theme.colors.primaryStrong,
@@ -95,7 +96,8 @@ const styles = StyleSheet.create({
   primaryText: {
     color: theme.colors.surface,
     fontSize: theme.typography.emphasis,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   secondary: {
     borderWidth: 1,
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: theme.typography.emphasis,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
   disabled: {
     opacity: 0.55,

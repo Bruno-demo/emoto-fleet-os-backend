@@ -3,12 +3,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cpu, KeyRound, Link2, Radio, ShieldCheck, Smartphone } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { PageShell } from '@/components/layout/page-shell';
 import { canProvisionDevices } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import { Device, PaginatedResponse } from '@/lib/types/dashboard';
+import type { Device, PaginatedResponse } from '@/lib/types/dashboard';
 import { formatTimestamp } from '@/lib/ui';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
@@ -134,10 +133,7 @@ export default function DevicesPage() {
   );
 
   return (
-    <PageShell
-      title="Devices"
-      description="Provision telemetry hardware, review assignment health, and track which units are reporting into the fleet."
-    >
+    <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Registered Devices"
@@ -240,6 +236,6 @@ export default function DevicesPage() {
           )}
         </DashboardCard>
       </section>
-    </PageShell>
+    </div>
   );
 }

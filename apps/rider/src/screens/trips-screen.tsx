@@ -1,13 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/screen-container';
-import { AppCard } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
 import { ErrorState } from '../components/ui/error-state';
-import { ListItem } from '../components/ui/list-item';
-import { ScoreBadge } from '../components/ui/badge';
+import { Badge, ScoreBadge } from '../components/ui/badge';
 import { SecondaryButton } from '../components/ui/button';
 import { SectionHeader } from '../components/ui/section-header';
 import { ListSkeleton } from '../components/ui/skeleton';
@@ -17,7 +15,7 @@ import { paginatedResponseSchema, riderTripSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { PaginatedResponse, RiderTripSummary } from '../lib/types/api';
 import type { RiderTripsStackParamList } from '../navigation/navigation.types';
-import { theme } from '../theme/tokens';
+import { getScoreTone, theme } from '../theme/tokens';
 
 type TripsScreenProps = NativeStackScreenProps<
   RiderTripsStackParamList,
@@ -26,24 +24,15 @@ type TripsScreenProps = NativeStackScreenProps<
 
 const PAGE_SIZE = 10;
 
-// Formats seconds into a compact duration label suitable for trip list rows.
 function formatDuration(seconds: number): string {
   const totalMinutes = Math.max(1, Math.round(seconds / 60));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-
-  if (hours === 0) {
-    return `${totalMinutes} min`;
-  }
-
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-
+  if (hours === 0) return `${totalMinutes} min`;
+  if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
 }
 
-// Formats a trip start timestamp into a concise local rider-facing label.
 function formatTripDate(iso: string): string {
   return new Date(iso).toLocaleString([], {
     month: 'short',
@@ -53,7 +42,14 @@ function formatTripDate(iso: string): string {
   });
 }
 
-// Lists rider-scoped trips with clearer score, distance, and pagination controls.
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export function TripsScreen({ navigation }: TripsScreenProps) {
   const [page, setPage] = useState(1);
 
@@ -83,10 +79,7 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
   if (tripsQuery.isLoading && !payload) {
     return (
       <ScreenContainer>
-        <SectionHeader
-          title="Trips"
-          subtitle="Loading your scored rides and recent summaries."
-        />
+        <SectionHeader title="Trips" subtitle="Loading your scored rides..." />
         <ListSkeleton rows={4} />
       </ScreenContainer>
     );
@@ -97,7 +90,7 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
       <ScreenContainer>
         <ErrorState
           title="Unable to load trips"
-          description="Your rider trips could not be fetched right now. Pull to refresh or try again."
+          description="Pull to refresh or try again."
           onRetry={() => {
             void tripsQuery.refetch();
           }}
@@ -115,65 +108,95 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
     >
       <SectionHeader
         title="Trips"
-        subtitle="Review your recent rides, scores, and distance at a glance."
-        rightSlot={<Text style={styles.totalLabel}>{payload?.total ?? 0} total</Text>}
+        subtitle="Your scored rides at a glance"
+        rightSlot={
+          <Badge label={`${payload?.total ?? 0} total`} tone="primary" />
+        }
       />
 
-      <AppCard
-        title="Ride history"
-        subtitle="Open any trip to inspect score breakdown and harsh event counts."
-      >
-        {rows.length === 0 ? (
-          <EmptyState
-            title="No trips yet"
-            description="Your scored trips will appear here after your first completed ride."
-          />
-        ) : (
-          <View style={styles.listStack}>
-            {rows.map((trip) => (
-              <ListItem
+      {rows.length === 0 ? (
+        <EmptyState
+          title="No trips yet"
+          description="Your scored trips will appear here after your first ride."
+        />
+      ) : (
+        <View style={styles.tripsList}>
+          {rows.map((trip, index) => {
+            const scoreTone = getScoreTone(trip.score);
+            return (
+              <Pressable
                 key={trip.id}
-                title={`${trip.distanceKm.toFixed(1)} km trip`}
-                subtitle={`Duration ${formatDuration(trip.durationSec)}`}
-                meta={formatTripDate(trip.startTs)}
-                rightSlot={<ScoreBadge score={trip.score} />}
+                accessibilityRole="button"
                 onPress={() => navigation.navigate('TripDetail', { tripId: trip.id })}
-              />
-            ))}
-          </View>
-        )}
-      </AppCard>
+                style={({ pressed }) => [
+                  styles.tripCard,
+                  pressed ? styles.tripCardPressed : null,
+                  index === rows.length - 1 ? styles.tripCardLast : null,
+                ]}
+              >
+                {/* Score circle */}
+                <View style={[styles.tripScoreCircle, { borderColor: scoreTone.border, backgroundColor: scoreTone.background }]}>
+                  <Text style={[styles.tripScoreText, { color: scoreTone.text }]}>
+                    {trip.score?.toFixed(0) ?? '--'}
+                  </Text>
+                </View>
 
-      <View style={styles.paginationCard}>
-        <Text style={styles.pageLabel}>
-          Page {payload?.page ?? page} of {payload?.totalPages ?? 1}
-        </Text>
-        <View style={styles.paginationActions}>
-          <View style={styles.paginationButton}>
-            <SecondaryButton
-              label="Previous"
-              disabled={!canGoPrevious}
-              onPress={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
-            />
-          </View>
-          <View style={styles.paginationButton}>
-            <SecondaryButton
-              label="Next"
-              disabled={!canGoNext}
-              onPress={() =>
-                setPage((currentPage) =>
-                  payload ? Math.min(payload.totalPages, currentPage + 1) : currentPage + 1,
-                )
-              }
-            />
+                {/* Trip info */}
+                <View style={styles.tripInfo}>
+                  <View style={styles.tripTopRow}>
+                    <Text style={styles.tripDistance}>
+                      {trip.distanceKm.toFixed(1)} km
+                    </Text>
+                    <Text style={styles.tripDuration}>
+                      {formatDuration(trip.durationSec)}
+                    </Text>
+                  </View>
+                  <Text style={styles.tripDate}>
+                    {formatShortDate(trip.startTs)} · {formatTripDate(trip.startTs)}
+                  </Text>
+                </View>
+
+                {/* Chevron */}
+                <Text style={styles.tripChevron}>›</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Pagination */}
+      {(payload?.totalPages ?? 1) > 1 ? (
+        <View style={styles.paginationCard}>
+          <Text style={styles.pageLabel}>
+            Page {payload?.page ?? page} of {payload?.totalPages ?? 1}
+          </Text>
+          <View style={styles.paginationActions}>
+            <View style={styles.paginationButton}>
+              <SecondaryButton
+                label="Previous"
+                disabled={!canGoPrevious}
+                onPress={() => setPage((p) => Math.max(1, p - 1))}
+              />
+            </View>
+            <View style={styles.paginationButton}>
+              <SecondaryButton
+                label="Next"
+                disabled={!canGoNext}
+                onPress={() =>
+                  setPage((p) =>
+                    payload ? Math.min(payload.totalPages, p + 1) : p + 1,
+                  )
+                }
+              />
+            </View>
           </View>
         </View>
-      </View>
+      ) : null}
 
       {tripsQuery.isError ? (
         <ErrorState
           title="Trips may be incomplete"
-          description="Some trip data could not be refreshed. Pull down or tap retry to request the latest page again."
+          description="Some data could not be refreshed."
           retryLabel="Reload trips"
           onRetry={() => {
             void tripsQuery.refetch();
@@ -185,15 +208,68 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  totalLabel: {
-    fontSize: theme.typography.caption,
-    fontWeight: '700',
-    color: theme.colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  tripsList: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surface,
+    overflow: 'hidden',
+    ...theme.shadow,
   },
-  listStack: {
+  tripCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: theme.spacing.md,
+    paddingHorizontal: theme.layout.cardPadding,
+    paddingVertical: theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderFaint,
+  },
+  tripCardPressed: {
+    backgroundColor: theme.colors.surfaceMuted,
+  },
+  tripCardLast: {
+    borderBottomWidth: 0,
+  },
+  tripScoreCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tripScoreText: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '800',
+  },
+  tripInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  tripTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  tripDistance: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  tripDuration: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  tripDate: {
+    fontSize: theme.typography.caption,
+    color: theme.colors.textMuted,
+  },
+  tripChevron: {
+    fontSize: 22,
+    fontWeight: '300',
+    color: theme.colors.textMuted,
   },
   paginationCard: {
     borderWidth: 1,
@@ -202,12 +278,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.lg,
     gap: theme.spacing.sm,
-    ...theme.shadow,
+    ...theme.shadowLight,
   },
   pageLabel: {
     fontSize: theme.typography.body,
     color: theme.colors.textSecondary,
     fontWeight: '600',
+    textAlign: 'center',
   },
   paginationActions: {
     flexDirection: 'row',

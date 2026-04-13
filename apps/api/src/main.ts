@@ -3,7 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
+import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
 // Resolves browser origins allowed to call the API for local dashboard and rider apps.
@@ -34,9 +36,33 @@ async function bootstrap(): Promise<void> {
   const logger = app.get(Logger);
   app.useLogger(logger);
   app.use(cookieParser());
+  app.use(helmet());
+
+  // Trust the first proxy hop so rate limiters and logging see real client IPs.
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
 
   const configService = app.get(ConfigService);
   const allowedCorsOrigins = resolveCorsOrigins(configService);
+
+  // Rejects cross-origin cookie-authenticated mutating requests to mitigate CSRF.
+  const cookieName = configService.get<string>('AUTH_COOKIE_NAME', 'emoto_access_token');
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+    const hasCookie = Boolean(req.cookies?.[cookieName]);
+    if (!isMutating || !hasCookie) {
+      return next();
+    }
+    const origin = req.headers.origin;
+    if (!origin) {
+      return next();
+    }
+    if (allowedCorsOrigins.includes(origin)) {
+      return next();
+    }
+    res.status(403).json({ error: 'Origin not allowed' });
+  });
+
   app.enableCors({
     origin: (
       origin: string | undefined,
@@ -61,20 +87,26 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('eMoto Fleet OS API')
-    .setDescription('Backend API for e-moto telematics')
-    .setVersion('0.1.0')
-    .build();
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document, {
-    jsonDocumentUrl: 'docs-json',
-  });
+  if (nodeEnv !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('eMoto Fleet OS API')
+      .setDescription('Backend API for e-moto telematics')
+      .setVersion('0.1.0')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document, {
+      jsonDocumentUrl: 'docs-json',
+    });
+  }
 
   const port = configService.get<number>('PORT', 3000);
   const publicUrl =
     configService.get<string>('API_PUBLIC_URL') ?? `http://localhost:${port}`;
+
+  app.enableShutdownHooks();
   await app.listen(port, '0.0.0.0');
 
   logger.log(`API listening on ${publicUrl}`);
@@ -82,4 +114,7 @@ async function bootstrap(): Promise<void> {
   logger.log(`Prometheus metrics available at ${publicUrl}/metrics`);
 }
 
-void bootstrap();
+bootstrap().catch((error) => {
+  console.error('Fatal: API bootstrap failed', error);
+  process.exit(1);
+});

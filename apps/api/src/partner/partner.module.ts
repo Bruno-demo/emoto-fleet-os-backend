@@ -24,6 +24,8 @@ import { PartnerService } from './partner.service';
       // Configures dedicated JWT signing for insurer partner tokens.
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('PARTNER_JWT_SECRET'),
+        signOptions: { algorithm: 'HS256' },
+        verifyOptions: { algorithms: ['HS256'] },
       }),
     }),
   ],

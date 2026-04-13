@@ -20,6 +20,7 @@ import type { NearbyPoi, PoiType } from '../lib/types/api';
 import { theme } from '../theme/tokens';
 
 const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC'];
+const POI_ICONS: Record<PoiType, string> = { GARAGE: '🔧', SWAP: '🔋', CLINIC: '🏥' };
 const DEFAULT_RADIUS_KM = 5;
 const DEFAULT_LIMIT = 20;
 
@@ -140,10 +141,10 @@ export function PoiNearbyScreen() {
     >
       <SectionHeader
         title="Nearby"
-        subtitle="Find garages, battery swaps, and clinics close to your current position."
+        subtitle="Find garages, battery swaps, and clinics close to you."
       />
 
-      <AppCard title="Location access" subtitle="Use your current GPS so the app can sort help points by distance.">
+      <AppCard title="📍 Location" subtitle="Use your GPS to sort help points by distance." tone="accent">
         <PrimaryButton
           label={isResolvingLocation ? 'Getting location...' : coordinates ? 'Refresh location' : 'Use current location'}
           loading={isResolvingLocation}
@@ -169,7 +170,7 @@ export function PoiNearbyScreen() {
         ) : null}
       </AppCard>
 
-      <AppCard title="Filter" subtitle="Switch between the closest garages, swap points, and clinics.">
+      <AppCard title="Filter" subtitle="Switch between garages, swap points, and clinics.">
         <View style={styles.typeRow}>
           {POI_TYPES.map((poiType) => (
             <Pressable
@@ -182,6 +183,7 @@ export function PoiNearbyScreen() {
                 pressed ? styles.typeChipPressed : null,
               ]}
             >
+              <Text style={styles.typeIcon}>{POI_ICONS[poiType]}</Text>
               <Text
                 style={[
                   styles.typeChipText,
@@ -306,16 +308,18 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   typeChip: {
-    minWidth: 84,
-    minHeight: 40,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
+    minWidth: 90,
+    minHeight: 44,
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: theme.spacing.xs,
   },
   typeChipActive: {
     borderColor: theme.colors.primary,
@@ -323,6 +327,9 @@ const styles = StyleSheet.create({
   },
   typeChipPressed: {
     backgroundColor: theme.colors.surfaceMuted,
+  },
+  typeIcon: {
+    fontSize: 16,
   },
   typeChipText: {
     fontSize: theme.typography.body,

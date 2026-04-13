@@ -22,13 +22,11 @@ export class StorageService implements OnModuleInit {
       'http://localhost:9000',
     );
     const region = this.configService.get<string>('S3_REGION', 'us-east-1');
-    const accessKeyId = this.configService.get<string>(
+    const accessKeyId = this.configService.getOrThrow<string>(
       'S3_ACCESS_KEY_ID',
-      'minioadmin',
     );
-    const secretAccessKey = this.configService.get<string>(
+    const secretAccessKey = this.configService.getOrThrow<string>(
       'S3_SECRET_ACCESS_KEY',
-      'minioadmin',
     );
     const forcePathStyle = this.configService.get<boolean>(
       'S3_FORCE_PATH_STYLE',
