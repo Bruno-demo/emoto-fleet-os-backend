@@ -22,7 +22,7 @@ export function AuthShell({
   return (
     <div className="min-h-screen w-full flex flex-col lg:grid lg:grid-cols-2 bg-[var(--background)] text-ink">
       {/* Left Pane - Immersive Brand Area */}
-      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden p-12">
+      <section className="relative hidden lg:flex flex-col justify-start gap-16 overflow-hidden p-12 pt-16">
         {/* Deep, immersive abstract background */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center brightness-50"
@@ -33,7 +33,7 @@ export function AuthShell({
         <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.3)_0%,transparent_50%)]" />
 
         {/* Top Logo */}
-        <div className="relative z-10 flex items-center gap-3 mt-4">
+        <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-strong)]">
             <span className="text-xl font-bold">E</span>
           </div>
