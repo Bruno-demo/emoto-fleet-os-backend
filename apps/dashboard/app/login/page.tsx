@@ -27,7 +27,7 @@ import {
   AuthShell,
   AuthTabs,
 } from '@/components/auth/auth-ui';
-import { RedirectIfAuthenticated } from '@/components/auth/redirect-if-authenticated';
+
 
 type LoginFieldErrors = {
   identifier?: string;
@@ -115,7 +115,6 @@ export default function LoginPage() {
   };
 
   return (
-    <RedirectIfAuthenticated>
     <AuthShell
       eyebrow="Secure Access"
       title="Trusted access for live fleet operations."
@@ -266,7 +265,6 @@ export default function LoginPage() {
         </div>
       )}
     </AuthShell>
-    </RedirectIfAuthenticated>
   );
 }
 

@@ -6,7 +6,10 @@ import {
   AlertTriangle,
   Bike,
   Crosshair,
+  Layers,
   Lock,
+  Maximize2,
+  Minimize2,
   Radio,
   ShieldAlert,
   Unlock,
@@ -88,6 +91,8 @@ export function LiveMapPanel() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [centerSignal, setCenterSignal] = useState(0);
   const [mapViewport, setMapViewport] = useState<MapViewport | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
   const toastFlushTimerRef = useRef<number | null>(null);
@@ -363,6 +368,20 @@ export function LiveMapPanel() {
   const selectedCommandRule = commandIntent === 'LOCK' ? lockRule : unlockRule;
   const selectedBikeLabel = selectedBike?.label ?? maskIdentifier(selectedBikeId);
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  // Escape exits fullscreen.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isFullscreen]);
+
   return (
     <PageShell
       title="Live Command Center"
@@ -370,38 +389,70 @@ export function LiveMapPanel() {
     >
       <ToastStack items={toasts} />
       <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <DashboardCard
-          eyebrow="Realtime Map"
-          title="Fleet map"
-          description="The map surface stays primary so operators can triage alerts without losing spatial context."
-          actions={
-            <MapStatusBar
-              onlineCount={onlineCount}
-              movingCount={movingCount}
-              highPriorityCount={highPriorityCount}
-              centerDisabled={!selectedState}
-              onCenter={() => setCenterSignal((currentSignal) => currentSignal + 1)}
-            />
-          }
-          contentClassName="p-0"
+        {/* ── Map Card ── */}
+        <div
+          ref={mapWrapperRef}
+          className={cx(
+            'relative flex flex-col transition-all duration-300',
+            isFullscreen
+              ? 'fixed inset-0 z-[9999] bg-[var(--background)]'
+              : 'glass-panel overflow-hidden rounded-[24px] border border-white/5 bg-black/20 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.5)]',
+          )}
         >
-          <div className="relative">
+          {/* Map header bar */}
+          <div className={cx(
+            'flex items-center justify-between gap-3 border-b border-white/5 bg-white/[0.02] px-5 py-3',
+            isFullscreen && 'px-6 py-4',
+          )}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                <Layers size={15} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-ink">Fleet Map</h2>
+                <p className="text-[11px] text-ink-muted">Real-time vehicle tracking</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapStatusBar
+                onlineCount={onlineCount}
+                movingCount={movingCount}
+                highPriorityCount={highPriorityCount}
+                centerDisabled={!selectedState}
+                onCenter={() => setCenterSignal((currentSignal) => currentSignal + 1)}
+              />
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-ink-soft transition hover:bg-white/10 hover:text-ink"
+                title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand map'}
+              >
+                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Map surface */}
+          <div className="relative flex-1">
             {liveStatesQuery.isLoading ? (
-              <div className="h-[76vh] min-h-[580px] p-4">
+              <div className={cx('p-4', isFullscreen ? 'h-full' : 'h-[76vh] min-h-[580px]')}>
                 <Skeleton className="h-full w-full rounded-[calc(var(--radius-panel)-6px)]" />
               </div>
             ) : (
-              <div className="relative h-[76vh] min-h-[580px] overflow-hidden rounded-b-[var(--radius-panel)]">
+              <div className={cx(
+                'relative overflow-hidden',
+                isFullscreen ? 'h-full' : 'h-[76vh] min-h-[580px] rounded-b-[var(--radius-panel)]',
+              )}>
                 <MapContainer
                   center={mapCenter}
                   zoom={13}
                   className="h-full w-full"
                   style={{ height: '100%', width: '100%' }}
-                  zoomControl
+                  zoomControl={false}
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                   />
                   <MapSizeController />
                   <MapViewportController
@@ -420,14 +471,25 @@ export function LiveMapPanel() {
                       onSelect={selectBikeContext}
                     />
                   ))}
+                  <MapZoomControls />
                 </MapContainer>
 
+                {/* Road legend */}
                 <div className="pointer-events-none absolute bottom-4 right-4 z-[500]">
                   <RoadLegend
                     zoom={mapViewport?.zoom ?? 0}
                     featureCount={roadFeaturesQuery.data?.length ?? 0}
                   />
                 </div>
+
+                {/* Fullscreen hint */}
+                {isFullscreen && (
+                  <div className="absolute left-4 top-4 z-[500]">
+                    <div className="rounded-lg border border-white/10 bg-black/60 px-3 py-1.5 text-[11px] font-semibold text-white/70 backdrop-blur-md">
+                      Press <kbd className="mx-1 rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd> to exit
+                    </div>
+                  </div>
+                )}
 
                 {throttledStates.length === 0 ? (
                   <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-6">
@@ -437,7 +499,7 @@ export function LiveMapPanel() {
               </div>
             )}
           </div>
-        </DashboardCard>
+        </div>
 
         <DashboardCard
           eyebrow="Triage Feed"
@@ -825,6 +887,31 @@ function MapSizeController() {
   return null;
 }
 
+// Custom zoom controls rendered inside the MapContainer so useMap() works.
+function MapZoomControls() {
+  const map = useMap();
+  return (
+    <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={() => map.zoomIn()}
+        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition hover:bg-black/80 hover:text-white"
+        aria-label="Zoom in"
+      >
+        <span className="text-base font-bold leading-none">+</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => map.zoomOut()}
+        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition hover:bg-black/80 hover:text-white"
+        aria-label="Zoom out"
+      >
+        <span className="text-base font-bold leading-none">−</span>
+      </button>
+    </div>
+  );
+}
+
 // Applies explicit center requests without forcing the map to refocus on every telemetry update.
 function MapViewportController({
   target,
@@ -922,21 +1009,21 @@ function RoadLegend({
 }) {
   if (zoom < ROAD_LAYER_MIN_ZOOM) {
     return (
-      <div className="rounded-[18px] border border-line bg-white/95 px-3 py-2 text-xs font-semibold text-ink-soft shadow-[var(--shadow-soft)]">
+      <div className="rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-semibold text-white/70 backdrop-blur-md">
         Zoom in to view road safety layers.
       </div>
     );
   }
 
   return (
-    <div className="max-w-[240px] rounded-[18px] border border-line bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-[var(--shadow-soft)]">
+    <div className="max-w-[240px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white/70 backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
           Road context
         </span>
-        <span className="text-[11px] font-semibold text-ink">{featureCount} points</span>
+        <span className="text-[11px] font-semibold text-white/90">{featureCount} points</span>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-ink">
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-white/80">
         <LegendItem label="School" tone="school" />
         <LegendItem label="Hospital" tone="hospital" />
         <LegendItem label="Market" tone="market" />
@@ -962,12 +1049,12 @@ function MapChip({ label, tone }: { label: string; tone: 'info' | 'success' | 'd
   return (
     <span
       className={cx(
-        'rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-[var(--shadow-soft)] backdrop-blur',
+        'rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-sm backdrop-blur-md',
         tone === 'success'
-          ? 'border-emerald-200 bg-emerald-50/95 text-emerald-700'
+          ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
           : tone === 'danger'
-            ? 'border-rose-200 bg-rose-50/95 text-rose-700'
-            : 'border-sky-200 bg-sky-50/95 text-sky-700',
+            ? 'border-rose-500/30 bg-rose-500/15 text-rose-400'
+            : 'border-sky-500/30 bg-sky-500/15 text-sky-400',
       )}
     >
       {label}
@@ -1025,7 +1112,7 @@ function MapStatusBar({
       <MapChip label={`${onlineCount} online`} tone="success" />
       <MapChip label={`${movingCount} moving`} tone="info" />
       <MapChip label={`${highPriorityCount} alerts`} tone="danger" />
-      <div className="hidden items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-2.5 py-1 text-[11px] text-ink-soft shadow-sm xl:inline-flex">
+      <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-ink-soft xl:inline-flex">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
         Stable
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -1037,7 +1124,7 @@ function MapStatusBar({
         type="button"
         onClick={onCenter}
         disabled={centerDisabled}
-        className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink shadow-sm transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-ink-soft transition hover:bg-white/10 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Crosshair size={14} />
         Center
@@ -1070,12 +1157,12 @@ function InlineEmptyCard({
 // Renders a small banner for when no live bike telemetry is available.
 function MapEmptyBanner() {
   return (
-    <div className="pointer-events-auto w-full max-w-lg rounded-[18px] border border-dashed border-line-strong bg-white/95 px-4 py-3 text-center shadow-[var(--shadow-soft)]">
-      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-surface-muted text-accent">
+    <div className="pointer-events-auto w-full max-w-lg rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-center backdrop-blur-md">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-accent/20 text-accent">
         <Bike size={16} />
       </div>
-      <p className="mt-2 text-sm font-semibold text-ink">No live bike states yet</p>
-      <p className="mt-1 text-xs leading-5 text-ink-soft">
+      <p className="mt-2 text-sm font-semibold text-white/90">No live bike states yet</p>
+      <p className="mt-1 text-xs leading-5 text-white/60">
         The basemap is ready. Bike markers appear as soon as telemetry updates arrive.
       </p>
     </div>
@@ -1315,18 +1402,20 @@ function createBikeMarkerIcon({
     className: 'emoto-bike-marker',
     html: `
       <div style="
-        width: ${selected ? 32 : 24}px;
-        height: ${selected ? 32 : 24}px;
+        width: ${selected ? 34 : 26}px;
+        height: ${selected ? 34 : 26}px;
         border-radius: 999px;
         background: ${fill};
-        border: 3px solid white;
-        box-shadow: 0 14px 22px rgba(15, 23, 42, 0.2);
-        outline: ${selected ? '4px solid rgba(37, 99, 235, 0.18)' : 'none'};
+        border: 2.5px solid rgba(255,255,255,0.9);
+        box-shadow: 0 0 ${selected ? '16' : '10'}px ${fill}88, 0 4px 12px rgba(0,0,0,0.4);
+        outline: ${selected ? `3px solid ${fill}44` : 'none'};
+        outline-offset: 2px;
+        transition: all 150ms ease;
       "></div>
     `,
-    iconSize: selected ? [32, 32] : [24, 24],
-    iconAnchor: selected ? [16, 16] : [12, 12],
-    popupAnchor: [0, -12],
+    iconSize: selected ? [34, 34] : [26, 26],
+    iconAnchor: selected ? [17, 17] : [13, 13],
+    popupAnchor: [0, -14],
   });
 }
 

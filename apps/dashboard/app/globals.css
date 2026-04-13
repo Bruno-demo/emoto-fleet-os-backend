@@ -239,7 +239,7 @@ textarea:focus-visible {
 .trend-flat { color: var(--ink-muted); }
 
 .leaflet-container {
-  background: #dbe7f5;
+  background: #1a1d2e;
   font-family: var(--font-manrope), sans-serif;
   overflow: hidden;
   border-radius: inherit;
@@ -248,6 +248,74 @@ textarea:focus-visible {
 
 .leaflet-control-container {
   z-index: 1;
+}
+
+/* Hide default zoom control — using custom buttons */
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+/* Dark-themed popups to match CARTO dark tiles */
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 18, 30, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  color: #e2e8f0;
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.leaflet-popup-content .font-semibold {
+  color: #f8fafc;
+}
+
+.leaflet-popup-content .text-ink-soft,
+.leaflet-popup-content .text-sm {
+  color: #94a3b8;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 18, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  border-right: none;
+  box-shadow: none;
+}
+
+.leaflet-popup-close-button {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 18px !important;
+  padding: 6px 8px 0 0 !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Attribution styling for dark map */
+.leaflet-control-attribution {
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 10px !important;
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+}
+
+.leaflet-control-attribution a {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Marker glow animation */
+.emoto-bike-marker {
+  transition: transform 150ms ease;
 }
 
 .dashboard-scrollbar {
