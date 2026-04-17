@@ -2,6 +2,58 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
+  --background: #F8FAFC;
+  --background-strong: #FFFFFF;
+  --background-subtle: #F1F5F9;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-muted: rgba(241, 245, 249, 0.6);
+  --surface-strong: rgba(255, 255, 255, 0.95);
+  --surface-hover: rgba(226, 232, 240, 0.5);
+  --surface-raised: rgba(255, 255, 255, 0.98);
+  --ink: #0F172A;
+  --ink-soft: #334155;
+  --ink-muted: #64748B;
+  --ink-faint: #94A3B8;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.12);
+  --line-faint: rgba(0, 0, 0, 0.04);
+  --accent: #3B82F6;
+  --accent-strong: #2563EB;
+  --accent-soft: rgba(59, 130, 246, 0.1);
+  --accent-glow: rgba(59, 130, 246, 0.15);
+  --success-soft: rgba(16, 185, 129, 0.1);
+  --success-ink: #059669;
+  --success-strong: #10B981;
+  --warning-soft: rgba(245, 158, 11, 0.1);
+  --warning-ink: #D97706;
+  --warning-strong: #F59E0B;
+  --danger-soft: rgba(225, 29, 72, 0.1);
+  --danger-ink: #E11D48;
+  --danger-strong: #BE123C;
+  --critical-soft: rgba(244, 63, 94, 0.1);
+  --critical-ink: #E11D48;
+  --low-soft: rgba(100, 116, 139, 0.1);
+  --low-ink: #64748B;
+  --purple-soft: rgba(139, 92, 246, 0.1);
+  --purple-ink: #7C3AED;
+  --ring: rgba(59, 130, 246, 0.4);
+  --shadow-soft: 0 4px 20px -4px rgba(0, 0, 0, 0.08);
+  --shadow-strong: 0 8px 30px -6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.08);
+  --shadow: var(--shadow-soft);
+  --radius-control: 12px;
+  --radius-panel: 20px;
+  --radius-pill: 999px;
+  --radius-card: 16px;
+  --accent-foreground: #FFFFFF;
+  --sidebar-width: 272px;
+  --sidebar-collapsed: 76px;
+  --topbar-height: 64px;
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --overlay-bg: rgba(255, 255, 255, 0.95);
+}
+
+.dark {
   --background: #0B0F19;
   --background-strong: #070B14;
   --background-subtle: #101827;
@@ -41,14 +93,8 @@
   --shadow-strong: 0 20px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
   --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.15);
   --shadow: var(--shadow-soft);
-  --radius-control: 12px;
-  --radius-panel: 20px;
-  --radius-pill: 999px;
-  --radius-card: 16px;
-  --accent-foreground: #FFFFFF;
-  --sidebar-width: 272px;
-  --sidebar-collapsed: 76px;
-  --topbar-height: 64px;
+  --nav-bg: rgba(10, 14, 26, 0.8);
+  --overlay-bg: rgba(15, 21, 36, 0.95);
 }
 
 @theme inline {
@@ -83,6 +129,8 @@
   --color-low-ink: var(--low-ink);
   --color-purple-soft: var(--purple-soft);
   --color-purple-ink: var(--purple-ink);
+  --color-nav-bg: var(--nav-bg);
+  --color-overlay-bg: var(--overlay-bg);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-space-grotesk);
 }
@@ -98,15 +146,19 @@ body {
 }
 
 body {
+  background: var(--background);
+  background-attachment: fixed;
+  color: var(--ink);
+  min-height: 100vh;
+  font-feature-settings: "ss01" 1, "cv03" 1;
+}
+
+.dark body {
   background:
     radial-gradient(ellipse 80% 60% at 10% 5%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
     radial-gradient(ellipse 60% 50% at 90% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
     radial-gradient(ellipse 70% 55% at 50% 95%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
     var(--background);
-  background-attachment: fixed;
-  color: var(--ink);
-  min-height: 100vh;
-  font-feature-settings: "ss01" 1, "cv03" 1;
 }
 
 /* Glassmorphism helpers */
@@ -239,11 +291,15 @@ textarea:focus-visible {
 .trend-flat { color: var(--ink-muted); }
 
 .leaflet-container {
-  background: #1a1d2e;
+  background: #f0f4f8;
   font-family: var(--font-manrope), sans-serif;
   overflow: hidden;
   border-radius: inherit;
   z-index: 0;
+}
+
+.dark .leaflet-container {
+  background: #1a1d2e;
 }
 
 .leaflet-control-container {
@@ -256,7 +312,7 @@ textarea:focus-visible {
 }
 
 /* Dark-themed popups to match CARTO dark tiles */
-.leaflet-popup-content-wrapper {
+.dark .leaflet-popup-content-wrapper {
   background: rgba(15, 18, 30, 0.92);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -266,23 +322,25 @@ textarea:focus-visible {
   padding: 0;
 }
 
-.leaflet-popup-content {
-  margin: 12px 14px;
-  font-size: 13px;
-  line-height: 1.5;
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+}
+
+.dark .leaflet-popup-content {
   color: #e2e8f0;
 }
 
-.leaflet-popup-content .font-semibold {
+.dark .leaflet-popup-content .font-semibold {
   color: #f8fafc;
 }
 
-.leaflet-popup-content .text-ink-soft,
-.leaflet-popup-content .text-sm {
+.dark .leaflet-popup-content .text-ink-soft,
+.dark .leaflet-popup-content .text-sm {
   color: #94a3b8;
 }
 
-.leaflet-popup-tip {
+.dark .leaflet-popup-tip {
   background: rgba(15, 18, 30, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-top: none;
@@ -290,26 +348,21 @@ textarea:focus-visible {
   box-shadow: none;
 }
 
-.leaflet-popup-close-button {
+.dark .leaflet-popup-close-button {
   color: rgba(255, 255, 255, 0.5) !important;
-  font-size: 18px !important;
-  padding: 6px 8px 0 0 !important;
 }
 
-.leaflet-popup-close-button:hover {
+.dark .leaflet-popup-close-button:hover {
   color: rgba(255, 255, 255, 0.9) !important;
 }
 
-/* Attribution styling for dark map */
-.leaflet-control-attribution {
+/* Attribution styling */
+.dark .leaflet-control-attribution {
   background: rgba(0, 0, 0, 0.5) !important;
   color: rgba(255, 255, 255, 0.4) !important;
-  font-size: 10px !important;
-  border-radius: 4px;
-  backdrop-filter: blur(8px);
 }
 
-.leaflet-control-attribution a {
+.dark .leaflet-control-attribution a {
   color: rgba(255, 255, 255, 0.5) !important;
 }
 

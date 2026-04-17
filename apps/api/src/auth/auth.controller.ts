@@ -10,6 +10,7 @@ import { LoginDto } from './dto/login.dto';
 import { PublicRegisterDto } from './dto/public-register.dto';
 import { RedeemInviteDto } from './dto/redeem-invite.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterFleetDto } from './dto/register-fleet.dto';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -92,6 +93,20 @@ export class AuthController {
     expiresAt: Date;
   }> {
     return this.authService.createInvite(actor, dto);
+  }
+
+  @Post('register-fleet')
+  @Public()
+  @Throttle({
+    default: { limit: 3, ttl: 60_000 },
+  })
+  @ApiOperation({
+    summary: 'Create a new fleet and register as admin',
+  })
+  async registerFleet(
+    @Body() dto: RegisterFleetDto,
+  ): Promise<AuthenticatedUser> {
+    return this.authService.registerFleet(dto);
   }
 
   @Post('register-public')

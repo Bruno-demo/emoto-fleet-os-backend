@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  BadgeCheck,
+  Bike,
   Building2,
   ShieldCheck,
   UserPlus,
@@ -13,6 +15,7 @@ import {
   Lock,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { ApiError, apiFetch } from '@/lib/api/client';
@@ -31,6 +34,22 @@ import {
 
 
 const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
+
+const PLAN_DETAILS: Record<string, { title: string; price: string; period: string }> = {
+  'safety-core': { title: 'Safety Core', price: '$6', period: '/ bike / mo' },
+  'operations-plus': { title: 'Operations Plus', price: '$9', period: '/ bike / mo' },
+  enterprise: { title: 'Enterprise', price: 'Custom', period: '' },
+};
+
+type SignupType = 'rider' | 'admin';
+
+const BIKE_RANGE_OPTIONS = [
+  { value: '1-10', label: '1 – 10 bikes' },
+  { value: '11-50', label: '11 – 50 bikes' },
+  { value: '51-200', label: '51 – 200 bikes' },
+  { value: '201-500', label: '201 – 500 bikes' },
+  { value: '500+', label: '500+ bikes' },
+];
 
 const registerFormSchema = z
   .object({
@@ -81,7 +100,14 @@ type FieldErrors = Partial<
 // Renders the account provisioning screen with access gating and validation.
 export default function CreateAccountPage() {
   const hasWindow = typeof window !== 'undefined';
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const planSlug = searchParams.get('plan');
+  const flow = searchParams.get('flow');
+  const selectedPlan = planSlug ? PLAN_DETAILS[planSlug] : null;
+  const isDemo = flow === 'demo';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
+  const [signupType, setSignupType] = useState<SignupType>('rider');
   const [inviteToken, setInviteToken] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -89,6 +115,8 @@ export default function CreateAccountPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole>('DISPATCHER');
+  const [fleetName, setFleetName] = useState('');
+  const [bikeRange, setBikeRange] = useState('11-50');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -156,13 +184,6 @@ export default function CreateAccountPage() {
   }, [currentUser, isAdminMode]);
 
   const accessNotice = useMemo(() => {
-    if (isPublicMode) {
-      return {
-        tone: 'warning' as const,
-        message:
-          'Public sign-up creates rider accounts only. Enter the invite code provided by your admin.',
-      };
-    }
     if (isChecking) {
       return {
         tone: 'warning' as const,
@@ -176,7 +197,7 @@ export default function CreateAccountPage() {
       };
     }
     return null;
-  }, [isPublicMode, isChecking, isLimitedMode]);
+  }, [isChecking, isLimitedMode]);
 
   const isFormDisabled = isSubmitting || isChecking;
   const inlineErrors = useMemo(
@@ -191,6 +212,7 @@ export default function CreateAccountPage() {
         termsAccepted,
         touched,
         isPublicMode,
+        signupType,
       }),
     [
       inviteToken,
@@ -202,6 +224,7 @@ export default function CreateAccountPage() {
       termsAccepted,
       touched,
       isPublicMode,
+      signupType,
     ],
   );
   const mergedErrors: FieldErrors = { ...inlineErrors, ...fieldErrors };
@@ -252,7 +275,8 @@ export default function CreateAccountPage() {
       return;
     }
 
-    if (isPublicMode) {
+    // Rider public signup requires invite code
+    if (isPublicMode && signupType === 'rider') {
       const parsedToken = z
         .string()
         .min(12, 'Invite code is required')
@@ -262,6 +286,12 @@ export default function CreateAccountPage() {
         setError(parsedToken.error.issues[0]?.message ?? 'Invite code is required');
         return;
       }
+    }
+
+    // Admin public signup requires fleet name
+    if (isPublicMode && signupType === 'admin' && fleetName.trim().length < 2) {
+      setError('Fleet name is required');
+      return;
     }
 
     const parsed = registerFormSchema.safeParse({
@@ -287,7 +317,24 @@ export default function CreateAccountPage() {
 
     try {
       setIsSubmitting(true);
-      if (isPublicMode) {
+      if (isPublicMode && signupType === 'admin') {
+        // Admin flow: create new fleet + admin user
+        await apiFetch(
+          '/auth/register-fleet',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              fleetName: fleetName.trim(),
+              bikeRange,
+              email: parsed.data.email,
+              phone: parsed.data.phone,
+              password: parsed.data.password,
+            }),
+          },
+          { auth: false },
+        );
+      } else if (isPublicMode && signupType === 'rider') {
+        // Rider flow: redeem invite token
         await apiFetch(
           '/auth/register-invite',
           {
@@ -297,7 +344,6 @@ export default function CreateAccountPage() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
-              ...(enableFullNameCapture ? { fullName: fullName.trim() } : {}),
             }),
           },
           { auth: false },
@@ -317,15 +363,27 @@ export default function CreateAccountPage() {
 
       setSuccess(
         isPublicMode
-          ? 'Account created. You can now sign in with your new credentials.'
+          ? 'Account created! Redirecting to sign in...'
           : 'Account created. Share the login credentials securely with the new operator.',
       );
+
+      // Redirect based on flow
+      if (planSlug && selectedPlan) {
+        setTimeout(() => router.push(`/login?next=${encodeURIComponent(`/checkout?plan=${planSlug}`)}`), 1500);
+      } else if (isDemo) {
+        setTimeout(() => router.push('/login?next=/live'), 1500);
+      } else if (isPublicMode) {
+        setTimeout(() => router.push('/login'), 1500);
+      }
+
       setInviteToken('');
       setFullName('');
       setEmail('');
       setPhone('');
       setPassword('');
       setConfirmPassword('');
+      setFleetName('');
+      setBikeRange('11-50');
       setTermsAccepted(false);
       setRole('DISPATCHER');
     } catch (requestError: unknown) {
@@ -414,24 +472,41 @@ export default function CreateAccountPage() {
       />
       <AuthTabs active="signup" />
 
+      {selectedPlan && (
+        <div className="mt-4 rounded-[16px] border border-accent/30 bg-accent/[0.07] p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-accent">
+              <BadgeCheck size={16} />
+            </span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Selected plan</p>
+              <p className="text-sm font-bold text-ink">{selectedPlan.title}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-lg font-extrabold text-white">{selectedPlan.price}</span>
+            {selectedPlan.period && <span className="ml-1 text-xs text-ink-muted">{selectedPlan.period}</span>}
+          </div>
+        </div>
+      )}
+
+      {isDemo && !selectedPlan && (
+        <div className="mt-4 rounded-[16px] border border-purple-500/30 bg-purple-500/[0.07] p-4 flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400">
+            <UserPlus size={16} />
+          </span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">Demo request</p>
+            <p className="text-sm text-ink-soft">Create your account to access a guided demo of Fleet OS.</p>
+          </div>
+        </div>
+      )}
+
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         {accessNotice ? <AuthNotice message={accessNotice.message} tone={accessNotice.tone} /> : null}
         {error ? <AuthNotice message={error} tone="error" /> : null}
         {socialNotice ? <AuthNotice message={socialNotice} tone="warning" /> : null}
         {success ? <AuthNotice message={success} tone="success" /> : null}
-
-        {isPublicMode ? (
-          <AuthInput
-            label="Invite code"
-            placeholder="Paste invite code"
-            value={inviteToken}
-            onChange={(event) => setInviteToken(event.target.value)}
-            onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
-            error={mergedErrors.inviteToken}
-            disabled={isFormDisabled}
-            icon={<UsersRound size={16} />}
-          />
-        ) : null}
 
         <AuthInput
           label="Full name"
@@ -532,28 +607,74 @@ export default function CreateAccountPage() {
             ))}
           </AuthSelect>
         ) : (
-          <div>
-            <p className="text-sm font-medium text-ink">Role</p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setRole('RIDER')}
-                className="rounded-[14px] border border-accent/40 bg-accent-soft px-3 py-2 text-ink"
-              >
-                Rider
-              </button>
-              <button
-                type="button"
-                disabled
-                className="rounded-[14px] border border-line bg-surface px-3 py-2 text-ink-muted"
-              >
-                Admin
-              </button>
+          <>
+            <div>
+              <p className="text-sm font-medium text-ink">I am a</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => { setSignupType('rider'); setRole('RIDER'); }}
+                  className={`flex items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 transition-all ${
+                    signupType === 'rider'
+                      ? 'border-2 border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+                      : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
+                  }`}
+                >
+                  <Bike size={14} /> Rider
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSignupType('admin'); setRole('ADMIN'); }}
+                  className={`flex items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 transition-all ${
+                    signupType === 'admin'
+                      ? 'border-2 border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+                      : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
+                  }`}
+                >
+                  <ShieldCheck size={14} /> Fleet Admin
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-xs text-ink-muted">
-              Admin roles require fleet approval and cannot be self-selected.
-            </p>
-          </div>
+
+            {signupType === 'rider' && (
+              <AuthInput
+                label="Invite code"
+                placeholder="Paste the code from your fleet admin"
+                value={inviteToken}
+                onChange={(event) => setInviteToken(event.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
+                error={mergedErrors.inviteToken}
+                disabled={isFormDisabled}
+                icon={<UsersRound size={16} />}
+                helper="Ask your fleet admin for an invite code to join their fleet."
+              />
+            )}
+
+            {signupType === 'admin' && (
+              <div className="space-y-3">
+                <AuthInput
+                  label="Fleet name"
+                  placeholder="e.g. Kigali Express Fleet"
+                  value={fleetName}
+                  onChange={(event) => setFleetName(event.target.value)}
+                  disabled={isFormDisabled}
+                  icon={<Building2 size={16} />}
+                />
+                <AuthSelect
+                  label="Fleet size"
+                  value={bikeRange}
+                  onChange={(event) => setBikeRange(event.target.value)}
+                  disabled={isFormDisabled}
+                >
+                  {BIKE_RANGE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </AuthSelect>
+              </div>
+            )}
+          </>
         )}
 
         <AuthCheckbox
@@ -697,6 +818,7 @@ function getRegisterFieldErrors({
   termsAccepted,
   touched,
   isPublicMode,
+  signupType,
 }: {
   inviteToken: string;
   fullName: string;
@@ -715,10 +837,11 @@ function getRegisterFieldErrors({
     terms: boolean;
   };
   isPublicMode: boolean;
+  signupType: SignupType;
 }): FieldErrors {
   const errors: FieldErrors = {};
 
-  if (isPublicMode && touched.inviteToken && inviteToken.trim().length < 12) {
+  if (isPublicMode && signupType === 'rider' && touched.inviteToken && inviteToken.trim().length < 12) {
     errors.inviteToken = 'Invite code is required';
   }
   if (touched.fullName && fullName.trim().length < 2) {

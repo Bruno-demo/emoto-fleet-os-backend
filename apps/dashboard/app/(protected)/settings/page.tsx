@@ -8,13 +8,13 @@ import {
   Key,
   Lock,
   Moon,
-  Palette,
   Shield,
   Siren,
   Sun,
   User,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { cx, formatEnumLabel } from '@/lib/ui';
@@ -31,11 +31,43 @@ const TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
 export default function SettingsPage() {
   const { data: user } = useCurrentUser();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Notification preferences stored in localStorage
+  const [notifPrefs, setNotifPrefs] = useState({
+    openIncidents: true,
+    sosAlerts: true,
+    crashEvents: true,
+  });
+
+  // Timezone preference
+  const [useLocalTimezone, setUseLocalTimezone] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const stored = localStorage.getItem('emoto-notif-prefs');
+      if (stored) setNotifPrefs(JSON.parse(stored));
+      const tz = localStorage.getItem('emoto-use-local-tz');
+      if (tz !== null) setUseLocalTimezone(tz === 'true');
+    } catch {}
+  }, []);
+
+  const updateNotifPref = (key: keyof typeof notifPrefs) => {
+    setNotifPrefs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem('emoto-notif-prefs', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const isDark = mounted ? resolvedTheme === 'dark' : false;
 
   return (
     <div className="space-y-6">
       {/* Tab navigation */}
-      <div className="flex gap-1 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-1">
+      <div className="flex gap-1 rounded-2xl border border-line bg-surface-muted p-1">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -44,8 +76,8 @@ export default function SettingsPage() {
             className={cx(
               'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
               activeTab === tab.id
-                ? 'bg-white/[0.08] text-ink shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/[0.04]',
+                ? 'bg-surface-strong text-ink shadow-sm'
+                : 'text-ink-muted hover:text-ink hover:bg-surface-hover',
             )}
           >
             {tab.icon}
@@ -92,18 +124,23 @@ export default function SettingsPage() {
           <DashboardCard eyebrow="Preferences" title="Display settings">
             <div className="space-y-4">
               <SettingsToggle
-                icon={<Moon size={15} />}
+                icon={isDark ? <Moon size={15} /> : <Sun size={15} />}
                 label="Dark mode"
-                description="Currently using the dark interface theme"
-                checked={true}
-                disabled
+                description={isDark ? 'Using the dark interface theme' : 'Using the light interface theme'}
+                checked={isDark}
+                onChange={() => setTheme(isDark ? 'light' : 'dark')}
               />
               <SettingsToggle
                 icon={<Globe size={15} />}
                 label="Timezone"
                 description="Dates display in your browser's local timezone"
-                checked={true}
-                disabled
+                checked={useLocalTimezone}
+                onChange={() => {
+                  setUseLocalTimezone((v) => {
+                    localStorage.setItem('emoto-use-local-tz', String(!v));
+                    return !v;
+                  });
+                }}
               />
             </div>
           </DashboardCard>
@@ -142,7 +179,7 @@ export default function SettingsPage() {
         <div className="space-y-5 animate-fade-in">
           <DashboardCard eyebrow="Authentication" title="Security settings">
             <div className="space-y-4">
-              <div className="flex items-start gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
+              <div className="flex items-start gap-4 rounded-xl border border-line bg-surface-muted px-5 py-4">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-success-soft text-success-ink">
                   <Lock size={16} />
                 </span>
@@ -155,7 +192,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
+              <div className="flex items-start gap-4 rounded-xl border border-line bg-surface-muted px-5 py-4">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
                   <Key size={16} />
                 </span>
@@ -168,7 +205,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
+              <div className="flex items-start gap-4 rounded-xl border border-line bg-surface-muted px-5 py-4">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning-soft text-warning-ink">
                   <Shield size={16} />
                 </span>
@@ -195,27 +232,27 @@ export default function SettingsPage() {
                 icon={<Siren size={15} />}
                 label="Open incidents"
                 description="Show incident count badge in the sidebar and topbar"
-                checked={true}
-                disabled
+                checked={notifPrefs.openIncidents}
+                onChange={() => updateNotifPref('openIncidents')}
               />
               <SettingsToggle
                 icon={<Bell size={15} />}
                 label="SOS alerts"
                 description="Real-time notification when a rider triggers SOS"
-                checked={true}
-                disabled
+                checked={notifPrefs.sosAlerts}
+                onChange={() => updateNotifPref('sosAlerts')}
               />
               <SettingsToggle
                 icon={<AlertTriangle size={15} />}
                 label="Crash events"
                 description="Immediate notification for crash detection events"
-                checked={true}
-                disabled
+                checked={notifPrefs.crashEvents}
+                onChange={() => updateNotifPref('crashEvents')}
               />
             </div>
             <p className="mt-4 text-xs text-ink-faint">
-              Notification preferences will be configurable in a future update.
-              Currently, all alert types are enabled by default.
+              Notification preferences are saved locally. Server-side notification
+              delivery will be enabled in a future update.
             </p>
           </DashboardCard>
         </div>
@@ -234,7 +271,7 @@ function SettingsField({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+    <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
         {label}
       </p>
@@ -256,15 +293,26 @@ function SettingsToggle({
   description,
   checked,
   disabled,
+  onChange,
 }: {
   icon: React.ReactNode;
   label: string;
   description: string;
   checked: boolean;
   disabled?: boolean;
+  onChange?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+    <button
+      type="button"
+      onClick={disabled ? undefined : onChange}
+      disabled={disabled}
+      className={cx(
+        'flex w-full items-center justify-between gap-4 rounded-xl border border-line bg-surface-muted px-4 py-3 text-left transition-colors',
+        !disabled && 'hover:bg-surface-hover cursor-pointer',
+        disabled && 'opacity-60 cursor-not-allowed',
+      )}
+    >
       <div className="flex items-center gap-3">
         <span className="text-ink-muted">{icon}</span>
         <div>
@@ -274,9 +322,8 @@ function SettingsToggle({
       </div>
       <div
         className={cx(
-          'h-6 w-10 rounded-full transition-colors',
-          checked ? 'bg-accent' : 'bg-white/10',
-          disabled && 'opacity-60',
+          'h-6 w-10 shrink-0 rounded-full transition-colors',
+          checked ? 'bg-accent' : 'bg-ink-faint/40',
         )}
       >
         <div
@@ -286,6 +333,6 @@ function SettingsToggle({
           )}
         />
       </div>
-    </div>
+    </button>
   );
 }

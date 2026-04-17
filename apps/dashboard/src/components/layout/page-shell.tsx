@@ -17,7 +17,7 @@ export function PageShell({
 
   return (
     <section className="space-y-4">
-      <header className="relative overflow-hidden rounded-[32px] border border-white/5 bg-black/20 p-8 shadow-2xl glass-panel group">
+      <header className="relative overflow-hidden rounded-[32px] border border-line p-8 shadow-2xl glass-panel group">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100 mix-blend-screen pointer-events-none" />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -30,7 +30,7 @@ export function PageShell({
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-ink-soft">{description}</p>
           </div>
 
-          <div className="glass-panel rounded-[20px] bg-white/5 border border-white/10 px-5 py-3 text-sm text-white/70 max-w-sm backdrop-blur-md shadow-inner">
+          <div className="glass-panel rounded-[20px] border border-line px-5 py-3 text-sm text-ink-muted max-w-sm backdrop-blur-md shadow-inner">
             {statusCopy}
           </div>
         </div>

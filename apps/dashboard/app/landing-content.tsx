@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BatteryCharging,
   Bike,
+  CalendarCheck,
   ChevronRight,
   Cpu,
   Gauge,
@@ -135,6 +136,7 @@ const testimonials = [
 
 const pricingPlans = [
   {
+    slug: 'safety-core',
     title: 'Safety Core',
     price: '$6',
     period: '/ bike / mo',
@@ -142,6 +144,7 @@ const pricingPlans = [
     features: ['Live map + alerts', 'Incident workflows', 'Rider scores', 'Email support'],
   },
   {
+    slug: 'operations-plus',
     title: 'Operations Plus',
     price: '$9',
     period: '/ bike / mo',
@@ -150,6 +153,7 @@ const pricingPlans = [
     featured: true,
   },
   {
+    slug: 'enterprise',
     title: 'Enterprise',
     price: 'Custom',
     period: '',
@@ -200,6 +204,9 @@ export default async function LandingContent() {
               </Link>
             ) : (
               <>
+                <Link href="/create-account?flow=demo" className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent hover:bg-accent/20 transition">
+                  <CalendarCheck size={14} /> Book demo
+                </Link>
                 <Link href="/login" className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-hover transition">Sign in</Link>
                 <Link href="/create-account" className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-glow)] hover:scale-105 transition-transform">
                   Get started <ArrowRight size={14} />
@@ -479,7 +486,7 @@ export default async function LandingContent() {
               </ul>
 
               <Link
-                href="/create-account"
+                href={`/create-account?plan=${plan.slug}`}
                 className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold transition-all hover:scale-105 ${
                   plan.featured
                     ? 'bg-accent text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]'

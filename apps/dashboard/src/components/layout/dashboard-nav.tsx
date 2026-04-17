@@ -135,13 +135,13 @@ export function DashboardNav({
 
       <aside
         className={cx(
-          'fixed inset-y-0 left-0 z-[950] flex h-full flex-col border-r border-white/[0.06] bg-[#0a0e1a]/80 backdrop-blur-[40px] transition-all duration-300 lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-[950] flex h-full flex-col border-r border-line bg-nav-bg backdrop-blur-[40px] transition-all duration-300 lg:translate-x-0',
           collapsed ? 'w-[76px]' : 'w-[272px]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
         {/* Brand header */}
-        <div className="flex h-16 items-center justify-between border-b border-white/[0.06] px-4">
+        <div className="flex h-16 items-center justify-between border-b border-line px-4">
           <Link href="/" onClick={onClose} className="flex items-center gap-3 group">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-white shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
               <Command size={18} />
@@ -159,7 +159,7 @@ export function DashboardNav({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-white/5 lg:hidden"
+              className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover lg:hidden"
               aria-label="Close sidebar"
             >
               <X size={16} />
@@ -167,7 +167,7 @@ export function DashboardNav({
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="hidden rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-white/5 lg:inline-flex"
+              className="hidden rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover lg:inline-flex"
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -202,7 +202,7 @@ export function DashboardNav({
                           'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all',
                           active
                             ? 'bg-accent/[0.12] text-accent'
-                            : 'text-ink-soft hover:bg-white/[0.04] hover:text-ink',
+                            : 'text-ink-soft hover:bg-surface-hover hover:text-ink',
                           collapsed && 'justify-center px-0',
                         )}
                       >
@@ -244,9 +244,9 @@ export function DashboardNav({
         </nav>
 
         {/* User section */}
-        <div className="border-t border-white/[0.06] p-3">
+        <div className="border-t border-line p-3">
           {!collapsed ? (
-            <div className="mb-2.5 flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5">
+            <div className="mb-2.5 flex items-center gap-3 rounded-xl bg-surface-muted px-3 py-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent font-bold text-sm">
                 {(user?.email ?? user?.phone ?? 'U').charAt(0).toUpperCase()}
               </div>
@@ -266,7 +266,7 @@ export function DashboardNav({
             type="button"
             onClick={handleLogout}
             className={cx(
-              'flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.06] px-3 py-2 text-[13px] font-medium text-ink-soft hover:bg-white/[0.04] hover:text-ink transition-all',
+              'flex w-full items-center justify-center gap-2 rounded-xl border border-line px-3 py-2 text-[13px] font-medium text-ink-soft hover:bg-surface-hover hover:text-ink transition-all',
               collapsed && 'px-0',
             )}
           >

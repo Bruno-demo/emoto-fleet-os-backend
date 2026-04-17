@@ -20,6 +20,7 @@ import { CreateInviteDto } from './dto/create-invite.dto';
 import { LoginDto } from './dto/login.dto';
 import { PublicRegisterDto } from './dto/public-register.dto';
 import { RedeemInviteDto } from './dto/redeem-invite.dto';
+import { RegisterFleetDto } from './dto/register-fleet.dto';
 import { RegisterDto } from './dto/register.dto';
 
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -279,6 +280,72 @@ export class AuthService {
         );
       }
 
+      throw error;
+    }
+  }
+
+  // Creates a new fleet and registers the caller as its ADMIN owner.
+  async registerFleet(dto: RegisterFleetDto): Promise<AuthenticatedUser> {
+    const registerEnabled = this.configService.get<boolean>(
+      'AUTH_REGISTER_ENABLED',
+      false,
+    );
+    if (!registerEnabled) {
+      throw new ForbiddenException('Registration is disabled');
+    }
+    const publicRegisterEnabled = this.configService.get<boolean>(
+      'AUTH_PUBLIC_REGISTER_ENABLED',
+      false,
+    );
+    if (!publicRegisterEnabled) {
+      throw new ForbiddenException('Public registration is disabled');
+    }
+
+    const normalizedEmail = dto.email?.toLowerCase();
+    this.assertIdentifierProvided(normalizedEmail, dto.phone);
+
+    const passwordHash = await this.hashPassword(dto.password);
+
+    try {
+      const result = await this.prismaService.$transaction(async (tx) => {
+        const fleet = await tx.fleet.create({
+          data: {
+            name: dto.fleetName,
+            type: 'DELIVERY',
+            plan: 'DEMO',
+            subscriptionStatus: 'ACTIVE',
+          },
+        });
+
+        const user = await tx.user.create({
+          data: {
+            fleetId: fleet.id,
+            role: UserRole.ADMIN,
+            email: normalizedEmail,
+            phone: dto.phone,
+            passwordHash,
+            status: 'ACTIVE',
+          },
+          select: userSelectForAuth,
+        });
+
+        return user;
+      });
+
+      this.logger.log(
+        `Fleet "${dto.fleetName}" created with admin ${normalizedEmail ?? dto.phone} (bikeRange: ${dto.bikeRange})`,
+      );
+
+      return this.toAuthenticatedUser(result);
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Email or phone already exists',
+        );
+      }
       throw error;
     }
   }

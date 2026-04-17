@@ -92,6 +92,7 @@ export function LiveMapPanel() {
   const [centerSignal, setCenterSignal] = useState(0);
   const [mapViewport, setMapViewport] = useState<MapViewport | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [drawerDismissed, setDrawerDismissed] = useState(false);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
@@ -258,11 +259,11 @@ export function LiveMapPanel() {
 
   // Keeps an initial selection in place once the map has live bikes to focus on.
   useEffect(() => {
-    if (selectedBikeId || throttledStates.length === 0) {
+    if (selectedBikeId || throttledStates.length === 0 || drawerDismissed) {
       return;
     }
     setSelectedBikeId(throttledStates[0]?.bikeId ?? null);
-  }, [selectedBikeId, throttledStates]);
+  }, [selectedBikeId, throttledStates, drawerDismissed]);
 
   // Batches bursty realtime events into grouped toasts so the operator feed stays readable.
   useEffect(() => {
@@ -319,6 +320,9 @@ export function LiveMapPanel() {
   // Selects a bike and optionally recenters the map when the operator jumps from the feed.
   const selectBikeContext = useCallback((bikeId: string | null, shouldCenter = false) => {
     setSelectedBikeId(bikeId);
+    if (bikeId) {
+      setDrawerDismissed(false);
+    }
     if (bikeId && shouldCenter) {
       setCenterSignal((currentSignal) => currentSignal + 1);
     }
@@ -395,7 +399,7 @@ export function LiveMapPanel() {
           className={cx(
             'relative flex flex-col transition-all duration-300',
             isFullscreen
-              ? 'fixed inset-0 z-[9999] bg-[var(--background)]'
+              ? 'fixed inset-0 z-[1000] bg-[var(--background)]'
               : 'glass-panel overflow-hidden rounded-[24px] border border-white/5 bg-black/20 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.5)]',
           )}
         >
@@ -616,6 +620,7 @@ export function LiveMapPanel() {
         description="Live bike context, rider assignment, recent events, and safe command controls."
         onClose={() => {
           setSelectedBikeId(null);
+          setDrawerDismissed(true);
           setRequestError(null);
           setCommandIntent(null);
         }}

@@ -24,12 +24,12 @@ export function DashboardCard({
   return (
     <section
       className={cx(
-        'glass-panel rounded-[24px] border border-white/5 bg-black/20 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.5)] transition-all overflow-hidden',
+        'glass-panel rounded-[24px] border border-line shadow-[var(--shadow)] transition-all overflow-hidden',
         className,
       )}
     >
       {eyebrow || title || description || actions ? (
-        <header className="flex flex-col gap-2 border-b border-white/5 bg-white/[0.02] px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
+        <header className="flex flex-col gap-2 border-b border-line bg-surface-muted px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             {eyebrow ? (
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
