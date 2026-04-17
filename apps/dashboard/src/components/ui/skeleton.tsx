@@ -9,7 +9,7 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cx(
-        'animate-pulse rounded-2xl bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100',
+        'animate-pulse rounded-2xl bg-surface-muted',
         className,
       )}
     />

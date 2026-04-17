@@ -1,6 +1,8 @@
 'use client';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { cx } from '@/lib/ui';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -26,38 +28,73 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, onCancel]);
+
   if (!open) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-[3px]">
+    <div
+      className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in"
+      style={{ animationDuration: '150ms' }}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
+        onClick={onCancel}
+      />
+
+      {/* Dialog */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-lg rounded-[var(--radius-panel)] border border-line bg-surface p-6 shadow-[var(--shadow-strong)]"
+        className="relative w-full max-w-md rounded-2xl border border-line bg-background shadow-[var(--shadow-strong)] animate-scale-in"
       >
-        <div className="flex items-start gap-4">
-          <span
-            className={`rounded-2xl p-3 ${
-              tone === 'danger'
-                ? 'bg-danger-soft text-danger-ink'
-                : 'bg-warning-soft text-warning-ink'
-            }`}
-          >
-            <AlertTriangle size={20} />
-          </span>
-          <div>
-            <h3 className="font-display text-2xl font-semibold text-ink">{title}</h3>
-            <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p>
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onCancel}
+          className="absolute right-3 top-3 rounded-lg p-1.5 text-ink-faint hover:text-ink hover:bg-surface-hover transition-colors"
+          aria-label="Close"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="px-6 pt-6 pb-5">
+          {/* Icon + content */}
+          <div className="flex items-start gap-3.5">
+            <span
+              className={cx(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                tone === 'danger'
+                  ? 'bg-danger-soft text-danger-ink'
+                  : 'bg-warning-soft text-warning-ink',
+              )}
+            >
+              <AlertTriangle size={18} />
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <h3 className="font-display text-base font-semibold text-ink">{title}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-ink-muted">{description}</p>
+            </div>
           </div>
         </div>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2.5 border-t border-line px-6 py-4">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-hover"
+            className="rounded-xl border border-line bg-surface-muted px-4 py-2 text-[13px] font-semibold text-ink-soft hover:bg-surface-hover hover:text-ink transition-colors"
           >
             {cancelLabel}
           </button>
@@ -65,13 +102,14 @@ export function ConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className={`rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold text-white ${
+            className={cx(
+              'rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-50',
               tone === 'danger'
-                ? 'bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300'
-                : 'bg-accent hover:bg-accent-strong disabled:bg-blue-300'
-            }`}
+                ? 'bg-rose-600 hover:bg-rose-700'
+                : 'bg-accent hover:bg-accent-strong',
+            )}
           >
-            {isSubmitting ? 'Working...' : confirmLabel}
+            {isSubmitting ? 'Working…' : confirmLabel}
           </button>
         </div>
       </div>
