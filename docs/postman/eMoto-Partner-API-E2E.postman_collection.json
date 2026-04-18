@@ -1,0 +1,1045 @@
+{
+  "info": {
+    "name": "eMoto Partner API — E2E Tests",
+    "description": "Complete end-to-end test suite for the eMoto Fleet OS Partner API.\n\nRun the collection in order — each folder builds on variables set by previous requests.\n\n**Setup:** Ensure the API is running on `{{baseUrl}}` (default `http://localhost:3000`).\n\n**Seeded credentials:**\n- Partner 1 (Demo Insurer): `partner-demo-client` / `PartnerSecret123!`\n- Partner 2 (Analytics): `partner-analytics-client` / `AnalyticsSecret456!`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "clientId", "value": "partner-demo-client", "type": "string" },
+    { "key": "clientSecret", "value": "PartnerSecret123!", "type": "string" },
+    { "key": "analyticsClientId", "value": "partner-analytics-client", "type": "string" },
+    { "key": "analyticsClientSecret", "value": "AnalyticsSecret456!", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "analyticsToken", "value": "", "type": "string" },
+    { "key": "demoFleetId", "value": "00000000-0000-0000-0000-000000000001", "type": "string" },
+    { "key": "northFleetId", "value": "00000000-0000-0000-0000-000000000002", "type": "string" },
+    { "key": "southFleetId", "value": "00000000-0000-0000-0000-000000000003", "type": "string" },
+    { "key": "demoBikeId", "value": "c7fcd771-1284-48be-8da4-2f1ebb913385", "type": "string" },
+    { "key": "resolvedIncidentId", "value": "d5f4a79b-df0a-4fb1-82a4-da98875a4f09", "type": "string" },
+    { "key": "openIncidentId", "value": "d50836de-9543-49fd-97e3-57cf9f736a69", "type": "string" },
+    { "key": "thirdFleetBikeId", "value": "b8e86b3c-31ed-46d8-8524-2e8db534c243", "type": "string" },
+    { "key": "webhookId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1 — Authentication",
+      "item": [
+        {
+          "name": "1.1 — Token: valid credentials (Demo Insurer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Response has accessToken', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('accessToken').that.is.a('string').and.not.empty;",
+                  "    pm.expect(body.tokenType).to.eql('Bearer');",
+                  "    pm.expect(body.expiresIn).to.be.a('string');",
+                  "    pm.expect(body.scopes).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Scopes include insurer:read and webhooks:write', () => {",
+                  "    const scopes = pm.response.json().scopes;",
+                  "    pm.expect(scopes).to.include('insurer:read');",
+                  "    pm.expect(scopes).to.include('webhooks:write');",
+                  "});",
+                  "",
+                  "// Save token for subsequent requests",
+                  "pm.collectionVariables.set('accessToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"clientSecret\": \"{{clientSecret}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/oauth/token", "host": ["{{baseUrl}}"], "path": ["partner", "oauth", "token"] }
+          }
+        },
+        {
+          "name": "1.2 — Token: valid credentials (Analytics)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Scopes include insurer:read only', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.scopes).to.include('insurer:read');",
+                  "    pm.expect(body.scopes).to.not.include('webhooks:write');",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('analyticsToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{analyticsClientId}}\",\n  \"clientSecret\": \"{{analyticsClientSecret}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/oauth/token", "host": ["{{baseUrl}}"], "path": ["partner", "oauth", "token"] }
+          }
+        },
+        {
+          "name": "1.3 — Token: wrong secret → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test('Error message present', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"clientSecret\": \"wrong-secret-value\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/oauth/token", "host": ["{{baseUrl}}"], "path": ["partner", "oauth", "token"] }
+          }
+        },
+        {
+          "name": "1.4 — Token: unknown clientId → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"nonexistent-client\",\n  \"clientSecret\": \"SomeSecret123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/oauth/token", "host": ["{{baseUrl}}"], "path": ["partner", "oauth", "token"] }
+          }
+        },
+        {
+          "name": "1.5 — Token: missing fields → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/partner/oauth/token", "host": ["{{baseUrl}}"], "path": ["partner", "oauth", "token"] }
+          }
+        },
+        {
+          "name": "1.6 — Token: no auth header → 401 on protected route",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 without token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{demoFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{demoFleetId}}", "weekly-summary"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Weekly Summary",
+      "item": [
+        {
+          "name": "2.1 — Demo Fleet: weekly summary (allowed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Response shape is correct', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.fleetId).to.eql(pm.collectionVariables.get('demoFleetId'));",
+                  "    pm.expect(body).to.have.property('from').that.is.a('string');",
+                  "    pm.expect(body).to.have.property('to').that.is.a('string');",
+                  "    pm.expect(body).to.have.property('tripCount').that.is.a('number');",
+                  "    pm.expect(body).to.have.property('eventCount').that.is.a('number');",
+                  "    pm.expect(body).to.have.property('incidentCount').that.is.a('number');",
+                  "    pm.expect(body).to.have.property('crashCount').that.is.a('number');",
+                  "    pm.expect(body).to.have.property('avgScore').that.is.a('number');",
+                  "});",
+                  "",
+                  "pm.test('Counts are non-negative', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.tripCount).to.be.at.least(0);",
+                  "    pm.expect(body.eventCount).to.be.at.least(0);",
+                  "    pm.expect(body.incidentCount).to.be.at.least(0);",
+                  "    pm.expect(body.crashCount).to.be.at.least(0);",
+                  "    pm.expect(body.avgScore).to.be.at.least(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{demoFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{demoFleetId}}", "weekly-summary"] }
+          }
+        },
+        {
+          "name": "2.2 — North Fleet: weekly summary (allowed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('FleetId matches North fleet', () => {",
+                  "    pm.expect(pm.response.json().fleetId).to.eql(pm.collectionVariables.get('northFleetId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{northFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{northFleetId}}", "weekly-summary"] }
+          }
+        },
+        {
+          "name": "2.3 — South Fleet: DENIED for Demo Insurer → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 Forbidden — no fleet access', () => {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{southFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{southFleetId}}", "weekly-summary"] }
+          }
+        },
+        {
+          "name": "2.4 — South Fleet: allowed for Analytics partner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 — Analytics has South fleet access', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().fleetId).to.eql(pm.collectionVariables.get('southFleetId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{analyticsToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{southFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{southFleetId}}", "weekly-summary"] }
+          }
+        },
+        {
+          "name": "2.5 — Demo Fleet: with custom date range",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Date range is respected', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('from');",
+                  "    pm.expect(body).to.have.property('to');",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = new Date();",
+                  "const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();",
+                  "const to = now.toISOString();",
+                  "pm.variables.set('dateFrom', from);",
+                  "pm.variables.set('dateTo', to);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/partner/fleets/{{demoFleetId}}/weekly-summary?from={{dateFrom}}&to={{dateTo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["partner", "fleets", "{{demoFleetId}}", "weekly-summary"],
+              "query": [
+                { "key": "from", "value": "{{dateFrom}}" },
+                { "key": "to", "value": "{{dateTo}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.6 — Nonexistent fleet → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 for nonexistent fleet', () => {",
+                  "    const status = pm.response.code;",
+                  "    pm.expect([403, 404]).to.include(status);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/00000000-0000-0000-0000-000000000099/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "00000000-0000-0000-0000-000000000099", "weekly-summary"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Bike Trips",
+      "item": [
+        {
+          "name": "3.1 — List trips for Demo bike (default pagination)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Paginated response shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('data').that.is.an('array');",
+                  "    pm.expect(body).to.have.property('meta');",
+                  "    pm.expect(body.meta).to.have.property('total').that.is.a('number');",
+                  "    pm.expect(body.meta).to.have.property('page').that.eql(1);",
+                  "    pm.expect(body.meta).to.have.property('pageSize').that.eql(20);",
+                  "    pm.expect(body.meta).to.have.property('totalPages').that.is.a('number');",
+                  "});",
+                  "",
+                  "pm.test('Trip fields are correct', () => {",
+                  "    const trips = pm.response.json().data;",
+                  "    if (trips.length > 0) {",
+                  "        const trip = trips[0];",
+                  "        pm.expect(trip).to.have.property('id');",
+                  "        pm.expect(trip).to.have.property('bikeId');",
+                  "        pm.expect(trip).to.have.property('startTs');",
+                  "        pm.expect(trip).to.have.property('durationSec').that.is.a('number');",
+                  "        pm.expect(trip).to.have.property('distanceKm').that.is.a('number');",
+                  "        pm.expect(trip).to.have.property('score').that.is.a('number');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('No raw telemetry/GPS in response (privacy)', () => {",
+                  "    const trips = pm.response.json().data;",
+                  "    trips.forEach(trip => {",
+                  "        pm.expect(trip).to.not.have.property('telemetry');",
+                  "        pm.expect(trip).to.not.have.property('points');",
+                  "        pm.expect(trip).to.not.have.property('lat');",
+                  "        pm.expect(trip).to.not.have.property('lng');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/bikes/{{demoBikeId}}/trips", "host": ["{{baseUrl}}"], "path": ["partner", "bikes", "{{demoBikeId}}", "trips"] }
+          }
+        },
+        {
+          "name": "3.2 — List trips: page 2, pageSize 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Pagination params respected', () => {",
+                  "    const meta = pm.response.json().meta;",
+                  "    pm.expect(meta.page).to.eql(2);",
+                  "    pm.expect(meta.pageSize).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test('Data length ≤ pageSize', () => {",
+                  "    pm.expect(pm.response.json().data.length).to.be.at.most(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/partner/bikes/{{demoBikeId}}/trips?page=2&pageSize=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["partner", "bikes", "{{demoBikeId}}", "trips"],
+              "query": [
+                { "key": "page", "value": "2" },
+                { "key": "pageSize", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.3 — List trips with date range filter",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = new Date();",
+                  "pm.variables.set('tripsFrom', new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString());",
+                  "pm.variables.set('tripsTo', now.toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Has data array', () => {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/partner/bikes/{{demoBikeId}}/trips?from={{tripsFrom}}&to={{tripsTo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["partner", "bikes", "{{demoBikeId}}", "trips"],
+              "query": [
+                { "key": "from", "value": "{{tripsFrom}}" },
+                { "key": "to", "value": "{{tripsTo}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.4 — Third fleet bike: DENIED for Demo Insurer → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 — Demo Insurer has no South fleet access', () => {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/bikes/{{thirdFleetBikeId}}/trips", "host": ["{{baseUrl}}"], "path": ["partner", "bikes", "{{thirdFleetBikeId}}", "trips"] }
+          }
+        },
+        {
+          "name": "3.5 — Third fleet bike: allowed for Analytics partner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Returns trip data', () => {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{analyticsToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/bikes/{{thirdFleetBikeId}}/trips", "host": ["{{baseUrl}}"], "path": ["partner", "bikes", "{{thirdFleetBikeId}}", "trips"] }
+          }
+        },
+        {
+          "name": "3.6 — Nonexistent bike → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 for nonexistent bike', () => {",
+                  "    const status = pm.response.code;",
+                  "    pm.expect([403, 404]).to.include(status);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/bikes/00000000-0000-0000-0000-ffffffffffff/trips", "host": ["{{baseUrl}}"], "path": ["partner", "bikes", "00000000-0000-0000-0000-ffffffffffff", "trips"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Incidents",
+      "item": [
+        {
+          "name": "4.1 — Get resolved incident details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Incident response shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('incidentId');",
+                  "    pm.expect(body).to.have.property('fleetId');",
+                  "    pm.expect(body).to.have.property('deviceId');",
+                  "    pm.expect(body).to.have.property('eventId');",
+                  "    pm.expect(body).to.have.property('status');",
+                  "    pm.expect(body).to.have.property('createdAt');",
+                  "    pm.expect(body).to.have.property('timeline').that.is.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Status is RESOLVED', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('RESOLVED');",
+                  "});",
+                  "",
+                  "pm.test('Timeline events have required fields', () => {",
+                  "    const timeline = pm.response.json().timeline;",
+                  "    if (timeline.length > 0) {",
+                  "        const ev = timeline[0];",
+                  "        pm.expect(ev).to.have.property('id');",
+                  "        pm.expect(ev).to.have.property('ts');",
+                  "        pm.expect(ev).to.have.property('type');",
+                  "        pm.expect(ev).to.have.property('severity');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Location precision is reduced (privacy)', () => {",
+                  "    const timeline = pm.response.json().timeline;",
+                  "    timeline.forEach(ev => {",
+                  "        if (ev.metaJson && typeof ev.metaJson === 'object') {",
+                  "            if (ev.metaJson.lat !== undefined) {",
+                  "                const decimals = ev.metaJson.lat.toString().split('.')[1];",
+                  "                pm.expect(decimals ? decimals.length : 0).to.be.at.most(3);",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/incidents/{{resolvedIncidentId}}", "host": ["{{baseUrl}}"], "path": ["partner", "incidents", "{{resolvedIncidentId}}"] }
+          }
+        },
+        {
+          "name": "4.2 — Get open incident details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Status is OPEN', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('OPEN');",
+                  "});",
+                  "",
+                  "pm.test('acknowledgedAt and resolvedAt are null', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.acknowledgedAt).to.be.null;",
+                  "    pm.expect(body.resolvedAt).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/incidents/{{openIncidentId}}", "host": ["{{baseUrl}}"], "path": ["partner", "incidents", "{{openIncidentId}}"] }
+          }
+        },
+        {
+          "name": "4.3 — Nonexistent incident → 403/404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 or 404', () => {",
+                  "    pm.expect([403, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/incidents/00000000-0000-0000-0000-ffffffffffff", "host": ["{{baseUrl}}"], "path": ["partner", "incidents", "00000000-0000-0000-0000-ffffffffffff"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 — Evidence Packs",
+      "item": [
+        {
+          "name": "5.1 — Get evidence pack for resolved incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const status = pm.response.code;",
+                  "",
+                  "// Evidence pack may return 200 (S3 configured) or 404 (no S3/no pack)",
+                  "pm.test('Status is 200 or 404', () => {",
+                  "    pm.expect([200, 404]).to.include(status);",
+                  "});",
+                  "",
+                  "if (status === 200) {",
+                  "    pm.test('Evidence pack response shape', () => {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body).to.have.property('evidencePackId');",
+                  "        pm.expect(body).to.have.property('incidentId');",
+                  "        pm.expect(body).to.have.property('fleetId');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/incidents/{{resolvedIncidentId}}/evidence-pack", "host": ["{{baseUrl}}"], "path": ["partner", "incidents", "{{resolvedIncidentId}}", "evidence-pack"] }
+          }
+        },
+        {
+          "name": "5.2 — Evidence for open incident → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 — open incidents have no evidence pack', () => {",
+                  "    pm.expect([403, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/incidents/{{openIncidentId}}/evidence-pack", "host": ["{{baseUrl}}"], "path": ["partner", "incidents", "{{openIncidentId}}", "evidence-pack"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 — Webhooks",
+      "item": [
+        {
+          "name": "6.1 — Register webhook (Demo Insurer — has webhooks:write)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Webhook response shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id').that.is.a('string');",
+                  "    pm.expect(body).to.have.property('url').that.eql('https://test-webhook.example.com/emoto/events');",
+                  "    pm.expect(body).to.have.property('active').that.eql(true);",
+                  "    pm.expect(body).to.have.property('secret').that.is.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('Secret is returned (one-time)', () => {",
+                  "    pm.expect(pm.response.json().secret.length).to.be.at.least(16);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('webhookId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://test-webhook.example.com/emoto/events\",\n  \"active\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        },
+        {
+          "name": "6.2 — Register webhook with custom secret",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Custom secret is echoed back', () => {",
+                  "    pm.expect(pm.response.json().secret).to.eql('my-custom-webhook-secret-value');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://backup-webhook.example.com/emoto\",\n  \"secret\": \"my-custom-webhook-secret-value\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        },
+        {
+          "name": "6.3 — Webhook: Analytics partner → 403 (no webhooks:write scope)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 — missing webhooks:write scope', () => {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{analyticsToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://should-fail.example.com/webhook\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        },
+        {
+          "name": "6.4 — Webhook: HTTP URL → 400 (HTTPS required)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 — HTTP not allowed', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"http://insecure.example.com/webhook\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        },
+        {
+          "name": "6.5 — Webhook: localhost URL → 400 (SSRF blocked)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 — SSRF protection blocks localhost', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://localhost/webhook\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        },
+        {
+          "name": "6.6 — Webhook: private IP → 400 (SSRF blocked)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 — SSRF protection blocks private IPs', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://192.168.1.1/webhook\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        },
+        {
+          "name": "6.7 — Webhook: missing URL → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 — URL is required', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/partner/webhooks", "host": ["{{baseUrl}}"], "path": ["partner", "webhooks"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 — Cross-Cutting Concerns",
+      "item": [
+        {
+          "name": "7.1 — Expired/invalid JWT → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 with tampered token', () => {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYWtlIiwicGFydG5lcklkIjoiZmFrZSIsInRva2VuVHlwZSI6InBhcnRuZXIiLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MTYwMDAwMDAwMX0.invalid" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{demoFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{demoFleetId}}", "weekly-summary"] }
+          }
+        },
+        {
+          "name": "7.2 — User JWT on partner route → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// First get a regular user token",
+                  "pm.sendRequest({",
+                  "    url: pm.collectionVariables.get('baseUrl') + '/auth/login',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ email: 'admin@demo.emoto', password: 'ChangeMe123!' }) }",
+                  "}, (err, res) => {",
+                  "    if (res && res.json() && res.json().accessToken) {",
+                  "        pm.variables.set('userToken', res.json().accessToken);",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 — user JWT rejected on partner route', () => {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/partner/fleets/{{demoFleetId}}/weekly-summary", "host": ["{{baseUrl}}"], "path": ["partner", "fleets", "{{demoFleetId}}", "weekly-summary"] }
+          }
+        },
+        {
+          "name": "7.3 — Partner docs page (public, no auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Returns HTML content', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/partner/docs", "host": ["{{baseUrl}}"], "path": ["partner", "docs"] }
+          }
+        }
+      ]
+    }
+  ]
+}
