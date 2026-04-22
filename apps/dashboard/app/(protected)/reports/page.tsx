@@ -28,7 +28,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Date range */}
       {report && (
-        <div className="flex items-center gap-2 text-xs text-ink-muted animate-fade-in">
+        <div className="flex items-center gap-2 text-xs text-white/50 animate-fade-in">
           <Calendar size={12} />
           <span>
             {new Date(report.range.from).toLocaleDateString()} &mdash;{' '}
@@ -106,10 +106,10 @@ export default function ReportsPage() {
               {(report?.topRiskyBikes ?? []).map((bike, index) => (
                 <li
                   key={bike.bikeId}
-                  className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
+                  className="rounded-[20px] border border-white/10 bg-white/[0.02] px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-ink-soft">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-white/60">
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -117,7 +117,7 @@ export default function ReportsPage() {
                         <p className="truncate font-semibold text-ink">{bike.label}</p>
                         <ScorePill score={bike.avgScore} />
                       </div>
-                      <p className="mt-1 text-xs leading-5 text-ink-soft">
+                      <p className="mt-1 text-xs leading-5 text-white/60">
                         {bike.tripCount} trips · {bike.eventCount} events
                       </p>
                       <ScoreBar score={bike.avgScore} />
@@ -151,10 +151,10 @@ export default function ReportsPage() {
               {(report?.topRiskyRiders ?? []).map((rider, index) => (
                 <li
                   key={rider.riderId}
-                  className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
+                  className="rounded-[20px] border border-white/10 bg-white/[0.02] px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-ink-soft">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-white/60">
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -164,7 +164,7 @@ export default function ReportsPage() {
                         </p>
                         <ScorePill score={rider.avgScore} />
                       </div>
-                      <p className="mt-1 text-xs leading-5 text-ink-soft">
+                      <p className="mt-1 text-xs leading-5 text-white/60">
                         {rider.tripCount} trips
                       </p>
                       <ScoreBar score={rider.avgScore} />
@@ -200,7 +200,7 @@ export default function ReportsPage() {
             {Object.entries(report.eventCounts).map(([type, count]) => (
               <div
                 key={type}
-                className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
+                className="rounded-[20px] border border-white/10 bg-white/[0.02] px-4 py-4"
               >
                 <p className="text-sm font-semibold text-ink">{formatEnumLabel(type)}</p>
                 <p className="mt-3 font-display text-3xl font-semibold text-ink">{count}</p>
@@ -227,25 +227,25 @@ function TrafficFinesCard() {
       title="Traffic fines"
       description="Irembo fines will stream here in real time once the integration is enabled."
     >
-      <div className="rounded-[20px] border border-dashed border-line-strong bg-surface-muted px-4 py-4">
-        <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
+      <div className="rounded-[20px] border border-dashed border-white/10-strong bg-white/[0.02] px-4 py-4">
+        <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
           <span>Vehicle</span>
           <span>Reason</span>
           <span>Amount</span>
           <span>Status</span>
           <span>Issued</span>
         </div>
-        <div className="mt-3 grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-sm text-ink-soft">
+        <div className="mt-3 grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-sm text-white/60">
           <span className="font-semibold text-ink">--</span>
           <span>Awaiting Irembo feed</span>
           <span>--</span>
-          <span className="rounded-full bg-surface-strong px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
+          <span className="rounded-full bg-white/[0.02] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
             Pending
           </span>
           <span>--</span>
         </div>
       </div>
-      <p className="mt-3 text-xs text-ink-muted">
+      <p className="mt-3 text-xs text-white/50">
         Ready to map Irembo fines by plate or device UID once credentials are provided.
       </p>
     </DashboardCard>

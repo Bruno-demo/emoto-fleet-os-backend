@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
@@ -400,21 +400,21 @@ export function LiveMapPanel() {
             'relative flex flex-col transition-all duration-300',
             isFullscreen
               ? 'fixed inset-0 z-[1000] bg-[var(--background)]'
-              : 'glass-panel overflow-hidden rounded-[24px] border border-white/5 bg-black/20 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.5)]',
+              : 'overflow-hidden rounded-2xl border border-white/10 bg-[var(--background-strong)] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_8px_24px_-4px_rgba(0,0,0,0.08)]',
           )}
         >
           {/* Map header bar */}
           <div className={cx(
-            'flex items-center justify-between gap-3 border-b border-white/5 bg-white/[0.02] px-5 py-3',
+            'flex items-center justify-between gap-3 border-b border-white/10 bg-[var(--background-strong)] px-5 py-3',
             isFullscreen && 'px-6 py-4',
           )}>
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
-                <Layers size={15} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <Layers size={16} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-ink">Fleet Map</h2>
-                <p className="text-[11px] text-ink-muted">Real-time vehicle tracking</p>
+                <h2 className="text-sm font-bold tracking-tight text-ink">Fleet Map</h2>
+                <p className="text-[11px] text-white/50">Real-time vehicle tracking</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export function LiveMapPanel() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-ink-soft transition hover:bg-white/10 hover:text-ink"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.02] text-white/50 transition hover:bg-white/[0.04] hover:text-ink"
                 title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand map'}
               >
                 {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -489,8 +489,8 @@ export function LiveMapPanel() {
                 {/* Fullscreen hint */}
                 {isFullscreen && (
                   <div className="absolute left-4 top-4 z-[500]">
-                    <div className="rounded-lg border border-white/10 bg-black/60 px-3 py-1.5 text-[11px] font-semibold text-white/70 backdrop-blur-md">
-                      Press <kbd className="mx-1 rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd> to exit
+                    <div className="rounded-lg border border-white/10 bg-[var(--background-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-white/50 shadow-sm backdrop-blur-md">
+                      Press <kbd className="mx-1 rounded border border-white/10-strong bg-white/[0.02] px-1.5 py-0.5 font-mono text-[10px] text-white/60">Esc</kbd> to exit
                     </div>
                   </div>
                 )}
@@ -516,11 +516,11 @@ export function LiveMapPanel() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="font-display text-lg font-semibold text-ink">Recent alerts</h3>
-                  <p className="mt-1 text-sm text-ink-soft">
+                  <p className="mt-1 text-sm text-white/60">
                     Click an alert to open bike context in the drawer.
                   </p>
                 </div>
-                <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                <span className="rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   Realtime
                 </span>
               </div>
@@ -535,12 +535,12 @@ export function LiveMapPanel() {
                         type="button"
                         onClick={() => selectBikeContext(event.bikeId, true)}
                         disabled={!event.bikeId}
-                        className="w-full rounded-[20px] border border-line bg-surface-muted px-4 py-3 text-left transition hover:bg-surface-hover disabled:cursor-default disabled:opacity-70"
+                        className="w-full rounded-[20px] border border-white/10 bg-white/[0.02] px-4 py-3 text-left transition hover:bg-white/[0.04] disabled:cursor-default disabled:opacity-70"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
-                            <p className="mt-1 text-xs leading-5 text-ink-soft">
+                            <p className="mt-1 text-xs leading-5 text-white/60">
                               {linkedBike?.label ?? maskIdentifier(event.bikeId) ?? 'Fleet event'}
                               {' · '}
                               {formatTimeAgo(event.ts)}
@@ -570,11 +570,11 @@ export function LiveMapPanel() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="font-display text-lg font-semibold text-ink">Command stream</h3>
-                  <p className="mt-1 text-sm text-ink-soft">
+                  <p className="mt-1 text-sm text-white/60">
                     Recent lock and unlock state changes across the fleet.
                   </p>
                 </div>
-                <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                <span className="rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   Last {Math.min(commandStream.length, 6)}
                 </span>
               </div>
@@ -584,12 +584,12 @@ export function LiveMapPanel() {
                   commandStream.slice(0, 6).map((status) => (
                     <li
                       key={`${status.commandId}-${status.ts}`}
-                      className="rounded-[20px] border border-line bg-surface-muted px-4 py-3"
+                      className="rounded-[20px] border border-white/10 bg-white/[0.02] px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold text-ink">{status.action ?? 'Command'}</p>
-                          <p className="mt-1 text-xs leading-5 text-ink-soft">
+                          <p className="mt-1 text-xs leading-5 text-white/60">
                             {maskIdentifier(status.bikeId) || 'Fleet command'} {' · '}
                             {formatTimeAgo(status.ts)}
                           </p>
@@ -597,7 +597,7 @@ export function LiveMapPanel() {
                         <CommandBadge status={status.status} />
                       </div>
                       {status.message ? (
-                        <p className="mt-2 text-xs leading-5 text-ink-soft">{status.message}</p>
+                        <p className="mt-2 text-xs leading-5 text-white/60">{status.message}</p>
                       ) : null}
                     </li>
                   ))
@@ -672,7 +672,7 @@ export function LiveMapPanel() {
                   type="button"
                   onClick={() => setCenterSignal((currentSignal) => currentSignal + 1)}
                   disabled={!selectedState}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Crosshair size={16} />
                   Center on map
@@ -727,12 +727,12 @@ export function LiveMapPanel() {
                   {selectedBikeEvents.map((event) => (
                     <li
                       key={event.id}
-                      className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
+                      className="rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
-                          <p className="mt-1 text-xs leading-5 text-ink-soft">
+                          <p className="mt-1 text-xs leading-5 text-white/60">
                             {formatTimestamp(event.ts)}
                           </p>
                         </div>
@@ -760,19 +760,19 @@ export function LiveMapPanel() {
                   {selectedCommandStream.map((status) => (
                     <li
                       key={`${status.commandId}-${status.ts}`}
-                      className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
+                      className="rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold text-ink">{status.action ?? 'Command'}</p>
-                          <p className="mt-1 text-xs leading-5 text-ink-soft">
+                          <p className="mt-1 text-xs leading-5 text-white/60">
                             {formatTimeAgo(status.ts)}
                           </p>
                         </div>
                         <CommandBadge status={status.status} />
                       </div>
                       {status.message ? (
-                        <p className="mt-2 text-xs leading-5 text-ink-soft">{status.message}</p>
+                        <p className="mt-2 text-xs leading-5 text-white/60">{status.message}</p>
                       ) : null}
                     </li>
                   ))}
@@ -851,8 +851,8 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
       <Popup>
         <div className="space-y-1">
           <p className="font-semibold text-ink">{label}</p>
-          <p className="text-sm text-ink-soft">Speed {state.speedKph.toFixed(1)} kph</p>
-          <p className="text-sm text-ink-soft">Last seen {formatTimestamp(state.ts)}</p>
+          <p className="text-sm text-white/60">Speed {state.speedKph.toFixed(1)} kph</p>
+          <p className="text-sm text-white/60">Last seen {formatTimestamp(state.ts)}</p>
         </div>
       </Popup>
     </Marker>
@@ -896,11 +896,11 @@ function MapSizeController() {
 function MapZoomControls() {
   const map = useMap();
   return (
-    <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-1.5">
+    <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-1">
       <button
         type="button"
         onClick={() => map.zoomIn()}
-        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition hover:bg-black/80 hover:text-white"
+        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[var(--background-strong)]/90 text-white/60 shadow-sm backdrop-blur-md transition hover:bg-white/[0.04] hover:text-ink"
         aria-label="Zoom in"
       >
         <span className="text-base font-bold leading-none">+</span>
@@ -908,7 +908,7 @@ function MapZoomControls() {
       <button
         type="button"
         onClick={() => map.zoomOut()}
-        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition hover:bg-black/80 hover:text-white"
+        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[var(--background-strong)]/90 text-white/60 shadow-sm backdrop-blur-md transition hover:bg-white/[0.04] hover:text-ink"
         aria-label="Zoom out"
       >
         <span className="text-base font-bold leading-none">−</span>
@@ -990,10 +990,10 @@ function RoadFeatureLayer({ features }: { features: RoadFeature[] }) {
               <div className="space-y-1">
                 <p className="font-semibold text-ink">{style.label}</p>
                 {feature.name ? (
-                  <p className="text-sm text-ink-soft">{feature.name}</p>
+                  <p className="text-sm text-white/60">{feature.name}</p>
                 ) : null}
                 {feature.speedLimitKph ? (
-                  <p className="text-sm text-ink-soft">Limit {feature.speedLimitKph} kph</p>
+                  <p className="text-sm text-white/60">Limit {feature.speedLimitKph} kph</p>
                 ) : null}
               </div>
             </Popup>
@@ -1014,21 +1014,21 @@ function RoadLegend({
 }) {
   if (zoom < ROAD_LAYER_MIN_ZOOM) {
     return (
-      <div className="rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-semibold text-white/70 backdrop-blur-md">
+      <div className="rounded-lg border border-white/10 bg-[var(--background-strong)]/90 px-3 py-2 text-xs font-semibold text-white/50 shadow-sm backdrop-blur-md">
         Zoom in to view road safety layers.
       </div>
     );
   }
 
   return (
-    <div className="max-w-[240px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white/70 backdrop-blur-md">
+    <div className="max-w-[240px] rounded-lg border border-white/10 bg-[var(--background-strong)]/90 px-3 py-2 text-xs text-white/60 shadow-sm backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
           Road context
         </span>
-        <span className="text-[11px] font-semibold text-white/90">{featureCount} points</span>
+        <span className="text-[11px] font-semibold text-ink">{featureCount} points</span>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-white/80">
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-white/60">
         <LegendItem label="School" tone="school" />
         <LegendItem label="Hospital" tone="hospital" />
         <LegendItem label="Market" tone="market" />
@@ -1041,8 +1041,8 @@ function RoadLegend({
 
 function KeyMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+    <div className="rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
         {label}
       </p>
       <p className="mt-2 text-sm font-semibold text-ink">{value}</p>
@@ -1054,14 +1054,24 @@ function MapChip({ label, tone }: { label: string; tone: 'info' | 'success' | 'd
   return (
     <span
       className={cx(
-        'rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-sm backdrop-blur-md',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold',
         tone === 'success'
-          ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400'
           : tone === 'danger'
-            ? 'border-rose-500/30 bg-rose-500/15 text-rose-400'
-            : 'border-sky-500/30 bg-sky-500/15 text-sky-400',
+            ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-400'
+            : 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-400',
       )}
     >
+      <span
+        className={cx(
+          'h-1.5 w-1.5 rounded-full',
+          tone === 'success'
+            ? 'bg-emerald-500'
+            : tone === 'danger'
+              ? 'bg-rose-500'
+              : 'bg-sky-500',
+        )}
+      />
       {label}
     </span>
   );
@@ -1089,7 +1099,7 @@ function ActionButton({
         'inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
         tone === 'danger'
           ? 'bg-rose-600 text-white hover:bg-rose-700'
-          : 'border border-line bg-surface-muted text-ink hover:bg-surface-hover',
+          : 'border border-white/10 bg-white/[0.02] text-ink hover:bg-white/[0.04]',
       )}
     >
       {icon}
@@ -1117,21 +1127,13 @@ function MapStatusBar({
       <MapChip label={`${onlineCount} online`} tone="success" />
       <MapChip label={`${movingCount} moving`} tone="info" />
       <MapChip label={`${highPriorityCount} alerts`} tone="danger" />
-      <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-ink-soft xl:inline-flex">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        Stable
-        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-        Moving
-        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-        Critical
-      </div>
       <button
         type="button"
         onClick={onCenter}
         disabled={centerDisabled}
-        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-ink-soft transition hover:bg-white/10 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-1 text-[11px] font-semibold text-white/50 transition hover:bg-white/[0.04] hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <Crosshair size={14} />
+        <Crosshair size={13} />
         Center
       </button>
     </div>
@@ -1149,12 +1151,12 @@ function InlineEmptyCard({
   description: string;
 }) {
   return (
-    <div className="rounded-[18px] border border-dashed border-line-strong bg-surface-muted px-4 py-4 text-center">
+    <div className="rounded-[18px] border border-dashed border-white/10-strong bg-white/[0.02] px-4 py-4 text-center">
       <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-white text-accent">
         {icon}
       </div>
       <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
-      <p className="mt-2 text-xs leading-5 text-ink-soft">{description}</p>
+      <p className="mt-2 text-xs leading-5 text-white/60">{description}</p>
     </div>
   );
 }
@@ -1162,12 +1164,12 @@ function InlineEmptyCard({
 // Renders a small banner for when no live bike telemetry is available.
 function MapEmptyBanner() {
   return (
-    <div className="pointer-events-auto w-full max-w-lg rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-center backdrop-blur-md">
-      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-accent/20 text-accent">
+    <div className="pointer-events-auto w-full max-w-lg rounded-xl border border-white/10 bg-[var(--background-strong)]/90 px-4 py-3 text-center shadow-sm backdrop-blur-md">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
         <Bike size={16} />
       </div>
-      <p className="mt-2 text-sm font-semibold text-white/90">No live bike states yet</p>
-      <p className="mt-1 text-xs leading-5 text-white/60">
+      <p className="mt-2 text-sm font-semibold text-ink">No live bike states yet</p>
+      <p className="mt-1 text-xs leading-5 text-white/50">
         The basemap is ready. Bike markers appear as soon as telemetry updates arrive.
       </p>
     </div>
@@ -1407,19 +1409,19 @@ function createBikeMarkerIcon({
     className: 'emoto-bike-marker',
     html: `
       <div style="
-        width: ${selected ? 34 : 26}px;
-        height: ${selected ? 34 : 26}px;
+        width: ${selected ? 34 : 24}px;
+        height: ${selected ? 34 : 24}px;
         border-radius: 999px;
         background: ${fill};
-        border: 2.5px solid rgba(255,255,255,0.9);
-        box-shadow: 0 0 ${selected ? '16' : '10'}px ${fill}88, 0 4px 12px rgba(0,0,0,0.4);
-        outline: ${selected ? `3px solid ${fill}44` : 'none'};
+        border: 2.5px solid #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.18), 0 0 ${selected ? '12' : '0'}px ${fill}55;
+        outline: ${selected ? `3px solid ${fill}33` : 'none'};
         outline-offset: 2px;
         transition: all 150ms ease;
       "></div>
     `,
-    iconSize: selected ? [34, 34] : [26, 26],
-    iconAnchor: selected ? [17, 17] : [13, 13],
+    iconSize: selected ? [34, 34] : [24, 24],
+    iconAnchor: selected ? [17, 17] : [12, 12],
     popupAnchor: [0, -14],
   });
 }

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -181,7 +181,7 @@ export default function IncidentsPage() {
       render: (incident) => (
         <div>
           <p className="font-semibold text-ink">{maskIdentifier(incident.id)}</p>
-          <p className="mt-1 text-xs leading-5 text-ink-soft">
+          <p className="mt-1 text-xs leading-5 text-white/60">
             Created {formatTimestamp(incident.createdAt)}
           </p>
         </div>
@@ -194,7 +194,7 @@ export default function IncidentsPage() {
           <p className="font-semibold text-ink">
             {incident.bikeId ? bikeLabelById.get(incident.bikeId) ?? maskIdentifier(incident.bikeId) : 'No bike linked'}
           </p>
-          <p className="mt-1 text-xs leading-5 text-ink-soft">
+          <p className="mt-1 text-xs leading-5 text-white/60">
             Device {maskIdentifier(incident.deviceId)}
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function IncidentsPage() {
       render: (incident) => (
         <div>
           <p className="font-semibold text-ink">{formatTimeAgo(incident.updatedAt)}</p>
-          <p className="mt-1 text-xs leading-5 text-ink-soft">{formatTimestamp(incident.updatedAt)}</p>
+          <p className="mt-1 text-xs leading-5 text-white/60">{formatTimestamp(incident.updatedAt)}</p>
         </div>
       ),
     },
@@ -221,7 +221,7 @@ export default function IncidentsPage() {
         <button
           type="button"
           onClick={() => setSelectedIncidentId(incident.id)}
-          className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
         >
           Open detail
         </button>
@@ -273,7 +273,7 @@ export default function IncidentsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
+              className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
             >
               Reset to open queue
             </button>
@@ -291,10 +291,10 @@ export default function IncidentsPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <FilterField label="From" type="datetime-local" value={from} onChange={(value) => { setFrom(value); setPage(1); }} />
               <FilterField label="To" type="datetime-local" value={to} onChange={(value) => { setTo(value); setPage(1); }} />
-              <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Queue size</p>
+              <div className="rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.02] px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">Queue size</p>
                 <p className="mt-2 font-display text-3xl font-semibold text-ink">{incidentsQuery.data?.total ?? 0}</p>
-                <p className="mt-2 text-sm leading-6 text-ink-soft">Rows matched by the current status and time filters.</p>
+                <p className="mt-2 text-sm leading-6 text-white/60">Rows matched by the current status and time filters.</p>
               </div>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function IncidentsPage() {
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                     placeholder="Optional resolution context, handoff details, or false-alarm reasoning."
-                    className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+                    className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
                   />
                 </label>
 
@@ -408,17 +408,17 @@ export default function IncidentsPage() {
                 </button>
 
                 {isGeneratingEvidence ? (
-                  <div className="space-y-2 rounded-[18px] border border-line bg-surface-muted px-4 py-4">
+                  <div className="space-y-2 rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-4">
                     <Skeleton className="h-4 w-40" />
                     <Skeleton className="h-3 w-full" />
                     <Skeleton className="h-3 w-4/5" />
                   </div>
                 ) : evidencePack ? (
-                  <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-4">
+                  <div className="rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="font-semibold text-ink">Evidence pack ready</p>
-                        <p className="mt-1 text-xs leading-5 text-ink-soft">
+                        <p className="mt-1 text-xs leading-5 text-white/60">
                           Generated {formatTimeAgo(evidencePack.createdAt)} · expires in {Math.round(evidencePack.expiresInSeconds / 60)} min
                         </p>
                       </div>
@@ -431,7 +431,7 @@ export default function IncidentsPage() {
                         href={evidencePack.summaryJsonUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                        className="rounded-[var(--radius-control)] border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                       >
                         Download summary JSON
                       </a>
@@ -439,7 +439,7 @@ export default function IncidentsPage() {
                         href={evidencePack.telemetryCsvUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                        className="rounded-[var(--radius-control)] border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                       >
                         Download telemetry CSV
                       </a>
@@ -467,14 +467,14 @@ export default function IncidentsPage() {
                   {timelineRows.map((row) => (
                     <li
                       key={row.id}
-                      className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
+                      className="rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-semibold text-ink">{row.title}</p>
-                        <span className="text-xs font-medium text-ink-soft">{formatTimestamp(row.ts)}</span>
+                        <span className="text-xs font-medium text-white/60">{formatTimestamp(row.ts)}</span>
                       </div>
                       {row.description ? (
-                        <p className="mt-2 text-xs leading-5 text-ink-soft">{row.description}</p>
+                        <p className="mt-2 text-xs leading-5 text-white/60">{row.description}</p>
                       ) : null}
                     </li>
                   ))}
@@ -530,7 +530,7 @@ function StatusTab({
         : tone === 'success'
           ? 'border-success-ink/30 bg-success-soft text-success-ink'
           : 'border-white/[0.12] bg-white/[0.08] text-ink'
-    : 'border-white/[0.06] bg-white/[0.02] text-ink-muted hover:bg-white/[0.05]';
+    : 'border-white/[0.06] bg-white/[0.02] text-white/50 hover:bg-white/[0.05]';
 
   return (
     <button
@@ -567,7 +567,7 @@ function FilterField({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
+        className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
       />
     </label>
   );
@@ -575,8 +575,8 @@ function FilterField({
 
 function KeyMetric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">{label}</p>
+    <div className="rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">{label}</p>
       <div className="mt-2 text-sm font-semibold text-ink">{value}</div>
     </div>
   );
@@ -610,7 +610,7 @@ function ActionCard({
       )}
     >
       <p className="font-semibold text-ink">{label}</p>
-      <p className="mt-2 text-xs leading-5 text-ink-muted">{description}</p>
+      <p className="mt-2 text-xs leading-5 text-white/50">{description}</p>
     </button>
   );
 }
@@ -633,7 +633,7 @@ function IncidentStatusBadge({ status }: { status: Incident['status'] }) {
             ? 'inline-flex rounded-full bg-warning-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-warning-ink'
             : status === 'RESOLVED'
               ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
-              : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+              : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60'
       }
     >
       {formatEnumLabel(status)}

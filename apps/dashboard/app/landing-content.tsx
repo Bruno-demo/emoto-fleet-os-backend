@@ -1,5 +1,7 @@
+'use client';
+
 import Link from 'next/link';
-import { cookies } from 'next/headers';
+import { useState, useEffect, useRef } from 'react';
 import {
   Activity,
   AlarmClock,
@@ -7,131 +9,81 @@ import {
   BadgeCheck,
   BatteryCharging,
   Bike,
-  CalendarCheck,
   ChevronRight,
+  ClipboardList,
   Cpu,
   Gauge,
   Globe2,
-  Layers,
   LocateFixed,
+  Lock,
+  MapPin,
+  Minus,
+  Monitor,
+  Plus,
   Radar,
+  Shield,
   ShieldCheck,
   Signal,
   Siren,
+  Smartphone,
   Sparkles,
   Users2,
   Zap,
 } from 'lucide-react';
 
-const metrics = [
-  { label: 'Active bikes', value: '1,284', icon: <Bike size={16} /> },
-  { label: 'Incidents resolved', value: '96%', icon: <ShieldCheck size={16} /> },
-  { label: 'Avg response', value: '2.4 min', icon: <Zap size={16} /> },
-  { label: 'Platform uptime', value: '99.9%', icon: <Activity size={16} /> },
+/* ─── Data ────────────────────────────────────────────── */
+
+const features = [
+  { icon: <LocateFixed size={20} />, title: 'Live Fleet Tracking', desc: 'See every bike and rider on the map in real-time with sub-second telemetry updates and geofence alerts.' },
+  { icon: <Siren size={20} />, title: 'Incident Management', desc: 'Crash and SOS dispatch with escalation workflows, evidence collection, and full incident timelines.' },
+  { icon: <Signal size={20} />, title: 'Remote Commands', desc: 'Lock, unlock, and send OTA commands to any device with full audit logging and confirmation.' },
+  { icon: <Gauge size={20} />, title: 'Trip Intelligence', desc: 'Trip scoring, rider coaching insights, and fleet-wide performance analytics across all operations.' },
+  { icon: <Shield size={20} />, title: 'Safety Automation', desc: 'Detect risky behavior instantly and turn it into automated dispatch workflows before incidents escalate.' },
+  { icon: <BatteryCharging size={20} />, title: 'Battery Monitoring', desc: 'Track battery health, charge cycles, voltage trends, and swap station proximity for every bike.' },
+  { icon: <Globe2 size={20} />, title: 'Partner API Access', desc: 'Scoped API tokens for insurers, regulators, and partners with granular data access controls.' },
+  { icon: <Users2 size={20} />, title: 'Rider Management', desc: 'Onboard riders, manage profiles, track performance scores, and handle compliance documentation.' },
+  { icon: <MapPin size={20} />, title: 'Zone Management', desc: 'Define operational zones, set speed limits, configure geofence alerts, and manage restricted areas.' },
+  { icon: <ClipboardList size={20} />, title: 'Audit Logging', desc: 'Complete audit trail for every action, command, and configuration change across your fleet.' },
+  { icon: <Monitor size={20} />, title: 'Real-time Monitoring', desc: 'Monitor CPU, memory, device health, and network status across your entire fleet infrastructure.' },
+  { icon: <Lock size={20} />, title: 'Enterprise Security', desc: 'Role-based access control, signed telemetry, encrypted channels, and compliance-ready data handling.' },
 ];
 
-const highlights = [
-  { icon: <Radar size={18} />, title: 'Live command center', desc: 'See every rider, device, and incident in one streaming operational view.' },
-  { icon: <Siren size={18} />, title: 'Safety automation', desc: 'Detect risky behavior instantly and turn it into dispatch workflows.' },
-  { icon: <ShieldCheck size={18} />, title: 'Trusted data', desc: 'Signed telemetry, audit logs, and partner access for compliance.' },
+const showcaseTabs = [
+  { id: 'live-map', label: 'Live Map', desc: 'Track every bike and rider in real-time on an interactive map with geofence overlays, zone boundaries, and live status indicators. Filter by status, zone, or alert level.' },
+  { id: 'incidents', label: 'Incidents', desc: 'Manage crash and SOS incidents with guided dispatch workflows. View timelines, attach evidence, escalate to partners, and track resolution progress in one unified view.' },
+  { id: 'riders', label: 'Riders', desc: 'Comprehensive rider profiles with safety scores, trip history, compliance status, and performance analytics. Onboard new riders and manage documentation.' },
+  { id: 'devices', label: 'Devices', desc: 'Monitor device health, firmware versions, connectivity status, and telemetry quality. Provision new devices and manage OTA updates across your fleet.' },
+  { id: 'analytics', label: 'Analytics', desc: 'Fleet-wide KPI dashboards with incident trends, rider performance distributions, operational efficiency metrics, and compliance reporting tools.' },
+  { id: 'commands', label: 'Commands', desc: 'Send secure lock, unlock, and configuration commands to any device. View command history with delivery confirmation and full audit trails.' },
 ];
 
-const featureRows = [
-  {
-    title: 'Fleet visibility',
-    description: 'Live bike and rider positions updated every second with geofence alerts.',
-    icon: <LocateFixed size={20} />,
-    span: 'md:col-span-2',
-  },
-  {
-    title: 'Incident workflows',
-    description: 'Crash and SOS dispatch with escalation, evidence, and timeline.',
-    icon: <AlarmClock size={20} />,
-    span: '',
-  },
-  {
-    title: 'Command & control',
-    description: 'Secure lock, unlock, and OTA commands with audit logging.',
-    icon: <Signal size={20} />,
-    span: '',
-  },
-  {
-    title: 'Trip intelligence',
-    description: 'Trip scoring, rider coaching, and fleet-wide performance analytics.',
-    icon: <Gauge size={20} />,
-    span: 'md:col-span-2',
-  },
-  {
-    title: 'Battery insight',
-    description: 'Battery health, charge cycles, and swap station proximity.',
-    icon: <BatteryCharging size={20} />,
-    span: '',
-  },
-  {
-    title: 'Partner access',
-    description: 'Scoped API tokens for insurers, regulators, and partners.',
-    icon: <Globe2 size={20} />,
-    span: '',
-  },
-];
-
-const workflowSteps = [
-  {
-    num: '01',
-    title: 'Connect devices',
-    description: 'Provision bikes, upload IMEI keys, and sync live telemetry streams in minutes.',
-  },
-  {
-    num: '02',
-    title: 'Monitor operations',
-    description: 'Dispatch teams see live riders, alerts, and command states in one unified view.',
-  },
-  {
-    num: '03',
-    title: 'Drive safer outcomes',
-    description: 'Score riders, resolve incidents, and automate compliance reporting at scale.',
-  },
-];
-
-const benefits = [
-  {
-    title: 'Faster response',
-    description: 'Cut incident response times with clear dispatch tooling and guided workflows.',
-    icon: <AlarmClock size={18} />,
-  },
-  {
-    title: 'Safer riders',
-    description: 'Detect harsh events and coach riders through scoring before problems escalate.',
-    icon: <BadgeCheck size={18} />,
-  },
-  {
-    title: 'Lower losses',
-    description: 'Track theft, disable bikes remotely, and alert partners instantly.',
-    icon: <ShieldCheck size={18} />,
-  },
-  {
-    title: 'Decision ready',
-    description: 'KPI dashboards for leadership, compliance, and partner reporting.',
-    icon: <Layers size={18} />,
-  },
+const stats = [
+  { label: 'Active Bikes Managed', value: 1284, suffix: '+' },
+  { label: 'Incidents Resolved', value: 96, suffix: '%' },
+  { label: 'Avg Response Time', value: 2.4, suffix: 'min', decimals: 1 },
+  { label: 'Platform Uptime', value: 99.9, suffix: '%', decimals: 1 },
 ];
 
 const testimonials = [
-  {
-    quote: 'We cut our incident response time by over 60% while improving rider safety scores in just two months.',
-    name: 'Dispatch Lead',
-    org: 'Kigali Logistics',
-  },
-  {
-    quote: 'The command center gives us confidence when deploying hundreds of bikes across the city.',
-    name: 'Fleet Ops Director',
-    org: 'Urban Mobility',
-  },
-  {
-    quote: 'Real-time telemetry and secure audit trails are essential for our insurer partnerships.',
-    name: 'Risk Manager',
-    org: 'Regional Insurer',
-  },
+  { quote: 'We cut our incident response time by over 60% while improving rider safety scores in just two months.', name: 'Dispatch Lead', handle: '@kigali_logistics', org: 'Kigali Logistics' },
+  { quote: 'The command center gives us confidence when deploying hundreds of bikes across the city.', name: 'Fleet Ops Director', handle: '@urban_mobility', org: 'Urban Mobility' },
+  { quote: 'Real-time telemetry and secure audit trails are essential for our insurer partnerships.', name: 'Risk Manager', handle: '@regional_insurer', org: 'Regional Insurer' },
+  { quote: 'Fleet OS transformed our operations. We went from reactive to proactive safety in weeks.', name: 'Operations Lead', handle: '@saferide_africa', org: 'SafeRide Africa' },
+  { quote: 'The rider scoring system helped us identify and coach high-risk riders before incidents happen.', name: 'Safety Director', handle: '@motoguard', org: 'MotoGuard' },
+  { quote: 'Partner API integration with our insurance platform was seamless. Compliance reporting is now automatic.', name: 'Tech Lead', handle: '@greenwheel', org: 'GreenWheel' },
+];
+
+const faqs = [
+  { q: 'What is eMoto Fleet OS?', a: 'eMoto Fleet OS is a real-time safety and operations platform for electric motorcycle fleets. It provides live tracking, incident management, rider scoring, remote device commands, and compliance reporting — all from one command center.' },
+  { q: 'How does Fleet OS improve rider safety?', a: 'Fleet OS detects risky behavior like harsh braking, speeding, and erratic riding in real-time. It automatically triggers alerts, scores rider performance, and provides coaching insights to reduce incidents before they happen.' },
+  { q: 'Do I need special hardware to use Fleet OS?', a: 'Fleet OS works with standard IoT devices and GPS trackers commonly used in electric motorcycle fleets. We support MQTT-based telemetry from most device manufacturers and can help with device provisioning.' },
+  { q: 'What databases and infrastructure does Fleet OS use?', a: 'Fleet OS runs on PostgreSQL with TimescaleDB for time-series telemetry data, Redis for real-time caching, and MQTT for device communication. The platform is containerized with Docker for easy deployment.' },
+  { q: 'Can I integrate Fleet OS with my existing systems?', a: 'Yes. Fleet OS provides a comprehensive REST API and webhook system for integration with insurance platforms, regulatory systems, and third-party analytics tools. Partner API tokens provide scoped data access.' },
+  { q: 'How does pricing work?', a: 'Fleet OS offers transparent per-bike pricing with three tiers: Safety Core ($6/bike/mo) for essentials, Operations Plus ($9/bike/mo) for full features, and Enterprise for custom deployments with dedicated support and SLA.' },
+  { q: 'Is Fleet OS open source?', a: 'Fleet OS is a commercial platform with enterprise-grade security and support. We offer a demo environment for evaluation and can provide custom trials for qualified fleet operators.' },
+  { q: 'What kind of support do you offer?', a: 'Safety Core includes email support. Operations Plus includes priority support with faster response times. Enterprise plans include dedicated support, custom SLA, and onboarding assistance.' },
+  { q: 'How do I request a feature or report a bug?', a: 'You can reach our team through the dashboard support channel, email, or through your dedicated account manager on Enterprise plans. We actively incorporate operator feedback into our roadmap.' },
+  { q: 'Is there a limit on the number of bikes?', a: 'No. Fleet OS scales from small fleets of 10 bikes to enterprise operations with thousands. Our infrastructure auto-scales to handle any fleet size with consistent real-time performance.' },
 ];
 
 const pricingPlans = [
@@ -162,53 +114,128 @@ const pricingPlans = [
   },
 ];
 
-const trustedBy = [
-  'Kigali Fleet Co.',
-  'SafeRide Africa',
-  'MotoGuard',
-  'Urban Dispatch',
-  'GreenWheel',
-];
+const footerLinks = {
+  Product: [
+    { label: 'Features', href: '#features' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'Live Map', href: '/live' },
+    { label: 'Partner API', href: '#features' },
+  ],
+  Platform: [
+    { label: 'Rider App', href: '#' },
+    { label: 'Fleet Dashboard', href: '/login' },
+    { label: 'Documentation', href: '#' },
+    { label: 'Compliance', href: '#' },
+  ],
+  Company: [
+    { label: 'About', href: '#' },
+    { label: 'Blog', href: '#' },
+    { label: 'Contact', href: '#' },
+    { label: 'Careers', href: '#' },
+  ],
+  Legal: [
+    { label: 'Privacy Policy', href: '#' },
+    { label: 'Terms of Service', href: '#' },
+    { label: 'Security', href: '#' },
+  ],
+};
 
-// Renders the dashboard landing page with professional SaaS layout.
-export default async function LandingContent() {
-  const cookieStore = await cookies();
-  const authCookieName = process.env.AUTH_COOKIE_NAME ?? 'emoto_access_token';
-  const hasSession = Boolean(cookieStore.get(authCookieName)?.value);
+/* ─── Animated Counter ────────────────────────────────── */
+
+function AnimatedStat({ value, suffix, decimals = 0 }: { value: number; suffix: string; decimals?: number }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const duration = 2000;
+          const start = performance.now();
+          const step = (now: number) => {
+            const progress = Math.min((now - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setCount(eased * value);
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value]);
 
   return (
-    <div className="min-h-screen text-ink overflow-x-hidden">
+    <div ref={ref} className="text-5xl md:text-6xl font-extrabold tracking-tight text-white">
+      {decimals > 0 ? count.toFixed(decimals) : Math.floor(count).toLocaleString()}
+      <span className="text-accent">{suffix}</span>
+    </div>
+  );
+}
+
+/* ─── FAQ Item ────────────────────────────────────────── */
+
+function FaqItem({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-white/[0.08]">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between py-6 text-left transition-colors hover:text-white group"
+      >
+        <span className="text-[15px] font-semibold text-white/90 group-hover:text-white pr-4">{question}</span>
+        <span className="shrink-0 text-zinc-500 transition-transform duration-200">
+          {open ? <Minus size={18} /> : <Plus size={18} />}
+        </span>
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ${open ? 'max-h-[500px] pb-6' : 'max-h-0'}`}
+      >
+        <p className="text-sm leading-relaxed text-zinc-400 max-w-3xl">{answer}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ──────────────────────────────────── */
+
+export default function LandingContent({ hasSession }: { hasSession: boolean }) {
+  const [activeTab, setActiveTab] = useState('live-map');
+
+  return (
+    <div className="min-h-screen bg-[#09090b] text-white overflow-x-hidden">
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b border-line/50 bg-background/80">
-        <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl">
+        <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 h-16">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 border border-accent/30 text-accent transition group-hover:bg-accent/30 group-hover:scale-105">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent transition group-hover:bg-accent/20">
               <Bike size={18} />
             </div>
-            <div className="leading-tight">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-ink-muted">eMoto</p>
-              <p className="text-sm font-bold">Fleet OS</p>
-            </div>
+            <span className="text-[15px] font-bold tracking-tight">eMoto Fleet OS</span>
           </Link>
 
-          <div className="hidden items-center gap-8 text-[13px] font-semibold text-ink-soft md:flex">
-            <a href="#features" className="transition hover:text-ink">Features</a>
-            <a href="#how-it-works" className="transition hover:text-ink">How it works</a>
-            <a href="#pricing" className="transition hover:text-ink">Pricing</a>
+          <div className="hidden items-center gap-8 text-[13px] font-medium text-zinc-400 md:flex">
+            <a href="#features" className="transition hover:text-white">Features</a>
+            <a href="#showcase" className="transition hover:text-white">Platform</a>
+            <a href="#pricing" className="transition hover:text-white">Pricing</a>
+            <a href="#faq" className="transition hover:text-white">FAQ</a>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
             {hasSession ? (
-              <Link href="/live" className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-glow)] hover:scale-105 transition-transform">
+              <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
                 Dashboard <ArrowRight size={14} />
               </Link>
             ) : (
               <>
-                <Link href="/create-account?flow=demo" className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent hover:bg-accent/20 transition">
-                  <CalendarCheck size={14} /> Book demo
-                </Link>
-                <Link href="/login" className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-hover transition">Sign in</Link>
-                <Link href="/create-account" className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-glow)] hover:scale-105 transition-transform">
+                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition">Sign in</Link>
+                <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
                   Get started <ArrowRight size={14} />
                 </Link>
               </>
@@ -218,99 +245,89 @@ export default async function LandingContent() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative mx-auto w-full max-w-7xl px-6 pt-24 pb-32 lg:pt-36 lg:pb-40 flex flex-col items-center text-center">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-accent/15 blur-[140px] rounded-full pointer-events-none" />
-        <div className="absolute top-1/3 -right-20 w-[400px] h-[400px] bg-success-ink/8 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -left-20 w-[300px] h-[300px] bg-purple-ink/8 blur-[100px] rounded-full pointer-events-none" />
+      <section className="relative mx-auto w-full max-w-7xl px-6 pt-24 pb-20 lg:pt-32 lg:pb-28 flex flex-col items-center text-center">
+        {/* Subtle glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-accent/[0.07] blur-[150px] rounded-full pointer-events-none" />
 
-        <span className="relative z-10 mb-8 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-accent backdrop-blur-md shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-          <Sparkles size={13} />
-          Smart mobility command center
+        <span className="relative z-10 mb-8 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
+          <Sparkles size={12} className="text-accent" />
+          Smart Mobility Command Center
         </span>
 
-        <h1 className="relative z-10 text-[clamp(2.5rem,5.5vw,5.5rem)] font-extrabold leading-[1.05] tracking-tight max-w-5xl">
-          <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-white/90 to-white/40">Real-time safety for</span>{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-[#60a5fa] to-[#a78bfa]">electric fleets.</span>
+        <h1 className="relative z-10 text-[clamp(2.5rem,5.5vw,5rem)] font-extrabold leading-[1.08] tracking-tight max-w-4xl">
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
+            Real-time Safety for{' '}
+          </span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-400 to-purple-400">
+            Electric Fleets
+          </span>
         </h1>
 
-        <p className="relative z-10 mt-7 max-w-2xl text-lg leading-8 text-ink-soft">
-          Track riders, coordinate incident response, and automate compliance — all from one command center built for motorcycle fleet operations across Africa.
+        <p className="relative z-10 mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
+          Track riders, coordinate incident response, and automate compliance — all from one command center built for motorcycle fleet operations.
         </p>
 
         <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
           {hasSession ? (
-            <Link href="/live" className="inline-flex items-center gap-2 rounded-xl bg-accent px-8 py-4 text-sm font-bold text-white shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] hover:scale-105 transition-all">
-              Open dashboard <ArrowRight size={16} />
+            <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+              Open Dashboard <ArrowRight size={15} />
             </Link>
           ) : (
             <>
-              <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-accent px-8 py-4 text-sm font-bold text-white shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] hover:scale-105 transition-all">
-                Enter command center <ArrowRight size={16} />
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+                Enter Command Center <ArrowRight size={15} />
               </Link>
-              <Link href="/create-account" className="glass-panel inline-flex items-center gap-2 rounded-xl px-8 py-4 text-sm font-semibold text-ink hover:bg-surface-hover transition-colors">
-                Request fleet access
+              <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-[#ffffff1f] bg-[#ffffff0a] px-6 py-3 text-sm font-medium text-[#d4d4d8] hover:bg-[#ffffff14] hover:text-[#ffffff] transition">
+                Request Fleet Access
               </Link>
             </>
           )}
         </div>
 
-        {/* Metrics Bar */}
-        <div className="relative z-10 mt-20 w-full max-w-4xl">
-          <div className="glass-panel rounded-2xl p-1">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-line/30 rounded-[14px] overflow-hidden">
-              {metrics.map((m) => (
-                <div key={m.label} className="bg-[var(--background-subtle)] p-6 text-left flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-accent">
-                    {m.icon}
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">{m.label}</span>
-                  </div>
-                  <p className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">{m.value}</p>
-                </div>
-              ))}
+        {/* Terminal command */}
+        <div className="relative z-10 mt-12 w-full max-w-xl">
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 font-mono text-sm text-zinc-400">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-3 w-3 rounded-full bg-red-500/60" />
+              <span className="h-3 w-3 rounded-full bg-yellow-500/60" />
+              <span className="h-3 w-3 rounded-full bg-green-500/60" />
             </div>
-          </div>
-        </div>
-
-        {/* Trust strip */}
-        <div className="relative z-10 mt-16 flex flex-col items-center gap-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-ink-muted">Trusted by fleet operators</p>
-          <div className="flex flex-wrap justify-center gap-6">
-            {trustedBy.map((name) => (
-              <span key={name} className="text-sm font-semibold text-ink-faint/60">{name}</span>
-            ))}
+            <code>
+              <span className="text-zinc-500">$</span>{' '}
+              <span className="text-accent">curl</span>{' '}
+              <span className="text-zinc-300">-sSL https://fleet.emoto.io/setup.sh</span>{' '}
+              <span className="text-zinc-500">|</span>{' '}
+              <span className="text-accent">sh</span>
+            </code>
           </div>
         </div>
       </section>
 
-      {/* ── Features Bento Grid ── */}
+      {/* ── Features Grid ── */}
       <section id="features" className="mx-auto w-full max-w-7xl px-6 py-24">
         <div className="flex flex-col items-center text-center gap-4 mb-16">
-          <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-accent">
-            <Radar size={12} /> Platform capabilities
-          </span>
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight max-w-3xl">
-            Everything dispatch needs.{' '}
-            <span className="text-ink-soft">Nothing they don&apos;t.</span>
+          <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-3xl">
+            Powerful Fleet Management{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-purple-400">Tailored to You</span>
           </h2>
-          <p className="max-w-2xl text-base leading-7 text-ink-muted mt-1">
-            Manage riders, devices, incidents, and partner reporting from one real-time operations hub.
+          <p className="max-w-2xl text-base leading-7 text-zinc-400 mt-2">
+            Unlock real-time fleet visibility, advanced rider safety, and flexible operations management — all with Fleet OS&apos;s operator-focused features.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 lg:gap-5">
-          {featureRows.map((f) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((f) => (
             <article
               key={f.title}
-              className={`group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-accent/20 hover:shadow-[0_0_40px_rgba(59,130,246,0.08)] ${f.span}`}
+              className="group rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative z-10 flex flex-col h-full justify-between min-h-[200px]">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent">
+              <div className="flex items-start gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-zinc-400 group-hover:text-accent transition-colors">
                   {f.icon}
                 </span>
-                <div className="mt-auto">
-                  <h3 className="text-lg font-bold text-white">{f.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-soft max-w-sm">{f.description}</p>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-white">{f.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{f.desc}</p>
                 </div>
               </div>
             </article>
@@ -318,179 +335,170 @@ export default async function LandingContent() {
         </div>
       </section>
 
-      {/* ── Dashboard Preview ── */}
-      <section className="mx-auto w-full max-w-7xl px-6 py-12">
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="glass-panel rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-line/30">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Live map</p>
-                  <h3 className="mt-1 text-lg font-bold">Street-level fleet visibility</h3>
-                </div>
-                <span className="rounded-full border border-line bg-surface-muted px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">
-                  Live demo
-                </span>
-              </div>
-            </div>
-            <div
-              className="h-[320px]"
-              style={{
-                backgroundImage:
-                  'linear-gradient(to top, rgba(11,15,25,0.95), rgba(11,15,25,0.3)), url(https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
+      {/* ── Tabbed Showcase ── */}
+      <section id="showcase" className="mx-auto w-full max-w-7xl px-6 py-24">
+        <div className="flex flex-col items-center text-center gap-4 mb-12">
+          <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-3xl">
+            Comprehensive Control of Your{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-purple-400">Fleet Operations</span>
+          </h2>
+          <p className="max-w-2xl text-base leading-7 text-zinc-400 mt-2">
+            Simplify rider management, ensure robust monitoring, and coordinate fleet operations — all without the fuss.
+          </p>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {showcaseTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? 'bg-[#ffffff] text-[#09090b]'
+                  : 'text-[#71717a] hover:text-[#ffffff] hover:bg-[#ffffff0f]'
+              }`}
             >
-              <div className="flex h-full flex-col justify-end p-6">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <StatTile label="Active zones" value="12" accent="accent" />
-                  <StatTile label="Live riders" value="847" accent="success" />
-                  <StatTile label="Open alerts" value="6" accent="warning" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {highlights.map((item) => (
-              <article key={item.title} className="glass-panel rounded-2xl p-5 flex items-start gap-4 hover:-translate-y-0.5 transition-transform">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
-                  {item.icon}
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{item.desc}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section id="how-it-works" className="mx-auto w-full max-w-7xl px-6 py-24">
-        <div className="flex flex-col items-center text-center gap-4 mb-16">
-          <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-accent">
-            <Zap size={12} /> Quick setup
-          </span>
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">Launch in three steps.</h2>
-          <p className="text-base text-ink-muted max-w-lg">From device provisioning to live monitoring in minutes, not months.</p>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {workflowSteps.map((step) => (
-            <div key={step.num} className="glass-panel rounded-2xl p-7 h-full flex flex-col gap-5 hover:-translate-y-1 transition-transform">
-              <div className="flex items-center gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-white text-sm font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                  {step.num}
-                </span>
-                <h3 className="text-lg font-bold">{step.title}</h3>
+        {/* Tab content */}
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+          {showcaseTabs.map((tab) => (
+            <div
+              key={tab.id}
+              className={`transition-opacity duration-300 ${activeTab === tab.id ? 'block' : 'hidden'}`}
+            >
+              <div className="p-8 md:p-12">
+                <p className="text-base leading-relaxed text-zinc-400 max-w-3xl">{tab.desc}</p>
               </div>
-              <p className="text-sm leading-relaxed text-ink-soft">{step.description}</p>
+              {/* Showcase image area */}
+              <div className="relative h-[350px] md:h-[450px] bg-gradient-to-b from-white/[0.02] to-transparent border-t border-white/[0.06]">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-4 text-zinc-600">
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-8">
+                      {tab.id === 'live-map' && <LocateFixed size={48} className="text-accent/60" />}
+                      {tab.id === 'incidents' && <Siren size={48} className="text-accent/60" />}
+                      {tab.id === 'riders' && <Users2 size={48} className="text-accent/60" />}
+                      {tab.id === 'devices' && <Cpu size={48} className="text-accent/60" />}
+                      {tab.id === 'analytics' && <Activity size={48} className="text-accent/60" />}
+                      {tab.id === 'commands' && <Signal size={48} className="text-accent/60" />}
+                    </div>
+                    <span className="text-sm font-medium text-zinc-500">{tab.label} Dashboard</span>
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Benefits + Testimonials ── */}
-      <section className="mx-auto w-full max-w-7xl px-6 py-12">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Why Fleet OS</p>
-            <h2 className="mt-3 text-2xl md:text-3xl font-extrabold tracking-tight">Built for safety, compliance, and growth.</h2>
-            <p className="mt-3 text-sm text-ink-soft leading-relaxed max-w-lg">
-              Coordinate dispatch teams, guide riders, and meet compliance requirements with clear workflows and reliable data.
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              {benefits.map((b) => (
-                <div key={b.title} className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-5 hover:-translate-y-0.5 transition-transform">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent">
-                    {b.icon}
-                  </span>
-                  <h3 className="mt-4 text-sm font-bold">{b.title}</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-ink-soft">{b.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* ── Stats ── */}
+      <section className="mx-auto w-full max-w-7xl px-6 py-24">
+        <div className="flex flex-col items-center text-center gap-4 mb-16">
+          <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight">
+            Fleet OS By the Numbers
+          </h2>
+          <p className="text-base text-zinc-400 max-w-lg">
+            Real metrics from real fleet operations. Here&apos;s what the platform delivers.
+          </p>
+        </div>
 
-          <div className="glass-panel rounded-2xl p-7">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">What operators say</p>
-            <h3 className="mt-3 text-xl font-bold">Trusted by mobility teams.</h3>
-            <div className="mt-6 space-y-4">
-              {testimonials.map((t) => (
-                <figure key={t.name} className="rounded-xl border border-line/50 bg-black/20 px-5 py-4">
-                  <blockquote className="text-sm leading-relaxed text-ink-soft">&ldquo;{t.quote}&rdquo;</blockquote>
-                  <figcaption className="mt-3 flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent">
-                      {t.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-ink">{t.name}</p>
-                      <p className="text-[10px] text-ink-muted">{t.org}</p>
-                    </div>
-                  </figcaption>
-                </figure>
-              ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-8 text-center">
+              <AnimatedStat value={s.value} suffix={s.suffix} decimals={s.decimals} />
+              <p className="mt-4 text-sm text-zinc-500">{s.label}</p>
             </div>
-          </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Testimonials ── */}
+      <section className="mx-auto w-full max-w-7xl px-6 py-24">
+        <div className="flex flex-col items-center text-center gap-4 mb-16">
+          <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight">
+            What Fleet Operators Say
+          </h2>
+          <p className="text-base text-zinc-400 max-w-lg">
+            Hear from the operators who transformed their fleet safety with Fleet OS.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {testimonials.map((t) => (
+            <figure key={t.name} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-6 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent">
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{t.name}</p>
+                  <p className="text-xs text-zinc-500">{t.handle}</p>
+                </div>
+              </div>
+              <blockquote className="text-sm leading-relaxed text-zinc-400">
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
+            </figure>
+          ))}
         </div>
       </section>
 
       {/* ── Pricing ── */}
       <section id="pricing" className="mx-auto w-full max-w-7xl px-6 py-24 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/8 blur-[150px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/[0.04] blur-[150px] rounded-full pointer-events-none" />
 
         <div className="flex flex-col items-center text-center gap-4 mb-16 relative z-10">
-          <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-accent">
-            Pricing
-          </span>
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight max-w-2xl">Choose a plan that scales with your fleet.</h2>
-          <p className="text-base text-ink-muted">Transparent pricing. No hidden fees. Cancel anytime.</p>
+          <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-2xl">
+            Choose a Plan That Scales with Your Fleet
+          </h2>
+          <p className="text-base text-zinc-400">Transparent pricing. No hidden fees. Cancel anytime.</p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3 relative z-10 items-stretch">
           {pricingPlans.map((plan) => (
             <div
               key={plan.title}
-              className={`flex flex-col rounded-2xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] ${
+              className={`flex flex-col rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 ${
                 plan.featured
-                  ? 'relative border-2 border-accent bg-accent/[0.07] shadow-[0_0_30px_rgba(59,130,246,0.2)] lg:scale-[1.05] z-10'
-                  : 'glass-panel'
+                  ? 'relative border-2 border-accent bg-accent/[0.05] shadow-[0_0_30px_rgba(59,130,246,0.12)] lg:scale-[1.03] z-10'
+                  : 'border border-white/[0.08] bg-white/[0.02]'
               }`}
             >
               {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white px-4 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider">
                   Most Popular
                 </div>
               )}
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-accent">{plan.title}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-accent">{plan.title}</p>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-                {plan.period && <span className="text-sm text-ink-muted">{plan.period}</span>}
+                {plan.period && <span className="text-sm text-zinc-500">{plan.period}</span>}
               </div>
-              <p className="mt-3 text-sm text-ink-soft leading-relaxed min-h-[48px]">{plan.description}</p>
+              <p className="mt-3 text-sm text-zinc-400 leading-relaxed min-h-[48px]">{plan.description}</p>
 
-              <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-line to-transparent" />
+              <div className="my-6 h-px w-full bg-white/[0.06]" />
 
               <ul className="space-y-3 text-sm flex-1">
                 {plan.features.map((feat) => (
                   <li key={feat} className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
                       <BadgeCheck size={12} />
                     </span>
-                    <span className="text-ink-soft">{feat}</span>
+                    <span className="text-zinc-400">{feat}</span>
                   </li>
                 ))}
               </ul>
 
               <Link
                 href={`/create-account?plan=${plan.slug}`}
-                className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold transition-all hover:scale-105 ${
+                className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${
                   plan.featured
-                    ? 'bg-accent text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]'
-                    : 'glass-panel text-white hover:bg-surface-hover'
+                    ? 'bg-[#ffffff] text-[#09090b] hover:bg-[#e4e4e7]'
+                    : 'border border-[#ffffff1f] bg-[#ffffff0a] text-[#ffffff] hover:bg-[#ffffff14]'
                 }`}
               >
                 Get started <ChevronRight size={14} />
@@ -500,30 +508,47 @@ export default async function LandingContent() {
         </div>
       </section>
 
+      {/* ── FAQ ── */}
+      <section id="faq" className="mx-auto w-full max-w-3xl px-6 py-24">
+        <div className="flex flex-col items-center text-center gap-4 mb-12">
+          <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-base text-zinc-400">
+            Can&apos;t find what you&apos;re looking for? Reach out to our support team.
+          </p>
+        </div>
+
+        <div className="border-t border-white/[0.08]">
+          {faqs.map((faq) => (
+            <FaqItem key={faq.q} question={faq.q} answer={faq.a} />
+          ))}
+        </div>
+      </section>
+
       {/* ── CTA Banner ── */}
-      <section className="mx-auto w-full max-w-7xl px-6 pb-20">
-        <div className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-background to-background px-8 py-12 md:px-12">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-accent/15 blur-[100px] rounded-full pointer-events-none" />
-          <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-lg">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Ready to deploy</p>
-              <h2 className="mt-3 text-2xl md:text-3xl font-extrabold tracking-tight">Turn on safer mobility for every rider.</h2>
-              <p className="mt-3 text-sm text-ink-soft leading-relaxed">
-                Launch the command center in minutes. Expand into rider scoring and partner reporting as your operations grow.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row shrink-0">
+      <section className="mx-auto w-full max-w-7xl px-6 pb-24">
+        <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] px-8 py-16 md:px-16 text-center">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-accent/[0.06] blur-[120px] rounded-full pointer-events-none" />
+          <div className="relative z-10 flex flex-col items-center gap-6">
+            <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-2xl">
+              Unlock Your Fleet&apos;s Potential with eMoto Fleet OS
+            </h2>
+            <p className="text-base text-zinc-400 max-w-xl">
+              Say goodbye to operational blind spots — Fleet OS handles it all. Deploy, monitor, and protect your riders with confidence.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 mt-4">
               {hasSession ? (
-                <Link href="/live" className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-bold text-white shadow-[var(--shadow-glow)] hover:scale-105 transition-transform">
-                  Open dashboard <ArrowRight size={14} />
+                <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+                  Open Dashboard <ArrowRight size={15} />
                 </Link>
               ) : (
                 <>
-                  <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-bold text-white shadow-[var(--shadow-glow)] hover:scale-105 transition-transform">
-                    Sign in <ArrowRight size={14} />
+                  <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+                    Get Started <ArrowRight size={15} />
                   </Link>
-                  <Link href="/create-account" className="inline-flex items-center justify-center rounded-xl border border-line bg-surface px-6 py-3.5 text-sm font-semibold text-ink hover:bg-surface-hover transition">
-                    Create account
+                  <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-[#ffffff1f] bg-[#ffffff0a] px-6 py-3 text-sm font-medium text-[#d4d4d8] hover:bg-[#ffffff14] transition">
+                    Create Account
                   </Link>
                 </>
               )}
@@ -533,73 +558,58 @@ export default async function LandingContent() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-line/50">
+      <footer className="border-t border-white/[0.06]">
         <div className="mx-auto w-full max-w-7xl px-6 py-12">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Brand */}
+            <div className="lg:col-span-1">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20 text-accent">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
                   <Bike size={16} />
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">eMoto</p>
-                  <p className="text-sm font-bold">Fleet OS</p>
-                </div>
+                <span className="text-sm font-bold">eMoto Fleet OS</span>
               </div>
-              <p className="mt-4 text-xs leading-5 text-ink-muted max-w-[200px]">Smart mobility command center for electric motorcycle fleets.</p>
+              <p className="mt-4 text-xs leading-5 text-zinc-500 max-w-[200px]">
+                Smart mobility command center for electric motorcycle fleets.
+              </p>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted mb-4">Product</p>
-              <ul className="space-y-2.5 text-sm text-ink-soft">
-                <li><a href="#features" className="hover:text-ink transition">Features</a></li>
-                <li><a href="#pricing" className="hover:text-ink transition">Pricing</a></li>
-                <li><a href="#how-it-works" className="hover:text-ink transition">How it works</a></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted mb-4">Platform</p>
-              <ul className="space-y-2.5 text-sm text-ink-soft">
-                <li className="flex items-center gap-2"><Users2 size={13} /> Rider app</li>
-                <li className="flex items-center gap-2"><Cpu size={13} /> Partner API</li>
-                <li className="flex items-center gap-2"><Activity size={13} /> Compliance</li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted mb-4">Access</p>
-              <ul className="space-y-2.5 text-sm text-ink-soft">
-                <li><Link href="/login" className="hover:text-ink transition">Sign in</Link></li>
-                <li><Link href="/create-account" className="hover:text-ink transition">Create account</Link></li>
-                <li><Link href="/forgot-password" className="hover:text-ink transition">Reset password</Link></li>
-              </ul>
-            </div>
+
+            {/* Link columns */}
+            {Object.entries(footerLinks).map(([title, links]) => (
+              <div key={title}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">{title}</p>
+                <ul className="space-y-2.5">
+                  {links.map((link) => (
+                    <li key={link.label}>
+                      {link.href.startsWith('/') ? (
+                        <Link href={link.href} className="text-sm text-zinc-400 hover:text-white transition">
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a href={link.href} className="text-sm text-zinc-400 hover:text-white transition">
+                          {link.label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-          <div className="mt-10 flex flex-col gap-3 border-t border-line/30 pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-ink-muted">&copy; 2026 eMoto Safety &amp; Fleet OS. All rights reserved.</p>
-            <div className="flex gap-6 text-xs text-ink-muted">
-              <a href="#" className="hover:text-ink transition">Privacy</a>
-              <a href="#" className="hover:text-ink transition">Terms</a>
-              <a href="#" className="hover:text-ink transition">Security</a>
+
+          <div className="mt-10 flex flex-col gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-zinc-600">&copy; 2026 eMoto Safety &amp; Fleet OS. All rights reserved.</p>
+            <div className="flex gap-4">
+              <a href="#" className="text-zinc-600 hover:text-white transition" aria-label="Twitter">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </a>
+              <a href="#" className="text-zinc-600 hover:text-white transition" aria-label="GitHub">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              </a>
             </div>
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-/* ─── Sub-components ─────────────────────────────────── */
-
-function StatTile({ label, value, accent }: { label: string; value: string; accent: 'accent' | 'success' | 'warning' }) {
-  const colors = {
-    accent: 'text-accent',
-    success: 'text-success-ink',
-    warning: 'text-warning-ink',
-  };
-
-  return (
-    <div className="rounded-xl border border-line/50 bg-black/40 backdrop-blur-md px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">{label}</p>
-      <p className={`mt-2 text-2xl font-extrabold ${colors[accent]}`}>{value}</p>
     </div>
   );
 }

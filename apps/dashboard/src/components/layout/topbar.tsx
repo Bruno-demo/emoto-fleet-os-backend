@@ -164,7 +164,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-ink">
-                            {inc.event?.type ?? 'Incident'} &middot; {inc.status}
+                            Incident &middot; {inc.status}
                           </p>
                           <p className="mt-0.5 text-xs text-ink-muted">
                             {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}

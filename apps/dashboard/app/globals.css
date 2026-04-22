@@ -311,20 +311,54 @@ textarea:focus-visible {
   display: none !important;
 }
 
-/* Dark-themed popups to match CARTO dark tiles */
+/* Light-mode popup styling */
+.leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  color: #0f172a;
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  color: #0f172a;
+  margin: 12px 14px;
+}
+
+.leaflet-popup-content .font-semibold {
+  color: #0f172a;
+}
+
+.leaflet-popup-content .text-ink-soft,
+.leaflet-popup-content .text-sm {
+  color: #64748b;
+}
+
+.leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: none;
+  border-right: none;
+  box-shadow: none;
+}
+
+.leaflet-popup-close-button {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Dark-mode popup overrides */
 .dark .leaflet-popup-content-wrapper {
   background: rgba(15, 18, 30, 0.92);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   color: #e2e8f0;
-  padding: 0;
-}
-
-.leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  padding: 0;
 }
 
 .dark .leaflet-popup-content {
@@ -357,6 +391,17 @@ textarea:focus-visible {
 }
 
 /* Attribution styling */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(0, 0, 0, 0.4) !important;
+  font-size: 10px !important;
+  border-radius: 4px !important;
+}
+
+.leaflet-control-attribution a {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
 .dark .leaflet-control-attribution {
   background: rgba(0, 0, 0, 0.5) !important;
   color: rgba(255, 255, 255, 0.4) !important;

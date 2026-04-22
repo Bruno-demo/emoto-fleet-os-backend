@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -99,6 +99,14 @@ type FieldErrors = Partial<
 
 // Renders the account provisioning screen with access gating and validation.
 export default function CreateAccountPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" /></div>}>
+      <CreateAccountInner />
+    </Suspense>
+  );
+}
+
+function CreateAccountInner() {
   const hasWindow = typeof window !== 'undefined';
   const router = useRouter();
   const searchParams = useSearchParams();

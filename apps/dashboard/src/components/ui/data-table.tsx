@@ -46,10 +46,10 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cx('overflow-x-auto', className)}>
-      <table className="min-w-full border-separate border-spacing-y-2 text-left text-sm">
+    <div className={cx('overflow-x-auto pb-4', className)}>
+      <table className="min-w-full border-separate border-spacing-y-2 text-left text-sm whitespace-nowrap md:whitespace-normal">
         <thead>
-          <tr className="text-[11px] uppercase tracking-[0.18em] text-ink-muted">
+          <tr className="text-[11px] uppercase tracking-[0.18em] text-white/40">
             {columns.map((column) => (
               <th key={column.header} className={cx('px-4 py-2 font-semibold', column.className)}>
                 {column.header}
@@ -59,12 +59,12 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {data.map((row) => (
-            <tr key={keyExtractor(row)} className="rounded-[18px] bg-surface-muted">
+            <tr key={keyExtractor(row)} className="group rounded-[18px] bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
               {columns.map((column) => (
                 <td
                   key={`${keyExtractor(row)}-${column.header}`}
                   className={cx(
-                    'border-y border-line bg-surface-muted px-4 py-4 first:rounded-l-[18px] first:border-l last:rounded-r-[18px] last:border-r',
+                    'border-y border-white/[0.05] px-4 py-4 first:rounded-l-[18px] first:border-l last:rounded-r-[18px] last:border-r',
                     column.cellClassName,
                   )}
                 >
@@ -96,8 +96,8 @@ export function DataTableToolbar({
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        {title ? <h3 className="font-display text-2xl font-semibold text-ink">{title}</h3> : null}
-        {description ? <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p> : null}
+        {title ? <h3 className="font-display text-2xl font-bold text-white">{title}</h3> : null}
+        {description ? <p className="mt-2 text-sm leading-6 text-white/50">{description}</p> : null}
         {children ? <div className="mt-4">{children}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}

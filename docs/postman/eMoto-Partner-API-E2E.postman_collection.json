@@ -15,10 +15,10 @@
     { "key": "demoFleetId", "value": "00000000-0000-0000-0000-000000000001", "type": "string" },
     { "key": "northFleetId", "value": "00000000-0000-0000-0000-000000000002", "type": "string" },
     { "key": "southFleetId", "value": "00000000-0000-0000-0000-000000000003", "type": "string" },
-    { "key": "demoBikeId", "value": "c7fcd771-1284-48be-8da4-2f1ebb913385", "type": "string" },
-    { "key": "resolvedIncidentId", "value": "d5f4a79b-df0a-4fb1-82a4-da98875a4f09", "type": "string" },
-    { "key": "openIncidentId", "value": "d50836de-9543-49fd-97e3-57cf9f736a69", "type": "string" },
-    { "key": "thirdFleetBikeId", "value": "b8e86b3c-31ed-46d8-8524-2e8db534c243", "type": "string" },
+    { "key": "demoBikeId", "value": "00000000-0000-0000-0000-000000000101", "type": "string" },
+    { "key": "resolvedIncidentId", "value": "00000000-0000-0000-0000-000000000301", "type": "string" },
+    { "key": "openIncidentId", "value": "00000000-0000-0000-0000-000000000302", "type": "string" },
+    { "key": "thirdFleetBikeId", "value": "00000000-0000-0000-0000-000000000103", "type": "string" },
     { "key": "webhookId", "value": "", "type": "string" }
   ],
   "item": [
@@ -33,7 +33,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "",
                   "pm.test('Response has accessToken', () => {",
                   "    const body = pm.response.json();",
@@ -73,7 +73,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "",
                   "pm.test('Scopes include insurer:read only', () => {",
                   "    const body = pm.response.json();",

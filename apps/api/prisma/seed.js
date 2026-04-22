@@ -25,6 +25,12 @@ const DEMO_PARTNER_ID         = '00000000-0000-0000-0000-000000000201';
 const SECOND_PARTNER_ID       = '00000000-0000-0000-0000-000000000202';
 const DEMO_PARTNER_WEBHOOK_ID = '00000000-0000-0000-0000-000000000221';
 
+// Fixed IDs for Postman E2E tests (bikes & incidents)
+const DEMO_BIKE_1_ID             = '00000000-0000-0000-0000-000000000101';
+const SOUTH_BIKE_1_ID            = '00000000-0000-0000-0000-000000000103';
+const DEMO_RESOLVED_INCIDENT_ID  = '00000000-0000-0000-0000-000000000301';
+const DEMO_OPEN_INCIDENT_ID      = '00000000-0000-0000-0000-000000000302';
+
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Reference Data: Kigali Geography & Rwandan Names
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -255,21 +261,24 @@ function generateUserFixtures(domain, counts) {
   return fixtures;
 }
 
-function generateBikeFixtures(prefix, count) {
+function generateBikeFixtures(prefix, count, fixedIds) {
+  fixedIds = fixedIds || {};
   const fixtures = [];
   for (let i = 1; i <= count; i++) {
     const idx = String(i).padStart(3, '0');
     let status = 'ACTIVE';
     if (i > count - 2) status = 'RETIRED';
     else if (i > count - 5) status = 'MAINTENANCE';
-    fixtures.push({
+    const fixture = {
       key: 'bike' + prefix + i,
       label: prefix + '-' + idx,
       plate: prefix.substring(0,3).toUpperCase() + '-' + idx + String.fromCharCode(65 + (i % 26)),
       serial: 'EMOTO-' + prefix.toUpperCase() + '-' + idx,
       model: BIKE_MODELS[i % BIKE_MODELS.length],
       status: status,
-    });
+    };
+    if (fixedIds[i]) fixture.id = fixedIds[i];
+    fixtures.push(fixture);
   }
   return fixtures;
 }
@@ -323,10 +332,21 @@ async function upsertFleetBikes(fleetId, bikeFixtures) {
   const bikes = {};
   for (let f = 0; f < bikeFixtures.length; f++) {
     const fixture = bikeFixtures[f];
+    // If fixture has a fixed id, ensure the record uses that id
+    if (fixture.id) {
+      const existing = await prisma.bike.findUnique({ where: { fleetId_label: { fleetId: fleetId, label: fixture.label } } });
+      if (existing && existing.id !== fixture.id) {
+        // Reassign devices to avoid FK constraint, then delete old bike
+        await prisma.device.updateMany({ where: { bikeId: existing.id }, data: { bikeId: null } });
+        await prisma.bike.delete({ where: { id: existing.id } });
+      }
+    }
+    const createData = { fleetId: fleetId, label: fixture.label, plate: fixture.plate, serial: fixture.serial, model: fixture.model, status: fixture.status };
+    if (fixture.id) createData.id = fixture.id;
     bikes[fixture.key] = await prisma.bike.upsert({
       where: { fleetId_label: { fleetId: fleetId, label: fixture.label } },
       update: { plate: fixture.plate, serial: fixture.serial, model: fixture.model, status: fixture.status },
-      create: { fleetId: fleetId, label: fixture.label, plate: fixture.plate, serial: fixture.serial, model: fixture.model, status: fixture.status },
+      create: createData,
     });
   }
   return bikes;
@@ -445,6 +465,7 @@ async function seed() {
       passwordHash: demoHash, domain: 'demo.emoto',
       userCounts: { owner: 1, admin: 3, dispatcher: 4, tech: 3, insurer: 1, rider: 13 },
       bikePrefix: 'Demo', bikeCount: 30,
+      fixedBikeIds: { 1: DEMO_BIKE_1_ID },
       tripCount: 55, eventCount: 75,
       zoneCount: 25, poiCount: 22, contactCount: 6, commandCount: 30, notifCount: 30,
       auditCount: 30, inviteCount: 8,
@@ -463,6 +484,7 @@ async function seed() {
       passwordHash: southHash, domain: 'south.demo.emoto',
       userCounts: { owner: 1, admin: 1, dispatcher: 2, tech: 1, rider: 8 },
       bikePrefix: 'South', bikeCount: 12,
+      fixedBikeIds: { 1: SOUTH_BIKE_1_ID },
       tripCount: 18, eventCount: 22,
       zoneCount: 14, poiCount: 14, contactCount: 4, commandCount: 12, notifCount: 12,
       auditCount: 10, inviteCount: 4,
@@ -496,7 +518,7 @@ async function seed() {
 
     // Generate fixtures
     const userFixtures   = generateUserFixtures(cfg.domain, cfg.userCounts);
-    const bikeFixtures   = generateBikeFixtures(cfg.bikePrefix, cfg.bikeCount);
+    const bikeFixtures   = generateBikeFixtures(cfg.bikePrefix, cfg.bikeCount, cfg.fixedBikeIds);
     const deviceFixtures = generateDeviceFixtures(cfg.bikePrefix, bikeFixtures);
 
     // Upsert core entities
@@ -745,6 +767,14 @@ async function seed() {
       if (['RESOLVED', 'FALSE_ALARM'].indexOf(status) >= 0) {
         incident.resolvedByUserId = users[adminKeys[ii % adminKeys.length]].id;
         incident.resolvedAt = offsetMinutes(ev.ts, 60 + Math.floor(Math.random() * 180));
+      }
+      // Use fixed IDs for Postman E2E tests (demo fleet only)
+      if (cfg.id === DEMO_FLEET_ID) {
+        if (status === 'RESOLVED' && !createdIncidents.some(function(c) { return c.id === DEMO_RESOLVED_INCIDENT_ID; })) {
+          incident.id = DEMO_RESOLVED_INCIDENT_ID;
+        } else if (status === 'OPEN' && !createdIncidents.some(function(c) { return c.id === DEMO_OPEN_INCIDENT_ID; })) {
+          incident.id = DEMO_OPEN_INCIDENT_ID;
+        }
       }
       const created = await prisma.incident.create({ data: incident });
       createdIncidents.push(created);

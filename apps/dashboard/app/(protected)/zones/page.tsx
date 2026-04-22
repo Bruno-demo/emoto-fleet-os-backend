@@ -208,7 +208,7 @@ export default function ZonesPage() {
         render: (zone) => (
           <div>
             <p className="font-semibold text-ink">{zone.name}</p>
-            <p className="mt-1 text-xs leading-5 text-ink-soft">{formatEnumLabel(zone.type)}</p>
+            <p className="mt-1 text-xs leading-5 text-white/60">{formatEnumLabel(zone.type)}</p>
           </div>
         ),
       },
@@ -219,7 +219,7 @@ export default function ZonesPage() {
             className={
               zone.active
                 ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
-                : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+                : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60'
             }
           >
             {zone.active ? 'Active' : 'Inactive'}
@@ -229,7 +229,7 @@ export default function ZonesPage() {
       {
         header: 'Speed limit',
         render: (zone) => (
-          <span className="text-sm text-ink-soft">
+          <span className="text-sm text-white/60">
             {zone.type === 'SLOW' ? `${zone.speedLimitKph ?? '--'} kph` : 'N/A'}
           </span>
         ),
@@ -243,7 +243,7 @@ export default function ZonesPage() {
             <button
               type="button"
               onClick={() => beginEditing(zone)}
-              className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+              className="rounded-[var(--radius-control)] border border-white/10 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/10"
             >
               Edit
             </button>
@@ -366,12 +366,12 @@ export default function ZonesPage() {
               />
             </div>
 
-            <label className="flex items-center gap-3 rounded-[18px] border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink">
+            <label className="flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-medium text-ink">
               <input
                 type="checkbox"
                 checked={active}
                 onChange={(event) => setActive(event.target.checked)}
-                className="h-4 w-4 rounded border-line text-accent"
+                className="h-4 w-4 rounded border-white/10 text-accent"
               />
               Zone is active
             </label>
@@ -390,7 +390,7 @@ export default function ZonesPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                className="rounded-[var(--radius-control)] border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/10"
               >
                 Reset form
               </button>

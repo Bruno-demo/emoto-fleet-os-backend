@@ -65,7 +65,7 @@ export function Drawer({
       <aside
         ref={panelRef}
         className={cx(
-          'dashboard-scrollbar absolute right-0 top-0 flex h-full flex-col overflow-y-auto border-l border-line bg-background shadow-[var(--shadow-strong)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          'dashboard-scrollbar absolute right-0 top-0 flex h-full flex-col overflow-y-auto border-l border-white/10 bg-black/80 backdrop-blur-[60px] shadow-[-10px_0_40px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
           size === 'lg' ? 'w-full max-w-[34rem]' : 'w-full max-w-[28rem]',
           open ? 'translate-x-0' : 'translate-x-full',
         )}
@@ -74,17 +74,17 @@ export function Drawer({
         aria-label={title}
       >
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-background/95 px-5 py-4 backdrop-blur-sm">
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-white/10 bg-transparent px-5 py-4">
           <div className="min-w-0 pt-0.5">
-            <h2 className="truncate font-display text-base font-semibold text-ink">{title}</h2>
+            <h2 className="truncate font-display text-base font-bold text-white">{title}</h2>
             {description ? (
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{description}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/50">{description}</p>
             ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint hover:bg-surface-hover hover:text-ink transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Close detail drawer"
           >
             <X size={15} />

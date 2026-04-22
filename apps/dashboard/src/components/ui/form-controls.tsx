@@ -10,10 +10,10 @@ interface FieldShellProps {
 
 function FieldShell({ label, hint, error, children }: FieldShellProps) {
   return (
-    <label className="block text-sm font-medium text-ink">
+    <label className="block text-sm font-medium text-white/90">
       <div className="flex items-center justify-between gap-3">
         <span>{label}</span>
-        {hint ? <span className="text-xs font-medium text-ink-muted">{hint}</span> : null}
+        {hint ? <span className="text-xs font-medium text-white/40">{hint}</span> : null}
       </div>
       <div className="mt-2">{children}</div>
       {error ? <p className="mt-2 text-xs text-danger-ink">{error}</p> : null}
@@ -33,7 +33,7 @@ export function TextField({ label, hint, error, className, ...props }: TextField
       <input
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15',
+          'w-full rounded-[var(--radius-control)] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
           className,
         )}
       />
@@ -53,7 +53,7 @@ export function SelectField({ label, hint, error, className, children, ...props 
       <select
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15',
+          'w-full rounded-[var(--radius-control)] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
           className,
         )}
       >
@@ -81,7 +81,7 @@ export function TextAreaField({
       <textarea
         {...props}
         className={cx(
-          'min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15',
+          'min-h-28 w-full rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
           className,
         )}
       />
@@ -100,10 +100,10 @@ export function InlineNotice({ message, tone = 'danger' }: InlineNoticeProps) {
       className={cx(
         'rounded-[18px] border px-4 py-3 text-sm',
         tone === 'success'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
           : tone === 'warning'
-            ? 'border-amber-200 bg-amber-50 text-amber-700'
-            : 'border-rose-200 bg-rose-50 text-rose-700',
+            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+            : 'border-rose-500/30 bg-rose-500/10 text-rose-400',
       )}
     >
       {message}
