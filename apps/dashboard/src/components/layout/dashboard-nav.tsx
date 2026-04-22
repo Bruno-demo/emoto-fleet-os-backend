@@ -46,7 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Operations',
     links: [
-      { href: '/', label: 'Overview', icon: Gauge },
+      { href: '/overview', label: 'Overview', icon: Gauge },
       { href: '/live', label: 'Live Map', icon: Map },
       { href: '/incidents', label: 'Incidents', icon: AlertCircle },
       { href: '/events', label: 'Events', icon: Radio },
@@ -109,7 +109,7 @@ export function DashboardNav({
   };
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/' || pathname === '';
+    if (href === '/overview') return pathname === '/overview';
     return pathname.startsWith(href);
   };
 
@@ -142,7 +142,7 @@ export function DashboardNav({
       >
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-line px-4">
-          <Link href="/" onClick={onClose} className="flex items-center gap-3 group">
+          <Link href="/overview" onClick={onClose} className="flex items-center gap-3 group">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
               <Command size={18} />
             </span>
