@@ -68,7 +68,7 @@ export default function OverviewPage() {
             {new Date(report.range.from).toLocaleDateString()} &mdash;{' '}
             {new Date(report.range.to).toLocaleDateString()}
           </span>
-          <span className="text-white/30">&middot; Rolling 7 days</span>
+          <span className="text-ink-faint">&middot; Rolling 7 days</span>
         </div>
       )}
 
