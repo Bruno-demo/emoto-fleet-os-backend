@@ -68,7 +68,7 @@ const METRIC_TONE_CLASS: Record<NonNullable<MetricCardProps['tone']>, string> = 
   success: 'bg-success-ink/20 text-success-ink border border-success-ink/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]',
   warning: 'bg-warning-ink/20 text-warning-ink border border-warning-ink/20 shadow-[0_0_15px_rgba(245,158,11,0.3)]',
   danger: 'bg-danger-ink/20 text-danger-ink border border-danger-ink/20 shadow-[0_0_15px_rgba(239,68,68,0.3)]',
-  neutral: 'bg-white/10 text-white/70 border border-white/10',
+  neutral: 'bg-white/10 text-white/70 border border-line',
 };
 
 // Provides a consistent metric tile used across overview, reports, bikes, and incidents.
@@ -80,11 +80,11 @@ export function MetricCard({
   tone = 'info',
 }: MetricCardProps) {
   return (
-    <article className="glass-panel group rounded-[24px] border border-white/10 bg-black/20 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(59,130,246,0.15)] hover:border-white/20 relative overflow-hidden">
+    <article className="glass-panel group rounded-[24px] border border-line bg-black/20 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(59,130,246,0.15)] hover:border-white/20 relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="flex items-start justify-between gap-3 relative z-10">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-muted">
             {title}
           </p>
           <p className="mt-4 font-display text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 drop-shadow-sm">

@@ -70,7 +70,7 @@ export default function EventsPage() {
         render: (event) => (
           <div>
             <p className="font-semibold text-ink">{formatTimestamp(event.ts)}</p>
-            <p className="mt-1 text-xs leading-5 text-white/60">{event.id.slice(0, 8)}...</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">{event.id.slice(0, 8)}...</p>
           </div>
         ),
       },
@@ -79,7 +79,7 @@ export default function EventsPage() {
         render: (event) => (
           <div>
             <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
-            <p className="mt-1 text-xs leading-5 text-white/60">
+            <p className="mt-1 text-xs leading-5 text-ink-soft">
               {event.bikeId
                 ? bikeLabelById.get(event.bikeId) ?? event.bikeId.slice(0, 8)
                 : 'Fleet-level event'}
@@ -101,19 +101,19 @@ export default function EventsPage() {
               <>
                 <Link
                   href={`/bikes?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08]"
+                  className="rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08]"
                 >
                   Open bike
                 </Link>
                 <Link
                   href={`/live?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/[0.08]"
+                  className="rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/[0.08]"
                 >
                   View live
                 </Link>
               </>
             ) : (
-              <span className="text-xs font-medium text-white/50">No linked bike</span>
+              <span className="text-xs font-medium text-ink-muted">No linked bike</span>
             )}
           </div>
         ),
@@ -172,7 +172,7 @@ export default function EventsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
+              className="rounded-xl border border-line bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
             >
               Reset filters
             </button>
@@ -225,14 +225,14 @@ export default function EventsPage() {
               onChange={(event) => { setTo(event.target.value); setPage(1); }}
             />
 
-            <div className="rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.02] px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+            <div className="rounded-[var(--radius-panel)] border border-line bg-white/[0.02] px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
                 Result scope
               </p>
               <p className="mt-2 font-display text-3xl font-semibold text-ink">
                 {eventsQuery.data?.total ?? 0}
               </p>
-              <p className="mt-2 text-sm leading-6 text-white/60">
+              <p className="mt-2 text-sm leading-6 text-ink-soft">
                 Total events matched by the current query.
               </p>
             </div>

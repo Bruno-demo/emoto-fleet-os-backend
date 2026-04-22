@@ -49,7 +49,7 @@ export function DataTable<T>({
     <div className={cx('overflow-x-auto pb-4', className)}>
       <table className="min-w-full border-separate border-spacing-y-2 text-left text-sm whitespace-nowrap md:whitespace-normal">
         <thead>
-          <tr className="text-[11px] uppercase tracking-[0.18em] text-white/40">
+          <tr className="text-[11px] uppercase tracking-[0.18em] text-ink-faint">
             {columns.map((column) => (
               <th key={column.header} className={cx('px-4 py-2 font-semibold', column.className)}>
                 {column.header}
@@ -96,8 +96,8 @@ export function DataTableToolbar({
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        {title ? <h3 className="font-display text-2xl font-bold text-white">{title}</h3> : null}
-        {description ? <p className="mt-2 text-sm leading-6 text-white/50">{description}</p> : null}
+        {title ? <h3 className="font-display text-2xl font-bold text-ink">{title}</h3> : null}
+        {description ? <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p> : null}
         {children ? <div className="mt-4">{children}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}

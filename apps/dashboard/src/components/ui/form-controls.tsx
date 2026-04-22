@@ -10,10 +10,10 @@ interface FieldShellProps {
 
 function FieldShell({ label, hint, error, children }: FieldShellProps) {
   return (
-    <label className="block text-sm font-medium text-white/90">
+    <label className="block text-sm font-medium text-ink">
       <div className="flex items-center justify-between gap-3">
         <span>{label}</span>
-        {hint ? <span className="text-xs font-medium text-white/40">{hint}</span> : null}
+        {hint ? <span className="text-xs font-medium text-ink-faint">{hint}</span> : null}
       </div>
       <div className="mt-2">{children}</div>
       {error ? <p className="mt-2 text-xs text-danger-ink">{error}</p> : null}
@@ -33,7 +33,7 @@ export function TextField({ label, hint, error, className, ...props }: TextField
       <input
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
+          'w-full rounded-[var(--radius-control)] border border-line bg-white/[0.04] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
           className,
         )}
       />
@@ -53,7 +53,7 @@ export function SelectField({ label, hint, error, className, children, ...props 
       <select
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
+          'w-full rounded-[var(--radius-control)] border border-line bg-white/[0.04] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
           className,
         )}
       >
@@ -81,7 +81,7 @@ export function TextAreaField({
       <textarea
         {...props}
         className={cx(
-          'min-h-28 w-full rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
+          'min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-white/[0.04] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
           className,
         )}
       />

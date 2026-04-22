@@ -62,7 +62,7 @@ export default function OverviewPage() {
     <div className="space-y-6">
       {/* Date range header */}
       {report && (
-        <div className="flex items-center gap-2 text-xs text-white/50 animate-fade-in">
+        <div className="flex items-center gap-2 text-xs text-ink-muted animate-fade-in">
           <Calendar size={12} />
           <span>
             {new Date(report.range.from).toLocaleDateString()} &mdash;{' '}
@@ -259,7 +259,7 @@ export default function OverviewPage() {
                     className={cx(
                       'flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.03]',
                       i < recentIncidents.length - 1
-                        ? 'border-b border-white/10'
+                        ? 'border-b border-line'
                         : '',
                     )}
                   >
@@ -279,7 +279,7 @@ export default function OverviewPage() {
                       <p className="truncate text-sm font-medium text-ink">
                         {formatEnumLabel(inc.status)} Incident
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink-muted">
                         {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}
                       </p>
                     </div>
@@ -384,13 +384,13 @@ function FleetStatCard({
         'flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all',
         urgent
           ? 'border-danger-ink/20 bg-danger-soft/30'
-          : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]',
+          : 'border-line bg-white/[0.02] hover:bg-white/[0.04]',
       )}
     >
       <span
         className={cx(
           'flex h-10 w-10 items-center justify-center rounded-xl',
-          urgent ? 'bg-danger-soft text-danger-ink' : 'bg-white/[0.06] text-white/50',
+          urgent ? 'bg-danger-soft text-danger-ink' : 'bg-white/[0.06] text-ink-muted',
         )}
       >
         {icon}
@@ -401,7 +401,7 @@ function FleetStatCard({
         ) : (
           <p className="font-display text-2xl font-bold text-ink tabular-nums">{value}</p>
         )}
-        <p className="text-xs text-white/50">{label}</p>
+        <p className="text-xs text-ink-muted">{label}</p>
       </div>
     </div>
   );
@@ -419,7 +419,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-white/[0.05] hover:border-white/20"
+      className="flex items-center gap-3 rounded-xl border border-line bg-white/[0.02] px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-white/[0.05] hover:border-white/20"
     >
       <span className="text-accent">{icon}</span>
       {label}
@@ -464,15 +464,15 @@ function WatchlistSection({
       {items.map((item, i) => (
         <li
           key={item.id}
-          className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 transition-colors hover:bg-white/[0.04]"
+          className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white/[0.02] px-4 py-3 transition-colors hover:bg-white/[0.04]"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-[10px] font-bold text-white/50">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-[10px] font-bold text-ink-muted">
               {i + 1}
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
-              <p className="text-xs text-white/50">{item.subtitle}</p>
+              <p className="text-xs text-ink-muted">{item.subtitle}</p>
             </div>
           </div>
           <ScorePill score={item.score} />

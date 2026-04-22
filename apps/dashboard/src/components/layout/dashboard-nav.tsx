@@ -143,7 +143,7 @@ export function DashboardNav({
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-line px-4">
           <Link href="/" onClick={onClose} className="flex items-center gap-3 group">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-white shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
               <Command size={18} />
             </span>
             {!collapsed && (
@@ -230,7 +230,7 @@ export function DashboardNav({
                           </>
                         )}
                         {collapsed && badge !== undefined && (
-                          <span className="absolute -right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-white">
+                          <span className="absolute -right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-ink">
                             {badge > 9 ? '9+' : badge}
                           </span>
                         )}

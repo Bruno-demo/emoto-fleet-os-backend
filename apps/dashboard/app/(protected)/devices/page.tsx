@@ -96,7 +96,7 @@ export default function DevicesPage() {
         render: (device) => (
           <div>
             <p className="font-semibold text-ink">{device.deviceUid}</p>
-            <p className="mt-1 text-xs leading-5 text-white/60">
+            <p className="mt-1 text-xs leading-5 text-ink-soft">
               {device.imei ?? device.id.slice(0, 8)}
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function DevicesPage() {
             className={
               device.status === 'ACTIVE'
                 ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
-                : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60'
+                : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
             }
           >
             {device.status}
@@ -118,12 +118,12 @@ export default function DevicesPage() {
       },
       {
         header: 'Bike',
-        render: (device) => <span className="text-sm text-white/60">{device.bike?.label ?? 'Unassigned'}</span>,
+        render: (device) => <span className="text-sm text-ink-soft">{device.bike?.label ?? 'Unassigned'}</span>,
       },
       {
         header: 'Last seen',
         render: (device) => (
-          <span className="text-sm text-white/60">
+          <span className="text-sm text-ink-soft">
             {device.lastSeenAt ? formatTimestamp(device.lastSeenAt) : 'Never'}
           </span>
         ),
@@ -209,7 +209,7 @@ export default function DevicesPage() {
               <button
                 type="submit"
                 disabled={isCreating}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-ink transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <KeyRound size={16} />
                 {isCreating ? 'Provisioning device...' : 'Provision device'}
