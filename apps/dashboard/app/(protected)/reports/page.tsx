@@ -106,7 +106,7 @@ export default function ReportsPage() {
               {(report?.topRiskyBikes ?? []).map((bike, index) => (
                 <li
                   key={bike.bikeId}
-                  className="rounded-[20px] border border-line bg-white/[0.02] px-4 py-4"
+                  className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-ink-soft">
@@ -151,7 +151,7 @@ export default function ReportsPage() {
               {(report?.topRiskyRiders ?? []).map((rider, index) => (
                 <li
                   key={rider.riderId}
-                  className="rounded-[20px] border border-line bg-white/[0.02] px-4 py-4"
+                  className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-ink-soft">
@@ -200,7 +200,7 @@ export default function ReportsPage() {
             {Object.entries(report.eventCounts).map(([type, count]) => (
               <div
                 key={type}
-                className="rounded-[20px] border border-line bg-white/[0.02] px-4 py-4"
+                className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
               >
                 <p className="text-sm font-semibold text-ink">{formatEnumLabel(type)}</p>
                 <p className="mt-3 font-display text-3xl font-semibold text-ink">{count}</p>
@@ -227,7 +227,7 @@ function TrafficFinesCard() {
       title="Traffic fines"
       description="Irembo fines will stream here in real time once the integration is enabled."
     >
-      <div className="rounded-[20px] border border-dashed border-line bg-white/[0.02] px-4 py-4">
+      <div className="rounded-[20px] border border-dashed border-line bg-surface-muted px-4 py-4">
         <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
           <span>Vehicle</span>
           <span>Reason</span>
@@ -239,7 +239,7 @@ function TrafficFinesCard() {
           <span className="font-semibold text-ink">--</span>
           <span>Awaiting Irembo feed</span>
           <span>--</span>
-          <span className="rounded-full bg-white/[0.02] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
+          <span className="rounded-full bg-surface-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
             Pending
           </span>
           <span>--</span>

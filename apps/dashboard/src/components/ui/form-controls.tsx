@@ -33,7 +33,7 @@ export function TextField({ label, hint, error, className, ...props }: TextField
       <input
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-line bg-white/[0.04] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
+          'w-full rounded-[var(--radius-control)] border border-line bg-surface-hover px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
           className,
         )}
       />
@@ -53,7 +53,7 @@ export function SelectField({ label, hint, error, className, children, ...props 
       <select
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-line bg-white/[0.04] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
+          'w-full rounded-[var(--radius-control)] border border-line bg-surface-hover px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
           className,
         )}
       >
@@ -81,7 +81,7 @@ export function TextAreaField({
       <textarea
         {...props}
         className={cx(
-          'min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-white/[0.04] px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
+          'min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-hover px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20 placeholder:text-white/30',
           className,
         )}
       />

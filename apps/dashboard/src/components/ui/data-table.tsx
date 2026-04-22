@@ -59,12 +59,12 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {data.map((row) => (
-            <tr key={keyExtractor(row)} className="group rounded-[18px] bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+            <tr key={keyExtractor(row)} className="group rounded-[18px] bg-surface-muted hover:bg-surface-hover transition-colors">
               {columns.map((column) => (
                 <td
                   key={`${keyExtractor(row)}-${column.header}`}
                   className={cx(
-                    'border-y border-white/[0.05] px-4 py-4 first:rounded-l-[18px] first:border-l last:rounded-r-[18px] last:border-r',
+                    'border-y border-line px-4 py-4 first:rounded-l-[18px] first:border-l last:rounded-r-[18px] last:border-r',
                     column.cellClassName,
                   )}
                 >

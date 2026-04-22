@@ -109,7 +109,7 @@ export default function DevicesPage() {
             className={
               device.status === 'ACTIVE'
                 ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
-                : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+                : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
             }
           >
             {device.status}

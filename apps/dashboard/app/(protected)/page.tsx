@@ -257,7 +257,7 @@ export default function OverviewPage() {
                   <div
                     key={inc.id}
                     className={cx(
-                      'flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.03]',
+                      'flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-hover',
                       i < recentIncidents.length - 1
                         ? 'border-b border-line'
                         : '',
@@ -384,7 +384,7 @@ function FleetStatCard({
         'flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all',
         urgent
           ? 'border-danger-ink/20 bg-danger-soft/30'
-          : 'border-line bg-white/[0.02] hover:bg-white/[0.04]',
+          : 'border-line bg-surface-muted hover:bg-surface-hover',
       )}
     >
       <span
@@ -419,7 +419,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-line bg-white/[0.02] px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-white/[0.05] hover:border-white/20"
+      className="flex items-center gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-white/[0.05] hover:border-white/20"
     >
       <span className="text-accent">{icon}</span>
       {label}
@@ -464,7 +464,7 @@ function WatchlistSection({
       {items.map((item, i) => (
         <li
           key={item.id}
-          className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white/[0.02] px-4 py-3 transition-colors hover:bg-white/[0.04]"
+          className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 transition-colors hover:bg-surface-hover"
         >
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-[10px] font-bold text-ink-muted">

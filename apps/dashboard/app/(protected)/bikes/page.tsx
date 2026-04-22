@@ -242,7 +242,7 @@ export default function BikesPage() {
         render: (bike) => (
           <button
             type="button"
-            className="rounded-xl border border-line bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
+            className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
             onClick={() => setSelectedBikeId(bike.id)}
           >
             View detail
@@ -299,7 +299,7 @@ export default function BikesPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
-            <div className="rounded-[var(--radius-panel)] border border-line bg-white/[0.02] px-4 py-4">
+            <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
                 Visible bikes
               </p>
@@ -397,7 +397,7 @@ export default function BikesPage() {
                   type="button"
                   disabled={!currentUser || !canProvisionDevices(currentUser.role) || isSendingCommand}
                   onClick={() => setCommandIntent('UNLOCK')}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white/[0.03] px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Unlock size={16} />
                   Unlock bike
@@ -415,7 +415,7 @@ export default function BikesPage() {
                 loading={bikeTripsQuery.isLoading}
               >
                 {(bikeTripsQuery.data?.data ?? []).map((trip) => (
-                  <li key={trip.id} className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3">
+                  <li key={trip.id} className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-ink">{formatTripDistance(trip.distanceKm)}</p>
                       <ScoreBadge score={trip.score} />
@@ -434,7 +434,7 @@ export default function BikesPage() {
                 loading={bikeEventsQuery.isLoading}
               >
                 {(bikeEventsQuery.data?.data ?? []).map((event) => (
-                  <li key={event.id} className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3">
+                  <li key={event.id} className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
                       <EventSeverityBadge severity={event.severity} />
@@ -453,7 +453,7 @@ export default function BikesPage() {
                 {bikeCommandStatuses.slice(0, 10).map((status) => (
                   <li
                     key={`${status.commandId}-${status.ts}`}
-                    className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3"
+                    className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-ink">{status.action ?? 'Command'}</p>
@@ -495,7 +495,7 @@ export default function BikesPage() {
 
 function KeyMetric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3">
+    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
         {label}
       </p>
@@ -521,7 +521,7 @@ function DetailPanel({
 
   return (
     <DashboardCard eyebrow={title} title={title} description="" className="h-full">
-      <div className="mb-4 inline-flex rounded-[18px] bg-white/[0.02] p-3 text-accent">{icon}</div>
+      <div className="mb-4 inline-flex rounded-[18px] bg-surface-muted p-3 text-accent">{icon}</div>
       {loading ? (
         <DrawerSkeleton />
       ) : items.length ? (
@@ -541,7 +541,7 @@ function BikeStatusBadge({ status }: { status: FleetBike['status'] }) {
           ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
           : status === 'MAINTENANCE'
             ? 'inline-flex rounded-full bg-warning-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-warning-ink'
-            : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+            : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
       }
     >
       {formatEnumLabel(status)}

@@ -239,7 +239,7 @@ export default function RidersPage() {
       >
         {/* Create form */}
         {showCreateForm && (
-          <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 animate-scale-in">
+          <div className="mb-6 rounded-2xl border border-white/[0.08] bg-surface-muted p-5 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-lg font-bold text-ink">Create new rider</h3>
               <button
@@ -258,7 +258,7 @@ export default function RidersPage() {
                   value={newFullName}
                   onChange={(e) => setNewFullName(e.target.value)}
                   placeholder="John Doe"
-                  className="mt-1.5 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  className="mt-1.5 w-full rounded-xl border border-white/[0.08] bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
@@ -268,7 +268,7 @@ export default function RidersPage() {
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="+254..."
-                  className="mt-1.5 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  className="mt-1.5 w-full rounded-xl border border-white/[0.08] bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
@@ -278,7 +278,7 @@ export default function RidersPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="rider@fleet.co"
-                  className="mt-1.5 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  className="mt-1.5 w-full rounded-xl border border-white/[0.08] bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                 />
               </label>
             </div>
@@ -291,7 +291,7 @@ export default function RidersPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateForm(false)}
-                className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
+                className="rounded-xl border border-white/[0.08] bg-surface-hover px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
               >
                 Cancel
               </button>
@@ -318,7 +318,7 @@ export default function RidersPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, email, or phone..."
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+              className="w-full rounded-xl border border-white/[0.08] bg-surface-hover py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
             />
           </div>
         </DataTableToolbar>

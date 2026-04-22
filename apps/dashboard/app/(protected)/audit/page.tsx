@@ -115,7 +115,7 @@ export default function AuditLogPage() {
               setActionFilter(e.target.value as AuditActionType | '');
               setPage(1);
             }}
-            className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2 text-sm text-ink outline-none focus:border-accent/50"
+            className="rounded-xl border border-white/[0.08] bg-surface-hover px-3.5 py-2 text-sm text-ink outline-none focus:border-accent/50"
           >
             <option value="">All actions</option>
             {ACTION_TYPE_OPTIONS.map((type) => (
@@ -146,7 +146,7 @@ export default function AuditLogPage() {
               return (
                 <div
                   key={log.id}
-                  className="flex items-start gap-3 rounded-xl border-b border-white/[0.03] px-3 py-3 transition-colors hover:bg-white/[0.02]"
+                  className="flex items-start gap-3 rounded-xl border-b border-white/[0.03] px-3 py-3 transition-colors hover:bg-surface-muted"
                 >
                   <span
                     className={cx(

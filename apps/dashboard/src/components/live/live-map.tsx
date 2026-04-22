@@ -428,7 +428,7 @@ export function LiveMapPanel() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/[0.02] text-ink-muted transition hover:bg-white/[0.04] hover:text-ink"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface-muted text-ink-muted transition hover:bg-surface-hover hover:text-ink"
                 title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand map'}
               >
                 {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -490,7 +490,7 @@ export function LiveMapPanel() {
                 {isFullscreen && (
                   <div className="absolute left-4 top-4 z-[500]">
                     <div className="rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-ink-muted shadow-sm backdrop-blur-md">
-                      Press <kbd className="mx-1 rounded border border-line bg-white/[0.02] px-1.5 py-0.5 font-mono text-[10px] text-ink-soft">Esc</kbd> to exit
+                      Press <kbd className="mx-1 rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-ink-soft">Esc</kbd> to exit
                     </div>
                   </div>
                 )}
@@ -520,7 +520,7 @@ export function LiveMapPanel() {
                     Click an alert to open bike context in the drawer.
                   </p>
                 </div>
-                <span className="rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
                   Realtime
                 </span>
               </div>
@@ -535,7 +535,7 @@ export function LiveMapPanel() {
                         type="button"
                         onClick={() => selectBikeContext(event.bikeId, true)}
                         disabled={!event.bikeId}
-                        className="w-full rounded-[20px] border border-line bg-white/[0.02] px-4 py-3 text-left transition hover:bg-white/[0.04] disabled:cursor-default disabled:opacity-70"
+                        className="w-full rounded-[20px] border border-line bg-surface-muted px-4 py-3 text-left transition hover:bg-surface-hover disabled:cursor-default disabled:opacity-70"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -574,7 +574,7 @@ export function LiveMapPanel() {
                     Recent lock and unlock state changes across the fleet.
                   </p>
                 </div>
-                <span className="rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
                   Last {Math.min(commandStream.length, 6)}
                 </span>
               </div>
@@ -584,7 +584,7 @@ export function LiveMapPanel() {
                   commandStream.slice(0, 6).map((status) => (
                     <li
                       key={`${status.commandId}-${status.ts}`}
-                      className="rounded-[20px] border border-line bg-white/[0.02] px-4 py-3"
+                      className="rounded-[20px] border border-line bg-surface-muted px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -672,7 +672,7 @@ export function LiveMapPanel() {
                   type="button"
                   onClick={() => setCenterSignal((currentSignal) => currentSignal + 1)}
                   disabled={!selectedState}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-white/[0.02] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Crosshair size={16} />
                   Center on map
@@ -727,7 +727,7 @@ export function LiveMapPanel() {
                   {selectedBikeEvents.map((event) => (
                     <li
                       key={event.id}
-                      className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3"
+                      className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -760,7 +760,7 @@ export function LiveMapPanel() {
                   {selectedCommandStream.map((status) => (
                     <li
                       key={`${status.commandId}-${status.ts}`}
-                      className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3"
+                      className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -900,7 +900,7 @@ function MapZoomControls() {
       <button
         type="button"
         onClick={() => map.zoomIn()}
-        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-[var(--background-strong)]/90 text-ink-soft shadow-sm backdrop-blur-md transition hover:bg-white/[0.04] hover:text-ink"
+        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-[var(--background-strong)]/90 text-ink-soft shadow-sm backdrop-blur-md transition hover:bg-surface-hover hover:text-ink"
         aria-label="Zoom in"
       >
         <span className="text-base font-bold leading-none">+</span>
@@ -908,7 +908,7 @@ function MapZoomControls() {
       <button
         type="button"
         onClick={() => map.zoomOut()}
-        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-[var(--background-strong)]/90 text-ink-soft shadow-sm backdrop-blur-md transition hover:bg-white/[0.04] hover:text-ink"
+        className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-[var(--background-strong)]/90 text-ink-soft shadow-sm backdrop-blur-md transition hover:bg-surface-hover hover:text-ink"
         aria-label="Zoom out"
       >
         <span className="text-base font-bold leading-none">−</span>
@@ -1041,7 +1041,7 @@ function RoadLegend({
 
 function KeyMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-line bg-white/[0.02] px-4 py-3">
+    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
         {label}
       </p>
@@ -1099,7 +1099,7 @@ function ActionButton({
         'inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
         tone === 'danger'
           ? 'bg-rose-600 text-ink hover:bg-rose-700'
-          : 'border border-line bg-white/[0.02] text-ink hover:bg-white/[0.04]',
+          : 'border border-line bg-surface-muted text-ink hover:bg-surface-hover',
       )}
     >
       {icon}
@@ -1131,7 +1131,7 @@ function MapStatusBar({
         type="button"
         onClick={onCenter}
         disabled={centerDisabled}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/[0.02] px-2.5 py-1 text-[11px] font-semibold text-ink-muted transition hover:bg-white/[0.04] hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Crosshair size={13} />
         Center
@@ -1151,7 +1151,7 @@ function InlineEmptyCard({
   description: string;
 }) {
   return (
-    <div className="rounded-[18px] border border-dashed border-line bg-white/[0.02] px-4 py-4 text-center">
+    <div className="rounded-[18px] border border-dashed border-line bg-surface-muted px-4 py-4 text-center">
       <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-white text-accent">
         {icon}
       </div>

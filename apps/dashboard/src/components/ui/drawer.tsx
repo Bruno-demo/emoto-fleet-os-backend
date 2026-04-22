@@ -65,7 +65,7 @@ export function Drawer({
       <aside
         ref={panelRef}
         className={cx(
-          'dashboard-scrollbar absolute right-0 top-0 flex h-full flex-col overflow-y-auto border-l border-line bg-black/80 backdrop-blur-[60px] shadow-[-10px_0_40px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          'dashboard-scrollbar absolute right-0 top-0 flex h-full flex-col overflow-y-auto border-l border-line bg-background shadow-[var(--shadow-strong)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
           size === 'lg' ? 'w-full max-w-[34rem]' : 'w-full max-w-[28rem]',
           open ? 'translate-x-0' : 'translate-x-full',
         )}

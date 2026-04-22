@@ -101,13 +101,13 @@ export default function EventsPage() {
               <>
                 <Link
                   href={`/bikes?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08]"
+                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08]"
                 >
                   Open bike
                 </Link>
                 <Link
                   href={`/live?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/[0.08]"
+                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/[0.08]"
                 >
                   View live
                 </Link>
@@ -172,7 +172,7 @@ export default function EventsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-xl border border-line bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
+              className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
             >
               Reset filters
             </button>
@@ -225,7 +225,7 @@ export default function EventsPage() {
               onChange={(event) => { setTo(event.target.value); setPage(1); }}
             />
 
-            <div className="rounded-[var(--radius-panel)] border border-line bg-white/[0.02] px-4 py-4">
+            <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
                 Result scope
               </p>

@@ -219,7 +219,7 @@ export default function ZonesPage() {
             className={
               zone.active
                 ? 'inline-flex rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink'
-                : 'inline-flex rounded-full bg-white/[0.02] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
+                : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
             }
           >
             {zone.active ? 'Active' : 'Inactive'}
@@ -366,7 +366,7 @@ export default function ZonesPage() {
               />
             </div>
 
-            <label className="flex items-center gap-3 rounded-[18px] border border-line bg-white/[0.02] px-4 py-3 text-sm font-medium text-ink">
+            <label className="flex items-center gap-3 rounded-[18px] border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink">
               <input
                 type="checkbox"
                 checked={active}
