@@ -229,13 +229,13 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
 
           <div className="hidden items-center gap-3 md:flex">
             {hasSession ? (
-              <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+              <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-200 transition">
                 Dashboard <ArrowRight size={14} />
               </Link>
             ) : (
               <>
                 <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition">Sign in</Link>
-                <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+                <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-200 transition">
                   Get started <ArrowRight size={14} />
                 </Link>
               </>
@@ -269,15 +269,15 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
 
         <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
           {hasSession ? (
-            <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+            <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
               Open Dashboard <ArrowRight size={15} />
             </Link>
           ) : (
             <>
-              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
                 Enter Command Center <ArrowRight size={15} />
               </Link>
-              <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-[#ffffff1f] bg-[#ffffff0a] px-6 py-3 text-sm font-medium text-[#d4d4d8] hover:bg-[#ffffff14] hover:text-[#ffffff] transition">
+              <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium text-zinc-300 hover:bg-white/[0.08] hover:text-white transition">
                 Request Fleet Access
               </Link>
             </>
@@ -355,8 +355,8 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
               onClick={() => setActiveTab(tab.id)}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-[#ffffff] text-[#09090b]'
-                  : 'text-[#71717a] hover:text-[#ffffff] hover:bg-[#ffffff0f]'
+                  ? 'bg-white text-black'
+                  : 'text-zinc-500 hover:text-white hover:bg-white/[0.06]'
               }`}
             >
               {tab.label}
@@ -497,8 +497,8 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
                 href={`/create-account?plan=${plan.slug}`}
                 className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${
                   plan.featured
-                    ? 'bg-[#ffffff] text-[#09090b] hover:bg-[#e4e4e7]'
-                    : 'border border-[#ffffff1f] bg-[#ffffff0a] text-[#ffffff] hover:bg-[#ffffff14]'
+                    ? 'bg-white text-black hover:bg-zinc-200'
+                    : 'border border-white/[0.12] bg-white/[0.04] text-white hover:bg-white/[0.08]'
                 }`}
               >
                 Get started <ChevronRight size={14} />
@@ -539,15 +539,15 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
             </p>
             <div className="flex flex-wrap justify-center gap-4 mt-4">
               {hasSession ? (
-                <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+                <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
                   Open Dashboard <ArrowRight size={15} />
                 </Link>
               ) : (
                 <>
-                  <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-6 py-3 text-sm font-semibold text-[#09090b] hover:bg-[#e4e4e7] transition">
+                  <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
                     Get Started <ArrowRight size={15} />
                   </Link>
-                  <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-[#ffffff1f] bg-[#ffffff0a] px-6 py-3 text-sm font-medium text-[#d4d4d8] hover:bg-[#ffffff14] transition">
+                  <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium text-zinc-300 hover:bg-white/[0.08] transition">
                     Create Account
                   </Link>
                 </>
