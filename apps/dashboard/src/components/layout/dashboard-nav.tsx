@@ -246,19 +246,31 @@ export function DashboardNav({
         {/* User section */}
         <div className="border-t border-line p-3">
           {!collapsed ? (
-            <div className="mb-2.5 flex items-center gap-3 rounded-xl bg-surface-muted px-3 py-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent font-bold text-sm">
-                {(user?.email ?? user?.phone ?? 'U').charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink">
-                  {user?.email ?? user?.phone ?? 'User'}
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <Shield size={10} className="text-accent" />
-                  <p className="text-[11px] text-ink-muted">{roleLabel}</p>
+            <div className="mb-2.5 flex flex-col gap-2">
+              <div className="flex items-center gap-3 rounded-xl bg-surface-muted px-3 py-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent font-bold text-sm">
+                  {(user?.email ?? user?.phone ?? 'U').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">
+                    {user?.email ?? user?.phone ?? 'User'}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Shield size={10} className="text-accent" />
+                    <p className="text-[11px] text-ink-muted">{roleLabel}</p>
+                  </div>
                 </div>
               </div>
+              
+              {user?.fleetName === 'E-Moto HQ' && (
+                <Link
+                  href="/hq/overview"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-ink text-surface px-3 py-2 text-[13px] font-semibold hover:bg-ink/90 transition-all shadow-sm"
+                >
+                  <Zap size={14} className="fill-current text-accent" />
+                  Enter HQ
+                </Link>
+              )}
             </div>
           ) : null}
 

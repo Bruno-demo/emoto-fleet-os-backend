@@ -22,7 +22,7 @@ export function AuthShell({
   return (
     <div className="min-h-screen w-full flex flex-col lg:grid lg:grid-cols-2 bg-[var(--background)] text-ink">
       {/* Left Pane - Immersive Brand Area */}
-      <section className="relative hidden lg:flex flex-col justify-start gap-16 overflow-hidden p-12 pt-16">
+      <section className="dark relative hidden lg:flex flex-col justify-start gap-16 overflow-hidden p-12 pt-16">
         {/* Deep, immersive abstract background */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center brightness-50"
@@ -38,7 +38,7 @@ export function AuthShell({
             <span className="text-xl font-bold">E</span>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
               E-Moto Fleet OS
             </p>
             <p className="text-sm font-semibold text-accent">Smart Mobility</p>
@@ -50,27 +50,27 @@ export function AuthShell({
           <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-accent">
             {eyebrow}
           </p>
-          <h1 className="mt-4 text-[clamp(2rem,2.5vw,3rem)] font-semibold leading-tight text-ink max-w-lg">
+          <h1 className="mt-4 text-[clamp(2rem,2.5vw,3rem)] font-semibold leading-tight text-white max-w-lg">
             {title}
           </h1>
-          <p className="mt-4 text-base leading-7 text-ink-soft max-w-lg">
+          <p className="mt-4 text-base leading-7 text-white/70 max-w-lg">
             {subtitle}
           </p>
           {securityHint && (
-            <p className="mt-5 inline-flex items-center rounded-full border border-accent/40 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink">
+            <p className="mt-5 inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-white">
               {securityHint}
             </p>
           )}
 
           <div className="mt-12 grid gap-4">
             {features.map((feature) => (
-              <div key={feature.title} className="flex items-start gap-4 p-4 rounded-[20px] bg-surface/30 backdrop-blur-sm border border-line">
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-accent/20 border border-line text-accent">
+              <div key={feature.title} className="flex items-start gap-4 p-4 rounded-[20px] bg-white/[0.06] backdrop-blur-sm border border-white/10">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-accent/20 border border-white/10 text-accent">
                   {feature.icon}
                 </span>
                 <div>
-                  <h3 className="text-sm font-semibold text-ink">{feature.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-ink-muted">{feature.description}</p>
+                  <h3 className="text-sm font-semibold text-white">{feature.title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-white/55">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -143,10 +143,10 @@ export function AuthInput({
         <input
           {...props}
           className={cx(
-            'w-full rounded-[16px] border bg-black/20 backdrop-blur-md px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)] placeholder:text-ink-muted/50 hover:border-line-strong',
+            'w-full rounded-[16px] border bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)] placeholder:text-ink-faint hover:border-line-strong',
             icon ? 'pl-11' : 'pl-4',
             rightElement ? 'pr-12' : 'pr-4',
-            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line/50',
+            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line-strong',
             className,
           )}
         />
@@ -210,10 +210,11 @@ export function AuthButton({
       className={cx(
         'inline-flex w-full items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95',
         variant === 'primary'
-          ? 'bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-strong)] hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
-          : 'glass-panel text-ink hover:bg-surface-hover',
+          ? 'hover:brightness-110 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+          : 'border border-line-strong bg-surface-muted text-ink hover:bg-surface-hover',
         (disabled || isLoading) ? 'cursor-not-allowed opacity-60' : '',
       )}
+      style={variant === 'primary' ? { background: '#3B82F6', color: 'white' } : undefined}
     >
       {isLoading ? (
         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -239,8 +240,8 @@ export function AuthSelect({ label, error, helper, className, children, ...props
         <select
           {...props}
           className={cx(
-            'w-full appearance-none rounded-[16px] border bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
-            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line',
+            'w-full appearance-none rounded-[16px] border bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
+            error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line-strong',
             className,
           )}
         >
@@ -286,7 +287,7 @@ interface AuthTabsProps {
 // Creates a simple two-tab switcher between login and signup routes.
 export function AuthTabs({ active }: AuthTabsProps) {
   return (
-    <div className="mt-6 grid grid-cols-2 rounded-[14px] bg-black/20 p-1 text-xs font-semibold border border-line/30">
+    <div className="mt-6 grid grid-cols-2 rounded-[14px] bg-surface-muted p-1 text-xs font-semibold border border-line-strong">
       <a
         href="/login"
         className={cx(

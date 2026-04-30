@@ -11,7 +11,7 @@ export const userRoleSchema = z.enum([
   'RIDER',
 ]);
 
-export const userStatusSchema = z.enum(['INVITED', 'ACTIVE', 'SUSPENDED', 'DISABLED']);
+export const userStatusSchema = z.enum(['INVITED', 'PENDING_SETUP', 'ACTIVE', 'SUSPENDED', 'DISABLED']);
 export const fleetPlanSchema = z.enum(['DEMO', 'PREMIUM']);
 export const subscriptionStatusSchema = z.enum(['ACTIVE', 'PAST_DUE', 'CANCELED']);
 

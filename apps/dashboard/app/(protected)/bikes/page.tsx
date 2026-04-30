@@ -407,7 +407,7 @@ export default function BikesPage() {
               {commandError ? <InlineNotice message={commandError} /> : null}
             </DashboardCard>
 
-            <section className="grid gap-4 lg:grid-cols-3">
+            <section className="flex flex-col gap-4">
               <DetailPanel
                 title="Recent trips"
                 icon={<Gauge size={16} className="text-accent" />}

@@ -337,6 +337,7 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
+              plan: isDemo ? 'DEMO' : 'PREMIUM',
             }),
           },
           { auth: false },
@@ -376,12 +377,14 @@ function CreateAccountInner() {
       );
 
       // Redirect based on flow
-      if (planSlug && selectedPlan) {
-        setTimeout(() => router.push(`/login?next=${encodeURIComponent(`/checkout?plan=${planSlug}`)}`), 1500);
-      } else if (isDemo) {
-        setTimeout(() => router.push('/login?next=/live'), 1500);
+      if (isDemo) {
+        if (planSlug && selectedPlan) {
+          setTimeout(() => router.push(`/login?next=${encodeURIComponent(`/checkout?plan=${planSlug}`)}`), 1500);
+        } else {
+          setTimeout(() => router.push('/login?next=/live'), 1500);
+        }
       } else if (isPublicMode) {
-        setTimeout(() => router.push('/login'), 1500);
+        setTimeout(() => router.push('/registration-success'), 1500);
       }
 
       setInviteToken('');

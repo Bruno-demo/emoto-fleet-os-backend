@@ -101,7 +101,12 @@ export default function LoginPage() {
         },
       );
 
-      void response;
+      if (response.user.status === 'PENDING_SETUP') {
+        await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+        setError('Your hardware installation is still pending.');
+        return;
+      }
+
       router.replace(nextPath);
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {

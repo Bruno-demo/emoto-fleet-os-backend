@@ -312,7 +312,7 @@ export class AuthService {
           data: {
             name: dto.fleetName,
             type: 'DELIVERY',
-            plan: 'DEMO',
+            plan: dto.plan ?? 'DEMO',
             subscriptionStatus: 'ACTIVE',
           },
         });
@@ -324,7 +324,7 @@ export class AuthService {
             email: normalizedEmail,
             phone: dto.phone,
             passwordHash,
-            status: 'ACTIVE',
+            status: dto.plan === 'DEMO' ? 'ACTIVE' : 'PENDING_SETUP',
           },
           select: userSelectForAuth,
         });

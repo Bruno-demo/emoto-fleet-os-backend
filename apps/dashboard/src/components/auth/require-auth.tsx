@@ -16,7 +16,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return pathname?.startsWith('/') ? pathname : '/';
   }, [pathname]);
 
-  const { isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: () => apiFetch('/me', {}, { schema: meResponseSchema }),
     enabled: hasWindow,
@@ -29,12 +29,18 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }, [nextPath, router]);
 
   useEffect(() => {
+    if (data?.status === 'PENDING_SETUP') {
+      clearAuthToken();
+      router.replace('/registration-success');
+      return;
+    }
+
     if (!isError) {
       return;
     }
     clearAuthToken();
     redirectToLogin();
-  }, [isError, redirectToLogin]);
+  }, [isError, data?.status, redirectToLogin, router]);
 
   if (!hasWindow || isLoading) {
     return (

@@ -13,6 +13,7 @@ import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { buildLoggerOptions } from './logger/logger-options';
+import { HqModule } from './hq/hq.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PartnerModule } from './partner/partner.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -61,6 +62,7 @@ import { ZonesModule } from './zones/zones.module';
     HealthModule,
     IngestionModule,
     PartnerModule,
+    HqModule,
   ],
   providers: [
     {

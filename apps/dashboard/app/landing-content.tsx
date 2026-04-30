@@ -209,9 +209,9 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
   const [activeTab, setActiveTab] = useState('live-map');
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white overflow-x-hidden">
+    <div className="dark min-h-screen bg-[#09090b] text-white overflow-x-hidden">
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl" style={{colorScheme:'dark'}}>
         <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 h-16">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent transition group-hover:bg-accent/20">
@@ -220,22 +220,22 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
             <span className="text-[15px] font-bold tracking-tight">eMoto Fleet OS</span>
           </Link>
 
-          <div className="hidden items-center gap-8 text-[13px] font-medium text-zinc-400 md:flex">
-            <a href="#features" className="transition hover:text-white">Features</a>
-            <a href="#showcase" className="transition hover:text-white">Platform</a>
-            <a href="#pricing" className="transition hover:text-white">Pricing</a>
-            <a href="#faq" className="transition hover:text-white">FAQ</a>
+          <div className="hidden items-center gap-8 text-[13px] font-medium md:flex" style={{color:'rgb(161,161,170)'}}>
+            <a href="#features" className="transition hover:text-white" style={{color:'inherit'}}>Features</a>
+            <a href="#showcase" className="transition hover:text-white" style={{color:'inherit'}}>Platform</a>
+            <a href="#pricing" className="transition hover:text-white" style={{color:'inherit'}}>Pricing</a>
+            <a href="#faq" className="transition hover:text-white" style={{color:'inherit'}}>FAQ</a>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
             {hasSession ? (
-              <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-200 transition">
+              <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
                 Dashboard <ArrowRight size={14} />
               </Link>
             ) : (
               <>
-                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition">Sign in</Link>
-                <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-200 transition">
+                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium transition hover:text-white" style={{color:'rgb(161,161,170)'}}>Sign in</Link>
+                <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
                   Get started <ArrowRight size={14} />
                 </Link>
               </>
@@ -269,15 +269,15 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
 
         <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
           {hasSession ? (
-            <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
+            <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
               Open Dashboard <ArrowRight size={15} />
             </Link>
           ) : (
             <>
-              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
                 Enter Command Center <ArrowRight size={15} />
               </Link>
-              <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium text-zinc-300 hover:bg-white/[0.08] hover:text-white transition">
+              <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium transition hover:bg-white/[0.08]" style={{color:'rgb(212,212,216)'}}>
                 Request Fleet Access
               </Link>
             </>
@@ -353,11 +353,12 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              className="rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+              style={
                 activeTab === tab.id
-                  ? 'bg-white text-black'
-                  : 'text-zinc-500 hover:text-white hover:bg-white/[0.06]'
-              }`}
+                  ? { background: 'white', color: 'black' }
+                  : { color: 'rgb(113,113,122)' }
+              }
             >
               {tab.label}
             </button>
@@ -495,11 +496,12 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
 
               <Link
                 href={`/create-account?plan=${plan.slug}`}
-                className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${
+                className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all hover:opacity-90"
+                style={
                   plan.featured
-                    ? 'bg-white text-black hover:bg-zinc-200'
-                    : 'border border-white/[0.12] bg-white/[0.04] text-white hover:bg-white/[0.08]'
-                }`}
+                    ? { background: 'white', color: 'black' }
+                    : { border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgb(212,212,216)' }
+                }
               >
                 Get started <ChevronRight size={14} />
               </Link>
@@ -539,15 +541,15 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
             </p>
             <div className="flex flex-wrap justify-center gap-4 mt-4">
               {hasSession ? (
-                <Link href="/live" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
+                <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
                   Open Dashboard <ArrowRight size={15} />
                 </Link>
               ) : (
                 <>
-                  <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition">
+                  <Link href="/login" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
                     Get Started <ArrowRight size={15} />
                   </Link>
-                  <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium text-zinc-300 hover:bg-white/[0.08] transition">
+                  <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium transition hover:bg-white/[0.08]" style={{color:'rgb(212,212,216)'}}>
                     Create Account
                   </Link>
                 </>
