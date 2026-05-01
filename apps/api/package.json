@@ -12,7 +12,6 @@
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev --skip-generate",
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:seed": "dotenv -e ../../.env -- prisma db seed",
-    "seed:hq": "dotenv -e ../../.env -- ts-node seed-hq.ts",
     "smoke:fleet-isolation": "dotenv -e ../../.env -- ts-node scripts/smoke-fleet-isolation.ts",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
     "partner:create-client": "dotenv -e ../../.env -- ts-node scripts/create-partner-client.ts",
