@@ -8,9 +8,9 @@ import type { SessionUser } from '@/lib/types/dashboard';
 export function useCurrentUser() {
   const hasWindow = typeof window !== 'undefined';
 
-  return useQuery<SessionUser>({
+  return useQuery({
     queryKey: ['auth', 'me'],
-    queryFn: () => apiFetch('/me', {}, { schema: meResponseSchema }),
+    queryFn: () => apiFetch<SessionUser>('/me', {}, { schema: meResponseSchema }),
     enabled: hasWindow,
     retry: false,
   });

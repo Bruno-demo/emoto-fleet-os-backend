@@ -1,10 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
-import { apiFetch } from '@/lib/api/client';
-import { meResponseSchema } from '@/lib/api/schemas';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { clearAuthToken } from '@/lib/auth/session';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -16,12 +14,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return pathname?.startsWith('/') ? pathname : '/';
   }, [pathname]);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: () => apiFetch('/me', {}, { schema: meResponseSchema }),
-    enabled: hasWindow,
-    retry: false,
-  });
+  const { data, isLoading, isError } = useCurrentUser();
 
   // Redirects unauthenticated users to login while preserving intended destination.
   const redirectToLogin = useCallback(() => {

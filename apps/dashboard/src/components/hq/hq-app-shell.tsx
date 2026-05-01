@@ -16,9 +16,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { clearAuthToken } from '@/lib/auth/session';
 import { cx } from '@/lib/ui';
-import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api/client';
-import { meResponseSchema } from '@/lib/api/schemas';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 const HQ_NAV_LINKS = [
   { href: '/hq/overview', label: 'Command Center', icon: LayoutDashboard },
@@ -31,10 +29,7 @@ export function HqAppShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  const { data: user } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: () => apiFetch('/me', {}, { schema: meResponseSchema }),
-  });
+  const { data: user } = useCurrentUser();
 
   return (
     <div className="dark min-h-screen bg-[#09090b] text-white">
