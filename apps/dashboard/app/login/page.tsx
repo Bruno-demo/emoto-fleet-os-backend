@@ -44,11 +44,14 @@ export default function LoginPage() {
   const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const loginPresentation = getLoginPresentation();
 
-  const isExpired = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return new URLSearchParams(window.location.search).get('expired') === 'true';
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('expired') === 'true') {
+      setIsExpired(true);
+    }
   }, []);
 
   const nextPath = useMemo(() => {
