@@ -89,11 +89,19 @@ export async function apiFetch<T = unknown>(
   if (!response.ok) {
     // If session is expired or invalid (401), redirect to login page.
     if (response.status === 401 && typeof window !== 'undefined') {
-      const isLoginPage = window.location.pathname.startsWith('/login');
-      if (!isLoginPage) {
+      const pathname = window.location.pathname;
+      const isGuestPath = ['/login', '/create-account', '/forgot-password'].some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`),
+      );
+      if (!isGuestPath) {
         // Redirect to login with expired flag.
-        window.location.href = `/login?expired=true&next=${encodeURIComponent(window.location.pathname)}`;
+        window.location.href = `/login?expired=true&next=${encodeURIComponent(pathname)}`;
       }
+    }
+
+    // If access is forbidden (403), redirect to forbidden page.
+    if (response.status === 403 && typeof window !== 'undefined') {
+      window.location.href = '/forbidden';
     }
 
     throw new ApiError(
