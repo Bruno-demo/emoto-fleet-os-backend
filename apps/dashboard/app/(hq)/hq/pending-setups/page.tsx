@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Check, X, AlertCircle } from 'lucide-react';
+import { UserPlus, Check, X, AlertCircle, Phone, Mail, Clock, ShieldCheck, MapPin } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
 
@@ -35,64 +35,100 @@ export default function PendingSetupsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Pending Setups</h1>
-        <p className="mt-1 text-sm text-zinc-400">Review and activate customer accounts after hardware installation.</p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white">Hardware Activation</h1>
+          <p className="mt-1 text-zinc-400">Verify installations and provision command access for new fleets.</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full border border-white/5 bg-amber-500/10 px-4 py-1.5 text-xs font-bold text-amber-400">
+            <Clock size={14} />
+            {users?.length ?? 0} Pending Setups
+          </div>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-[#18181b] overflow-hidden">
+      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
-              <tr>
-                <th className="px-6 py-4 font-medium">Fleet Name</th>
-                <th className="px-6 py-4 font-medium">Contact</th>
-                <th className="px-6 py-4 font-medium">Plan</th>
-                <th className="px-6 py-4 font-medium">Registered</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-white/5 bg-white/[0.02]">
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Contact endpoints</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Queue time</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Verification</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-white/5">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
-                    Loading pending setups...
-                  </td>
-                </tr>
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={5} className="px-8 py-8">
+                      <div className="h-4 w-full rounded bg-white/5" />
+                    </td>
+                  </tr>
+                ))
               ) : users?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-zinc-400">
-                      <Check size={20} />
+                  <td colSpan={5} className="px-8 py-24 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
+                      <ShieldCheck size={32} />
                     </div>
-                    <p className="text-zinc-300 font-medium">All caught up!</p>
-                    <p className="text-sm text-zinc-500 mt-1">There are no pending hardware installations.</p>
+                    <p className="mt-6 text-base font-bold text-white">All Hardware Verified</p>
+                    <p className="mt-2 text-sm text-zinc-500">Every fleet is currently active and commissioned.</p>
                   </td>
                 </tr>
               ) : (
                 users?.map((user) => (
-                  <tr key={user.id} className="transition-colors hover:bg-white/5">
-                    <td className="px-6 py-4 font-medium text-white">{user.fleet.name}</td>
-                    <td className="px-6 py-4 text-zinc-300">
-                      {user.email && <div>{user.email}</div>}
-                      {user.phone && <div className="text-xs text-zinc-500">{user.phone}</div>}
+                  <tr key={user.id} className="group transition-colors hover:bg-white/[0.01]">
+                    <td className="px-8 py-7">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400">
+                          <MapPin size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white leading-tight">{user.fleet.name}</p>
+                          <p className="mt-1 text-[10px] text-zinc-500">Pending hardware sync</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-zinc-300">
+                    <td className="px-8 py-7">
+                      <div className="space-y-1.5">
+                        {user.email && (
+                          <div className="flex items-center gap-2 text-zinc-300">
+                            <Mail size={12} className="text-zinc-600" />
+                            <span className="text-xs font-medium">{user.email}</span>
+                          </div>
+                        )}
+                        {user.phone && (
+                          <div className="flex items-center gap-2 text-zinc-300">
+                            <Phone size={12} className="text-zinc-600" />
+                            <span className="text-xs font-medium">{user.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-7">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/5 px-2.5 py-1 text-xs font-bold text-zinc-300 uppercase tracking-wider">
                         {user.fleet.plan}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-400">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                    <td className="px-8 py-7">
+                      <div className="flex items-center gap-2 text-zinc-500">
+                        <Clock size={14} />
+                        <span className="text-xs font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-8 py-7 text-right">
                       <button
                         onClick={() => activateMutation.mutate(user.id)}
                         disabled={activateMutation.isPending}
-                        className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                       >
-                        <Check size={16} />
+                        <Check size={14} strokeWidth={3} />
                         Activate Account
                       </button>
                     </td>

@@ -79,13 +79,19 @@ export async function apiFetch<T = unknown>(
     headers.set('content-type', 'application/json');
   }
 
-  const response = await fetch(resolveApiUrl(path), {
-    ...init,
-    headers,
-    credentials: 'include',
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-  const body = await parseResponseBody(response);
+  try {
+    const response = await fetch(resolveApiUrl(path), {
+      ...init,
+      headers,
+      credentials: 'include',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const body = await parseResponseBody(response);
   if (!response.ok) {
     // If session is expired or invalid (401), redirect to login page.
     if (response.status === 401 && typeof window !== 'undefined') {
@@ -115,4 +121,14 @@ export async function apiFetch<T = unknown>(
     return body as T;
   }
   return options.schema.parse(body);
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    if (error instanceof ApiError) throw error;
+    
+    const message = error instanceof Error && error.name === 'AbortError' 
+      ? 'Request timed out' 
+      : 'Network connection failed';
+      
+    throw new ApiError(0, message, error);
+  }
 }

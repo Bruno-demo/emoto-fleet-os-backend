@@ -28,7 +28,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Throttle({
-    default: { limit: 3, ttl: 60_000 },
+    default: { limit: 10, ttl: 60_000 },
   })
   @ApiOperation({ summary: 'Login with email/password or phone/password' })
   async login(
@@ -59,7 +59,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
   @Throttle({
-    default: { limit: 5, ttl: 60_000 },
+    default: { limit: 10, ttl: 60_000 },
   })
   @ApiOperation({
     summary: 'Register a user in the caller fleet (disabled by default)',
@@ -75,7 +75,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Throttle({
-    default: { limit: 5, ttl: 60_000 },
+    default: { limit: 10, ttl: 60_000 },
   })
   @ApiOperation({
     summary: 'Create a one-time invite token for registration',
@@ -98,7 +98,7 @@ export class AuthController {
   @Post('register-fleet')
   @Public()
   @Throttle({
-    default: { limit: 3, ttl: 60_000 },
+    default: { limit: 10, ttl: 60_000 },
   })
   @ApiOperation({
     summary: 'Create a new fleet and register as admin',
@@ -112,7 +112,7 @@ export class AuthController {
   @Post('register-public')
   @Public()
   @Throttle({
-    default: { limit: 3, ttl: 60_000 },
+    default: { limit: 10, ttl: 60_000 },
   })
   @ApiOperation({
     summary: 'Public registration for rider accounts (disabled by default)',
@@ -126,7 +126,7 @@ export class AuthController {
   @Post('register-invite')
   @Public()
   @Throttle({
-    default: { limit: 3, ttl: 60_000 },
+    default: { limit: 10, ttl: 60_000 },
   })
   @ApiOperation({
     summary: 'Redeem an invite token and register a fleet user',

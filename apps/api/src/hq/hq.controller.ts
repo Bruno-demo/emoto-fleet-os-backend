@@ -40,4 +40,16 @@ export class HqController {
   getPartners() {
     return this.hqService.getPartners();
   }
+
+  @Get('health')
+  @ApiOperation({ summary: 'Get global platform health status' })
+  getHealth() {
+    return this.hqService.getHealth();
+  }
+
+  @Get('events')
+  @ApiOperation({ summary: 'Get recent global platform events' })
+  getEvents() {
+    return this.hqService.getEvents();
+  }
 }

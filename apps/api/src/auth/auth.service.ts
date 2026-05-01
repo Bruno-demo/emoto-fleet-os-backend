@@ -84,7 +84,7 @@ export class AuthService {
       select: userSelectForAuth,
     });
 
-    if (!user || user.status !== 'ACTIVE') {
+    if (!user || (user.status !== 'ACTIVE' && user.status !== 'PENDING_SETUP')) {
       await this.recordFailedLogin(identifier);
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -523,7 +523,7 @@ export class AuthService {
     }
 
     const user = await this.loadUserOrThrow(payload.sub);
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE' && user.status !== 'PENDING_SETUP') {
       throw new UnauthorizedException('User is not active');
     }
     this.assertDashboardAccess(user);

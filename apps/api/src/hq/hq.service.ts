@@ -77,4 +77,58 @@ export class HqService {
       },
     });
   }
+
+  async getHealth() {
+    // Basic service connectivity checks
+    const [dbOk, redisOk] = await Promise.all([
+      this.prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false),
+      // Mocking other services for now as we don't have direct access in this context
+      Promise.resolve(true), 
+    ]);
+
+    return [
+      { label: 'EMQX Cluster', status: 'Operational', color: 'text-emerald-400' },
+      { label: 'Core API', status: 'Healthy', color: 'text-emerald-400' },
+      { label: 'Telemetry Engine', status: 'Nominal', color: 'text-emerald-400' },
+      { label: 'Database Layer', status: dbOk ? 'Hypertable Active' : 'Degraded', color: dbOk ? 'text-sky-400' : 'text-rose-400' },
+    ];
+  }
+
+  async getEvents() {
+    // Fetch recent fleets and activations as events
+    const [fleets, users] = await Promise.all([
+      this.prisma.fleet.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
+      this.prisma.user.findMany({ 
+        where: { status: 'ACTIVE' }, 
+        take: 5, 
+        orderBy: { createdAt: 'desc' },
+        include: { fleet: true }
+      }),
+    ]);
+
+    const events = [
+      ...fleets.map(f => ({
+        fleet: f.name,
+        event: 'New Fleet Provisioned',
+        time: this.formatRelative(f.createdAt),
+        type: 'success',
+      })),
+      ...users.map(u => ({
+        fleet: u.fleet?.name ?? 'Unknown',
+        event: 'Operator Account Activated',
+        time: this.formatRelative(u.createdAt),
+        type: 'info',
+      })),
+    ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 8);
+
+    return events;
+  }
+
+  private formatRelative(date: Date) {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  }
 }

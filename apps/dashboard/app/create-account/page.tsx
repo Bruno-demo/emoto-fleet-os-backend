@@ -13,6 +13,8 @@ import {
   AtSign,
   Phone,
   Lock,
+  ArrowLeft,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -31,14 +33,33 @@ import {
   AuthShell,
   AuthTabs,
 } from '@/components/auth/auth-ui';
+import { cx } from '@/lib/ui';
 
 
 const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
 
-const PLAN_DETAILS: Record<string, { title: string; price: string; period: string }> = {
-  'safety-core': { title: 'Safety Core', price: '$6', period: '/ bike / mo' },
-  'operations-plus': { title: 'Operations Plus', price: '$9', period: '/ bike / mo' },
-  enterprise: { title: 'Enterprise', price: 'Custom', period: '' },
+const PLAN_DETAILS: Record<string, { title: string; price: string; period: string; description: string; icon: React.ReactNode }> = {
+  'safety-core': { 
+    title: 'Safety Core', 
+    price: '$6', 
+    period: '/ bike / mo', 
+    description: 'Essential rider safety and telemetry.',
+    icon: <ShieldCheck size={18} />
+  },
+  'operations-plus': { 
+    title: 'Operations Plus', 
+    price: '$9', 
+    period: '/ bike / mo', 
+    description: 'Advanced fleet ops and maintenance.',
+    icon: <Zap size={18} />
+  },
+  enterprise: { 
+    title: 'Enterprise', 
+    price: 'Custom', 
+    period: '', 
+    description: 'Custom solutions for large fleets.',
+    icon: <Building2 size={18} />
+  },
 };
 
 type SignupType = 'rider' | 'admin';
@@ -110,9 +131,11 @@ function CreateAccountInner() {
   const hasWindow = typeof window !== 'undefined';
   const router = useRouter();
   const searchParams = useSearchParams();
-  const planSlug = searchParams.get('plan');
+  const planSlugFromUrl = searchParams.get('plan');
   const flow = searchParams.get('flow');
-  const selectedPlan = planSlug ? PLAN_DETAILS[planSlug] : null;
+  const [selectedPlanSlug, setSelectedPlanSlug] = useState<string | null>(planSlugFromUrl);
+  
+  const selectedPlan = selectedPlanSlug ? PLAN_DETAILS[selectedPlanSlug] : null;
   const isDemo = flow === 'demo';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
   const [signupType, setSignupType] = useState<SignupType>('rider');
@@ -296,10 +319,18 @@ function CreateAccountInner() {
       }
     }
 
-    // Admin public signup requires fleet name
-    if (isPublicMode && signupType === 'admin' && fleetName.trim().length < 2) {
-      setError('Fleet name is required');
-      return;
+    // Admin public signup requires fleet name and plan
+    if (isPublicMode && signupType === 'admin') {
+      if (fleetName.trim().length < 2) {
+        setError('Fleet name is required');
+        return;
+      }
+      if (!selectedPlan && !isDemo) {
+        setError('Please select a pricing plan to continue');
+        // Scroll to the top to see the banner
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
     }
 
     const parsed = registerFormSchema.safeParse({
@@ -483,20 +514,58 @@ function CreateAccountInner() {
       />
       <AuthTabs active="signup" />
 
-      {selectedPlan && (
-        <div className="mt-4 rounded-[16px] border border-accent/30 bg-accent/[0.07] p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-accent">
-              <BadgeCheck size={16} />
-            </span>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Selected plan</p>
-              <p className="text-sm font-bold text-ink">{selectedPlan.title}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-lg font-extrabold text-white">{selectedPlan.price}</span>
-            {selectedPlan.period && <span className="ml-1 text-xs text-ink-muted">{selectedPlan.period}</span>}
+      {signupType === 'admin' && !isDemo && isPublicMode && (
+        <div className="mt-6 space-y-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted px-1">
+            Choose your fleet plan
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Object.entries(PLAN_DETAILS).map(([slug, plan]) => {
+              const isSelected = selectedPlanSlug === slug;
+              return (
+                <button
+                  key={slug}
+                  type="button"
+                  onClick={() => setSelectedPlanSlug(slug)}
+                  className={cx(
+                    'group relative flex flex-col items-start rounded-[20px] border p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]',
+                    isSelected 
+                      ? 'border-accent bg-accent/[0.07] ring-1 ring-accent' 
+                      : 'border-line bg-surface hover:border-line-hover'
+                  )}
+                >
+                  <div className={cx(
+                    'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                    isSelected ? 'bg-accent/20 text-accent' : 'bg-surface-muted text-ink-soft group-hover:text-ink'
+                  )}>
+                    {plan.icon}
+                  </div>
+                  
+                  <div className="mt-3">
+                    <p className={cx(
+                      'text-sm font-bold',
+                      isSelected ? 'text-ink' : 'text-ink-muted'
+                    )}>
+                      {plan.title}
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-sm font-extrabold text-ink">{plan.price}</span>
+                    <span className="text-[10px] text-ink-muted">{plan.period}</span>
+                  </div>
+
+                  {isSelected && (
+                    <div className="absolute top-3 right-3 text-accent">
+                      <BadgeCheck size={16} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
