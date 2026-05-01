@@ -35,14 +35,13 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!isError) {
-      return;
+    if (isError) {
+      clearAuthToken();
+      router.replace(`/login?expired=true&next=${encodeURIComponent(nextPath)}`);
     }
-    clearAuthToken();
-    redirectToLogin();
-  }, [isError, data?.status, redirectToLogin, router]);
+  }, [isError, data?.status, nextPath, router]);
 
-  if (!hasWindow || isLoading) {
+  if (!hasWindow || (isLoading && !isError)) {
     return (
       <div className="grid min-h-screen place-items-center">
         <p className="text-sm text-ink-soft">Checking session...</p>

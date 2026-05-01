@@ -46,6 +46,11 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const loginPresentation = getLoginPresentation();
 
+  const isExpired = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('expired') === 'true';
+  }, []);
+
   const nextPath = useMemo(() => {
     if (typeof window === 'undefined') {
       return '/';
@@ -199,6 +204,12 @@ export default function LoginPage() {
           </Link>
         </div>
 
+        {isExpired ? (
+          <AuthNotice
+            message="Your session has expired. Please log in again to continue."
+            tone="warning"
+          />
+        ) : null}
         {error ? <AuthNotice message={error} tone="error" /> : null}
         {socialNotice ? <AuthNotice message={socialNotice} tone="warning" /> : null}
 

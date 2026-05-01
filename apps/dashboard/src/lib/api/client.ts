@@ -87,6 +87,15 @@ export async function apiFetch<T = unknown>(
 
   const body = await parseResponseBody(response);
   if (!response.ok) {
+    // If session is expired or invalid (401), redirect to login page.
+    if (response.status === 401 && typeof window !== 'undefined') {
+      const isLoginPage = window.location.pathname.startsWith('/login');
+      if (!isLoginPage) {
+        // Redirect to login with expired flag.
+        window.location.href = `/login?expired=true&next=${encodeURIComponent(window.location.pathname)}`;
+      }
+    }
+
     throw new ApiError(
       response.status,
       extractErrorMessage(body, `Request failed with status ${response.status}`),

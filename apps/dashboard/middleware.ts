@@ -8,6 +8,7 @@ const GUEST_ONLY_PATHS = ['/login', '/create-account', '/forgot-password'];
 // Pages that require authentication (protected routes).
 const PROTECTED_PATHS = [
   '/live',
+  '/overview',
   '/bikes',
   '/devices',
   '/riders',
@@ -18,6 +19,7 @@ const PROTECTED_PATHS = [
   '/audit',
   '/settings',
   '/checkout',
+  '/hq',
 ];
 
 export function middleware(request: NextRequest) {
@@ -25,8 +27,11 @@ export function middleware(request: NextRequest) {
   const hasSession = Boolean(request.cookies.get(AUTH_COOKIE)?.value);
 
   // Redirect authenticated users away from guest-only pages.
+  // Exception: if the 'expired' flag is set, allow them to see the login page even if a cookie exists.
   if (hasSession && GUEST_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return NextResponse.redirect(new URL('/live', request.url));
+    if (!request.nextUrl.searchParams.has('expired')) {
+      return NextResponse.redirect(new URL('/live', request.url));
+    }
   }
 
   // Redirect unauthenticated users away from protected pages.
@@ -46,6 +51,7 @@ export const config = {
     '/create-account/:path*',
     '/forgot-password/:path*',
     '/live/:path*',
+    '/overview/:path*',
     '/bikes/:path*',
     '/devices/:path*',
     '/riders/:path*',
@@ -56,5 +62,6 @@ export const config = {
     '/audit/:path*',
     '/settings/:path*',
     '/checkout/:path*',
+    '/hq/:path*',
   ],
 };
