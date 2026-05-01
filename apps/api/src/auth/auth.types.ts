@@ -10,6 +10,7 @@ export interface JwtPayload {
 export interface AuthenticatedUser {
   id: string;
   fleetId: string;
+  fleetName: string;
   fleetPlan: FleetPlan;
   subscriptionStatus: FleetSubscriptionStatus;
   role: UserRole;

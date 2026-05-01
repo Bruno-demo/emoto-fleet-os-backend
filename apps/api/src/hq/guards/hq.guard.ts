@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import { AuthenticatedUser } from '../../auth/dto/authenticated-user.dto';
+import { AuthenticatedUser } from '../../auth/auth.types';
 
 @Injectable()
 export class HqGuard implements CanActivate {

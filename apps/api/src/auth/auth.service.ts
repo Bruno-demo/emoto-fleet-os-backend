@@ -36,6 +36,7 @@ const userSelectForAuth = {
   status: true,
   fleet: {
     select: {
+      name: true,
       plan: true,
       subscriptionStatus: true,
     },
@@ -329,7 +330,7 @@ export class AuthService {
           select: userSelectForAuth,
         });
 
-        return user;
+        return user as AuthUserRecord;
       });
 
       this.logger.log(
@@ -602,6 +603,7 @@ export class AuthService {
     return {
       id: user.id,
       fleetId: user.fleetId,
+      fleetName: user.fleet.name,
       fleetPlan: user.fleet.plan,
       subscriptionStatus: user.fleet.subscriptionStatus,
       role: user.role,
