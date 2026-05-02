@@ -3,12 +3,82 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { useParams, useRouter } from 'next/navigation';
-import { Building2, ArrowLeft, Bike, User, Shield, Zap, Calendar, MapPin, Activity } from 'lucide-react';
+import { Building2, ArrowLeft, Bike, User, Shield, Zap, Calendar, MapPin, Activity, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
+import { z } from 'zod';
+
+const fleetDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  plan: z.string(),
+  subscriptionStatus: z.string(),
+  createdAt: z.string(),
+  users: z.array(z.object({
+    id: z.string(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    role: z.string(),
+    status: z.string(),
+  })),
+  bikes: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    plate: z.string().nullable(),
+    status: z.string(),
+  })),
+  _count: z.object({
+    users: z.number(),
+    bikes: z.number(),
+    events: z.number(),
+    trips: z.number(),
+  }),
+});
 
 export default function FleetDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+
+  const { data: fleet, isLoading } = useQuery({
+    queryKey: ['hq', 'fleet', id],
+    queryFn: () => apiFetch(`/hq/fleets/${id}`, {}, { schema: fleetDetailSchema }),
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-white/5 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-8 w-48 rounded-lg bg-white/5 animate-pulse" />
+            <div className="h-4 w-96 rounded-lg bg-white/5 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!fleet) {
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-white">Fleet Not Found</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const activeUsersCount = fleet.users.filter(u => u.status === 'ACTIVE').length;
+  const activeBikesCount = fleet.bikes.filter(b => b.status === 'ACTIVE').length;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -20,25 +90,167 @@ export default function FleetDetailPage() {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white">Fleet Management</h1>
-          <p className="mt-1 text-zinc-400">Deep dive into organization metrics and node configurations.</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white">{fleet.name}</h1>
+          <p className="mt-1 text-zinc-400">Detailed analytics and configuration for {fleet.type} fleet</p>
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center rounded-[32px] border border-dashed border-white/10 bg-[#121214] py-32 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/5 text-zinc-500">
-          <Activity size={40} />
+      {/* KPI Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Active Users</p>
+              <p className="mt-2 text-3xl font-bold text-white">{activeUsersCount}</p>
+              <p className="mt-1 text-xs text-zinc-600">of {fleet._count.users} total</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <Users size={24} />
+            </div>
+          </div>
         </div>
-        <h2 className="mt-8 text-xl font-bold text-white">Management View Coming Soon</h2>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
-          We are currently provisioning the detailed analytics and configuration tools for fleet <span className="font-mono text-accent">#{id}</span>.
-        </p>
-        <Link 
-          href="/hq/fleets"
-          className="mt-8 rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black transition hover:scale-105"
-        >
-          Back to Registry
-        </Link>
+
+        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Active Bikes</p>
+              <p className="mt-2 text-3xl font-bold text-white">{activeBikesCount}</p>
+              <p className="mt-1 text-xs text-zinc-600">of {fleet._count.bikes} total</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
+              <Bike size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</p>
+              <p className="mt-2 text-2xl font-bold text-white">{fleet.plan}</p>
+              <p className="mt-1 text-xs text-zinc-600">Subscription {fleet.subscriptionStatus}</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <TrendingUp size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Recorded Events</p>
+              <p className="mt-2 text-3xl font-bold text-white">{fleet._count.events.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-zinc-600">{fleet._count.trips} trips</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
+              <Activity size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Users Section */}
+      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+            <Users size={18} className="text-zinc-400" />
+            Fleet Operators ({fleet.users.length})
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-white/5">
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Name</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Role</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Contact</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {fleet.users.map(user => (
+                <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-4 py-3 text-sm text-white">{user.email || user.phone || 'N/A'}</td>
+                  <td className="px-4 py-3 text-xs">
+                    <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-zinc-300">
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-zinc-400">
+                    {user.email && <div>{user.email}</div>}
+                    {user.phone && <div>{user.phone}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      user.status === 'ACTIVE' 
+                        ? 'bg-emerald-500/10 text-emerald-300'
+                        : 'bg-amber-500/10 text-amber-300'
+                    }`}>
+                      {user.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Bikes Section */}
+      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+            <Bike size={18} className="text-zinc-400" />
+            Fleet Nodes ({fleet.bikes.length})
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-white/5">
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Label</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Plate</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {fleet.bikes.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-zinc-500">
+                    No bikes assigned to this fleet
+                  </td>
+                </tr>
+              ) : (
+                fleet.bikes.map(bike => (
+                  <tr key={bike.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3 font-medium text-white">{bike.label}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-400">{bike.plate || '-'}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        bike.status === 'ACTIVE'
+                          ? 'bg-emerald-500/10 text-emerald-300'
+                          : bike.status === 'MAINTENANCE'
+                          ? 'bg-amber-500/10 text-amber-300'
+                          : 'bg-zinc-500/10 text-zinc-300'
+                      }`}>
+                        {bike.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Footer Info */}
+      <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/5 px-4 py-3">
+        <Calendar size={14} className="text-zinc-500" />
+        <span className="text-xs text-zinc-400">
+          Fleet created on {new Date(fleet.createdAt).toLocaleDateString()} at {new Date(fleet.createdAt).toLocaleTimeString()}
+        </span>
       </div>
     </div>
   );

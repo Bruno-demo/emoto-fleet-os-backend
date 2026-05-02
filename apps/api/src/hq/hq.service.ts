@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserStatus } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class HqService {
@@ -122,6 +123,153 @@ export class HqService {
     ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 8);
 
     return events;
+  }
+
+  async getFleetById(fleetId: string) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+      include: {
+        users: {
+          select: { id: true, email: true, phone: true, role: true, status: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        bikes: {
+          select: { id: true, label: true, plate: true, status: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: {
+          select: { users: true, bikes: true, events: true, trips: true },
+        },
+      },
+    });
+
+    if (!fleet) throw new NotFoundException(`Fleet ${fleetId} not found`);
+    return fleet;
+  }
+
+  async getPartnerById(partnerId: string) {
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      include: {
+        clients: {
+          select: {
+            id: true,
+            clientId: true,
+            scopes: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        webhooks: {
+          select: {
+            id: true,
+            url: true,
+            active: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        _count: {
+          select: { clients: true, webhooks: true, fleetAccesses: true },
+        },
+      },
+    });
+
+    if (!partner) throw new NotFoundException(`Partner ${partnerId} not found`);
+    return partner;
+  }
+
+  async createPartnerCredential(partnerId: string, clientId: string, scopes: string) {
+    const partner = await this.prisma.partner.findUnique({ where: { id: partnerId } });
+    if (!partner) throw new NotFoundException('Partner not found');
+
+    const clientSecret = crypto.randomBytes(32).toString('hex');
+    const clientSecretHash = crypto.createHash('sha256').update(clientSecret).digest('hex');
+
+    const client = await this.prisma.partnerClient.create({
+      data: {
+        partnerId,
+        clientId,
+        clientSecretHash,
+        scopes,
+      },
+    });
+
+    return {
+      id: client.id,
+      clientId: client.clientId,
+      clientSecret, // Only returned on creation
+      scopes: client.scopes,
+      createdAt: client.createdAt,
+    };
+  }
+
+  async deletePartnerCredential(partnerId: string, credentialId: string) {
+    const credential = await this.prisma.partnerClient.findUnique({
+      where: { id: credentialId },
+    });
+
+    if (!credential || credential.partnerId !== partnerId) {
+      throw new NotFoundException('Credential not found');
+    }
+
+    await this.prisma.partnerClient.delete({ where: { id: credentialId } });
+    return { success: true };
+  }
+
+  async createWebhook(partnerId: string, url: string) {
+    const partner = await this.prisma.partner.findUnique({ where: { id: partnerId } });
+    if (!partner) throw new NotFoundException('Partner not found');
+
+    const secret = crypto.randomBytes(32).toString('hex');
+    const secretHash = crypto.createHash('sha256').update(secret).digest('hex');
+
+    const webhook = await this.prisma.partnerWebhook.create({
+      data: {
+        partnerId,
+        url,
+        secretHash,
+      },
+    });
+
+    return {
+      id: webhook.id,
+      url: webhook.url,
+      secret, // Only returned on creation
+      active: webhook.active,
+      createdAt: webhook.createdAt,
+    };
+  }
+
+  async updateWebhook(webhookId: string, url: string) {
+    const webhook = await this.prisma.partnerWebhook.findUnique({
+      where: { id: webhookId },
+    });
+
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    const updated = await this.prisma.partnerWebhook.update({
+      where: { id: webhookId },
+      data: { url, updatedAt: new Date() },
+    });
+
+    return {
+      id: updated.id,
+      url: updated.url,
+      active: updated.active,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  async deleteWebhook(webhookId: string) {
+    const webhook = await this.prisma.partnerWebhook.findUnique({
+      where: { id: webhookId },
+    });
+
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    await this.prisma.partnerWebhook.delete({ where: { id: webhookId } });
+    return { success: true };
   }
 
   private formatRelative(date: Date) {
