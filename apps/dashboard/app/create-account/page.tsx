@@ -409,8 +409,8 @@ function CreateAccountInner() {
 
       // Redirect based on flow
       if (isDemo) {
-        if (planSlug && selectedPlan) {
-          setTimeout(() => router.push(`/login?next=${encodeURIComponent(`/checkout?plan=${planSlug}`)}`), 1500);
+        if (selectedPlanSlug && selectedPlan) {
+          setTimeout(() => router.push(`/login?next=${encodeURIComponent(`/checkout?plan=${selectedPlanSlug}`)}`), 1500);
         } else {
           setTimeout(() => router.push('/login?next=/live'), 1500);
         }
