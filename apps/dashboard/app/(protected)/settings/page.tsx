@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bell,
   Building2,
+  CheckCircle2,
   Globe,
   Key,
   Lock,
@@ -13,10 +14,12 @@ import {
   Sun,
   User,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { getSubscriptionEntitlements } from '@/lib/subscription';
 import { cx, formatEnumLabel } from '@/lib/ui';
 
 type SettingsTab = 'profile' | 'fleet' | 'security' | 'notifications';
@@ -28,31 +31,50 @@ const TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
   { id: 'notifications', label: 'Notifications', icon: <Bell size={15} /> },
 ];
 
+const DEFAULT_NOTIF_PREFS = {
+  openIncidents: true,
+  sosAlerts: true,
+  crashEvents: true,
+};
+
 export default function SettingsPage() {
   const { data: user } = useCurrentUser();
+  const entitlements = getSubscriptionEntitlements(user);
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { setTheme, resolvedTheme } = useTheme();
 
-  // Notification preferences stored in localStorage
-  const [notifPrefs, setNotifPrefs] = useState({
-    openIncidents: true,
-    sosAlerts: true,
-    crashEvents: true,
-  });
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    if (typeof window === 'undefined') {
+      return DEFAULT_NOTIF_PREFS;
+    }
 
-  // Timezone preference
-  const [useLocalTimezone, setUseLocalTimezone] = useState(true);
-
-  useEffect(() => {
-    setMounted(true);
     try {
       const stored = localStorage.getItem('emoto-notif-prefs');
-      if (stored) setNotifPrefs(JSON.parse(stored));
+      if (!stored) {
+        return DEFAULT_NOTIF_PREFS;
+      }
+
+      return {
+        ...DEFAULT_NOTIF_PREFS,
+        ...(JSON.parse(stored) as Partial<typeof DEFAULT_NOTIF_PREFS>),
+      };
+    } catch {
+      return DEFAULT_NOTIF_PREFS;
+    }
+  });
+
+  const [useLocalTimezone, setUseLocalTimezone] = useState(() => {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+
+    try {
       const tz = localStorage.getItem('emoto-use-local-tz');
-      if (tz !== null) setUseLocalTimezone(tz === 'true');
-    } catch {}
-  }, []);
+      return tz === null ? true : tz === 'true';
+    } catch {
+      return true;
+    }
+  });
 
   const updateNotifPref = (key: keyof typeof notifPrefs) => {
     setNotifPrefs((prev) => {
@@ -62,7 +84,7 @@ export default function SettingsPage() {
     });
   };
 
-  const isDark = mounted ? resolvedTheme === 'dark' : false;
+  const isDark = resolvedTheme === 'dark';
 
   return (
     <div className="space-y-6">
@@ -171,6 +193,49 @@ export default function SettingsPage() {
               />
             </div>
           </DashboardCard>
+
+          <DashboardCard
+            eyebrow="Subscription"
+            title={`${entitlements.planLabel} usage`}
+            description="Dashboard access is controlled by the fleet plan and subscription status."
+            actions={
+              entitlements.isPremium && entitlements.isActive ? null : (
+                <Link
+                  href={entitlements.isActive ? '/checkout?plan=operations-plus' : '/settings'}
+                  className="inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+                >
+                  {entitlements.isActive ? 'Upgrade plan' : 'Review billing'}
+                </Link>
+              )
+            }
+          >
+            <div className="grid gap-4 lg:grid-cols-2">
+              <FeatureList
+                title="Included now"
+                items={[
+                  'Overview',
+                  'Live map and alerts',
+                  'Incident workflow',
+                  'Events',
+                  'Bikes and riders',
+                  'Fleet settings',
+                ]}
+                active
+              />
+              <FeatureList
+                title="Operations Plus"
+                items={[
+                  'Device provisioning',
+                  'Geofence zones',
+                  'Trip analytics and reports',
+                  'Audit log',
+                  'Evidence packs',
+                  'Remote lock and unlock',
+                ]}
+                active={entitlements.isPremium && entitlements.isActive}
+              />
+            </div>
+          </DashboardCard>
         </div>
       )}
 
@@ -257,6 +322,49 @@ export default function SettingsPage() {
           </DashboardCard>
         </div>
       )}
+    </div>
+  );
+}
+
+function FeatureList({
+  title,
+  items,
+  active,
+}: {
+  title: string;
+  items: string[];
+  active: boolean;
+}) {
+  return (
+    <div
+      className={cx(
+        'rounded-[20px] border px-5 py-5',
+        active
+          ? 'border-success-ink/20 bg-success-soft/40'
+          : 'border-line bg-surface-muted',
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {active ? (
+          <CheckCircle2 size={16} className="text-success-ink" />
+        ) : (
+          <Lock size={16} className="text-ink-muted" />
+        )}
+        <p className="text-sm font-bold text-ink">{title}</p>
+      </div>
+      <ul className="mt-4 space-y-2">
+        {items.map((item) => (
+          <li key={item} className="flex items-center gap-2 text-sm text-ink-soft">
+            <span
+              className={cx(
+                'h-1.5 w-1.5 rounded-full',
+                active ? 'bg-success-ink' : 'bg-ink-faint',
+              )}
+            />
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

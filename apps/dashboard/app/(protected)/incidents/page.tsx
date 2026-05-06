@@ -12,6 +12,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { canUseFeature } from '@/lib/subscription';
 import type { Bike, FleetEvent, Incident, IncidentEvidencePack, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -28,6 +30,7 @@ type IncidentAction = 'acknowledge' | 'resolve' | 'false-alarm';
 
 export default function IncidentsPage() {
   const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<IncidentStatusFilter>('OPEN');
   const [from, setFrom] = useState('');
@@ -39,6 +42,7 @@ export default function IncidentsPage() {
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const [evidencePack, setEvidencePack] = useState<IncidentEvidencePack | null>(null);
   const [isGeneratingEvidence, setIsGeneratingEvidence] = useState(false);
+  const canGenerateEvidence = canUseFeature(currentUser, 'evidence');
 
   const incidentsQuery = useQuery({
     queryKey: ['incidents', page, status, from, to],
@@ -154,6 +158,10 @@ export default function IncidentsPage() {
   // Requests generation of the incident evidence pack and stores the returned download links.
   const generateEvidencePack = async () => {
     if (!selectedIncidentId) {
+      return;
+    }
+    if (!canGenerateEvidence) {
+      setActionError('Evidence packs are available on Operations Plus.');
       return;
     }
 
@@ -397,7 +405,7 @@ export default function IncidentsPage() {
               <div className="space-y-4">
                 <button
                   type="button"
-                  disabled={isGeneratingEvidence}
+                  disabled={isGeneratingEvidence || !canGenerateEvidence}
                   onClick={() => {
                     void generateEvidencePack();
                   }}
@@ -406,6 +414,9 @@ export default function IncidentsPage() {
                   <FileArchive size={16} />
                   {isGeneratingEvidence ? 'Generating evidence pack...' : 'Generate evidence pack'}
                 </button>
+                {!canGenerateEvidence ? (
+                  <InlineNotice message="Evidence packs are available on Operations Plus." />
+                ) : null}
 
                 {isGeneratingEvidence ? (
                   <div className="space-y-2 rounded-[18px] border border-line bg-surface-muted px-4 py-4">
@@ -743,4 +754,3 @@ function maskIdentifier(value: string | null | undefined) {
   }
   return `${value.slice(0, 8)}...`;
 }
-

@@ -19,6 +19,7 @@ import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
+import { canUseFeature } from '@/lib/subscription';
 import type {
   Assignment,
   Bike as FleetBike,
@@ -164,6 +165,10 @@ export default function BikesPage() {
   const totalAssignedDevices = bikes.filter((bike) => deviceByBikeId.has(bike.id)).length;
   const totalAssignedRiders = bikes.filter((bike) => assignmentByBikeId.has(bike.id)).length;
   const maintenanceCount = bikes.filter((bike) => bike.status === 'MAINTENANCE').length;
+  const canSendCommands =
+    !!currentUser &&
+    canProvisionDevices(currentUser.role) &&
+    canUseFeature(currentUser, 'commands');
 
   // Sends a lock or unlock command and mirrors the first status in the websocket cache.
   const requestCommand = async (action: CommandIntent) => {
@@ -386,7 +391,7 @@ export default function BikesPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  disabled={!currentUser || !canProvisionDevices(currentUser.role) || isSendingCommand}
+                  disabled={!canSendCommands || isSendingCommand}
                   onClick={() => setCommandIntent('LOCK')}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-ink transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -395,7 +400,7 @@ export default function BikesPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={!currentUser || !canProvisionDevices(currentUser.role) || isSendingCommand}
+                  disabled={!canSendCommands || isSendingCommand}
                   onClick={() => setCommandIntent('UNLOCK')}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -404,6 +409,9 @@ export default function BikesPage() {
                 </button>
               </div>
 
+              {!canUseFeature(currentUser, 'commands') ? (
+                <InlineNotice message="Remote lock and unlock controls are available on Operations Plus." />
+              ) : null}
               {commandError ? <InlineNotice message={commandError} /> : null}
             </DashboardCard>
 

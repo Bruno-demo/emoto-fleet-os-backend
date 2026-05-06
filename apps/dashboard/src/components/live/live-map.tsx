@@ -38,6 +38,7 @@ import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
+import { canUseFeature } from '@/lib/subscription';
 import {
   Assignment,
   Bike as FleetBike,
@@ -207,7 +208,10 @@ export function LiveMapPanel() {
   const selectedAssignment = selectedBikeId ? assignmentByBikeId.get(selectedBikeId) ?? null : null;
   const selectedBikeEvents = selectedBikeEventsQuery.data?.data ?? [];
 
-  const canSendCommands = currentUser ? canProvisionDevices(currentUser.role) : false;
+  const commandFeatureEnabled = canUseFeature(currentUser, 'commands');
+  const canSendCommands = currentUser
+    ? commandFeatureEnabled && canProvisionDevices(currentUser.role)
+    : false;
   const selectedCommandStream = useMemo(
     () => commandStream.filter((item) => item.bikeId === selectedBikeId).slice(0, 6),
     [commandStream, selectedBikeId],
@@ -687,7 +691,9 @@ export function LiveMapPanel() {
                   disabled={!canSendCommands || !lockRule.allowed || isSendingCommand}
                   onClick={() => setCommandIntent('LOCK')}
                 />
-                {!canSendCommands ? (
+                {!commandFeatureEnabled ? (
+                  <ActionNotice message="Remote lock and unlock controls are available on Operations Plus." tone="warning" />
+                ) : !canSendCommands ? (
                   <ActionNotice message="Your role cannot send device commands." tone="warning" />
                 ) : !lockRule.allowed && lockRule.reason ? (
                   <ActionNotice message={lockRule.reason} tone="warning" />
@@ -1498,4 +1504,3 @@ function getRoadFeatureStyle(feature: RoadFeature): {
       return { label: 'Road feature', fill: '#94a3b8', stroke: '#475569', radius: 4 };
   }
 }
-

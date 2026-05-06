@@ -11,6 +11,7 @@ import {
   Command,
   FileBarChart2,
   Gauge,
+  Lock,
   LogOut,
   Map,
   MapPin,
@@ -27,6 +28,7 @@ import { apiFetch } from '@/lib/api/client';
 import { clearAuthToken } from '@/lib/auth/session';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
+import { canUseFeature, type DashboardFeature } from '@/lib/subscription';
 import { cx } from '@/lib/ui';
 
 interface NavGroup {
@@ -38,6 +40,7 @@ interface NavLink {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number }>;
+  feature: DashboardFeature;
   badge?: number;
   requiresAdmin?: boolean;
 }
@@ -46,27 +49,27 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Operations',
     links: [
-      { href: '/overview', label: 'Overview', icon: Gauge },
-      { href: '/live', label: 'Live Map', icon: Map },
-      { href: '/incidents', label: 'Incidents', icon: AlertCircle },
-      { href: '/events', label: 'Events', icon: Radio },
+      { href: '/overview', label: 'Overview', icon: Gauge, feature: 'overview' },
+      { href: '/live', label: 'Live Map', icon: Map, feature: 'live' },
+      { href: '/incidents', label: 'Incidents', icon: AlertCircle, feature: 'incidents' },
+      { href: '/events', label: 'Events', icon: Radio, feature: 'events' },
     ],
   },
   {
     label: 'Fleet',
     links: [
-      { href: '/bikes', label: 'Bikes', icon: Bike },
-      { href: '/riders', label: 'Riders', icon: Users },
-      { href: '/devices', label: 'Devices', icon: Zap },
+      { href: '/bikes', label: 'Bikes', icon: Bike, feature: 'bikes' },
+      { href: '/riders', label: 'Riders', icon: Users, feature: 'riders' },
+      { href: '/devices', label: 'Devices', icon: Zap, feature: 'devices' },
     ],
   },
   {
     label: 'Management',
     links: [
-      { href: '/zones', label: 'Zones', icon: MapPin, requiresAdmin: true },
-      { href: '/reports', label: 'Reports', icon: FileBarChart2 },
-      { href: '/audit', label: 'Audit Log', icon: ClipboardList, requiresAdmin: true },
-      { href: '/settings', label: 'Settings', icon: Settings, requiresAdmin: true },
+      { href: '/zones', label: 'Zones', icon: MapPin, feature: 'zones', requiresAdmin: true },
+      { href: '/reports', label: 'Reports', icon: FileBarChart2, feature: 'reports' },
+      { href: '/audit', label: 'Audit Log', icon: ClipboardList, feature: 'audit', requiresAdmin: true },
+      { href: '/settings', label: 'Settings', icon: Settings, feature: 'settings', requiresAdmin: true },
     ],
   },
 ];
@@ -192,6 +195,7 @@ export function DashboardNav({
                     const Icon = link.icon;
                     const active = isActive(link.href);
                     const badge = getBadge(link.href);
+                    const locked = user ? !canUseFeature(user, link.feature) : false;
                     return (
                       <Link
                         key={link.href}
@@ -202,7 +206,9 @@ export function DashboardNav({
                           'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all',
                           active
                             ? 'bg-accent/[0.12] text-accent'
-                            : 'text-ink-soft hover:bg-surface-hover hover:text-ink',
+                            : locked
+                              ? 'text-ink-faint hover:bg-surface-hover hover:text-ink-soft'
+                              : 'text-ink-soft hover:bg-surface-hover hover:text-ink',
                           collapsed && 'justify-center px-0',
                         )}
                       >
@@ -222,14 +228,21 @@ export function DashboardNav({
                         {!collapsed && (
                           <>
                             <span className="flex-1">{link.label}</span>
-                            {badge !== undefined && (
+                            {locked ? (
+                              <Lock size={13} className="text-ink-faint" />
+                            ) : badge !== undefined ? (
                               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger-soft px-1.5 text-[10px] font-bold text-danger-ink">
                                 {badge > 99 ? '99+' : badge}
                               </span>
-                            )}
+                            ) : null}
                           </>
                         )}
-                        {collapsed && badge !== undefined && (
+                        {collapsed && locked && (
+                          <span className="absolute -right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-surface-muted text-ink-faint">
+                            <Lock size={9} />
+                          </span>
+                        )}
+                        {collapsed && !locked && badge !== undefined && (
                           <span className="absolute -right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-ink">
                             {badge > 9 ? '9+' : badge}
                           </span>

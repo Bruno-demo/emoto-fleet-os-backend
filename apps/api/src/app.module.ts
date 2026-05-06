@@ -21,6 +21,7 @@ import { RedisModule } from './redis/redis.module';
 import { ReportsModule } from './reports/reports.module';
 import { RidersModule } from './riders/riders.module';
 import { RoadsModule } from './roads/roads.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 import { TripsModule } from './trips/trips.module';
 import { ZonesModule } from './zones/zones.module';
 
@@ -63,6 +64,7 @@ import { ZonesModule } from './zones/zones.module';
     IngestionModule,
     PartnerModule,
     HqModule,
+    SubscriptionModule,
   ],
   providers: [
     {

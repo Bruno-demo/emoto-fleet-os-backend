@@ -9,7 +9,12 @@ const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 const gatewayPort = Number(process.env.GATEWAY_PORT ?? 8080);
 const apiUrl = process.env.GATEWAY_API_URL ?? 'http://localhost:3000';
 const corsOrigin = process.env.GATEWAY_CORS_ORIGIN ?? '*';
+const corsOrigins = corsOrigin
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
 const nodeEnv = process.env.NODE_ENV ?? 'development';
+const authCookieName = process.env.AUTH_COOKIE_NAME ?? 'emoto_access_token';
 
 // Block wildcard CORS in production to prevent credential leakage.
 if (nodeEnv === 'production' && corsOrigin === '*') {
@@ -80,8 +85,39 @@ function getClientIp(req: http.IncomingMessage): string {
 }
 
 // Apply CORS and security headers for browser clients, including preflight handling.
-function applyCors(res: http.ServerResponse): void {
-  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+function appendVaryOrigin(res: http.ServerResponse): void {
+  const current = res.getHeader('Vary');
+  if (!current) {
+    res.setHeader('Vary', 'Origin');
+    return;
+  }
+
+  const value = Array.isArray(current) ? current.join(', ') : String(current);
+  if (!value.split(',').map((part) => part.trim().toLowerCase()).includes('origin')) {
+    res.setHeader('Vary', `${value}, Origin`);
+  }
+}
+
+// Reflects an allowed browser origin so credentialed requests work through the gateway.
+function applyCors(req: http.IncomingMessage, res: http.ServerResponse): void {
+  const requestOrigin = req.headers.origin;
+  const isWildcard = corsOrigins.includes('*');
+  const allowedOrigin =
+    isWildcard
+      ? '*'
+      : typeof requestOrigin === 'string' && corsOrigins.includes(requestOrigin)
+        ? requestOrigin
+        : corsOrigins.length === 1
+          ? corsOrigins[0]
+          : null;
+
+  if (allowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    if (allowedOrigin !== '*') {
+      appendVaryOrigin(res);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  }
   res.setHeader('Access-Control-Allow-Methods', corsMethods);
   res.setHeader('Access-Control-Allow-Headers', corsHeaders);
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -134,6 +170,45 @@ function isValidBearerToken(token: string | null): boolean {
   });
 }
 
+// Parses the Cookie header without requiring a web framework in the gateway.
+function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+  if (!cookieHeader) {
+    return {};
+  }
+
+  return cookieHeader.split(';').reduce<Record<string, string>>((cookies, part) => {
+    const separatorIndex = part.indexOf('=');
+    if (separatorIndex === -1) {
+      return cookies;
+    }
+
+    const name = part.slice(0, separatorIndex).trim();
+    const rawValue = part.slice(separatorIndex + 1).trim();
+    if (!name) {
+      return cookies;
+    }
+
+    try {
+      cookies[name] = decodeURIComponent(rawValue);
+    } catch {
+      cookies[name] = rawValue;
+    }
+    return cookies;
+  }, {});
+}
+
+// Supports both external bearer clients and browser sessions backed by httpOnly cookies.
+function extractAccessToken(req: http.IncomingMessage): string | null {
+  const authHeader = req.headers.authorization ?? '';
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice('Bearer '.length).trim();
+    return token.length > 0 ? token : null;
+  }
+
+  const cookies = parseCookies(req.headers.cookie);
+  return cookies[authCookieName] ?? null;
+}
+
 // Applies rate limits for sensitive endpoints and returns false when blocked.
 function enforceRateLimit(
   req: http.IncomingMessage,
@@ -183,8 +258,8 @@ proxy.on('proxyReq', (proxyReq, req) => {
   proxyReq.setHeader('x-request-id', requestId);
 });
 
-proxy.on('proxyRes', (_proxyRes, _req, res) => {
-  applyCors(res);
+proxy.on('proxyRes', (_proxyRes, req, res) => {
+  applyCors(req, res);
 });
 
 proxy.on('error', (error, _req, res) => {
@@ -198,7 +273,7 @@ proxy.on('error', (error, _req, res) => {
 const server = http.createServer((req, res) => {
   const requestId = ensureRequestId(req);
   res.setHeader('x-request-id', requestId);
-  applyCors(res);
+  applyCors(req, res);
   const requestStart = process.hrtime.bigint();
   const pathname = req.url ? new URL(req.url, 'http://gateway').pathname : '/';
 
@@ -245,10 +320,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (!isAuthBypassPath(pathname)) {
-    const authHeader = req.headers.authorization ?? '';
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.slice('Bearer '.length)
-      : null;
+    const token = extractAccessToken(req);
     if (!isValidBearerToken(token)) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Unauthorized' }));

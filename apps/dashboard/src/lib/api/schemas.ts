@@ -40,6 +40,11 @@ export const loginResponseSchema = z.object({
 
 export const meResponseSchema = authUserSchema;
 
+export const subscriptionCheckoutResponseSchema = z.object({
+  fleetPlan: fleetPlanSchema,
+  subscriptionStatus: subscriptionStatusSchema,
+});
+
 // Builds the backend login payload by mapping identifier to email or phone.
 export function buildLoginPayload(
   identifier: string,

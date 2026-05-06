@@ -5,11 +5,13 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { AuditService } from './audit.service';
 
 @ApiTags('audit')
 @ApiBearerAuth()
 @Controller('audit-logs')
+@RequireSubscriptionFeature('audit')
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
@@ -22,7 +24,8 @@ export class AuditController {
     @Query('actionType') actionType?: string,
   ) {
     const validActionType =
-      actionType && Object.values(AuditActionType).includes(actionType as AuditActionType)
+      actionType &&
+      Object.values(AuditActionType).includes(actionType as AuditActionType)
         ? (actionType as AuditActionType)
         : undefined;
 

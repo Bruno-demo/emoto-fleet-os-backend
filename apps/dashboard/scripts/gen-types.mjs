@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import openapiTS, { astToString } from 'openapi-typescript';
 
-const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
+const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(
   /\/$/,
   '',
 );

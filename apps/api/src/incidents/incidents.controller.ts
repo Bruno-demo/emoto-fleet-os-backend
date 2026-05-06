@@ -14,6 +14,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginatedResponse } from '../common/pagination';
 import type { IncidentEvidencePackResponse } from '../evidence/evidence.types';
+import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { IncidentStatusActionDto } from './dto/incident-status-action.dto';
 import { ListIncidentsDto } from './dto/list-incidents.dto';
 import type { FleetIncident } from './incidents.types';
@@ -49,6 +50,7 @@ export class IncidentsController {
 
   @Get(':id/evidence-pack')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @RequireSubscriptionFeature('evidence')
   @ApiOperation({
     summary:
       'Generate incident evidence pack and return short-lived download URLs',

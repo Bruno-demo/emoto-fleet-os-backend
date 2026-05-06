@@ -16,6 +16,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { PaginatedResponse } from '../common/pagination';
+import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
 import { FleetZone, ZonesService } from './zones.service';
@@ -24,6 +25,7 @@ import { FleetZone, ZonesService } from './zones.service';
 @ApiBearerAuth()
 @Controller('zones')
 @Roles(UserRole.ADMIN)
+@RequireSubscriptionFeature('zones')
 export class ZonesController {
   constructor(private readonly zonesService: ZonesService) {}
 

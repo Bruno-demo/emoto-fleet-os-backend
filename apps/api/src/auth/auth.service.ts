@@ -43,7 +43,9 @@ const userSelectForAuth = {
   },
 } satisfies Prisma.UserSelect;
 
-type AuthUserRecord = Prisma.UserGetPayload<{ select: typeof userSelectForAuth }>;
+type AuthUserRecord = Prisma.UserGetPayload<{
+  select: typeof userSelectForAuth;
+}>;
 
 @Injectable()
 export class AuthService {
@@ -84,7 +86,10 @@ export class AuthService {
       select: userSelectForAuth,
     });
 
-    if (!user || (user.status !== 'ACTIVE' && user.status !== 'PENDING_SETUP')) {
+    if (
+      !user ||
+      (user.status !== 'ACTIVE' && user.status !== 'PENDING_SETUP')
+    ) {
       await this.recordFailedLogin(identifier);
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -101,17 +106,20 @@ export class AuthService {
     await this.clearFailedAttempts(identifier);
 
     const authenticatedUser = this.toAuthenticatedUser(user);
-    this.assertDashboardAccess(authenticatedUser);
 
-    this.auditService.createAuditLog({
-      fleetId: authenticatedUser.fleetId,
-      actorUserId: authenticatedUser.id,
-      actionType: AuditActionType.LOGIN_SUCCESS,
-      targetType: 'User',
-      targetId: authenticatedUser.id,
-    }).catch((error: unknown) => {
-      this.logger.warn(`Failed to log login audit: ${error instanceof Error ? error.message : 'unknown'}`);
-    });
+    this.auditService
+      .createAuditLog({
+        fleetId: authenticatedUser.fleetId,
+        actorUserId: authenticatedUser.id,
+        actionType: AuditActionType.LOGIN_SUCCESS,
+        targetType: 'User',
+        targetId: authenticatedUser.id,
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Failed to log login audit: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
+      });
 
     return this.buildAuthResponse(authenticatedUser, dto.rememberMe ?? false);
   }
@@ -141,30 +149,40 @@ export class AuthService {
     const currentAttempts = raw ? Number(raw) : 0;
     const newAttempts = currentAttempts + 1;
 
-    await this.redisService.set(key, String(newAttempts), LOGIN_LOCKOUT_SECONDS);
+    await this.redisService.set(
+      key,
+      String(newAttempts),
+      LOGIN_LOCKOUT_SECONDS,
+    );
 
     if (fleetId) {
-      this.auditService.createAuditLog({
-        fleetId,
-        actorUserId: userId,
-        actionType: AuditActionType.LOGIN_FAILED,
-        targetType: 'User',
-        targetId: userId,
-        metaJson: { identifier, attempt: newAttempts },
-      }).catch(() => {});
+      this.auditService
+        .createAuditLog({
+          fleetId,
+          actorUserId: userId,
+          actionType: AuditActionType.LOGIN_FAILED,
+          targetType: 'User',
+          targetId: userId,
+          metaJson: { identifier, attempt: newAttempts },
+        })
+        .catch(() => {});
     }
 
     if (newAttempts >= LOGIN_MAX_ATTEMPTS) {
-      this.logger.warn(`Account locked: ${identifier} after ${newAttempts} failed attempts`);
+      this.logger.warn(
+        `Account locked: ${identifier} after ${newAttempts} failed attempts`,
+      );
       if (fleetId) {
-        this.auditService.createAuditLog({
-          fleetId,
-          actorUserId: userId,
-          actionType: AuditActionType.ACCOUNT_LOCKED,
-          targetType: 'User',
-          targetId: userId,
-          metaJson: { identifier, lockoutSeconds: LOGIN_LOCKOUT_SECONDS },
-        }).catch(() => {});
+        this.auditService
+          .createAuditLog({
+            fleetId,
+            actorUserId: userId,
+            actionType: AuditActionType.ACCOUNT_LOCKED,
+            targetType: 'User',
+            targetId: userId,
+            metaJson: { identifier, lockoutSeconds: LOGIN_LOCKOUT_SECONDS },
+          })
+          .catch(() => {});
       }
     }
   }
@@ -204,7 +222,9 @@ export class AuthService {
       const createdUser = await this.prismaService.user.create({
         data: {
           fleetId: actor.fleetId,
-          role: canAssignAnyRole ? dto.role ?? UserRole.DISPATCHER : UserRole.RIDER,
+          role: canAssignAnyRole
+            ? (dto.role ?? UserRole.DISPATCHER)
+            : UserRole.RIDER,
           email: normalizedEmail,
           phone: dto.phone,
           passwordHash,
@@ -343,9 +363,7 @@ export class AuthService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException(
-          'Email or phone already exists',
-        );
+        throw new ConflictException('Email or phone already exists');
       }
       throw error;
     }
@@ -388,25 +406,24 @@ export class AuthService {
       this.configService.get<number>('INVITE_TOKEN_TTL_HOURS', 168);
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
-    const createdInvite =
-      await this.prismaService.registrationInvite.create({
-        data: {
-          fleetId: actor.fleetId,
-          role,
-          email: normalizedEmail,
-          phone: dto.phone,
-          tokenHash,
-          expiresAt,
-        },
-        select: {
-          id: true,
-          fleetId: true,
-          role: true,
-          email: true,
-          phone: true,
-          expiresAt: true,
-        },
-      });
+    const createdInvite = await this.prismaService.registrationInvite.create({
+      data: {
+        fleetId: actor.fleetId,
+        role,
+        email: normalizedEmail,
+        phone: dto.phone,
+        tokenHash,
+        expiresAt,
+      },
+      select: {
+        id: true,
+        fleetId: true,
+        role: true,
+        email: true,
+        phone: true,
+        expiresAt: true,
+      },
+    });
 
     return {
       inviteId: createdInvite.id,
@@ -526,7 +543,6 @@ export class AuthService {
     if (user.status !== 'ACTIVE' && user.status !== 'PENDING_SETUP') {
       throw new UnauthorizedException('User is not active');
     }
-    this.assertDashboardAccess(user);
 
     return user;
   }
@@ -552,7 +568,8 @@ export class AuthService {
     const rememberExpiresIn = this.configService.get<string>(
       'AUTH_REMEMBER_ME_EXPIRES_IN',
     ) as StringValue | undefined;
-    const expiresIn = rememberMe && rememberExpiresIn ? rememberExpiresIn : defaultExpiresIn;
+    const expiresIn =
+      rememberMe && rememberExpiresIn ? rememberExpiresIn : defaultExpiresIn;
     const accessToken = await this.jwtService.signAsync(payload, { expiresIn });
     return {
       accessToken,
@@ -611,20 +628,5 @@ export class AuthService {
       phone: user.phone,
       status: user.status,
     };
-  }
-
-  // Blocks non-rider access unless the fleet is in demo mode or an active premium subscription.
-  private assertDashboardAccess(user: AuthenticatedUser): void {
-    if (user.role === UserRole.RIDER) {
-      return;
-    }
-    if (user.fleetPlan === 'DEMO') {
-      return;
-    }
-    if (user.fleetPlan === 'PREMIUM' && user.subscriptionStatus === 'ACTIVE') {
-      return;
-    }
-
-    throw new ForbiddenException('Subscription required');
   }
 }

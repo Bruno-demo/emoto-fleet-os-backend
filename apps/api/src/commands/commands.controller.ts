@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { CommandsService } from './commands.service';
 import { DeviceCommandQueryDto } from './dto/device-command-query.dto';
 import { FleetDeviceCommand } from './commands.types';
@@ -11,6 +12,7 @@ import { FleetDeviceCommand } from './commands.types';
 @ApiTags('commands')
 @ApiBearerAuth()
 @Controller('commands')
+@RequireSubscriptionFeature('commands')
 export class CommandsController {
   constructor(private readonly commandsService: CommandsService) {}
 

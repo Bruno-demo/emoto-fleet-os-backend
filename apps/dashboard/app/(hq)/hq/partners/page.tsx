@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Globe, Shield, Zap, Plus, ExternalLink, Settings, MoreVertical } from 'lucide-react';
+import { Globe, Shield, Plus, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const partnersSchema = z.array(
@@ -116,13 +116,6 @@ export default function HqPartnersPage() {
                           title="Partner Settings"
                         >
                           <Settings size={16} />
-                        </button>
-                        <button 
-                          onClick={() => window.open(`/hq/partners/${partner.id}/portal`, '_blank')}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white transition-all"
-                          title="External Portal"
-                        >
-                          <ExternalLink size={16} />
                         </button>
                       </div>
                     </td>

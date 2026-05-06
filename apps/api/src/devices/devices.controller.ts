@@ -14,6 +14,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { PaginatedResponse } from '../common/pagination';
+import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { AssignBikeDto } from './dto/assign-bike.dto';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { DevicesService, PublicDevice } from './devices.service';
@@ -21,6 +22,7 @@ import { DevicesService, PublicDevice } from './devices.service';
 @ApiTags('devices')
 @ApiBearerAuth()
 @Controller('devices')
+@RequireSubscriptionFeature('devices')
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 

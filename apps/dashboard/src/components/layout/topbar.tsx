@@ -1,14 +1,15 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Bell, Bike, Menu, Radio, Search, Siren, Users, X, Zap, MapPin } from 'lucide-react';
+import { Bell, Bike, Menu, Radio, Search, Siren, Users, X, Zap, MapPin } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { ConnectionIndicator } from '@/components/ui/connection-indicator';
 import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
-import type { Incident, PaginatedResponse } from '@/lib/types/dashboard';
+import { canUseFeature } from '@/lib/subscription';
+import type { Incident, PaginatedResponse, SessionUser } from '@/lib/types/dashboard';
 import { cx, formatTimeAgo } from '@/lib/ui';
 
 interface TopbarProps {
@@ -24,15 +25,17 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const canViewIncidents = canUseFeature(user, 'incidents');
 
   const incidentsQuery = useQuery({
     queryKey: ['incidents', 'topbar-open'],
     queryFn: () =>
       apiFetch<PaginatedResponse<Incident>>('/incidents?status=OPEN&page=1&pageSize=10'),
+    enabled: canViewIncidents,
   });
 
-  const openCount = incidentsQuery.data?.total ?? 0;
-  const openIncidents = incidentsQuery.data?.data ?? [];
+  const openCount = canViewIncidents ? incidentsQuery.data?.total ?? 0 : 0;
+  const openIncidents = canViewIncidents ? incidentsQuery.data?.data ?? [] : [];
 
   const fleetLabel =
     user?.fleetName?.trim() || (user?.fleetId ? `Fleet ${user.fleetId.slice(0, 8)}` : 'Fleet');
@@ -202,6 +205,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
       {searchOpen && (
         <SearchOverlay
           query={searchQuery}
+          user={user}
           onQueryChange={setSearchQuery}
           inputRef={searchInputRef}
           onClose={() => {
@@ -255,12 +259,14 @@ const SEARCH_ICONS: Record<SearchResult['type'], ReactNode> = {
 
 function SearchOverlay({
   query,
+  user,
   onQueryChange,
   inputRef,
   onClose,
   onNavigate,
 }: {
   query: string;
+  user: SessionUser | null | undefined;
   onQueryChange: (q: string) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onClose: () => void;
@@ -270,15 +276,16 @@ function SearchOverlay({
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   const { data: results = [], isLoading } = useQuery({
-    queryKey: ['global-search', debouncedQuery],
-    queryFn: () => globalSearch(debouncedQuery),
-    enabled: debouncedQuery.length >= 2,
+    queryKey: [
+      'global-search',
+      debouncedQuery,
+      user?.fleetPlan,
+      user?.subscriptionStatus,
+    ],
+    queryFn: () => globalSearch(debouncedQuery, user),
+    enabled: debouncedQuery.length >= 2 && !!user,
     staleTime: 10_000,
   });
-
-  useEffect(() => {
-    setSelectedIdx(0);
-  }, [results]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -382,17 +389,32 @@ function useDebounce(value: string, delay: number) {
   return debounced;
 }
 
-async function globalSearch(query: string): Promise<SearchResult[]> {
+async function globalSearch(
+  query: string,
+  user: SessionUser | null | undefined,
+): Promise<SearchResult[]> {
   const q = query.toLowerCase();
   const results: SearchResult[] = [];
 
   const [bikes, riders, events, incidents, zones, devices] = await Promise.allSettled([
-    apiFetch<PaginatedResponse<{ id: string; label: string; plate: string | null; status: string }>>('/bikes?page=1&pageSize=50'),
-    apiFetch<PaginatedResponse<{ id: string; fullName: string | null; email: string | null; phone: string | null; status: string }>>('/riders?page=1&pageSize=50'),
-    apiFetch<PaginatedResponse<{ id: string; type: string; severity: string; bikeId: string | null; ts: string }>>('/events?page=1&pageSize=50'),
-    apiFetch<PaginatedResponse<Incident>>('/incidents?page=1&pageSize=50'),
-    apiFetch<PaginatedResponse<{ id: string; name: string; type: string; active: boolean }>>('/zones?page=1&pageSize=50'),
-    apiFetch<PaginatedResponse<{ id: string; deviceUid: string; imei: string | null; status: string; bike: { id: string; label: string } | null }>>('/devices?page=1&pageSize=50'),
+    canUseFeature(user, 'bikes')
+      ? apiFetch<PaginatedResponse<{ id: string; label: string; plate: string | null; status: string }>>('/bikes?page=1&pageSize=50')
+      : Promise.resolve({ data: [] }),
+    canUseFeature(user, 'riders')
+      ? apiFetch<PaginatedResponse<{ id: string; fullName: string | null; email: string | null; phone: string | null; status: string }>>('/riders?page=1&pageSize=50')
+      : Promise.resolve({ data: [] }),
+    canUseFeature(user, 'events')
+      ? apiFetch<PaginatedResponse<{ id: string; type: string; severity: string; bikeId: string | null; ts: string }>>('/events?page=1&pageSize=50')
+      : Promise.resolve({ data: [] }),
+    canUseFeature(user, 'incidents')
+      ? apiFetch<PaginatedResponse<Incident>>('/incidents?page=1&pageSize=50')
+      : Promise.resolve({ data: [] }),
+    canUseFeature(user, 'zones')
+      ? apiFetch<PaginatedResponse<{ id: string; name: string; type: string; active: boolean }>>('/zones?page=1&pageSize=50')
+      : Promise.resolve({ data: [] }),
+    canUseFeature(user, 'devices')
+      ? apiFetch<PaginatedResponse<{ id: string; deviceUid: string; imei: string | null; status: string; bike: { id: string; label: string } | null }>>('/devices?page=1&pageSize=50')
+      : Promise.resolve({ data: [] }),
   ]);
 
   if (bikes.status === 'fulfilled') {

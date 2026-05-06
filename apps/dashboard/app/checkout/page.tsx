@@ -1,5 +1,6 @@
 'use client';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
   BadgeCheck,
@@ -12,6 +13,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { RequireAuth } from '@/components/auth/require-auth';
+import { ApiError, apiFetch } from '@/lib/api/client';
+import { subscriptionCheckoutResponseSchema } from '@/lib/api/schemas';
+import type { SessionUser } from '@/lib/types/dashboard';
 
 const PLAN_DETAILS: Record<
   string,
@@ -64,11 +68,49 @@ export default function CheckoutPage() {
 
 function CheckoutContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const planSlug = searchParams.get('plan');
   const plan = planSlug ? PLAN_DETAILS[planSlug] : null;
-  const [isConfirming, setIsConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isOperationsPlus = planSlug === 'operations-plus';
+
+  const checkoutMutation = useMutation({
+    mutationFn: () =>
+      apiFetch(
+        '/subscription/checkout',
+        {
+          method: 'POST',
+          body: JSON.stringify({ plan: 'PREMIUM' }),
+        },
+        { schema: subscriptionCheckoutResponseSchema },
+      ),
+    onSuccess: async (result) => {
+      setConfirmed(true);
+      queryClient.setQueryData<SessionUser | undefined>(
+        ['auth', 'me'],
+        (currentUser) =>
+          currentUser
+            ? {
+                ...currentUser,
+                fleetPlan: result.fleetPlan,
+                subscriptionStatus: result.subscriptionStatus,
+              }
+            : currentUser,
+      );
+      await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      window.setTimeout(() => router.push('/live'), 800);
+    },
+    onError: (requestError: unknown) => {
+      setConfirmed(false);
+      setError(
+        requestError instanceof ApiError
+          ? requestError.message
+          : 'Unable to confirm the subscription right now',
+      );
+    },
+  });
 
   if (!plan) {
     return (
@@ -90,14 +132,15 @@ function CheckoutContent() {
   }
 
   const handleConfirm = () => {
-    setIsConfirming(true);
+    setError(null);
     setConfirmed(false);
 
-    // Simulate brief processing then redirect
-    setTimeout(() => {
-      setConfirmed(true);
-      setTimeout(() => router.push('/live'), 1200);
-    }, 1500);
+    if (!isOperationsPlus) {
+      setError('Only Operations Plus checkout is available in the dashboard right now.');
+      return;
+    }
+
+    checkoutMutation.mutate();
   };
 
   return (
@@ -220,14 +263,14 @@ function CheckoutContent() {
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={isConfirming}
+              disabled={checkoutMutation.isPending || confirmed}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-4 text-sm font-bold text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:scale-[1.02] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {confirmed ? (
                 <>
-                  <BadgeCheck size={16} /> Confirmed — Redirecting...
+                  <BadgeCheck size={16} /> Confirmed - Redirecting...
                 </>
-              ) : isConfirming ? (
+              ) : checkoutMutation.isPending ? (
                 <>
                   <svg
                     className="h-4 w-4 animate-spin"
@@ -256,6 +299,12 @@ function CheckoutContent() {
                 </>
               )}
             </button>
+
+            {error ? (
+              <p className="rounded-xl border border-danger-ink/30 bg-danger-soft px-4 py-3 text-sm font-semibold text-danger-ink">
+                {error}
+              </p>
+            ) : null}
 
             <p className="text-center text-[11px] text-ink-muted leading-relaxed">
               By confirming, you agree to the{' '}
