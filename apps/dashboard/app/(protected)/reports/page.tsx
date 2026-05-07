@@ -109,7 +109,7 @@ export default function ReportsPage() {
                   className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-ink-soft">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-ink-soft">
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -154,7 +154,7 @@ export default function ReportsPage() {
                   className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-ink-soft">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-ink-soft">
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">

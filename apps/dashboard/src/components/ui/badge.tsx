@@ -14,14 +14,14 @@ export type BadgeTone =
 
 const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   neutral: 'border-line bg-surface-muted text-ink-soft',
-  info: 'border-blue-200 bg-accent-soft text-accent',
-  success: 'border-emerald-200 bg-success-soft text-success-ink',
-  warning: 'border-amber-200 bg-warning-soft text-warning-ink',
-  danger: 'border-rose-200 bg-danger-soft text-danger-ink',
-  critical: 'border-pink-200 bg-critical-soft text-critical-ink',
-  low: 'border-slate-200 bg-low-soft text-low-ink',
-  medium: 'border-blue-200 bg-accent-soft text-accent',
-  high: 'border-amber-200 bg-warning-soft text-warning-ink',
+  info: 'border-accent/20 bg-accent-soft text-accent',
+  success: 'border-success-ink/20 bg-success-soft text-success-ink',
+  warning: 'border-warning-ink/20 bg-warning-soft text-warning-ink',
+  danger: 'border-danger-ink/20 bg-danger-soft text-danger-ink',
+  critical: 'border-critical-ink/20 bg-critical-soft text-critical-ink',
+  low: 'border-low-ink/20 bg-low-soft text-low-ink',
+  medium: 'border-accent/20 bg-accent-soft text-accent',
+  high: 'border-warning-ink/20 bg-warning-soft text-warning-ink',
 };
 
 interface BadgeProps {

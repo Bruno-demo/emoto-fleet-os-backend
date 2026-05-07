@@ -15,6 +15,7 @@ import {
   Unlock,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import {
   memo,
   useCallback,
@@ -83,6 +84,7 @@ type MapViewport = {
 export function LiveMapPanel() {
   const searchParams = useSearchParams();
   const { data: currentUser } = useCurrentUser();
+  const { resolvedTheme } = useTheme();
   const { bikeStates, recentEvents, commandStatuses, recordCommandStatus } = useRealtime();
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -460,7 +462,9 @@ export function LiveMapPanel() {
                 >
                   <TileLayer
                     attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    url={resolvedTheme === 'light' 
+                      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'}
                   />
                   <MapSizeController />
                   <MapViewportController
@@ -1158,7 +1162,7 @@ function InlineEmptyCard({
 }) {
   return (
     <div className="rounded-[18px] border border-dashed border-line bg-surface-muted px-4 py-4 text-center">
-      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-white text-accent">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-surface-strong text-accent">
         {icon}
       </div>
       <p className="mt-3 text-sm font-semibold text-ink">{title}</p>

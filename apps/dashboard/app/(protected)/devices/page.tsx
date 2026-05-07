@@ -216,12 +216,12 @@ export default function DevicesPage() {
               </button>
 
               {lastProvisionedSecret ? (
-                <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4">
-                  <p className="text-sm font-semibold text-amber-800">One-time device secret</p>
-                  <p className="mt-2 break-all font-mono text-sm text-amber-900">
+                <div className="rounded-[20px] border border-warning-ink/20 bg-warning-soft px-4 py-4">
+                  <p className="text-sm font-semibold text-warning-ink">One-time device secret</p>
+                  <p className="mt-2 break-all font-mono text-sm text-ink">
                     {lastProvisionedSecret}
                   </p>
-                  <p className="mt-2 text-xs leading-5 text-amber-700">
+                  <p className="mt-2 text-xs leading-5 text-warning-ink/80">
                     This value is shown only once. Copy it into the technician handoff flow now.
                   </p>
                 </div>
