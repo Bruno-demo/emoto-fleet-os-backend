@@ -84,7 +84,7 @@ export function Drawer({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint hover:bg-white/10 hover:text-ink transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint hover:bg-surface-hover hover:text-ink transition-colors"
             aria-label="Close detail drawer"
           >
             <X size={15} />

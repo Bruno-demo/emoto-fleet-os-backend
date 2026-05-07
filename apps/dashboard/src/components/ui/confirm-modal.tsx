@@ -103,7 +103,7 @@ export function ConfirmModal({
             onClick={onConfirm}
             disabled={isSubmitting}
             className={cx(
-              'rounded-xl px-4 py-2 text-[13px] font-semibold text-ink transition-colors disabled:opacity-50',
+              'rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-50',
               tone === 'danger'
                 ? 'bg-rose-600 hover:bg-rose-700'
                 : 'bg-accent hover:bg-accent-strong',

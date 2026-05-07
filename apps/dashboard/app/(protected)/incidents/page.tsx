@@ -229,7 +229,7 @@ export default function IncidentsPage() {
         <button
           type="button"
           onClick={() => setSelectedIncidentId(incident.id)}
-          className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08] hover:border-accent/30"
+          className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30"
         >
           Open detail
         </button>
@@ -281,7 +281,7 @@ export default function IncidentsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
+              className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-muted"
             >
               Reset to open queue
             </button>
@@ -369,7 +369,7 @@ export default function IncidentsPage() {
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                     placeholder="Optional resolution context, handoff details, or false-alarm reasoning."
-                    className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-white"
+                    className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                   />
                 </label>
 
@@ -409,7 +409,7 @@ export default function IncidentsPage() {
                   onClick={() => {
                     void generateEvidencePack();
                   }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-ink px-4 py-3 text-sm font-semibold text-ink transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-ink px-4 py-3 text-sm font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <FileArchive size={16} />
                   {isGeneratingEvidence ? 'Generating evidence pack...' : 'Generate evidence pack'}
@@ -442,7 +442,7 @@ export default function IncidentsPage() {
                         href={evidencePack.summaryJsonUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                        className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                       >
                         Download summary JSON
                       </a>
@@ -450,7 +450,7 @@ export default function IncidentsPage() {
                         href={evidencePack.telemetryCsvUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                        className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                       >
                         Download telemetry CSV
                       </a>
@@ -540,8 +540,8 @@ function StatusTab({
         ? 'border-warning-ink/30 bg-warning-soft text-warning-ink'
         : tone === 'success'
           ? 'border-success-ink/30 bg-success-soft text-success-ink'
-          : 'border-white/[0.12] bg-white/[0.08] text-ink'
-    : 'border-white/[0.06] bg-surface-muted text-ink-muted hover:bg-white/[0.05]';
+          : 'border-line-strong bg-surface-hover text-ink'
+    : 'border-line bg-surface-muted text-ink-muted hover:bg-surface-hover';
 
   return (
     <button

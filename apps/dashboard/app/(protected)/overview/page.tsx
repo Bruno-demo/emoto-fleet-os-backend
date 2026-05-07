@@ -390,7 +390,7 @@ function FleetStatCard({
       <span
         className={cx(
           'flex h-10 w-10 items-center justify-center rounded-xl',
-          urgent ? 'bg-danger-soft text-danger-ink' : 'bg-white/[0.06] text-ink-muted',
+          urgent ? 'bg-danger-soft text-danger-ink' : 'bg-surface-muted text-ink-muted',
         )}
       >
         {icon}
@@ -419,7 +419,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-white/[0.05] hover:border-white/20"
+      className="flex items-center gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-surface-hover hover:border-line-strong"
     >
       <span className="text-accent">{icon}</span>
       {label}
@@ -467,7 +467,7 @@ function WatchlistSection({
           className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 transition-colors hover:bg-surface-hover"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-[10px] font-bold text-ink-muted">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-surface-muted text-[10px] font-bold text-ink-muted">
               {i + 1}
             </span>
             <div className="min-w-0">

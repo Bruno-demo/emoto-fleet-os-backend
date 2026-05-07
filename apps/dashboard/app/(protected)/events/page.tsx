@@ -101,13 +101,13 @@ export default function EventsPage() {
               <>
                 <Link
                   href={`/bikes?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-accent transition hover:bg-white/[0.08]"
+                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted"
                 >
                   Open bike
                 </Link>
                 <Link
                   href={`/live?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/[0.08]"
+                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
                 >
                   View live
                 </Link>
@@ -172,7 +172,7 @@ export default function EventsPage() {
                 setTo('');
                 setPage(1);
               }}
-              className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/[0.08]"
+              className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-muted"
             >
               Reset filters
             </button>

@@ -243,7 +243,7 @@ export function DashboardNav({
                           </span>
                         )}
                         {collapsed && !locked && badge !== undefined && (
-                          <span className="absolute -right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-ink">
+                          <span className="absolute -right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-white">
                             {badge > 9 ? '9+' : badge}
                           </span>
                         )}

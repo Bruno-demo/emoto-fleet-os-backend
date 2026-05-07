@@ -100,10 +100,10 @@ export function InlineNotice({ message, tone = 'danger' }: InlineNoticeProps) {
       className={cx(
         'rounded-[18px] border px-4 py-3 text-sm',
         tone === 'success'
-          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+          ? 'border-success-ink/30 bg-success-soft text-success-ink'
           : tone === 'warning'
-            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-            : 'border-rose-500/30 bg-rose-500/10 text-rose-400',
+            ? 'border-warning-ink/30 bg-warning-soft text-warning-ink'
+            : 'border-danger-ink/30 bg-danger-soft text-danger-ink',
       )}
     >
       {message}

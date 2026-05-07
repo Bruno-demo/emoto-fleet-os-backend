@@ -243,7 +243,7 @@ export default function ZonesPage() {
             <button
               type="button"
               onClick={() => beginEditing(zone)}
-              className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/10"
+              className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
             >
               Edit
             </button>
@@ -390,14 +390,14 @@ export default function ZonesPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-[var(--radius-control)] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/10"
+                className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
               >
                 Reset form
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-ink transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting
                   ? editingZone

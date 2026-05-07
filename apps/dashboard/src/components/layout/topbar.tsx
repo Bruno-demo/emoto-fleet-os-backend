@@ -136,7 +136,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             >
               <Bell size={16} />
               {openCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-ink animate-pulse-soft">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-white animate-pulse-soft">
                   {openCount > 9 ? '9+' : openCount}
                 </span>
               )}
