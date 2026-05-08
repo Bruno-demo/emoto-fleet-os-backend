@@ -1,9 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { useParams, useRouter } from 'next/navigation';
-import { Building2, ArrowLeft, Bike, User, Shield, Zap, Calendar, MapPin, Activity, TrendingUp, Users } from 'lucide-react';
+import { Building2, ArrowLeft, Bike, User, Shield, Zap, Calendar, MapPin, Activity, TrendingUp, Users, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { z } from 'zod';
 
@@ -32,6 +32,8 @@ const fleetDetailSchema = z.object({
     bikes: z.number(),
     events: z.number(),
     trips: z.number(),
+    devices: z.number().optional(),
+    incidents: z.number().optional(),
   }),
 });
 
@@ -43,6 +45,28 @@ export default function FleetDetailPage() {
     queryKey: ['hq', 'fleet', id],
     queryFn: () => apiFetch(`/hq/fleets/${id}`, {}, { schema: fleetDetailSchema }),
     enabled: !!id,
+  });
+
+  const queryClient = useQueryClient();
+
+  const planMutation = useMutation({
+    mutationFn: (plan: string) =>
+      apiFetch(`/hq/fleets/${id}/plan`, { method: 'PUT', body: JSON.stringify({ plan }), headers: { 'Content-Type': 'application/json' } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hq', 'fleet', id] }),
+  });
+
+  const subMutation = useMutation({
+    mutationFn: (status: string) =>
+      apiFetch(`/hq/fleets/${id}/subscription`, { method: 'PUT', body: JSON.stringify({ status }), headers: { 'Content-Type': 'application/json' } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hq', 'fleet', id] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiFetch(`/hq/fleets/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq'] });
+      router.push('/hq/fleets');
+    },
   });
 
   if (isLoading) {
@@ -146,6 +170,72 @@ export default function FleetDetailPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
               <Activity size={24} />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Fleet Management Actions */}
+      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-white mb-6">
+          <Shield size={18} className="text-zinc-400" />
+          Fleet Management
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* Plan Change */}
+          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Service Plan</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => planMutation.mutate('DEMO')}
+                disabled={planMutation.isPending || fleet.plan === 'DEMO'}
+                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                  fleet.plan === 'DEMO' ? 'bg-accent text-white' : 'border border-white/5 bg-white/5 text-zinc-400 hover:bg-white/10'
+                }`}
+              >
+                DEMO
+              </button>
+              <button
+                onClick={() => planMutation.mutate('PREMIUM')}
+                disabled={planMutation.isPending || fleet.plan === 'PREMIUM'}
+                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                  fleet.plan === 'PREMIUM' ? 'bg-accent text-white' : 'border border-white/5 bg-white/5 text-zinc-400 hover:bg-white/10'
+                }`}
+              >
+                PREMIUM
+              </button>
+            </div>
+          </div>
+
+          {/* Subscription Status */}
+          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Subscription</p>
+            <select
+              value={fleet.subscriptionStatus}
+              onChange={(e) => subMutation.mutate(e.target.value)}
+              disabled={subMutation.isPending}
+              className="w-full rounded-xl border border-white/5 bg-[#121214] px-3 py-2.5 text-xs font-bold text-zinc-300 focus:border-accent focus:outline-none cursor-pointer"
+            >
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="PAST_DUE">PAST_DUE</option>
+              <option value="CANCELED">CANCELED</option>
+            </select>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="rounded-2xl border border-rose-500/15 bg-rose-500/[0.03] p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/70 mb-3">Danger Zone</p>
+            <button
+              onClick={() => {
+                if (confirm(`Disable fleet "${fleet.name}"? All users will be set to DISABLED and bikes to RETIRED. This is a soft-delete.`)) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 px-3 py-2.5 text-xs font-bold text-rose-400 transition-all hover:bg-rose-500/25 disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+              {deleteMutation.isPending ? 'Disabling…' : 'Disable Fleet'}
+            </button>
           </div>
         </div>
       </div>

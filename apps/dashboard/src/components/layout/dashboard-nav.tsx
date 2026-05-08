@@ -278,9 +278,9 @@ export function DashboardNav({
               {user?.fleetName === 'E-Moto HQ' && (
                 <Link
                   href="/hq/overview"
-                  className="flex items-center justify-center gap-2 rounded-xl bg-ink text-surface px-3 py-2 text-[13px] font-semibold hover:bg-ink/90 transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-accent text-white px-3 py-2 text-[13px] font-semibold hover:bg-accent-strong transition-all shadow-sm"
                 >
-                  <Zap size={14} className="fill-current text-accent" />
+                  <Zap size={14} className="fill-current" />
                   Enter HQ
                 </Link>
               )}

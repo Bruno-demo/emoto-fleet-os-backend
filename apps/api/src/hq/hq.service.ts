@@ -1,32 +1,90 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserStatus } from '@prisma/client';
+import { UserStatus, UserRole, FleetPlan, FleetSubscriptionStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class HqService {
   constructor(private prisma: PrismaService) {}
 
+  // ── Overview ──────────────────────────────────────────────────────
+
   async getStats() {
     const [
       totalFleets,
       totalBikes,
+      totalRiders,
+      totalDevices,
       totalPendingSetups,
       totalPartners,
+      totalIncidents,
+      openIncidents,
     ] = await Promise.all([
       this.prisma.fleet.count(),
       this.prisma.bike.count(),
+      this.prisma.user.count({ where: { role: 'RIDER' } }),
+      this.prisma.device.count(),
       this.prisma.user.count({ where: { status: 'PENDING_SETUP' } }),
       this.prisma.partner.count(),
+      this.prisma.incident.count(),
+      this.prisma.incident.count({ where: { status: 'OPEN' } }),
     ]);
 
     return {
       totalFleets,
       totalBikes,
+      totalRiders,
+      totalDevices,
       totalPendingSetups,
       totalPartners,
+      totalIncidents,
+      openIncidents,
     };
   }
+
+  async getHealth() {
+    const [dbOk] = await Promise.all([
+      this.prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false),
+    ]);
+
+    return [
+      { label: 'EMQX Cluster', status: 'Operational', color: 'text-emerald-400' },
+      { label: 'Core API', status: 'Healthy', color: 'text-emerald-400' },
+      { label: 'Telemetry Engine', status: 'Nominal', color: 'text-emerald-400' },
+      { label: 'Database Layer', status: dbOk ? 'Hypertable Active' : 'Degraded', color: dbOk ? 'text-sky-400' : 'text-rose-400' },
+    ];
+  }
+
+  async getEvents() {
+    const [fleets, users] = await Promise.all([
+      this.prisma.fleet.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
+      this.prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { fleet: true },
+      }),
+    ]);
+
+    const events = [
+      ...fleets.map(f => ({
+        fleet: f.name,
+        event: 'New Fleet Provisioned',
+        time: this.formatRelative(f.createdAt),
+        type: 'success',
+      })),
+      ...users.map(u => ({
+        fleet: u.fleet?.name ?? 'Unknown',
+        event: 'Operator Account Activated',
+        time: this.formatRelative(u.createdAt),
+        type: 'info',
+      })),
+    ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 8);
+
+    return events;
+  }
+
+  // ── Fleets ────────────────────────────────────────────────────────
 
   async getFleets() {
     return this.prisma.fleet.findMany({
@@ -37,6 +95,141 @@ export class HqService {
         },
       },
     });
+  }
+
+  async getFleetById(fleetId: string) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+      include: {
+        users: {
+          select: { id: true, email: true, phone: true, role: true, status: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        bikes: {
+          select: { id: true, label: true, plate: true, status: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: {
+          select: { users: true, bikes: true, events: true, trips: true, devices: true, incidents: true },
+        },
+      },
+    });
+
+    if (!fleet) throw new NotFoundException(`Fleet ${fleetId} not found`);
+    return fleet;
+  }
+
+  async updateFleetPlan(fleetId: string, plan: string) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    if (!['DEMO', 'PREMIUM'].includes(plan)) {
+      throw new BadRequestException('Invalid plan. Must be DEMO or PREMIUM');
+    }
+
+    return this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: { plan: plan as FleetPlan },
+      select: { id: true, name: true, plan: true },
+    });
+  }
+
+  async updateFleetSubscription(fleetId: string, status: string) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    if (!['ACTIVE', 'PAST_DUE', 'CANCELED'].includes(status)) {
+      throw new BadRequestException('Invalid status');
+    }
+
+    return this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: { subscriptionStatus: status as FleetSubscriptionStatus },
+      select: { id: true, name: true, subscriptionStatus: true },
+    });
+  }
+
+  async softDeleteFleet(fleetId: string) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    // Soft-delete: set subscription to CANCELED and all users to DISABLED
+    await this.prisma.$transaction([
+      this.prisma.fleet.update({
+        where: { id: fleetId },
+        data: { subscriptionStatus: 'CANCELED' },
+      }),
+      this.prisma.user.updateMany({
+        where: { fleetId },
+        data: { status: 'DISABLED' },
+      }),
+      this.prisma.bike.updateMany({
+        where: { fleetId },
+        data: { status: 'RETIRED' },
+      }),
+      this.prisma.device.updateMany({
+        where: { fleetId },
+        data: { status: 'RETIRED' },
+      }),
+    ]);
+
+    return { success: true, message: `Fleet "${fleet.name}" has been disabled.` };
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────
+
+  async getUsers(opts: {
+    page: number;
+    pageSize: number;
+    search?: string;
+    status?: string;
+    role?: string;
+  }) {
+    const where: any = {};
+
+    if (opts.status) {
+      where.status = opts.status;
+    }
+
+    if (opts.role) {
+      where.role = opts.role;
+    }
+
+    if (opts.search) {
+      where.OR = [
+        { email: { contains: opts.search, mode: 'insensitive' } },
+        { phone: { contains: opts.search } },
+        { riderProfile: { fullName: { contains: opts.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip: (opts.page - 1) * opts.pageSize,
+        take: opts.pageSize,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          fleet: { select: { id: true, name: true } },
+          riderProfile: { select: { fullName: true } },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page: opts.page,
+      pageSize: opts.pageSize,
+      totalPages: Math.ceil(total / opts.pageSize),
+    };
   }
 
   async getPendingUsers() {
@@ -68,6 +261,48 @@ export class HqService {
     });
   }
 
+  async updateUserRole(userId: string, role: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const validRoles: string[] = ['OWNER', 'ADMIN', 'DISPATCHER', 'TECH', 'INSURER', 'RIDER'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role: role as UserRole },
+      select: { id: true, email: true, phone: true, role: true },
+    });
+  }
+
+  async updateUserStatus(userId: string, status: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const validStatuses = ['ACTIVE', 'SUSPENDED', 'DISABLED'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { status: status as UserStatus },
+      select: { id: true, email: true, phone: true, status: true },
+    });
+  }
+
+  async deleteUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { success: true };
+  }
+
+  // ── Partners ──────────────────────────────────────────────────────
+
   async getPartners() {
     return this.prisma.partner.findMany({
       orderBy: { createdAt: 'desc' },
@@ -77,74 +312,6 @@ export class HqService {
         },
       },
     });
-  }
-
-  async getHealth() {
-    // Basic service connectivity checks
-    const [dbOk, redisOk] = await Promise.all([
-      this.prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false),
-      // Mocking other services for now as we don't have direct access in this context
-      Promise.resolve(true), 
-    ]);
-
-    return [
-      { label: 'EMQX Cluster', status: 'Operational', color: 'text-emerald-400' },
-      { label: 'Core API', status: 'Healthy', color: 'text-emerald-400' },
-      { label: 'Telemetry Engine', status: 'Nominal', color: 'text-emerald-400' },
-      { label: 'Database Layer', status: dbOk ? 'Hypertable Active' : 'Degraded', color: dbOk ? 'text-sky-400' : 'text-rose-400' },
-    ];
-  }
-
-  async getEvents() {
-    // Fetch recent fleets and activations as events
-    const [fleets, users] = await Promise.all([
-      this.prisma.fleet.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
-      this.prisma.user.findMany({ 
-        where: { status: 'ACTIVE' }, 
-        take: 5, 
-        orderBy: { createdAt: 'desc' },
-        include: { fleet: true }
-      }),
-    ]);
-
-    const events = [
-      ...fleets.map(f => ({
-        fleet: f.name,
-        event: 'New Fleet Provisioned',
-        time: this.formatRelative(f.createdAt),
-        type: 'success',
-      })),
-      ...users.map(u => ({
-        fleet: u.fleet?.name ?? 'Unknown',
-        event: 'Operator Account Activated',
-        time: this.formatRelative(u.createdAt),
-        type: 'info',
-      })),
-    ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 8);
-
-    return events;
-  }
-
-  async getFleetById(fleetId: string) {
-    const fleet = await this.prisma.fleet.findUnique({
-      where: { id: fleetId },
-      include: {
-        users: {
-          select: { id: true, email: true, phone: true, role: true, status: true },
-          orderBy: { createdAt: 'desc' },
-        },
-        bikes: {
-          select: { id: true, label: true, plate: true, status: true },
-          orderBy: { createdAt: 'desc' },
-        },
-        _count: {
-          select: { users: true, bikes: true, events: true, trips: true },
-        },
-      },
-    });
-
-    if (!fleet) throw new NotFoundException(`Fleet ${fleetId} not found`);
-    return fleet;
   }
 
   async getPartnerById(partnerId: string) {
@@ -271,6 +438,131 @@ export class HqService {
     await this.prisma.partnerWebhook.delete({ where: { id: webhookId } });
     return { success: true };
   }
+
+  // ── Audit Log ─────────────────────────────────────────────────────
+
+  async getAuditLog(opts: {
+    page: number;
+    pageSize: number;
+    fleetId?: string;
+    actionType?: string;
+  }) {
+    const where: any = {};
+
+    if (opts.fleetId) {
+      where.fleetId = opts.fleetId;
+    }
+
+    if (opts.actionType) {
+      where.actionType = opts.actionType;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        skip: (opts.page - 1) * opts.pageSize,
+        take: opts.pageSize,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          actionType: true,
+          targetType: true,
+          targetId: true,
+          metaJson: true,
+          createdAt: true,
+          fleet: { select: { id: true, name: true } },
+          actorUser: { select: { id: true, email: true, phone: true } },
+        },
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return {
+      data: data.map(d => ({ ...d, id: d.id.toString() })),
+      total,
+      page: opts.page,
+      pageSize: opts.pageSize,
+      totalPages: Math.ceil(total / opts.pageSize),
+    };
+  }
+
+  // ── Incidents ─────────────────────────────────────────────────────
+
+  async getIncidents(opts: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    fleetId?: string;
+  }) {
+    const where: any = {};
+
+    if (opts.status) {
+      where.status = opts.status;
+    }
+
+    if (opts.fleetId) {
+      where.fleetId = opts.fleetId;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.incident.findMany({
+        where,
+        skip: (opts.page - 1) * opts.pageSize,
+        take: opts.pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          fleet: { select: { id: true, name: true } },
+          bike: { select: { id: true, label: true } },
+          event: { select: { type: true, severity: true } },
+        },
+      }),
+      this.prisma.incident.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page: opts.page,
+      pageSize: opts.pageSize,
+      totalPages: Math.ceil(total / opts.pageSize),
+    };
+  }
+
+  // ── Monitoring ────────────────────────────────────────────────────
+
+  async getMonitoringLive() {
+    const [
+      dbSize,
+      totalTelemetry,
+      totalEvents,
+      totalTrips,
+      activeDevices,
+      totalUsers,
+    ] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ size: string }>>`
+        SELECT pg_size_pretty(pg_database_size(current_database())) as size
+      `.then(rows => rows[0]?.size ?? 'Unknown'),
+      this.prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*) as count FROM "TelemetryPoint"
+      `.then(rows => Number(rows[0]?.count ?? 0)).catch(() => 0),
+      this.prisma.event.count(),
+      this.prisma.trip.count(),
+      this.prisma.device.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.user.count({ where: { status: 'ACTIVE' } }),
+    ]);
+
+    return {
+      databaseSize: dbSize,
+      totalTelemetryPoints: totalTelemetry,
+      totalEvents,
+      totalTrips,
+      activeDevices,
+      activeUsers: totalUsers,
+      uptimeSeconds: Math.floor(process.uptime()),
+    };
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────
 
   private formatRelative(date: Date) {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
