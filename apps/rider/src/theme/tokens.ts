@@ -152,6 +152,116 @@ export const theme = {
   }),
 } as const;
 
+export const lightTheme = {
+  colors: {
+    // Core surfaces
+    background: '#F8FAFC',
+    backgroundAccent: '#F1F5F9',
+    surface: '#FFFFFF',
+    surfaceMuted: '#F1F5F9',
+    surfaceStrong: '#FFFFFF',
+    surfaceRaised: 'rgba(241, 245, 249, 0.85)',
+
+    // Borders
+    border: 'rgba(0, 0, 0, 0.08)',
+    borderStrong: 'rgba(0, 0, 0, 0.15)',
+    borderFaint: 'rgba(0, 0, 0, 0.04)',
+
+    // Text
+    text: '#0F172A',
+    textSecondary: '#475569',
+    textMuted: '#94A3B8',
+    textFaint: '#CBD5E1',
+
+    // Primary / accent
+    primary: '#2563EB',
+    primaryStrong: '#1D4ED8',
+    primarySoft: 'rgba(37, 99, 235, 0.10)',
+    primaryBorder: 'rgba(37, 99, 235, 0.25)',
+    primaryGlow: 'rgba(37, 99, 235, 0.06)',
+
+    // Semantic: Success
+    success: '#059669',
+    successStrong: '#047857',
+    successSoft: 'rgba(5, 150, 105, 0.10)',
+    successBorder: 'rgba(5, 150, 105, 0.25)',
+
+    // Semantic: Warning
+    warning: '#D97706',
+    warningStrong: '#B45309',
+    warningSoft: 'rgba(217, 119, 6, 0.10)',
+    warningBorder: 'rgba(217, 119, 6, 0.25)',
+
+    // Semantic: Danger
+    danger: '#E11D48',
+    dangerStrong: '#BE123C',
+    dangerSoft: 'rgba(225, 29, 72, 0.10)',
+    dangerBorder: 'rgba(225, 29, 72, 0.25)',
+
+    // Severity scale
+    low: '#64748B',
+    lowSoft: 'rgba(100, 116, 139, 0.10)',
+    lowBorder: 'rgba(100, 116, 139, 0.25)',
+    medium: '#2563EB',
+    mediumSoft: 'rgba(37, 99, 235, 0.10)',
+    mediumBorder: 'rgba(37, 99, 235, 0.25)',
+    high: '#D97706',
+    highSoft: 'rgba(217, 119, 6, 0.10)',
+    highBorder: 'rgba(217, 119, 6, 0.25)',
+    critical: '#E11D48',
+    criticalSoft: 'rgba(225, 29, 72, 0.10)',
+    criticalBorder: 'rgba(225, 29, 72, 0.25)',
+
+    // Feature
+    purple: '#7C3AED',
+    purpleSoft: 'rgba(124, 58, 237, 0.10)',
+    purpleBorder: 'rgba(124, 58, 237, 0.25)',
+
+    // System
+    offline: '#D97706',
+    overlay: 'rgba(0, 0, 0, 0.45)',
+    shimmer: 'rgba(0, 0, 0, 0.03)',
+  },
+  spacing: theme.spacing,
+  layout: theme.layout,
+  radius: theme.radius,
+  typography: theme.typography,
+  shadow: Platform.select({
+    ios: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 4 },
+    },
+    android: {
+      elevation: 3,
+    },
+    default: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 4 },
+    },
+  }),
+  shadowLight: Platform.select({
+    ios: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.03,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+    },
+    android: {
+      elevation: 1,
+    },
+    default: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.03,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+    },
+  }),
+} as const;
+
 export type ThemeSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type BadgeTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger';
 

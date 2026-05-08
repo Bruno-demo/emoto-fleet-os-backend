@@ -209,7 +209,7 @@ export default function DevicesPage() {
               <button
                 type="submit"
                 disabled={isCreating}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-ink transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <KeyRound size={16} />
                 {isCreating ? 'Provisioning device...' : 'Provision device'}

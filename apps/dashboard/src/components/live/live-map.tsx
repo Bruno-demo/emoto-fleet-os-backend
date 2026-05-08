@@ -1066,20 +1066,20 @@ function MapChip({ label, tone }: { label: string; tone: 'info' | 'success' | 'd
       className={cx(
         'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold',
         tone === 'success'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400'
+          ? 'border-success-ink/20 bg-success-soft text-success-ink'
           : tone === 'danger'
-            ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-400'
-            : 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-400',
+            ? 'border-danger-ink/20 bg-danger-soft text-danger-ink'
+            : 'border-accent/20 bg-accent-soft text-accent',
       )}
     >
       <span
         className={cx(
           'h-1.5 w-1.5 rounded-full',
           tone === 'success'
-            ? 'bg-emerald-500'
+            ? 'bg-success-ink'
             : tone === 'danger'
-              ? 'bg-rose-500'
-              : 'bg-sky-500',
+              ? 'bg-danger-ink'
+              : 'bg-accent',
         )}
       />
       {label}
@@ -1108,7 +1108,7 @@ function ActionButton({
       className={cx(
         'inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
         tone === 'danger'
-          ? 'bg-rose-600 text-ink hover:bg-rose-700'
+          ? 'bg-danger-ink text-white hover:brightness-110'
           : 'border border-line bg-surface-muted text-ink hover:bg-surface-hover',
       )}
     >
@@ -1198,8 +1198,8 @@ function ActionNotice({
       className={cx(
         'rounded-[18px] border px-3 py-2 text-xs leading-5',
         tone === 'danger'
-          ? 'border-rose-200 bg-rose-50 text-rose-700'
-          : 'border-amber-200 bg-amber-50 text-amber-700',
+          ? 'border-danger-ink/20 bg-danger-soft text-danger-ink'
+          : 'border-warning-ink/20 bg-warning-soft text-warning-ink',
       )}
     >
       {message}

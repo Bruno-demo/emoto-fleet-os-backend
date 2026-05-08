@@ -14,18 +14,18 @@ export function ToastStack({ items }: { items: ToastItem[] }) {
           key={item.id}
           className={`rounded-[20px] border px-4 py-3 shadow-[var(--shadow-soft)] ${
             item.tone === 'danger'
-              ? 'border-rose-200 bg-rose-50'
+              ? 'border-danger-ink/20 bg-danger-soft'
               : item.tone === 'warning'
-                ? 'border-amber-200 bg-amber-50'
+                ? 'border-warning-ink/20 bg-warning-soft'
                 : item.tone === 'success'
-                  ? 'border-emerald-200 bg-emerald-50'
-                  : 'border-sky-200 bg-sky-50'
+                  ? 'border-success-ink/20 bg-success-soft'
+                  : 'border-accent/20 bg-accent-soft'
           }`}
         >
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm font-semibold text-ink">{item.title}</p>
             {item.count && item.count > 1 ? (
-              <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-ink-soft">
+              <span className="rounded-full bg-surface-strong px-2 py-1 text-[11px] font-semibold text-ink-soft">
                 x{item.count}
               </span>
             ) : null}
