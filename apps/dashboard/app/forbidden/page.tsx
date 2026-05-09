@@ -22,7 +22,7 @@ export default function ForbiddenPage() {
       <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
         <Link
           href="/live"
-          className="inline-flex items-center gap-2 rounded-[16px] bg-ink px-6 py-3 text-sm font-semibold text-surface transition hover:bg-ink/90 active:scale-95"
+          className="inline-flex items-center gap-2 rounded-[16px] bg-accent px-6 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong active:scale-95"
         >
           <ArrowLeft size={16} />
           Back to Dashboard
