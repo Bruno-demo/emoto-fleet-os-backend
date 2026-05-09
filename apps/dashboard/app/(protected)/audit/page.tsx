@@ -115,11 +115,11 @@ export default function AuditLogPage() {
               setActionFilter(e.target.value as AuditActionType | '');
               setPage(1);
             }}
-            className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-sm text-ink outline-none focus:border-accent/50"
+            className="rounded-xl border border-line bg-background px-3.5 py-2 text-sm text-ink outline-none focus:border-accent/50"
           >
-            <option value="">All actions</option>
+            <option value="" className="bg-background text-ink">All actions</option>
             {ACTION_TYPE_OPTIONS.map((type) => (
-              <option key={type} value={type}>
+              <option key={type} value={type} className="bg-background text-ink">
                 {formatEnumLabel(type)}
               </option>
             ))}
