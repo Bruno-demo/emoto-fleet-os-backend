@@ -649,15 +649,12 @@ export function LiveMapPanel() {
                 value={selectedState ? `${selectedState.speedKph.toFixed(1)} kph` : '--'}
               />
               <KeyMetric
-                label="Last seen"
-                value={selectedState ? formatTimeAgo(selectedState.ts) : 'No live state'}
+                label="Battery"
+                value={selectedState?.batteryV !== undefined ? `${selectedState.batteryV.toFixed(1)} V` : '--'}
               />
               <KeyMetric
-                label="Assigned rider"
-                value={
-                  selectedAssignment?.riderFullName ??
-                  (assignmentsEnabled ? 'Unassigned' : 'Access limited')
-                }
+                label="Last seen"
+                value={selectedState ? formatTimeAgo(selectedState.ts) : 'No live state'}
               />
               <KeyMetric
                 label="Ignition"
@@ -667,6 +664,13 @@ export function LiveMapPanel() {
                     : selectedState.ignition
                       ? 'On'
                       : 'Off'
+                }
+              />
+              <KeyMetric
+                label="Assigned rider"
+                value={
+                  selectedAssignment?.riderFullName ??
+                  (assignmentsEnabled ? 'Unassigned' : 'Access limited')
                 }
               />
             </section>
