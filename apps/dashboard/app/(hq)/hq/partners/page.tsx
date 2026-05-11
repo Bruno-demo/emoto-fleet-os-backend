@@ -34,7 +34,10 @@ export default function HqPartnersPage() {
           <p className="mt-1 text-zinc-400">Strategic API integrations and global webhook destinations.</p>
         </div>
         
-        <button className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-white transition-all hover:scale-105 hover:bg-accent-strong active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+        <button 
+          onClick={() => router.push('/hq/partners/new')}
+          className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-white transition-all hover:scale-105 hover:bg-accent-strong active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+        >
           <Plus size={16} strokeWidth={3} />
           Onboard Partner
         </button>

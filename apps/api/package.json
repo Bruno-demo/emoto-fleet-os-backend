@@ -17,6 +17,7 @@
     "partner:create-client": "dotenv -e ../../.env -- ts-node scripts/create-partner-client.ts",
     "mqtt:publish:sample": "dotenv -e ../../.env -- ts-node scripts/publish-sample-telemetry.ts",
     "mqtt:publish:sample:ack": "dotenv -e ../../.env -- ts-node scripts/publish-sample-ack.ts",
+    "simulate:fleet": "dotenv -e ../../.env -- ts-node scripts/simulate-fleet.ts",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

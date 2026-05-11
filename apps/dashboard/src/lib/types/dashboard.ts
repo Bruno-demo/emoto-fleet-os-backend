@@ -100,6 +100,13 @@ export interface FleetEvent {
   createdAt: string;
 }
 
+export interface IncidentStats {
+  open: number;
+  acknowledged: number;
+  resolved: number;
+  falseAlarm: number;
+}
+
 export interface BikeTrip {
   id: string;
   fleetId: string;

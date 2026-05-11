@@ -14,7 +14,7 @@ import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { canUseFeature } from '@/lib/subscription';
-import type { Bike, FleetEvent, Incident, IncidentEvidencePack, PaginatedResponse } from '@/lib/types/dashboard';
+import type { Bike, FleetEvent, Incident, IncidentEvidencePack, IncidentStats, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -105,14 +105,17 @@ export default function IncidentsPage() {
   }, [bikesQuery.data?.data]);
 
   const incidents = useMemo(() => incidentsQuery.data?.data ?? [], [incidentsQuery.data?.data]);
-  const incidentStats = useMemo(() => {
-    return {
-      open: incidents.filter((incident) => incident.status === 'OPEN').length,
-      acknowledged: incidents.filter((incident) => incident.status === 'ACKNOWLEDGED').length,
-      resolved: incidents.filter((incident) => incident.status === 'RESOLVED').length,
-      falseAlarm: incidents.filter((incident) => incident.status === 'FALSE_ALARM').length,
-    };
-  }, [incidents]);
+  const incidentsStatsQuery = useQuery({
+    queryKey: ['incidents', 'stats'],
+    queryFn: () => apiFetch<IncidentStats>('/incidents/stats'),
+  });
+
+  const incidentStats = incidentsStatsQuery.data ?? {
+    open: 0,
+    acknowledged: 0,
+    resolved: 0,
+    falseAlarm: 0,
+  };
 
   const timelineRows = useMemo(
     () => buildIncidentTimeline(selectedIncident, incidentTimelineEventsQuery.data ?? [], bikeLabelById),

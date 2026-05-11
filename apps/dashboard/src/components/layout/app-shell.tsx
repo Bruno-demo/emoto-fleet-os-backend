@@ -8,7 +8,7 @@ import { SubscriptionGate } from '@/components/subscription-gate';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { canUseFeature, getSubscriptionEntitlements } from '@/lib/subscription';
-import type { Incident, PaginatedResponse } from '@/lib/types/dashboard';
+import type { Incident, IncidentStats, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx } from '@/lib/ui';
 
 interface AppShellProps {
@@ -22,14 +22,13 @@ export function AppShell({ children }: AppShellProps) {
   const entitlements = getSubscriptionEntitlements(user);
   const canViewIncidents = canUseFeature(user, 'incidents');
 
-  const incidentsQuery = useQuery({
-    queryKey: ['incidents', 'shell-count'],
-    queryFn: () =>
-      apiFetch<PaginatedResponse<Incident>>('/incidents?status=OPEN&page=1&pageSize=1'),
+  const incidentsStatsQuery = useQuery({
+    queryKey: ['incidents', 'stats', 'shell'],
+    queryFn: () => apiFetch<IncidentStats>('/incidents/stats'),
     refetchInterval: 30_000,
     enabled: canViewIncidents,
   });
-  const openIncidentCount = canViewIncidents ? incidentsQuery.data?.total ?? 0 : 0;
+  const openIncidentCount = canViewIncidents ? incidentsStatsQuery.data?.open ?? 0 : 0;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');

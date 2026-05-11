@@ -38,6 +38,13 @@ export class IncidentsController {
     return this.incidentsService.listIncidentsForUser(user, query);
   }
 
+  @Get('stats')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({ summary: 'Get incident stats for the caller fleet' })
+  async getIncidentStats(@CurrentUser() user: AuthenticatedUser) {
+    return this.incidentsService.getIncidentStatsForUser(user);
+  }
+
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
   @ApiOperation({ summary: 'Get one incident by id' })

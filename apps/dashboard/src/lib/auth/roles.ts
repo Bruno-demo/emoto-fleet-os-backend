@@ -7,7 +7,7 @@ export function canProvisionDevices(role: UserRole): boolean {
 
 // Returns true when role can manage geofence zones with create/edit/delete actions.
 export function canManageZones(role: UserRole): boolean {
-  return role === 'ADMIN';
+  return role === 'OWNER' || role === 'ADMIN';
 }
 
 // Returns true when role can access rider assignment management endpoint.
