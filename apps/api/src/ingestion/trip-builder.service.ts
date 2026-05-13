@@ -230,9 +230,13 @@ export class TripBuilderService {
       select: {
         lat: true,
         lng: true,
+        batteryPct: true,
       },
       orderBy: { ts: 'asc' },
     });
+
+    const startBatteryPct = tripPoints[0]?.batteryPct ? Number(tripPoints[0].batteryPct) : null;
+    const endBatteryPct = tripPoints[tripPoints.length - 1]?.batteryPct ? Number(tripPoints[tripPoints.length - 1].batteryPct) : null;
 
     const normalizedPoints: TripPoint[] = tripPoints.map((point) => ({
       lat: Number(point.lat),
@@ -290,6 +294,8 @@ export class TripBuilderService {
         distanceKm,
         durationSec,
         score,
+        startBatteryPct,
+        endBatteryPct,
       },
     });
 

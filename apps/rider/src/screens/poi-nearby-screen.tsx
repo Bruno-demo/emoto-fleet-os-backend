@@ -19,8 +19,8 @@ import { logAppError } from '../lib/monitoring/error-log';
 import type { NearbyPoi, PoiType } from '../lib/types/api';
 import { theme } from '../theme/tokens';
 
-const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC'];
-const POI_ICONS: Record<PoiType, string> = { GARAGE: '🔧', SWAP: '🔋', CLINIC: '🏥' };
+const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC', 'OTHER'];
+const POI_ICONS: Record<PoiType, string> = { GARAGE: '🔧', SWAP: '🔋', CLINIC: '🏥', OTHER: '📍' };
 const DEFAULT_RADIUS_KM = 5;
 const DEFAULT_LIMIT = 20;
 

@@ -10,6 +10,7 @@ datasource db {
 enum FleetType {
   COOP
   DELIVERY
+  PERSONAL
 }
 
 enum FleetPlan {
@@ -326,6 +327,7 @@ model TelemetryPoint {
   accelY    Decimal? @db.Decimal(8, 4)
   accelZ    Decimal? @db.Decimal(8, 4)
   batteryV  Decimal? @db.Decimal(8, 3)
+  batteryPct Decimal? @db.Decimal(5, 2)
   ignition  Boolean?
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
@@ -413,9 +415,11 @@ model Trip {
   startTs     DateTime  @db.Timestamptz(6)
   endTs       DateTime? @db.Timestamptz(6)
   distanceKm  Decimal   @db.Decimal(10, 3)
-  durationSec Int
-  score       Decimal   @db.Decimal(5, 2)
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  durationSec     Int
+  score           Decimal   @db.Decimal(5, 2)
+  startBatteryPct Decimal?  @db.Decimal(5, 2)
+  endBatteryPct   Decimal?  @db.Decimal(5, 2)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
   fleet       Fleet     @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   bike        Bike      @relation(fields: [bikeId], references: [id], onDelete: Cascade)
   rider       User?     @relation("TripRider", fields: [riderId], references: [id], onDelete: SetNull)

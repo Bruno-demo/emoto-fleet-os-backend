@@ -35,6 +35,44 @@ export interface RiderMeResponse {
   email: string | null;
   fullName: string | null;
   assignments: RiderAssignment[];
+  isPersonalOwner: boolean;
+}
+
+export interface LiveBikeState {
+  deviceId: string;
+  bikeId: string;
+  fleetId: string;
+  ts: string;
+  lat: number;
+  lng: number;
+  speedKph: number;
+  heading: number;
+  batteryV: number;
+  batteryPct: number;
+  signalDbm: number;
+  gnssSats: number;
+  status: string;
+  motion: boolean;
+  ingestedAt: string;
+}
+
+export interface FleetDeviceCommand {
+  id: string;
+  fleetId: string;
+  deviceId: string;
+  bikeId: string | null;
+  type: string;
+  status: string;
+  requestedByUserId: string;
+  requestedAt: string;
+  sentAt: string | null;
+  ackedAt: string | null;
+  payloadJson: unknown;
+  errorMessage: string | null;
+  nonce: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RiderTripSummary {
@@ -45,6 +83,7 @@ export interface RiderTripSummary {
   distanceKm: number;
   durationSec: number;
   score: number;
+  consumptionPct: number | null;
 }
 
 export interface RiderTripEventCounts {

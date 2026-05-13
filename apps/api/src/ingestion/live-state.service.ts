@@ -31,6 +31,16 @@ export class LiveStateService {
     this.eventsGateway.emitBikeState(state);
   }
 
+  // Loads a single latest bike state from Redis cache.
+  async getBikeState(fleetId: string, bikeId: string): Promise<LiveBikeState | null> {
+    const key = this.buildBikeStateKey(fleetId, bikeId);
+    const value = await this.redisService.get(key);
+    if (!value) {
+      return null;
+    }
+    return this.parseState(value);
+  }
+
   // Loads all latest bike states for a fleet from Redis cache.
   async getFleetBikeStates(
     fleetId: string,

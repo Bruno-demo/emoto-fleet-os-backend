@@ -26,6 +26,10 @@ import {
 } from '../common/pagination';
 import { EventsService } from '../events/events.service';
 import { NotificationOutboxService } from '../incidents/notification-outbox.service';
+import { CommandsService } from '../commands/commands.service';
+import { LiveStateService } from '../ingestion/live-state.service';
+import { LiveBikeState } from '../ingestion/ingestion.types';
+import { FleetDeviceCommand } from '../commands/commands.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { haversineDistanceKm } from '../trips/trip-scoring.util';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
@@ -95,6 +99,8 @@ export class RidersService {
     private readonly auditService: AuditService,
     private readonly eventsService: EventsService,
     private readonly notificationOutboxService: NotificationOutboxService,
+    private readonly commandsService: CommandsService,
+    private readonly liveStateService: LiveStateService,
   ) {
     this.tripScoreMinDistanceKm = this.configService.get<number>(
       'TRIP_SCORE_MIN_DISTANCE_KM',
@@ -498,6 +504,11 @@ export class RidersService {
   // Returns rider profile plus currently active bike assignments.
   async getRiderMe(user: AuthenticatedUser): Promise<RiderMeResponse> {
     const rider = await this.loadRiderIdentityOrThrow(user.id, user.fleetId);
+    
+    const fleet = await this.prismaService.fleet.findUnique({
+      where: { id: user.fleetId },
+    });
+    
     return {
       userId: rider.id,
       fleetId: rider.fleetId,
@@ -507,7 +518,50 @@ export class RidersService {
       assignments: rider.bikeAssignments.map((assignment) =>
         this.toAssignmentSummary(assignment),
       ),
+      isPersonalOwner: fleet?.type === 'PERSONAL',
     };
+  }
+
+  // Returns live telemetry for an assigned bike
+  async getRiderBikeState(
+    user: AuthenticatedUser,
+    bikeId: string,
+  ): Promise<LiveBikeState | null> {
+    await this.assertBikeAssignedToRider(user, bikeId);
+    return this.liveStateService.getBikeState(user.fleetId, bikeId);
+  }
+
+  // Requests lock command for personal bike owner
+  async requestLock(user: AuthenticatedUser, bikeId: string): Promise<FleetDeviceCommand> {
+    await this.assertBikeAssignedToRider(user, bikeId);
+    await this.assertPersonalFleet(user.fleetId);
+    return this.commandsService.requestLockForBike(bikeId, user);
+  }
+
+  // Requests unlock command for personal bike owner
+  async requestUnlock(user: AuthenticatedUser, bikeId: string): Promise<FleetDeviceCommand> {
+    await this.assertBikeAssignedToRider(user, bikeId);
+    await this.assertPersonalFleet(user.fleetId);
+    return this.commandsService.requestUnlockForBike(bikeId, user);
+  }
+
+  // Validates fleet type is PERSONAL for premium rider features
+  private async assertPersonalFleet(fleetId: string): Promise<void> {
+    const fleet = await this.prismaService.fleet.findUnique({
+      where: { id: fleetId },
+    });
+    if (fleet?.type !== 'PERSONAL') {
+      throw new ForbiddenException('Remote lock/unlock is only available for personal owners');
+    }
+  }
+
+  // Validates bike assignment
+  private async assertBikeAssignedToRider(user: AuthenticatedUser, bikeId: string): Promise<void> {
+    const rider = await this.loadRiderIdentityOrThrow(user.id, user.fleetId);
+    const isAssigned = rider.bikeAssignments.some(a => a.bikeId === bikeId && a.active);
+    if (!isAssigned) {
+      throw new ForbiddenException('You must be actively assigned to this bike');
+    }
   }
 
   // Lists rider-owned trips only and supports optional date filtering.
@@ -551,6 +605,10 @@ export class RidersService {
         distanceKm: Number(trip.distanceKm),
         durationSec: trip.durationSec,
         score: Number(trip.score),
+        consumptionPct:
+          trip.startBatteryPct !== null && trip.endBatteryPct !== null
+            ? Number(trip.startBatteryPct) - Number(trip.endBatteryPct)
+            : null,
       })),
       total,
       pagination.page,
@@ -590,6 +648,10 @@ export class RidersService {
       distanceKm: Number(trip.distanceKm),
       durationSec: trip.durationSec,
       score: Number(trip.score),
+      consumptionPct:
+        trip.startBatteryPct !== null && trip.endBatteryPct !== null
+          ? Number(trip.startBatteryPct) - Number(trip.endBatteryPct)
+          : null,
       eventCounts,
       scoreBreakdown: this.computeTripScoreBreakdown(
         Number(trip.distanceKm),

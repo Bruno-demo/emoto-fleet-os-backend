@@ -211,6 +211,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
           accelY: telemetryPayload.accel?.y,
           accelZ: telemetryPayload.accel?.z,
           batteryV: telemetryPayload.batteryV,
+          batteryPct: telemetryPayload.batteryPct,
           ignition: telemetryPayload.ignition,
         },
       }),
@@ -490,6 +491,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       speedKph: payload.speedKph,
       heading: payload.heading,
       batteryV: payload.batteryV,
+      batteryPct: payload.batteryPct,
       ignition: payload.ignition,
     };
   }

@@ -189,6 +189,17 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
               </Text>
               <Text style={styles.heroMetricUnit}>duration</Text>
             </View>
+            {trip.consumptionPct !== null && (
+              <>
+                <View style={styles.heroMetricDivider} />
+                <View style={styles.heroMetric}>
+                  <Text style={[styles.heroMetricValue, { color: theme.colors.success }]}>
+                    {trip.consumptionPct.toFixed(0)}%
+                  </Text>
+                  <Text style={styles.heroMetricUnit}>used</Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </View>

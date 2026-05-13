@@ -1,18 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/screen-container';
 import { AppCard } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
 import { ErrorState } from '../components/ui/error-state';
 import { Badge, ScoreBadge, SeverityBadge } from '../components/ui/badge';
 import { ListItem } from '../components/ui/list-item';
-import { SecondaryButton } from '../components/ui/button';
+import { PrimaryButton, SecondaryButton } from '../components/ui/button';
 import { SectionHeader } from '../components/ui/section-header';
 import { CardSkeleton, ListSkeleton, SkeletonBlock } from '../components/ui/skeleton';
 import { ScoreRing } from '../components/ui/score-ring';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { buildQueryString } from '../lib/api/query-string';
 import {
+  liveBikeStateSchema,
   paginatedResponseSchema,
   riderEventSchema,
   riderTripSchema,
@@ -21,6 +22,7 @@ import {
 import { useAuth } from '../lib/auth/auth-context';
 import { logAppError } from '../lib/monitoring/error-log';
 import type {
+  LiveBikeState,
   PaginatedResponse,
   RiderEventSummary,
   RiderTripSummary,
@@ -173,13 +175,41 @@ export function HomeScreen() {
       ),
   });
 
-  // Refreshes rider profile and home cards in one pull-to-refresh action.
+  const activeAssignment = auth.riderMe?.assignments.find((assignment) => assignment.active) ?? null;
+
+  const liveStateQuery = useQuery({
+    queryKey: ['rider-bike-state', activeAssignment?.bikeId],
+    queryFn: () =>
+      apiFetch<LiveBikeState>(
+        `/rider/bikes/${activeAssignment!.bikeId}/state`,
+        undefined,
+        { schema: liveBikeStateSchema },
+      ),
+    enabled: !!activeAssignment?.bikeId && auth.riderMe?.isPersonalOwner === true,
+    refetchInterval: 10000,
+  });
+
+  const lockMutation = useMutation({
+    mutationFn: () =>
+      apiFetch(`/rider/bikes/${activeAssignment!.bikeId}/lock`, { method: 'POST' }),
+    onSuccess: () => Alert.alert('Command Sent', 'Locking your bike...'),
+    onError: (err: any) => Alert.alert('Command Failed', err.message),
+  });
+
+  const unlockMutation = useMutation({
+    mutationFn: () =>
+      apiFetch(`/rider/bikes/${activeAssignment!.bikeId}/unlock`, { method: 'POST' }),
+    onSuccess: () => Alert.alert('Command Sent', 'Unlocking your bike...'),
+    onError: (err: any) => Alert.alert('Command Failed', err.message),
+  });
+
   const refreshAll = async (): Promise<void> => {
     await Promise.all([
       auth.refreshRiderMe(),
       weeklyScoreQuery.refetch(),
       latestTripQuery.refetch(),
       latestAlertQuery.refetch(),
+      liveStateQuery.refetch(),
     ]);
   };
 
@@ -220,7 +250,6 @@ export function HomeScreen() {
   const latestTrip = latestTripQuery.data?.data[0] ?? null;
   const recentAlerts = latestAlertQuery.data ?? [];
   const assignmentCount = auth.riderMe?.assignments.length ?? 0;
-  const activeAssignment = auth.riderMe?.assignments.find((assignment) => assignment.active) ?? null;
   const scoreTone = getScoreTone(weeklyScore?.avgScore);
   const coachingTips = buildCoachingTips(weeklyScore, latestTrip, recentAlerts);
   const firstName = (auth.riderMe?.fullName ?? 'Rider').split(' ')[0];
@@ -343,6 +372,46 @@ export function HomeScreen() {
         </View>
       </View>
 
+      {/* Personal Owner Controls */}
+      {auth.riderMe?.isPersonalOwner && activeAssignment && (
+        <AppCard title="My Bike Controls">
+          <View style={styles.ownerControls}>
+            <View style={styles.batteryRow}>
+              <View style={styles.batteryIconWrap}>
+                <Text style={styles.batteryIcon}>🔋</Text>
+              </View>
+              <View style={styles.batteryTextWrap}>
+                <Text style={styles.batteryTitle}>Battery Status</Text>
+                <Text style={styles.batteryDetail}>
+                  {liveStateQuery.data
+                    ? `${liveStateQuery.data.batteryPct.toFixed(0)}% • ${liveStateQuery.data.batteryV.toFixed(1)}V`
+                    : liveStateQuery.isLoading
+                    ? 'Loading...'
+                    : 'Unknown'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.lockButtons}>
+              <View style={styles.lockBtnWrap}>
+                <PrimaryButton
+                  label="Unlock"
+                  onPress={() => unlockMutation.mutate()}
+                  loading={unlockMutation.isPending}
+                />
+              </View>
+              <View style={styles.lockBtnWrap}>
+                <PrimaryButton
+                  label="Lock"
+                  tone="danger"
+                  onPress={() => lockMutation.mutate()}
+                  loading={lockMutation.isPending}
+                />
+              </View>
+            </View>
+          </View>
+        </AppCard>
+      )}
+
       {/* Last trip card */}
       <AppCard
         title="Last Trip"
@@ -364,6 +433,17 @@ export function HomeScreen() {
                 </Text>
                 <Text style={styles.tripMetricUnit}>duration</Text>
               </View>
+              {latestTrip.consumptionPct !== null && (
+                <>
+                  <View style={styles.tripMetricDivider} />
+                  <View style={styles.tripMetric}>
+                    <Text style={[styles.tripMetricValue, { color: theme.colors.success }]}>
+                      {latestTrip.consumptionPct.toFixed(0)}%
+                    </Text>
+                    <Text style={styles.tripMetricUnit}>used</Text>
+                  </View>
+                </>
+              )}
             </View>
             <Text style={styles.tripTimestamp}>
               Started {formatTimestamp(latestTrip.startTs)}
@@ -597,6 +677,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.lg,
+  },
+  ownerControls: {
+    gap: theme.spacing.lg,
+  },
+  batteryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  batteryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: theme.colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  batteryIcon: {
+    fontSize: 22,
+  },
+  batteryTextWrap: {
+    flex: 1,
+  },
+  batteryTitle: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  batteryDetail: {
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  lockButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  lockBtnWrap: {
+    flex: 1,
   },
   tripMetric: {
     flex: 1,

@@ -41,6 +41,44 @@ export const riderMeResponseSchema = z.object({
   email: z.string().nullable(),
   fullName: z.string().nullable(),
   assignments: z.array(riderAssignmentSchema),
+  isPersonalOwner: z.boolean(),
+});
+
+export const liveBikeStateSchema = z.object({
+  deviceId: z.string(),
+  bikeId: z.string(),
+  fleetId: z.string(),
+  ts: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  speedKph: z.number(),
+  heading: z.number(),
+  batteryV: z.number(),
+  batteryPct: z.number(),
+  signalDbm: z.number(),
+  gnssSats: z.number(),
+  status: z.string(),
+  motion: z.boolean(),
+  ingestedAt: z.string(),
+});
+
+export const fleetDeviceCommandSchema = z.object({
+  id: z.string(),
+  fleetId: z.string(),
+  deviceId: z.string(),
+  bikeId: z.string().nullable(),
+  type: z.string(),
+  status: z.string(),
+  requestedByUserId: z.string(),
+  requestedAt: z.string(),
+  sentAt: z.string().nullable(),
+  ackedAt: z.string().nullable(),
+  payloadJson: z.unknown(),
+  errorMessage: z.string().nullable(),
+  nonce: z.string(),
+  expiresAt: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export const riderTripSchema = z.object({
@@ -51,6 +89,7 @@ export const riderTripSchema = z.object({
   distanceKm: z.number(),
   durationSec: z.number(),
   score: z.number(),
+  consumptionPct: z.number().nullable(),
 });
 
 const riderTripEventCountsSchema = z.object({

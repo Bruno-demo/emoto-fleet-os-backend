@@ -29,6 +29,9 @@ import type {
 } from './riders.types';
 import { RidersService } from './riders.service';
 
+import { LiveBikeState } from '../ingestion/ingestion.types';
+import { FleetDeviceCommand } from '../commands/commands.types';
+
 @ApiTags('rider')
 @ApiBearerAuth()
 @Controller('rider')
@@ -40,6 +43,36 @@ export class RiderController {
   @ApiOperation({ summary: 'Return rider profile and active bike assignments' })
   async me(@CurrentUser() user: AuthenticatedUser): Promise<RiderMeResponse> {
     return this.ridersService.getRiderMe(user);
+  }
+
+  @Get('bikes/:id/state')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Get live telemetry for an assigned bike' })
+  async getBikeState(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) bikeId: string,
+  ): Promise<LiveBikeState | null> {
+    return this.ridersService.getRiderBikeState(user, bikeId);
+  }
+
+  @Post('bikes/:id/lock')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Send lock command to personal bike' })
+  async lockBike(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) bikeId: string,
+  ): Promise<FleetDeviceCommand> {
+    return this.ridersService.requestLock(user, bikeId);
+  }
+
+  @Post('bikes/:id/unlock')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Send unlock command to personal bike' })
+  async unlockBike(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) bikeId: string,
+  ): Promise<FleetDeviceCommand> {
+    return this.ridersService.requestUnlock(user, bikeId);
   }
 
   @Get('trips')

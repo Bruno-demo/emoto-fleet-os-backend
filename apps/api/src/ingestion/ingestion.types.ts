@@ -9,5 +9,6 @@ export interface LiveBikeState {
   speedKph: number;
   heading?: number;
   batteryV?: number;
+  batteryPct?: number;
   ignition?: boolean;
 }

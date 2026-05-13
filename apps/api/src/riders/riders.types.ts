@@ -50,6 +50,7 @@ export interface RiderMeResponse {
   email: string | null;
   fullName: string | null;
   assignments: AssignmentSummary[];
+  isPersonalOwner: boolean;
 }
 
 export interface RiderTripSummary {
@@ -60,6 +61,7 @@ export interface RiderTripSummary {
   distanceKm: number;
   durationSec: number;
   score: number;
+  consumptionPct: number | null;
 }
 
 export interface RiderTripScoreBreakdown {

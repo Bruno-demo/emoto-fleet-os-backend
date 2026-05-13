@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
     gap: theme.layout.inlineGap,
   },
   title: {
-    fontSize: theme.typography.title,
-    lineHeight: theme.typography.lineHeight.title,
+    fontSize: theme.typography.section,
+    lineHeight: theme.typography.lineHeight.section,
     fontWeight: '800',
     color: theme.colors.text,
   },

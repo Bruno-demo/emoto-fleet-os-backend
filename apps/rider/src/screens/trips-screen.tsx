@@ -150,6 +150,9 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
                     <Text style={styles.tripDuration}>
                       {formatDuration(trip.durationSec)}
                     </Text>
+                    {trip.consumptionPct !== null && (
+                      <Badge label={`${trip.consumptionPct.toFixed(0)}% bat`} tone="success" size="small" />
+                    )}
                   </View>
                   <Text style={styles.tripDate}>
                     {formatShortDate(trip.startTs)} · {formatTripDate(trip.startTs)}
