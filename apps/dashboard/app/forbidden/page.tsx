@@ -2,8 +2,28 @@
 
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api/client';
+import { clearAuthToken } from '@/lib/auth/session';
+import { disconnectFleetSocket } from '@/lib/realtime/socket';
 
 export default function ForbiddenPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const handleLogout = async () => {
+    disconnectFleetSocket();
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+    } catch {
+      // Ignore logout errors
+    }
+    clearAuthToken();
+    queryClient.clear();
+    router.replace('/login');
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6 text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-error/10 text-error">
@@ -28,12 +48,12 @@ export default function ForbiddenPage() {
           Back to Dashboard
         </Link>
         
-        <Link
-          href="/login"
+        <button
+          onClick={handleLogout}
           className="text-sm font-semibold text-ink-muted transition hover:text-ink"
         >
           Sign in with another account
-        </Link>
+        </button>
       </div>
       
       <p className="mt-12 text-xs text-ink-soft">
