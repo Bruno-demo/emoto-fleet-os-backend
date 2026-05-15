@@ -8,8 +8,10 @@ import {
   Gauge,
   Lock,
   Plus,
+  Shield,
   ShieldAlert,
   Unlock,
+  UserCheck,
   UserRound,
   X,
 } from 'lucide-react';
@@ -31,6 +33,7 @@ import type {
   DeviceCommand,
   FleetEvent,
   PaginatedResponse,
+  Rider,
 } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -61,6 +64,14 @@ export default function BikesPage() {
   const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '' });
   const [isCreatingBike, setIsCreatingBike] = useState(false);
   const [createBikeError, setCreateBikeError] = useState<string | null>(null);
+  const [showAssignRider, setShowAssignRider] = useState(false);
+  const [assignRiderId, setAssignRiderId] = useState('');
+  const [isAssigningRider, setIsAssigningRider] = useState(false);
+  const [assignRiderError, setAssignRiderError] = useState<string | null>(null);
+  const [showAssignInsurer, setShowAssignInsurer] = useState(false);
+  const [assignInsurerId, setAssignInsurerId] = useState('');
+  const [isAssigningInsurer, setIsAssigningInsurer] = useState(false);
+  const [assignInsurerError, setAssignInsurerError] = useState<string | null>(null);
 
   const canCreateBikes = !!currentUser && canProvisionDevices(currentUser.role);
 
@@ -116,6 +127,63 @@ export default function BikesPage() {
     enabled: assignmentsEnabled,
     retry: false,
   });
+
+  const ridersQuery = useQuery({
+    queryKey: ['riders', 'for-assign'],
+    queryFn: () => apiFetch<PaginatedResponse<Rider>>('/riders?page=1&pageSize=200'),
+    enabled: assignmentsEnabled,
+  });
+
+  const insurersQuery = useQuery({
+    queryKey: ['fleet-users', 'insurers'],
+    queryFn: () => apiFetch<Array<{ id: string; email: string | null; phone: string | null; role: string }>>('/auth/fleet-users'),
+    enabled: !!currentUser && canProvisionDevices(currentUser.role),
+  });
+
+  const insurerUsers = useMemo(() =>
+    (insurersQuery.data ?? []).filter(u => u.role === 'INSURER'),
+    [insurersQuery.data],
+  );
+
+  const handleAssignRider = async () => {
+    if (!selectedBikeId || !assignRiderId) return;
+    setAssignRiderError(null);
+    setIsAssigningRider(true);
+    try {
+      await apiFetch('/assignments', {
+        method: 'POST',
+        body: JSON.stringify({ bikeId: selectedBikeId, riderUserId: assignRiderId }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      setShowAssignRider(false);
+      setAssignRiderId('');
+    } catch (error: unknown) {
+      if (error instanceof ApiError) setAssignRiderError(error.message);
+      else setAssignRiderError('Failed to assign rider');
+    } finally {
+      setIsAssigningRider(false);
+    }
+  };
+
+  const handleAssignInsurer = async () => {
+    if (!selectedBikeId || !assignInsurerId) return;
+    setAssignInsurerError(null);
+    setIsAssigningInsurer(true);
+    try {
+      await apiFetch(`/bikes/${selectedBikeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ insurerUserId: assignInsurerId || null }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['bikes'] });
+      setShowAssignInsurer(false);
+      setAssignInsurerId('');
+    } catch (error: unknown) {
+      if (error instanceof ApiError) setAssignInsurerError(error.message);
+      else setAssignInsurerError('Failed to assign insurer');
+    } finally {
+      setIsAssigningInsurer(false);
+    }
+  };
 
   useEffect(() => {
     const bikeId = searchParams.get('bikeId');
@@ -435,6 +503,84 @@ export default function BikesPage() {
                 }
               />
             </section>
+
+            {/* Assignment Actions */}
+            {canCreateBikes && (
+              <DashboardCard eyebrow="Assignments" title="Bike assignments" description="Manage rider and insurer assignments for this bike.">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowAssignRider(true); setAssignRiderError(null); }}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/20"
+                  >
+                    <UserCheck size={16} />
+                    {assignmentByBikeId.get(activeBike.id) ? 'Reassign Rider' : 'Assign Rider'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAssignInsurer(true); setAssignInsurerError(null); }}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                  >
+                    <Shield size={16} />
+                    Assign Insurer
+                  </button>
+                </div>
+
+                {/* Assign Rider Inline */}
+                {showAssignRider && (
+                  <div className="mt-4 rounded-2xl border border-line bg-surface-muted p-4 space-y-3 animate-scale-in">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-ink">Select a rider</h4>
+                      <button type="button" onClick={() => setShowAssignRider(false)} className="p-1 text-ink-muted hover:text-ink"><X size={14} /></button>
+                    </div>
+                    <select
+                      value={assignRiderId}
+                      onChange={(e) => setAssignRiderId(e.target.value)}
+                      className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-accent cursor-pointer"
+                    >
+                      <option value="">— Select rider —</option>
+                      {(ridersQuery.data?.data ?? []).map((rider) => (
+                        <option key={rider.id} value={rider.id}>{rider.fullName ?? rider.email ?? rider.phone ?? rider.id.slice(0,8)}</option>
+                      ))}
+                    </select>
+                    {assignRiderError && <p className="text-sm text-danger-ink">{assignRiderError}</p>}
+                    <button type="button" onClick={handleAssignRider} disabled={isAssigningRider || !assignRiderId} className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
+                      {isAssigningRider ? 'Assigning...' : 'Confirm Assignment'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Assign Insurer Inline */}
+                {showAssignInsurer && (
+                  <div className="mt-4 rounded-2xl border border-line bg-surface-muted p-4 space-y-3 animate-scale-in">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-ink">Select an insurer</h4>
+                      <button type="button" onClick={() => setShowAssignInsurer(false)} className="p-1 text-ink-muted hover:text-ink"><X size={14} /></button>
+                    </div>
+                    {insurerUsers.length === 0 ? (
+                      <p className="text-xs text-ink-muted">No insurer accounts in this fleet. Add a user with the INSURER role in Settings → Team first.</p>
+                    ) : (
+                      <>
+                        <select
+                          value={assignInsurerId}
+                          onChange={(e) => setAssignInsurerId(e.target.value)}
+                          className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-accent cursor-pointer"
+                        >
+                          <option value="">— Select insurer —</option>
+                          {insurerUsers.map((u) => (
+                            <option key={u.id} value={u.id}>{u.email ?? u.phone ?? u.id.slice(0,8)}</option>
+                          ))}
+                        </select>
+                        {assignInsurerError && <p className="text-sm text-danger-ink">{assignInsurerError}</p>}
+                        <button type="button" onClick={handleAssignInsurer} disabled={isAssigningInsurer || !assignInsurerId} className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
+                          {isAssigningInsurer ? 'Assigning...' : 'Confirm Insurer'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </DashboardCard>
+            )}
 
             <DashboardCard
               eyebrow="Remote Control"

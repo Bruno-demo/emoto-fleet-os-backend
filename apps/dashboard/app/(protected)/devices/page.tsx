@@ -1,13 +1,13 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cpu, KeyRound, Link2, Radio, ShieldCheck, Smartphone } from 'lucide-react';
+import { Bike, Cpu, KeyRound, Link2, Radio, ShieldCheck, Smartphone, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { canProvisionDevices } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import type { Device, PaginatedResponse } from '@/lib/types/dashboard';
+import type { Bike as FleetBike, Device, PaginatedResponse } from '@/lib/types/dashboard';
 import { formatTimestamp } from '@/lib/ui';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
@@ -26,6 +26,10 @@ export default function DevicesPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [lastProvisionedSecret, setLastProvisionedSecret] = useState<string | null>(null);
+  const [assignDeviceId, setAssignDeviceId] = useState<string | null>(null);
+  const [assignBikeId, setAssignBikeId] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const devicesQuery = useQuery({
     queryKey: ['devices', page],
@@ -34,6 +38,34 @@ export default function DevicesPage() {
         `/devices${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
       ),
   });
+
+  const bikesQuery = useQuery({
+    queryKey: ['bikes', 'all-for-assign'],
+    queryFn: () => apiFetch<PaginatedResponse<FleetBike>>('/bikes?page=1&pageSize=200'),
+  });
+
+  const handleAssignBike = async () => {
+    if (!assignDeviceId || !assignBikeId) return;
+    setAssignError(null);
+    setIsAssigning(true);
+    try {
+      await apiFetch(`/devices/${assignDeviceId}/assign-bike`, {
+        method: 'POST',
+        body: JSON.stringify({ bikeId: assignBikeId }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['devices'] });
+      setAssignDeviceId(null);
+      setAssignBikeId('');
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setAssignError(error.message);
+      } else {
+        setAssignError('Failed to assign device to bike');
+      }
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   const canProvision = currentUser ? canProvisionDevices(currentUser.role) : false;
 
@@ -128,8 +160,21 @@ export default function DevicesPage() {
           </span>
         ),
       },
+      ...(canProvision ? [{
+        header: 'Actions',
+        render: (device: Device) => (
+          <button
+            type="button"
+            onClick={() => { setAssignDeviceId(device.id); setAssignBikeId(device.bikeId ?? ''); setAssignError(null); }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold text-accent transition hover:bg-accent/20"
+          >
+            <Bike size={12} />
+            {device.bikeId ? 'Reassign' : 'Assign'}
+          </button>
+        ),
+      }] as Array<DataTableColumn<Device>>: []),
     ],
-    [],
+    [canProvision],
   );
 
   return (
@@ -236,6 +281,43 @@ export default function DevicesPage() {
           )}
         </DashboardCard>
       </section>
+
+      {/* Assign Device to Bike Modal */}
+      {assignDeviceId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setAssignDeviceId(null)}>
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setAssignDeviceId(null)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
+              <X size={18} />
+            </button>
+            <h2 className="text-lg font-bold text-ink">Assign Device to Bike</h2>
+            <p className="mt-1 text-sm text-ink-muted">Link this tracker unit to a bike in your fleet.</p>
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Select Bike</label>
+                <select
+                  value={assignBikeId}
+                  onChange={(e) => setAssignBikeId(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent cursor-pointer"
+                >
+                  <option value="">— Select a bike —</option>
+                  {(bikesQuery.data?.data ?? []).map((bike) => (
+                    <option key={bike.id} value={bike.id}>{bike.label}{bike.plate ? ` (${bike.plate})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              {assignError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{assignError}</p>}
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setAssignDeviceId(null)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleAssignBike} disabled={isAssigning || !assignBikeId} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60">
+                  {isAssigning ? 'Assigning...' : 'Assign'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

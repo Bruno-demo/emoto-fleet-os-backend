@@ -236,6 +236,7 @@ model User {
   riderProfile          RiderProfile?
   bikeAssignments       BikeAssignment[] @relation("BikeAssignmentRider")
   usedInvites           RegistrationInvite[] @relation("InviteUsedBy")
+  insuredBikes          Bike[]               @relation("BikeInsurer")
 
   @@unique([fleetId, email])
   @@unique([fleetId, phone])
@@ -265,28 +266,31 @@ model RegistrationInvite {
 }
 
 model Bike {
-  id          String           @id @default(uuid()) @db.Uuid
-  fleetId     String           @db.Uuid
-  label       String
-  plate       String?
-  serial      String?
-  model       String?
-  status      BikeStatus       @default(ACTIVE)
-  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
-  fleet       Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  devices     Device[]
-  events      Event[]
-  trips       Trip[]
-  commands    DeviceCommand[]
-  incidents   Incident[]
-  assignments BikeAssignment[]
+  id            String           @id @default(uuid()) @db.Uuid
+  fleetId       String           @db.Uuid
+  label         String
+  plate         String?
+  serial        String?
+  model         String?
+  insurerUserId String?          @db.Uuid
+  status        BikeStatus       @default(ACTIVE)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(6)
+  fleet         Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  insurer       User?            @relation("BikeInsurer", fields: [insurerUserId], references: [id], onDelete: SetNull)
+  devices       Device[]
+  events        Event[]
+  trips         Trip[]
+  commands      DeviceCommand[]
+  incidents     Incident[]
+  assignments   BikeAssignment[]
 
   @@unique([fleetId, label])
   @@unique([fleetId, plate])
   @@unique([serial])
   @@index([fleetId])
   @@index([fleetId, status])
+  @@index([insurerUserId])
 }
 
 model Device {
