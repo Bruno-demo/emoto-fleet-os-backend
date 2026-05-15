@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -93,6 +93,28 @@ export class AuthController {
     expiresAt: Date;
   }> {
     return this.authService.createInvite(actor, dto);
+  }
+
+  @Get('fleet-users')
+  @ApiBearerAuth()
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'List all users in the caller fleet' })
+  async listFleetUsers(
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return this.authService.listFleetUsers(actor);
+  }
+
+  @Put('fleet-users/:id/role')
+  @ApiBearerAuth()
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Change a fleet user role' })
+  async changeFleetUserRole(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('id') userId: string,
+    @Body() body: { role: string },
+  ) {
+    return this.authService.changeFleetUserRole(actor, userId, body.role as UserRole);
   }
 
   @Post('register-fleet')

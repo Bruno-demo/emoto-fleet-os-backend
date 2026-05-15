@@ -523,6 +523,66 @@ export class AuthService {
     }
   }
 
+  // Lists all users in the caller's fleet for team management.
+  async listFleetUsers(actor: AuthenticatedUser) {
+    const users = await this.prismaService.user.findMany({
+      where: { fleetId: actor.fleetId },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return users;
+  }
+
+  // Changes a fleet user's role (restricted to same fleet, owner/admin only).
+  async changeFleetUserRole(
+    actor: AuthenticatedUser,
+    userId: string,
+    newRole: UserRole,
+  ) {
+    const targetUser = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { id: true, fleetId: true, role: true },
+    });
+
+    if (!targetUser || targetUser.fleetId !== actor.fleetId) {
+      throw new BadRequestException('User not found in your fleet');
+    }
+
+    if (targetUser.id === actor.id) {
+      throw new BadRequestException('Cannot change your own role');
+    }
+
+    // Only OWNER can assign/remove ADMIN
+    if (
+      (newRole === UserRole.OWNER || targetUser.role === UserRole.OWNER) &&
+      actor.role !== UserRole.OWNER
+    ) {
+      throw new ForbiddenException('Only fleet owners can assign owner/admin roles');
+    }
+
+    const updated = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { role: newRole },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    return updated;
+  }
+
   // Returns the current authenticated user profile.
   async me(userId: string): Promise<AuthenticatedUser> {
     return this.loadUserOrThrow(userId);

@@ -13,20 +13,26 @@ import {
   Siren,
   Sun,
   User,
+  UserPlus,
+  Users,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { ApiError, apiFetch } from '@/lib/api/client';
 import { getSubscriptionEntitlements } from '@/lib/subscription';
 import { cx, formatEnumLabel } from '@/lib/ui';
 
-type SettingsTab = 'profile' | 'fleet' | 'security' | 'notifications';
+type SettingsTab = 'profile' | 'fleet' | 'team' | 'security' | 'notifications';
 
-const TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
+const ALL_TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode; adminOnly?: boolean }> = [
   { id: 'profile', label: 'Profile', icon: <User size={15} /> },
   { id: 'fleet', label: 'Fleet', icon: <Building2 size={15} /> },
+  { id: 'team', label: 'Team', icon: <Users size={15} />, adminOnly: true },
   { id: 'security', label: 'Security', icon: <Shield size={15} /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell size={15} /> },
 ];
@@ -90,7 +96,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Tab navigation */}
       <div className="flex gap-1 rounded-2xl border border-line bg-surface-muted p-1">
-        {TABS.map((tab) => (
+        {ALL_TABS.filter(tab => !tab.adminOnly || (user && (user.role === 'ADMIN' || user.role === 'OWNER'))).map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -237,6 +243,11 @@ export default function SettingsPage() {
             </div>
           </DashboardCard>
         </div>
+      )}
+
+      {/* Team */}
+      {activeTab === 'team' && user && (user.role === 'ADMIN' || user.role === 'OWNER') && (
+        <TeamTab currentUser={user} />
       )}
 
       {/* Security */}
@@ -442,5 +453,118 @@ function SettingsToggle({
         />
       </div>
     </button>
+  );
+}
+
+// ── Team Management ──────────────────────────────────────────────────
+
+interface FleetUser {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  role: string;
+  status: string;
+  createdAt: string;
+}
+
+const ROLE_OPTIONS = ['OWNER', 'ADMIN', 'DISPATCHER', 'TECH', 'RIDER'];
+
+function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fleetId: string } }) {
+  const queryClient = useQueryClient();
+  const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
+
+  const { data: members, isLoading } = useQuery({
+    queryKey: ['fleet-users'],
+    queryFn: () => apiFetch<FleetUser[]>('/auth/fleet-users'),
+  });
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setRoleError(null);
+    setChangingRoleFor(userId);
+    try {
+      await apiFetch(`/auth/fleet-users/${userId}/role`, {
+        method: 'PUT',
+        body: JSON.stringify({ role: newRole }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['fleet-users'] });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setRoleError(error.message);
+      } else {
+        setRoleError('Failed to change role');
+      }
+    } finally {
+      setChangingRoleFor(null);
+    }
+  };
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <DashboardCard eyebrow="Organization" title="Team members" description="Manage users in your fleet. Change roles to control access levels.">
+        {roleError && (
+          <p className="mb-4 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{roleError}</p>
+        )}
+
+        {isLoading ? (
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-16 w-full rounded-xl bg-surface-muted" />
+            ))}
+          </div>
+        ) : !members?.length ? (
+          <p className="py-8 text-center text-sm text-ink-muted">No team members found.</p>
+        ) : (
+          <div className="divide-y divide-line rounded-xl border border-line overflow-hidden">
+            {members.map((member) => {
+              const isCurrentUser = member.id === currentUser.id;
+              return (
+                <div key={member.id} className="flex items-center justify-between gap-4 px-5 py-4 bg-surface-muted hover:bg-surface-hover transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent text-sm font-bold">
+                      {(member.email?.[0] ?? member.phone?.[0] ?? '?').toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-ink truncate">
+                        {member.email ?? member.phone ?? 'Unknown'}
+                        {isCurrentUser && <span className="ml-2 text-xs text-ink-muted">(you)</span>}
+                      </p>
+                      <p className="text-xs text-ink-muted">
+                        {formatEnumLabel(member.status)} · Joined {new Date(member.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {isCurrentUser ? (
+                      <span className="inline-flex rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+                        {formatEnumLabel(member.role)}
+                      </span>
+                    ) : (
+                      <div className="relative">
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                          disabled={changingRoleFor === member.id}
+                          className="appearance-none rounded-xl border border-line bg-surface px-3 py-1.5 pr-8 text-xs font-semibold text-ink outline-none transition focus:border-accent disabled:opacity-50 cursor-pointer"
+                        >
+                          {ROLE_OPTIONS.map(role => (
+                            <option key={role} value={role}>{formatEnumLabel(role)}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <p className="mt-4 text-xs text-ink-faint">
+          {members?.length ?? 0} members in this fleet. Use role assignments to control feature access.
+        </p>
+      </DashboardCard>
+    </div>
   );
 }

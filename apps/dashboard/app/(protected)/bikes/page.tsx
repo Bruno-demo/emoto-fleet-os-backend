@@ -1,15 +1,17 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   Bike,
   Cpu,
   Gauge,
   Lock,
+  Plus,
   ShieldAlert,
   Unlock,
   UserRound,
+  X,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -47,6 +49,7 @@ type CommandIntent = 'LOCK' | 'UNLOCK';
 export default function BikesPage() {
   const { data: currentUser } = useCurrentUser();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { commandStatuses, recordCommandStatus } = useRealtime();
   const [page, setPage] = useState(1);
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
@@ -54,6 +57,43 @@ export default function BikesPage() {
   const [commandError, setCommandError] = useState<string | null>(null);
   const [isSendingCommand, setIsSendingCommand] = useState(false);
   const [commandIntent, setCommandIntent] = useState<CommandIntent | null>(null);
+  const [showCreateBike, setShowCreateBike] = useState(false);
+  const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '' });
+  const [isCreatingBike, setIsCreatingBike] = useState(false);
+  const [createBikeError, setCreateBikeError] = useState<string | null>(null);
+
+  const canCreateBikes = !!currentUser && canProvisionDevices(currentUser.role);
+
+  const handleCreateBike = async () => {
+    if (!createBikeForm.label.trim()) {
+      setCreateBikeError('Label is required');
+      return;
+    }
+    setCreateBikeError(null);
+    setIsCreatingBike(true);
+    try {
+      await apiFetch<FleetBike>('/bikes', {
+        method: 'POST',
+        body: JSON.stringify({
+          label: createBikeForm.label.trim(),
+          plate: createBikeForm.plate.trim() || undefined,
+          serial: createBikeForm.serial.trim() || undefined,
+          model: createBikeForm.model.trim() || undefined,
+        }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['bikes'] });
+      setShowCreateBike(false);
+      setCreateBikeForm({ label: '', plate: '', serial: '', model: '' });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setCreateBikeError(error.message);
+      } else {
+        setCreateBikeError('Failed to create bike');
+      }
+    } finally {
+      setIsCreatingBike(false);
+    }
+  };
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', page],
@@ -260,6 +300,19 @@ export default function BikesPage() {
 
   return (
     <div className="space-y-6">
+      {canCreateBikes && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowCreateBike(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm"
+          >
+            <Plus size={16} strokeWidth={3} />
+            Add Bike
+          </button>
+        </div>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Fleet Bikes"
@@ -497,6 +550,72 @@ export default function BikesPage() {
           }
         }}
       />
+
+      {/* Create Bike Modal */}
+      {showCreateBike && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateBike(false)}>
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowCreateBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
+              <X size={18} />
+            </button>
+            <h2 className="text-lg font-bold text-ink">Add New Bike</h2>
+            <p className="mt-1 text-sm text-ink-muted">Register a new bike in your fleet inventory.</p>
+            <div className="mt-5 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Label *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bike-001"
+                  value={createBikeForm.label}
+                  onChange={(e) => setCreateBikeForm(f => ({ ...f, label: e.target.value }))}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Plate</label>
+                  <input
+                    type="text"
+                    placeholder="RAB123C"
+                    value={createBikeForm.plate}
+                    onChange={(e) => setCreateBikeForm(f => ({ ...f, plate: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Serial</label>
+                  <input
+                    type="text"
+                    placeholder="SER-000001"
+                    value={createBikeForm.serial}
+                    onChange={(e) => setCreateBikeForm(f => ({ ...f, serial: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Model</label>
+                <input
+                  type="text"
+                  placeholder="eMoto-X2"
+                  value={createBikeForm.model}
+                  onChange={(e) => setCreateBikeForm(f => ({ ...f, model: e.target.value }))}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                />
+              </div>
+              {createBikeError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{createBikeError}</p>}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreateBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleCreateBike} disabled={isCreatingBike} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60">
+                  {isCreatingBike ? 'Creating...' : 'Create Bike'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

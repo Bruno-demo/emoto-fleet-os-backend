@@ -127,6 +127,12 @@ export class HqController {
 
   // ── Partners ──────────────────────────────────────────────────────
 
+  @Post('partners')
+  @ApiOperation({ summary: 'Create a new API partner' })
+  createPartner(@Body() body: { name: string }) {
+    return this.hqService.createPartner(body.name);
+  }
+
   @Get('partners')
   @ApiOperation({ summary: 'List all API partners globally' })
   getPartners() {

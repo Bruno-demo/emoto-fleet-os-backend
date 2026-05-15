@@ -303,6 +303,16 @@ export class HqService {
 
   // ── Partners ──────────────────────────────────────────────────────
 
+  async createPartner(name: string) {
+    const partner = await this.prisma.partner.create({
+      data: { name, status: 'ACTIVE' },
+      include: {
+        _count: { select: { clients: true, webhooks: true } },
+      },
+    });
+    return partner;
+  }
+
   async getPartners() {
     return this.prisma.partner.findMany({
       orderBy: { createdAt: 'desc' },
@@ -478,7 +488,7 @@ export class HqService {
     ]);
 
     return {
-      data: data.map(d => ({ ...d, id: d.id.toString() })),
+      data: data.map(d => ({ ...d, id: String(d.id) })),
       total,
       page: opts.page,
       pageSize: opts.pageSize,
@@ -513,14 +523,21 @@ export class HqService {
         include: {
           fleet: { select: { id: true, name: true } },
           bike: { select: { id: true, label: true } },
-          event: { select: { type: true, severity: true } },
+          event: { select: { id: true, type: true, severity: true } },
         },
       }),
       this.prisma.incident.count({ where }),
     ]);
 
+    // Convert BigInt fields to strings to avoid JSON serialization errors
+    const serializedData = data.map(d => ({
+      ...d,
+      eventId: String(d.eventId),
+      event: d.event ? { ...d.event, id: String(d.event.id) } : null,
+    }));
+
     return {
-      data,
+      data: serializedData,
       total,
       page: opts.page,
       pageSize: opts.pageSize,
