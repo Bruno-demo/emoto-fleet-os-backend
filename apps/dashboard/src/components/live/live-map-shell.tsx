@@ -17,3 +17,4 @@ const LiveMapPanel = dynamic(
 export function LiveMapShell() {
   return <LiveMapPanel />;
 }
+

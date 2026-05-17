@@ -44,3 +44,4 @@ export function RedirectIfAuthenticated({ children }: { children: React.ReactNod
 
   return <>{children}</>;
 }
+

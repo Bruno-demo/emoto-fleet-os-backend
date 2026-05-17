@@ -888,3 +888,4 @@ function formatTripDuration(durationSec: number) {
   }
   return `${hours}h ${minutes}m`;
 }
+

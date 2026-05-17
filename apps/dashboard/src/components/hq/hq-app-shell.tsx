@@ -135,3 +135,4 @@ export function HqAppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+

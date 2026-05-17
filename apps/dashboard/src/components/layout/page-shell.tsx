@@ -52,3 +52,4 @@ function getPageShellStatus(
   }
   return 'Realtime transport is offline. Use the available API data and refresh after connectivity returns.';
 }
+

@@ -43,11 +43,11 @@ export default function HqPartnersPage() {
         </button>
       </div>
 
-      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
+      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Partner Organization</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Integration Health</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Endpoints</th>
@@ -79,7 +79,7 @@ export default function HqPartnersPage() {
                   <tr key={partner.id} className="group transition-colors hover:bg-white/[0.01]">
                     <td className="px-8 py-7">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400">
                           <Shield size={18} />
                         </div>
                         <div>
@@ -99,11 +99,11 @@ export default function HqPartnersPage() {
                     <td className="px-8 py-7">
                       <div className="flex items-center gap-4">
                         <div className="flex flex-col">
-                          <span className="text-xs font-bold text-zinc-300">{partner._count.clients}</span>
+                          <span className="text-xs font-bold text-ink-soft">{partner._count.clients}</span>
                           <span className="text-[10px] text-zinc-500">API Keys</span>
                         </div>
-                        <div className="flex flex-col border-l border-white/5 pl-4">
-                          <span className="text-xs font-bold text-zinc-300">{partner._count.webhooks}</span>
+                        <div className="flex flex-col border-l border-line pl-4">
+                          <span className="text-xs font-bold text-ink-soft">{partner._count.webhooks}</span>
                           <span className="text-[10px] text-zinc-500">Webhooks</span>
                         </div>
                       </div>
@@ -115,7 +115,7 @@ export default function HqPartnersPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => router.push(`/hq/partners/${partner.id}/settings`)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white transition-all"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white transition-all"
                           title="Partner Settings"
                         >
                           <Settings size={16} />
@@ -132,3 +132,4 @@ export default function HqPartnersPage() {
     </div>
   );
 }
+

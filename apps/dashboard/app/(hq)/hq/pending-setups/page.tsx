@@ -43,18 +43,18 @@ export default function PendingSetupsPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-white/5 bg-amber-500/10 px-4 py-1.5 text-xs font-bold text-amber-400">
+          <div className="flex items-center gap-2 rounded-full border border-line bg-amber-500/10 px-4 py-1.5 text-xs font-bold text-amber-400">
             <Clock size={14} />
             {users?.length ?? 0} Pending Setups
           </div>
         </div>
       </div>
 
-      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
+      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Contact endpoints</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
@@ -86,7 +86,7 @@ export default function PendingSetupsPage() {
                   <tr key={user.id} className="group transition-colors hover:bg-white/[0.01]">
                     <td className="px-8 py-7">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400">
                           <MapPin size={18} />
                         </div>
                         <div>
@@ -98,13 +98,13 @@ export default function PendingSetupsPage() {
                     <td className="px-8 py-7">
                       <div className="space-y-1.5">
                         {user.email && (
-                          <div className="flex items-center gap-2 text-zinc-300">
+                          <div className="flex items-center gap-2 text-ink-soft">
                             <Mail size={12} className="text-zinc-600" />
                             <span className="text-xs font-medium">{user.email}</span>
                           </div>
                         )}
                         {user.phone && (
-                          <div className="flex items-center gap-2 text-zinc-300">
+                          <div className="flex items-center gap-2 text-ink-soft">
                             <Phone size={12} className="text-zinc-600" />
                             <span className="text-xs font-medium">{user.phone}</span>
                           </div>
@@ -112,7 +112,7 @@ export default function PendingSetupsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-7">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/5 px-2.5 py-1 text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft uppercase tracking-wider">
                         {user.fleet.plan}
                       </span>
                     </td>
@@ -142,3 +142,4 @@ export default function PendingSetupsPage() {
     </div>
   );
 }
+

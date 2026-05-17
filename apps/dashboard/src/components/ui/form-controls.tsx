@@ -53,7 +53,7 @@ export function SelectField({ label, hint, error, className, children, ...props 
       <select
         {...props}
         className={cx(
-          'w-full rounded-[var(--radius-control)] border border-line bg-surface-hover px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
+          'w-full rounded-[var(--radius-control)] border border-line bg-surface-hover-hover px-4 py-3 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20',
           className,
         )}
       >
@@ -110,3 +110,4 @@ export function InlineNotice({ message, tone = 'danger' }: InlineNoticeProps) {
     </p>
   );
 }
+

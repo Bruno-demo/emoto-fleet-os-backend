@@ -281,3 +281,4 @@ function ScoreBar({ score }: { score: number }) {
     </div>
   );
 }
+

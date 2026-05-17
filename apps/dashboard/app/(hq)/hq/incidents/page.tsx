@@ -31,7 +31,7 @@ function severityStyle(severity: string) {
   if (severity === 'CRITICAL') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
   if (severity === 'HIGH') return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
   if (severity === 'MEDIUM') return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
-  return 'bg-white/5 text-zinc-400 border-white/5';
+  return 'bg-white/5 text-zinc-400 border-line';
 }
 
 function statusStyle(status: string) {
@@ -75,7 +75,7 @@ export default function HqIncidentsPage() {
         </div>
         <div className="flex items-center gap-3">
           {data && data.total > 0 && (
-            <div className="flex items-center gap-2 rounded-full border border-white/5 bg-rose-500/10 px-4 py-1.5 text-xs font-bold text-rose-400">
+            <div className="flex items-center gap-2 rounded-full border border-line bg-rose-500/10 px-4 py-1.5 text-xs font-bold text-rose-400">
               <AlertTriangle size={14} />
               {openCount} Open
             </div>
@@ -106,11 +106,11 @@ export default function HqIncidentsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
+      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 w-12"></th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">ID</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Event</th>
@@ -160,7 +160,7 @@ export default function HqIncidentsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-xs font-medium text-zinc-300">{incident.fleet.name}</span>
+                      <span className="text-xs font-medium text-ink-soft">{incident.fleet.name}</span>
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-xs text-zinc-400">{incident.bike?.label ?? '—'}</span>
@@ -191,7 +191,7 @@ export default function HqIncidentsPage() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-xl border border-white/5 bg-[#121214] px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
+            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
           >
             Previous
           </button>
@@ -199,7 +199,7 @@ export default function HqIncidentsPage() {
           <button
             onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
             disabled={page >= data.totalPages}
-            className="rounded-xl border border-white/5 bg-[#121214] px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
+            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
           >
             Next
           </button>
@@ -208,3 +208,4 @@ export default function HqIncidentsPage() {
     </div>
   );
 }
+

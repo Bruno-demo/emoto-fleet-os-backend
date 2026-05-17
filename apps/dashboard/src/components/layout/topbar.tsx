@@ -528,3 +528,4 @@ async function globalSearch(
 
   return results.slice(0, 20);
 }
+

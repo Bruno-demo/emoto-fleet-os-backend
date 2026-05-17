@@ -51,20 +51,20 @@ export default function HqFleetsPage() {
               placeholder="Search fleets..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-full rounded-xl border border-white/5 bg-[#121214] pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent sm:w-64 transition-all"
+              className="h-10 w-full rounded-xl border border-line bg-surface-strong pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent sm:w-64 transition-all"
             />
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-[#121214] text-zinc-400 hover:bg-white/5 hover:text-white transition-all">
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-strong text-zinc-400 hover:bg-white/5 hover:text-white transition-all">
             <Filter size={16} />
           </button>
         </div>
       </div>
 
-      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
+      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Plan</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Network Status</th>
@@ -96,7 +96,7 @@ export default function HqFleetsPage() {
                   <tr key={fleet.id} className="group transition-colors hover:bg-white/[0.02]">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 group-hover:text-white transition-colors">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 group-hover:text-white transition-colors">
                           <Building2 size={18} />
                         </div>
                         <div>
@@ -106,7 +106,7 @@ export default function HqFleetsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/5 px-2.5 py-1 text-xs font-bold text-zinc-300">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">
                         <div className="h-1 w-1 rounded-full bg-accent" />
                         {fleet.plan}
                       </span>
@@ -123,11 +123,11 @@ export default function HqFleetsPage() {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5 text-zinc-400">
                           <User size={14} className="text-zinc-600" />
-                          <span className="text-xs font-bold text-zinc-300">{fleet._count.users}</span>
+                          <span className="text-xs font-bold text-ink-soft">{fleet._count.users}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-zinc-400">
                           <Bike size={14} className="text-zinc-600" />
-                          <span className="text-xs font-bold text-zinc-300">{fleet._count.bikes}</span>
+                          <span className="text-xs font-bold text-ink-soft">{fleet._count.bikes}</span>
                         </div>
                       </div>
                     </td>
@@ -140,7 +140,7 @@ export default function HqFleetsPage() {
                     <td className="px-8 py-6 text-right">
                       <button 
                         onClick={() => router.push(`/hq/fleets/${fleet.id}`)}
-                        className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-white transition-all"
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-white transition-all"
                         title="Manage Fleet"
                       >
                         <MoreHorizontal size={16} />
@@ -156,3 +156,4 @@ export default function HqFleetsPage() {
     </div>
   );
 }
+

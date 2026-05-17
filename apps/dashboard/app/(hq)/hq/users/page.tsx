@@ -69,7 +69,7 @@ export default function HqUsersPage() {
     if (s === 'ACTIVE') return 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20';
     if (s === 'SUSPENDED') return 'bg-amber-400/15 text-amber-400 border-amber-400/20';
     if (s === 'DISABLED') return 'bg-rose-400/15 text-rose-400 border-rose-400/20';
-    return 'bg-white/5 text-zinc-400 border-white/5';
+    return 'bg-white/5 text-zinc-400 border-line';
   };
 
   return (
@@ -93,13 +93,13 @@ export default function HqUsersPage() {
             placeholder="Search by name, email, or phone…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="h-10 w-full rounded-xl border border-white/5 bg-[#121214] pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+            className="h-10 w-full rounded-xl border border-line bg-surface-strong pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
           />
         </div>
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-          className="h-10 rounded-xl border border-white/5 bg-[#121214] px-3 text-sm text-zinc-300 focus:border-accent focus:outline-none"
+          className="h-10 rounded-xl border border-line bg-surface-strong px-3 text-sm text-ink-soft focus:border-accent focus:outline-none"
         >
           <option value="">All statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -107,7 +107,7 @@ export default function HqUsersPage() {
         <select
           value={filterRole}
           onChange={(e) => { setFilterRole(e.target.value); setPage(1); }}
-          className="h-10 rounded-xl border border-white/5 bg-[#121214] px-3 text-sm text-zinc-300 focus:border-accent focus:outline-none"
+          className="h-10 rounded-xl border border-line bg-surface-strong px-3 text-sm text-ink-soft focus:border-accent focus:outline-none"
         >
           <option value="">All roles</option>
           {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
@@ -115,11 +115,11 @@ export default function HqUsersPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
+      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">User</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Role</th>
@@ -156,13 +156,13 @@ export default function HqUsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-xs font-medium text-zinc-300">{user.fleet.name}</span>
+                      <span className="text-xs font-medium text-ink-soft">{user.fleet.name}</span>
                     </td>
                     <td className="px-6 py-5">
                       <select
                         value={user.role}
                         onChange={(e) => roleMutation.mutate({ userId: user.id, role: e.target.value })}
-                        className="rounded-lg border border-white/5 bg-white/5 px-2 py-1 text-[11px] font-bold text-zinc-300 focus:border-accent focus:outline-none cursor-pointer"
+                        className="rounded-lg border border-line bg-white/5 px-2 py-1 text-[11px] font-bold text-ink-soft focus:border-accent focus:outline-none cursor-pointer"
                       >
                         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
@@ -180,7 +180,7 @@ export default function HqUsersPage() {
                         {user.status === 'ACTIVE' ? (
                           <button
                             onClick={() => statusMutation.mutate({ userId: user.id, status: 'SUSPENDED' })}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-amber-400 hover:bg-amber-400/10 transition-all"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/5 text-amber-400 hover:bg-amber-400/10 transition-all"
                             title="Suspend user"
                           >
                             <Shield size={14} />
@@ -188,7 +188,7 @@ export default function HqUsersPage() {
                         ) : user.status === 'SUSPENDED' ? (
                           <button
                             onClick={() => statusMutation.mutate({ userId: user.id, status: 'ACTIVE' })}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-emerald-400 hover:bg-emerald-400/10 transition-all"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/5 text-emerald-400 hover:bg-emerald-400/10 transition-all"
                             title="Reactivate user"
                           >
                             <UserX size={14} />
@@ -200,7 +200,7 @@ export default function HqUsersPage() {
                               deleteMutation.mutate(user.id);
                             }
                           }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-rose-400 hover:bg-rose-400/10 transition-all"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/5 text-rose-400 hover:bg-rose-400/10 transition-all"
                           title="Delete user"
                         >
                           <Trash2 size={14} />
@@ -221,7 +221,7 @@ export default function HqUsersPage() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-xl border border-white/5 bg-[#121214] px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
+            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
           >
             Previous
           </button>
@@ -231,7 +231,7 @@ export default function HqUsersPage() {
           <button
             onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
             disabled={page >= data.totalPages}
-            className="rounded-xl border border-white/5 bg-[#121214] px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
+            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
           >
             Next
           </button>
@@ -240,3 +240,4 @@ export default function HqUsersPage() {
     </div>
   );
 }
+

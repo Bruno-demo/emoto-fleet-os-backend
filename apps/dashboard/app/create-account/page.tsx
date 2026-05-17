@@ -947,3 +947,4 @@ function getRegisterFieldErrors({
   }
   return errors;
 }
+

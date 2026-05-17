@@ -295,7 +295,7 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
             <code>
               <span className="text-zinc-500">$</span>{' '}
               <span className="text-accent">curl</span>{' '}
-              <span className="text-zinc-300">-sSL https://fleet.emoto.io/setup.sh</span>{' '}
+              <span className="text-ink-soft">-sSL https://fleet.emoto.io/setup.sh</span>{' '}
               <span className="text-zinc-500">|</span>{' '}
               <span className="text-accent">sh</span>
             </code>
@@ -615,3 +615,4 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
     </div>
   );
 }
+

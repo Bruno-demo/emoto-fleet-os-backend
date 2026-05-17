@@ -500,3 +500,4 @@ function ScorePill({ score }: { score: number }) {
     </span>
   );
 }
+

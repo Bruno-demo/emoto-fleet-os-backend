@@ -89,7 +89,7 @@ export default function FleetDetailPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.back()}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 hover:text-white transition-all"
           >
             <ArrowLeft size={20} />
           </button>
@@ -109,7 +109,7 @@ export default function FleetDetailPage() {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => router.back()}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 hover:text-white transition-all"
         >
           <ArrowLeft size={20} />
         </button>
@@ -121,7 +121,7 @@ export default function FleetDetailPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+        <div className="rounded-2xl border border-line bg-surface-strong p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Active Users</p>
@@ -134,7 +134,7 @@ export default function FleetDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+        <div className="rounded-2xl border border-line bg-surface-strong p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Active Bikes</p>
@@ -147,7 +147,7 @@ export default function FleetDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+        <div className="rounded-2xl border border-line bg-surface-strong p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</p>
@@ -160,7 +160,7 @@ export default function FleetDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#121214] p-6">
+        <div className="rounded-2xl border border-line bg-surface-strong p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Recorded Events</p>
@@ -175,21 +175,21 @@ export default function FleetDetailPage() {
       </div>
 
       {/* Fleet Management Actions */}
-      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
+      <div className="rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
         <h2 className="flex items-center gap-2 text-sm font-bold text-white mb-6">
           <Shield size={18} className="text-zinc-400" />
           Fleet Management
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {/* Plan Change */}
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Service Plan</p>
             <div className="flex gap-2">
               <button
                 onClick={() => planMutation.mutate('DEMO')}
                 disabled={planMutation.isPending || fleet.plan === 'DEMO'}
                 className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
-                  fleet.plan === 'DEMO' ? 'bg-accent text-white' : 'border border-white/5 bg-white/5 text-zinc-400 hover:bg-white/10'
+                  fleet.plan === 'DEMO' ? 'bg-accent text-white' : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
                 DEMO
@@ -198,7 +198,7 @@ export default function FleetDetailPage() {
                 onClick={() => planMutation.mutate('PREMIUM')}
                 disabled={planMutation.isPending || fleet.plan === 'PREMIUM'}
                 className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
-                  fleet.plan === 'PREMIUM' ? 'bg-accent text-white' : 'border border-white/5 bg-white/5 text-zinc-400 hover:bg-white/10'
+                  fleet.plan === 'PREMIUM' ? 'bg-accent text-white' : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
                 PREMIUM
@@ -207,13 +207,13 @@ export default function FleetDetailPage() {
           </div>
 
           {/* Subscription Status */}
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Subscription</p>
             <select
               value={fleet.subscriptionStatus}
               onChange={(e) => subMutation.mutate(e.target.value)}
               disabled={subMutation.isPending}
-              className="w-full rounded-xl border border-white/5 bg-[#121214] px-3 py-2.5 text-xs font-bold text-zinc-300 focus:border-accent focus:outline-none cursor-pointer"
+              className="w-full rounded-xl border border-line bg-surface-strong px-3 py-2.5 text-xs font-bold text-ink-soft focus:border-accent focus:outline-none cursor-pointer"
             >
               <option value="ACTIVE">ACTIVE</option>
               <option value="PAST_DUE">PAST_DUE</option>
@@ -241,7 +241,7 @@ export default function FleetDetailPage() {
       </div>
 
       {/* Users Section */}
-      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
+      <div className="rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="flex items-center gap-2 text-sm font-bold text-white">
             <Users size={18} className="text-zinc-400" />
@@ -251,7 +251,7 @@ export default function FleetDetailPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-line">
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Name</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Role</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Contact</th>
@@ -263,7 +263,7 @@ export default function FleetDetailPage() {
                 <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3 text-sm text-white">{user.email || user.phone || 'N/A'}</td>
                   <td className="px-4 py-3 text-xs">
-                    <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-zinc-300">
+                    <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-ink-soft">
                       {user.role}
                     </span>
                   </td>
@@ -288,7 +288,7 @@ export default function FleetDetailPage() {
       </div>
 
       {/* Bikes Section */}
-      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
+      <div className="rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="flex items-center gap-2 text-sm font-bold text-white">
             <Bike size={18} className="text-zinc-400" />
@@ -298,7 +298,7 @@ export default function FleetDetailPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-line">
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Label</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Plate</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Status</th>
@@ -322,7 +322,7 @@ export default function FleetDetailPage() {
                           ? 'bg-emerald-500/10 text-emerald-300'
                           : bike.status === 'MAINTENANCE'
                           ? 'bg-amber-500/10 text-amber-300'
-                          : 'bg-zinc-500/10 text-zinc-300'
+                          : 'bg-zinc-500/10 text-ink-soft'
                       }`}>
                         {bike.status}
                       </span>
@@ -336,7 +336,7 @@ export default function FleetDetailPage() {
       </div>
 
       {/* Footer Info */}
-      <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/5 px-4 py-3">
+      <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-line px-4 py-3">
         <Calendar size={14} className="text-zinc-500" />
         <span className="text-xs text-zinc-400">
           Fleet created on {new Date(fleet.createdAt).toLocaleDateString()} at {new Date(fleet.createdAt).toLocaleTimeString()}

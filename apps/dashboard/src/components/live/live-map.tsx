@@ -1512,3 +1512,4 @@ function getRoadFeatureStyle(feature: RoadFeature): {
       return { label: 'Road feature', fill: '#94a3b8', stroke: '#475569', radius: 4 };
   }
 }
+

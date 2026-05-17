@@ -66,7 +66,7 @@ export default function HqOverviewPage() {
           <p className="mt-1 text-zinc-400">Strategic oversight of the E-Moto Fleet OS global network.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-white/5 bg-[#18181b] px-4 py-1.5 text-xs font-medium text-zinc-400 shadow-sm">
+          <div className="flex items-center gap-2 rounded-full border border-line bg-[#18181b] px-4 py-1.5 text-xs font-medium text-zinc-400 shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
@@ -111,8 +111,8 @@ export default function HqOverviewPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Platform Health */}
-        <div className="flex flex-col rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="flex flex-col rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <h2 className="flex items-center gap-2 text-sm font-bold text-white">
               <Server size={16} className="text-zinc-400" />
               Platform Health
@@ -135,8 +135,8 @@ export default function HqOverviewPage() {
         </div>
 
         {/* Global Activity Timeline */}
-        <div className="lg:col-span-2 flex flex-col rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="lg:col-span-2 flex flex-col rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <h2 className="flex items-center gap-2 text-sm font-bold text-white">
               <Activity size={16} className="text-zinc-400" />
               Real-time Event Stream
@@ -164,7 +164,7 @@ export default function HqOverviewPage() {
           </div>
           <button 
             onClick={() => router.push('/hq/monitoring')}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-white/5 bg-white/5 py-2.5 text-xs font-semibold text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-line bg-white/5 py-2.5 text-xs font-semibold text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             View All Platform Logs
             <ChevronRight size={14} />
@@ -195,7 +195,7 @@ function MetricCard({
   return (
     <div 
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-3xl border p-6 transition-all hover:translate-y-[-2px] ${onClick ? 'cursor-pointer' : ''} ${alert ? 'border-warning-ink/30 bg-[#1e1a12] shadow-[0_0_20px_rgba(245,158,11,0.05)]' : 'border-white/5 bg-[#121214]'}`}
+      className={`group relative overflow-hidden rounded-3xl border p-6 transition-all hover:translate-y-[-2px] ${onClick ? 'cursor-pointer' : ''} ${alert ? 'border-warning-ink/30 bg-warning-soft shadow-[0_0_20px_rgba(245,158,11,0.05)]' : 'border-line bg-surface-strong'}`}
     >
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{title}</p>
@@ -223,7 +223,7 @@ function HealthItem({ label, status, icon, color }: { label: string; status: str
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-zinc-400">
           {icon}
         </div>
-        <span className="text-sm font-medium text-zinc-300">{label}</span>
+        <span className="text-sm font-medium text-ink-soft">{label}</span>
       </div>
       <span className={`text-xs font-bold ${color}`}>{status}</span>
     </div>
@@ -239,7 +239,7 @@ function ActivityItem({ fleet, event, time, type, icon }: { fleet: string; event
 
   return (
     <div className="flex items-start gap-4">
-      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-zinc-400">
+      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400">
         {icon}
       </div>
       <div className="flex-1 space-y-1">
@@ -255,3 +255,4 @@ function ActivityItem({ fleet, event, time, type, icon }: { fleet: string; event
     </div>
   );
 }
+

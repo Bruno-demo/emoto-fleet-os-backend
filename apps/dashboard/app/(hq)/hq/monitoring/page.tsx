@@ -57,7 +57,7 @@ export default function HqMonitoringPage() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.back()}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 hover:text-white transition-all"
         >
           <ArrowLeft size={20} />
         </button>
@@ -65,7 +65,7 @@ export default function HqMonitoringPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight text-white">System Monitoring</h1>
           <p className="mt-1 text-zinc-400">Real-time infrastructure health and telemetry statistics.</p>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-white/5 bg-[#18181b] px-4 py-1.5 text-xs font-medium text-zinc-400 shadow-sm">
+        <div className="flex items-center gap-2 rounded-full border border-line bg-[#18181b] px-4 py-1.5 text-xs font-medium text-zinc-400 shadow-sm">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
@@ -122,8 +122,8 @@ export default function HqMonitoringPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Infrastructure Health */}
-        <div className="flex flex-col rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="flex flex-col rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <h2 className="flex items-center gap-2 text-sm font-bold text-white">
               <Server size={16} className="text-zinc-400" />
               Infrastructure Health
@@ -141,7 +141,7 @@ export default function HqMonitoringPage() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-zinc-400">
                       <ShieldCheck size={14} />
                     </div>
-                    <span className="text-sm font-medium text-zinc-300">{item.label}</span>
+                    <span className="text-sm font-medium text-ink-soft">{item.label}</span>
                   </div>
                   <span className={`text-xs font-bold ${item.color}`}>{item.status}</span>
                 </div>
@@ -151,8 +151,8 @@ export default function HqMonitoringPage() {
         </div>
 
         {/* Uptime & Process Info */}
-        <div className="lg:col-span-2 flex flex-col rounded-3xl border border-white/5 bg-[#121214] p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="lg:col-span-2 flex flex-col rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <h2 className="flex items-center gap-2 text-sm font-bold text-white">
               <Clock size={16} className="text-zinc-400" />
               System Information
@@ -181,7 +181,7 @@ export default function HqMonitoringPage() {
 
 function MetricTile({ icon, title, value, color, bg }: { icon: React.ReactNode; title: string; value: string; color: string; bg: string }) {
   return (
-    <div className="rounded-3xl border border-white/5 bg-[#121214] p-6 transition-all hover:translate-y-[-1px]">
+    <div className="rounded-3xl border border-line bg-surface-strong p-6 transition-all hover:translate-y-[-1px]">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{title}</p>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bg} ${color}`}>
@@ -197,7 +197,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between rounded-2xl border border-white/[0.03] bg-white/[0.02] px-4 py-3">
       <span className="text-xs font-medium text-zinc-500">{label}</span>
-      <span className="text-xs font-bold text-zinc-300">{value}</span>
+      <span className="text-xs font-bold text-ink-soft">{value}</span>
     </div>
   );
 }
+

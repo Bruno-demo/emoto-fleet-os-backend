@@ -116,7 +116,7 @@ export default function PartnerSettingsPage() {
     return (
       <div className="space-y-8">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 hover:text-white">
+          <button onClick={() => router.back()} className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 hover:text-white">
             <ArrowLeft size={20} />
           </button>
           <h1 className="text-white">Partner not found</h1>
@@ -130,7 +130,7 @@ export default function PartnerSettingsPage() {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => router.back()}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 hover:text-white transition-all"
         >
           <ArrowLeft size={20} />
         </button>
@@ -141,7 +141,7 @@ export default function PartnerSettingsPage() {
       </div>
 
       {/* Credentials Section */}
-      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6">
+      <div className="rounded-3xl border border-line bg-surface-strong p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="flex items-center gap-2 text-sm font-bold text-white">
             <Key size={18} className="text-zinc-400" />
@@ -158,7 +158,7 @@ export default function PartnerSettingsPage() {
 
         {/* New Credential Form */}
         {showNewCredentialForm && (
-          <div className="mb-6 rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-4">
+          <div className="mb-6 rounded-xl border border-line bg-white/[0.02] p-4 space-y-4">
             <input
               type="text"
               placeholder="Client ID (e.g., partner_prod_1)"
@@ -208,7 +208,7 @@ export default function PartnerSettingsPage() {
             </div>
           ) : (
             partner.clients.map(client => (
-              <div key={client.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all">
+              <div key={client.id} className="flex items-center justify-between rounded-xl border border-line bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all">
                 <div className="flex-1">
                   <p className="text-sm font-mono text-white">{client.clientId}</p>
                   <p className="text-xs text-zinc-500 mt-1">Scopes: {client.scopes}</p>
@@ -217,7 +217,7 @@ export default function PartnerSettingsPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => copyToClipboard(client.clientId, `client-${client.id}`)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 hover:text-white transition-all"
                   >
                     {copiedId === `client-${client.id}` ? <Check size={14} /> : <Copy size={14} />}
                   </button>
@@ -236,7 +236,7 @@ export default function PartnerSettingsPage() {
       </div>
 
       {/* Webhooks Section */}
-      <div className="rounded-3xl border border-white/5 bg-[#121214] p-6">
+      <div className="rounded-3xl border border-line bg-surface-strong p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="flex items-center gap-2 text-sm font-bold text-white">
             <Webhook size={18} className="text-zinc-400" />
@@ -253,7 +253,7 @@ export default function PartnerSettingsPage() {
 
         {/* New Webhook Form */}
         {showNewWebhookForm && (
-          <div className="mb-6 rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-4">
+          <div className="mb-6 rounded-xl border border-line bg-white/[0.02] p-4 space-y-4">
             <input
               type="url"
               placeholder="Webhook URL (https://...)"
@@ -280,7 +280,7 @@ export default function PartnerSettingsPage() {
             </div>
           ) : (
             partner.webhooks.map(webhook => (
-              <div key={webhook.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all">
+              <div key={webhook.id} className="flex items-center justify-between rounded-xl border border-line bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate font-mono">{webhook.url}</p>
                   <p className="text-xs text-zinc-600 mt-1">
@@ -290,7 +290,7 @@ export default function PartnerSettingsPage() {
                 <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                   <button
                     onClick={() => copyToClipboard(webhook.url, `webhook-${webhook.id}`)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-zinc-400 hover:text-white transition-all"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 hover:text-white transition-all"
                   >
                     {copiedId === `webhook-${webhook.id}` ? <Check size={14} /> : <Copy size={14} />}
                   </button>

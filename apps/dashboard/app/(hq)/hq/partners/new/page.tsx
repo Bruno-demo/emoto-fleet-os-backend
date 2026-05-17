@@ -142,7 +142,7 @@ export default function OnboardPartnerPage() {
 
       {/* Step 1: Partner Details */}
       {step === 'details' && (
-        <div className="rounded-[32px] border border-white/5 bg-[#121214] p-8 space-y-6">
+        <div className="rounded-[32px] border border-line bg-surface-strong p-8 space-y-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
               <Plug size={24} />
@@ -160,12 +160,12 @@ export default function OnboardPartnerPage() {
               placeholder="e.g. SafeRide Insurance"
               value={partnerName}
               onChange={(e) => setPartnerName(e.target.value)}
-              className="w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-accent focus:bg-white/[0.08]"
+              className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-accent focus:bg-white/[0.08]"
             />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={() => router.back()} className="flex-1 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/10 transition">
+            <button onClick={() => router.back()} className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-ink-soft hover:bg-white/10 transition">
               Cancel
             </button>
             <button onClick={handleCreatePartner} disabled={isSubmitting} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:brightness-110 transition disabled:opacity-60">
@@ -177,7 +177,7 @@ export default function OnboardPartnerPage() {
 
       {/* Step 2: Credential Setup */}
       {step === 'credentials' && (
-        <div className="rounded-[32px] border border-white/5 bg-[#121214] p-8 space-y-6">
+        <div className="rounded-[32px] border border-line bg-surface-strong p-8 space-y-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400">
               <Key size={24} />
@@ -195,7 +195,7 @@ export default function OnboardPartnerPage() {
               placeholder="e.g. saferide-prod"
               value={clientIdInput}
               onChange={(e) => setClientIdInput(e.target.value)}
-              className="w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-accent focus:bg-white/[0.08] font-mono"
+              className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-accent focus:bg-white/[0.08] font-mono"
             />
           </div>
 
@@ -205,13 +205,13 @@ export default function OnboardPartnerPage() {
               type="text"
               value={scopes}
               onChange={(e) => setScopes(e.target.value)}
-              className="w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-accent focus:bg-white/[0.08] font-mono"
+              className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition focus:border-accent focus:bg-white/[0.08] font-mono"
             />
             <p className="mt-1.5 text-[11px] text-zinc-600">Space-separated scope list. Example: bikes:read trips:read telemetry:read</p>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setStep('details')} className="flex-1 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/10 transition">
+            <button onClick={() => setStep('details')} className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-ink-soft hover:bg-white/10 transition">
               Back
             </button>
             <button onClick={handleCreateCredential} disabled={isSubmitting} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:brightness-110 transition disabled:opacity-60">
@@ -223,7 +223,7 @@ export default function OnboardPartnerPage() {
 
       {/* Step 3: Done */}
       {step === 'done' && credential && (
-        <div className="rounded-[32px] border border-white/5 bg-[#121214] p-8 space-y-6">
+        <div className="rounded-[32px] border border-line bg-surface-strong p-8 space-y-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400">
               <Shield size={24} />
@@ -279,7 +279,7 @@ function CredentialField({ label, value, onCopy, copied, mono }: {
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-xl border border-line bg-white/[0.03] px-4 py-3">
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</p>
         <p className={`mt-0.5 text-sm text-white truncate ${mono !== false ? 'font-mono' : ''}`}>{value}</p>
@@ -290,3 +290,4 @@ function CredentialField({ label, value, onCopy, copied, mono }: {
     </div>
   );
 }
+

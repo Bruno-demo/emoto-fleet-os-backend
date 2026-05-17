@@ -42,3 +42,4 @@ export function HqGuard({ children }: { children: React.ReactNode }) {
   // Otherwise return nothing (redirecting...)
   return null;
 }
+

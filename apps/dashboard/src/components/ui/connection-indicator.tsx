@@ -16,3 +16,4 @@ export function ConnectionIndicator() {
   }
   return <Badge label="Offline" tone="danger" icon={<WifiOff size={13} />} />;
 }
+

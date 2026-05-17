@@ -83,7 +83,7 @@ export default function HqAuditPage() {
         <select
           value={filterAction}
           onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
-          className="h-10 rounded-xl border border-white/5 bg-[#121214] px-3 text-sm text-zinc-300 focus:border-accent focus:outline-none"
+          className="h-10 rounded-xl border border-line bg-surface-strong px-3 text-sm text-ink-soft focus:border-accent focus:outline-none"
         >
           <option value="">All actions</option>
           {ACTION_TYPES.map(a => <option key={a} value={a}>{a.replaceAll('_', ' ')}</option>)}
@@ -91,11 +91,11 @@ export default function HqAuditPage() {
       </div>
 
       {/* Timeline */}
-      <div className="rounded-[32px] border border-white/5 bg-[#121214] overflow-hidden shadow-sm">
+      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 w-12"></th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Timestamp</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Actor</th>
@@ -139,7 +139,7 @@ export default function HqAuditPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-medium text-zinc-300">
+                      <span className="text-xs font-medium text-ink-soft">
                         {entry.actorUser?.email ?? entry.actorUser?.phone ?? 'System'}
                       </span>
                     </td>
@@ -150,7 +150,7 @@ export default function HqAuditPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-xs text-zinc-400">
-                        <span className="font-medium text-zinc-300">{entry.targetType}</span>
+                        <span className="font-medium text-ink-soft">{entry.targetType}</span>
                         {entry.targetId && (
                           <span className="ml-1.5 font-mono text-zinc-600">{entry.targetId.slice(0, 8)}</span>
                         )}
@@ -173,7 +173,7 @@ export default function HqAuditPage() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-xl border border-white/5 bg-[#121214] px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
+            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
           >
             Previous
           </button>
@@ -181,7 +181,7 @@ export default function HqAuditPage() {
           <button
             onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
             disabled={page >= data.totalPages}
-            className="rounded-xl border border-white/5 bg-[#121214] px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
+            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
           >
             Next
           </button>
@@ -190,3 +190,4 @@ export default function HqAuditPage() {
     </div>
   );
 }
+
