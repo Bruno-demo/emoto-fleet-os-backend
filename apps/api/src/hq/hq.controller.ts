@@ -70,6 +70,15 @@ export class HqController {
     return this.hqService.softDeleteFleet(id);
   }
 
+  @Put('bikes/:id/status')
+  @ApiOperation({ summary: 'Change bike status' })
+  updateBikeStatus(
+    @Param('id') id: string,
+    @Body() body: { status: 'ACTIVE' | 'MAINTENANCE' | 'RETIRED' },
+  ) {
+    return this.hqService.updateBikeStatus(id, body.status);
+  }
+
   // ── Users ─────────────────────────────────────────────────────────
 
   @Get('users')

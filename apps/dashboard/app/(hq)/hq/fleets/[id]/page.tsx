@@ -61,6 +61,16 @@ export default function FleetDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hq', 'fleet', id] }),
   });
 
+  const bikeStatusMutation = useMutation({
+    mutationFn: ({ bikeId, status }: { bikeId: string; status: string }) =>
+      apiFetch(`/hq/bikes/${bikeId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hq', 'fleet', id] }),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => apiFetch(`/hq/fleets/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
@@ -317,15 +327,22 @@ export default function FleetDetailPage() {
                     <td className="px-4 py-3 font-medium text-white">{bike.label}</td>
                     <td className="px-4 py-3 text-sm text-zinc-400">{bike.plate || '-'}</td>
                     <td className="px-4 py-3 text-xs">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        bike.status === 'ACTIVE'
-                          ? 'bg-emerald-500/10 text-emerald-300'
-                          : bike.status === 'MAINTENANCE'
-                          ? 'bg-amber-500/10 text-amber-300'
-                          : 'bg-zinc-500/10 text-ink-soft'
-                      }`}>
-                        {bike.status}
-                      </span>
+                      <select
+                        value={bike.status}
+                        onChange={(e) => bikeStatusMutation.mutate({ bikeId: bike.id, status: e.target.value })}
+                        disabled={bikeStatusMutation.isPending}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer transition-all disabled:opacity-50 ${
+                          bike.status === 'ACTIVE'
+                            ? 'border-emerald-500/30 text-emerald-300 bg-emerald-500/5'
+                            : bike.status === 'MAINTENANCE'
+                            ? 'border-amber-500/30 text-amber-300 bg-amber-500/5'
+                            : 'border-zinc-500/30 text-zinc-400 bg-zinc-500/5'
+                        }`}
+                      >
+                        <option value="ACTIVE" className="bg-zinc-950 text-white">ACTIVE</option>
+                        <option value="MAINTENANCE" className="bg-zinc-950 text-white">MAINTENANCE</option>
+                        <option value="RETIRED" className="bg-zinc-950 text-white">RETIRED</option>
+                      </select>
                     </td>
                   </tr>
                 ))

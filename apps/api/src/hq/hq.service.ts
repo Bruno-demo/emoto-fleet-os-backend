@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserStatus, UserRole, FleetPlan, FleetSubscriptionStatus } from '@prisma/client';
+import { UserStatus, UserRole, FleetPlan, FleetSubscriptionStatus, BikeStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { encryptDeviceSecret, hashDeviceSecret } from '../crypto/device-secret.crypto';
@@ -182,6 +182,21 @@ export class HqService {
     ]);
 
     return { success: true, message: `Fleet "${fleet.name}" has been disabled.` };
+  }
+
+  async updateBikeStatus(bikeId: string, status: string) {
+    const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    if (!['ACTIVE', 'MAINTENANCE', 'RETIRED'].includes(status)) {
+      throw new BadRequestException('Invalid status');
+    }
+
+    return this.prisma.bike.update({
+      where: { id: bikeId },
+      data: { status: status as BikeStatus },
+      select: { id: true, label: true, status: true },
+    });
   }
 
   // ── Users ─────────────────────────────────────────────────────────
