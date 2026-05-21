@@ -13,6 +13,7 @@ import {
   Radio,
   ShieldAlert,
   Unlock,
+  X,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -96,6 +97,7 @@ export function LiveMapPanel() {
   const [mapViewport, setMapViewport] = useState<MapViewport | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [drawerDismissed, setDrawerDismissed] = useState(false);
+  const [isFeedCollapsed, setIsFeedCollapsed] = useState(false);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
@@ -398,7 +400,7 @@ export function LiveMapPanel() {
       description="Monitor active bikes, triage new alerts, and dispatch lock or unlock commands without leaving the realtime map surface."
     >
       <ToastStack items={toasts} />
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <section className="relative w-full">
         {/* ── Map Card ── */}
         <div
           ref={mapWrapperRef}
@@ -433,6 +435,20 @@ export function LiveMapPanel() {
               />
               <button
                 type="button"
+                onClick={() => setIsFeedCollapsed((prev) => !prev)}
+                className={cx(
+                  'inline-flex h-8 px-2.5 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition',
+                  isFeedCollapsed
+                    ? 'border-accent bg-accent/10 text-accent hover:bg-accent/20'
+                    : 'border-line bg-surface-muted text-ink-muted hover:bg-surface-hover hover:text-ink',
+                )}
+                title={isFeedCollapsed ? 'Show triage feed' : 'Hide triage feed'}
+              >
+                <Radio size={13} />
+                <span>{isFeedCollapsed ? 'Show Feed' : 'Hide Feed'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={toggleFullscreen}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface-muted text-ink-muted transition hover:bg-surface-hover hover:text-ink"
                 title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand map'}
@@ -445,13 +461,13 @@ export function LiveMapPanel() {
           {/* Map surface */}
           <div className="relative flex-1">
             {liveStatesQuery.isLoading ? (
-              <div className={cx('p-4', isFullscreen ? 'h-full' : 'h-[76vh] min-h-[580px]')}>
+              <div className={cx('p-4', isFullscreen ? 'h-full' : 'h-[80vh] min-h-[640px]')}>
                 <Skeleton className="h-full w-full rounded-[calc(var(--radius-panel)-6px)]" />
               </div>
             ) : (
               <div className={cx(
                 'relative overflow-hidden',
-                isFullscreen ? 'h-full' : 'h-[76vh] min-h-[580px] rounded-b-[var(--radius-panel)]',
+                isFullscreen ? 'h-full' : 'h-[80vh] min-h-[640px] rounded-b-[var(--radius-panel)]',
               )}>
                 <MapContainer
                   center={mapCenter}
@@ -487,7 +503,7 @@ export function LiveMapPanel() {
                 </MapContainer>
 
                 {/* Road legend */}
-                <div className="pointer-events-none absolute bottom-4 right-4 z-[500]">
+                <div className="pointer-events-none absolute bottom-4 left-4 z-[500]">
                   <RoadLegend
                     zoom={mapViewport?.zoom ?? 0}
                     featureCount={roadFeaturesQuery.data?.length ?? 0}
@@ -496,12 +512,142 @@ export function LiveMapPanel() {
 
                 {/* Fullscreen hint */}
                 {isFullscreen && (
-                  <div className="absolute left-4 top-4 z-[500]">
+                  <div className="absolute left-4 top-20 z-[500]">
                     <div className="rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-ink-muted shadow-sm backdrop-blur-md">
                       Press <kbd className="mx-1 rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-ink-soft">Esc</kbd> to exit
                     </div>
                   </div>
                 )}
+
+                {/* Triage Feed Floating Overlay */}
+                <div
+                  className={cx(
+                    'absolute right-4 top-4 bottom-4 w-[22rem] z-[800] transition-all duration-300 ease-in-out pointer-events-auto flex flex-col',
+                    isFeedCollapsed
+                      ? 'opacity-0 translate-x-12 pointer-events-none'
+                      : 'opacity-100 translate-x-0'
+                  )}
+                >
+                  <div className="flex-1 overflow-hidden flex flex-col rounded-2xl border border-line bg-[var(--background-strong)]/85 backdrop-blur-md shadow-2xl p-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-line pb-3 mb-3 shrink-0">
+                      <div>
+                        <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Triage Feed</h4>
+                        <h3 className="font-display text-sm font-bold text-ink mt-0.5">Live queue</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsFeedCollapsed(true)}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-ink-faint hover:bg-surface-hover hover:text-ink transition-colors"
+                        title="Hide feed"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    
+                    {/* Scrollable Feed List */}
+                    <div className="flex-1 overflow-y-auto space-y-5 pr-1 dashboard-scrollbar">
+                      <section>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h3 className="font-display text-sm font-bold text-ink">Recent alerts</h3>
+                            <p className="mt-0.5 text-xs text-ink-soft">
+                              Click an alert to open bike context.
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                            Realtime
+                          </span>
+                        </div>
+
+                        <div className="mt-2.5 space-y-2">
+                          {feedEvents.length ? (
+                            feedEvents.map((event) => {
+                              const linkedBike = event.bikeId ? bikesById.get(event.bikeId) : null;
+                              return (
+                                <button
+                                  key={event.id}
+                                  type="button"
+                                  onClick={() => selectBikeContext(event.bikeId, true)}
+                                  disabled={!event.bikeId}
+                                  className="w-full rounded-[16px] border border-line bg-surface-muted/60 px-3.5 py-2.5 text-left transition hover:bg-surface-hover disabled:cursor-default disabled:opacity-70"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-bold text-ink truncate">{formatEnumLabel(event.type)}</p>
+                                      <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
+                                        {linkedBike?.label ?? maskIdentifier(event.bikeId) ?? 'Fleet event'}
+                                        {' · '}
+                                        {formatTimeAgo(event.ts)}
+                                      </p>
+                                    </div>
+                                    <SeverityBadge severity={event.severity} />
+                                  </div>
+                                </button>
+                              );
+                            })
+                          ) : initialEventsQuery.isLoading ? (
+                            <div className="space-y-2">
+                              <Skeleton className="h-16 w-full rounded-[16px]" />
+                              <Skeleton className="h-16 w-full rounded-[16px]" />
+                            </div>
+                          ) : (
+                            <InlineEmptyCard
+                              icon={<AlertTriangle size={14} />}
+                              title="No recent alerts"
+                              description="New events will appear here as they arrive."
+                            />
+                          )}
+                        </div>
+                      </section>
+
+                      <section>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h3 className="font-display text-sm font-bold text-ink">Command stream</h3>
+                            <p className="mt-0.5 text-xs text-ink-soft">
+                              Recent locks/unlocks across the fleet.
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                            Last {Math.min(commandStream.length, 6)}
+                          </span>
+                        </div>
+
+                        <ul className="mt-2.5 space-y-2">
+                          {commandStream.slice(0, 6).length ? (
+                            commandStream.slice(0, 6).map((status) => (
+                              <li
+                                key={`${status.commandId}-${status.ts}`}
+                                className="rounded-[16px] border border-line bg-surface-muted/60 px-3.5 py-2.5"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-ink truncate">{status.action ?? 'Command'}</p>
+                                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
+                                      {maskIdentifier(status.bikeId) || 'Fleet command'} {' · '}
+                                      {formatTimeAgo(status.ts)}
+                                    </p>
+                                  </div>
+                                  <CommandBadge status={status.status} />
+                                </div>
+                                {status.message ? (
+                                  <p className="mt-1 text-[11px] leading-relaxed text-ink-soft break-words">{status.message}</p>
+                                ) : null}
+                              </li>
+                            ))
+                          ) : (
+                            <InlineEmptyCard
+                              icon={<Lock size={14} />}
+                              title="No activity yet"
+                              description="Command updates will appear here."
+                            />
+                          )}
+                        </ul>
+                      </section>
+                    </div>
+                  </div>
+                </div>
 
                 {throttledStates.length === 0 ? (
                   <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-6">
@@ -512,114 +658,6 @@ export function LiveMapPanel() {
             )}
           </div>
         </div>
-
-        <DashboardCard
-          eyebrow="Triage Feed"
-          title="Live queue"
-          description="Recent alerts and command acknowledgements stay visible while the bike drawer is open."
-          className="h-fit xl:sticky xl:top-6"
-        >
-          <div className="space-y-5">
-            <section>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-display text-lg font-semibold text-ink">Recent alerts</h3>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    Click an alert to open bike context in the drawer.
-                  </p>
-                </div>
-                <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                  Realtime
-                </span>
-              </div>
-
-              <div className="mt-3 space-y-2">
-                {feedEvents.length ? (
-                  feedEvents.map((event) => {
-                    const linkedBike = event.bikeId ? bikesById.get(event.bikeId) : null;
-                    return (
-                      <button
-                        key={event.id}
-                        type="button"
-                        onClick={() => selectBikeContext(event.bikeId, true)}
-                        disabled={!event.bikeId}
-                        className="w-full rounded-[20px] border border-line bg-surface-muted px-4 py-3 text-left transition hover:bg-surface-hover disabled:cursor-default disabled:opacity-70"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
-                            <p className="mt-1 text-xs leading-5 text-ink-soft">
-                              {linkedBike?.label ?? maskIdentifier(event.bikeId) ?? 'Fleet event'}
-                              {' · '}
-                              {formatTimeAgo(event.ts)}
-                            </p>
-                          </div>
-                          <SeverityBadge severity={event.severity} />
-                        </div>
-                      </button>
-                    );
-                  })
-                ) : initialEventsQuery.isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-20 w-full rounded-[20px]" />
-                    <Skeleton className="h-20 w-full rounded-[20px]" />
-                  </div>
-                ) : (
-                  <InlineEmptyCard
-                    icon={<AlertTriangle size={16} />}
-                    title="No recent alerts"
-                    description="New crash, theft, SOS, and scoring events will appear here as they arrive."
-                  />
-                )}
-              </div>
-            </section>
-
-            <section>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-display text-lg font-semibold text-ink">Command stream</h3>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    Recent lock and unlock state changes across the fleet.
-                  </p>
-                </div>
-                <span className="rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                  Last {Math.min(commandStream.length, 6)}
-                </span>
-              </div>
-
-              <ul className="mt-3 space-y-2">
-                {commandStream.slice(0, 6).length ? (
-                  commandStream.slice(0, 6).map((status) => (
-                    <li
-                      key={`${status.commandId}-${status.ts}`}
-                      className="rounded-[20px] border border-line bg-surface-muted px-4 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-ink">{status.action ?? 'Command'}</p>
-                          <p className="mt-1 text-xs leading-5 text-ink-soft">
-                            {maskIdentifier(status.bikeId) || 'Fleet command'} {' · '}
-                            {formatTimeAgo(status.ts)}
-                          </p>
-                        </div>
-                        <CommandBadge status={status.status} />
-                      </div>
-                      {status.message ? (
-                        <p className="mt-2 text-xs leading-5 text-ink-soft">{status.message}</p>
-                      ) : null}
-                    </li>
-                  ))
-                ) : (
-                  <InlineEmptyCard
-                    icon={<Lock size={16} />}
-                    title="No command activity yet"
-                    description="Command acknowledgements will appear here after the first lock or unlock request is sent."
-                  />
-                )}
-              </ul>
-            </section>
-          </div>
-        </DashboardCard>
       </section>
 
       <Drawer
@@ -910,7 +948,7 @@ function MapSizeController() {
 function MapZoomControls() {
   const map = useMap();
   return (
-    <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-1">
+    <div className="absolute left-4 top-4 z-[1000] flex flex-col gap-1">
       <button
         type="button"
         onClick={() => map.zoomIn()}

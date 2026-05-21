@@ -12,6 +12,9 @@ import {
   UserRound,
   Users,
   X,
+  Copy,
+  Check,
+  KeyRound,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -41,6 +44,52 @@ export default function RidersPage() {
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newFullName, setNewFullName] = useState('');
+
+  // Invite creation state
+  const [formMode, setFormMode] = useState<'direct' | 'invite'>('direct');
+  const [expiresInHours, setExpiresInHours] = useState('168');
+  const [generatedInvite, setGeneratedInvite] = useState<{ inviteId: string; token: string; link: string } | null>(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  const handleGenerateInvite = async () => {
+    setInviteError(null);
+    setIsGeneratingInvite(true);
+    setGeneratedInvite(null);
+    try {
+      const data = await apiFetch<{ inviteId: string; token: string }>('/auth/invites', {
+        method: 'POST',
+        body: JSON.stringify({
+          role: 'RIDER',
+          email: newEmail || undefined,
+          phone: newPhone || undefined,
+          expiresInHours: Number(expiresInHours),
+        }),
+      });
+      const inviteLink = `${window.location.origin}/create-account?token=${data.token}`;
+      setGeneratedInvite({
+        inviteId: data.inviteId,
+        token: data.token,
+        link: inviteLink,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setInviteError(error.message);
+      } else {
+        setInviteError('Failed to generate invite code');
+      }
+    } finally {
+      setIsGeneratingInvite(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!generatedInvite) return;
+    navigator.clipboard.writeText(generatedInvite.link);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
 
   const ridersQuery = useQuery({
     queryKey: ['riders', page],
@@ -244,65 +293,200 @@ export default function RidersPage() {
               <h3 className="font-display text-lg font-bold text-ink">Create new rider</h3>
               <button
                 type="button"
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setGeneratedInvite(null);
+                }}
                 className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover"
               >
                 <X size={16} />
               </button>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="block text-sm font-medium text-ink">
-                Full name
-                <input
-                  type="text"
-                  value={newFullName}
-                  onChange={(e) => setNewFullName(e.target.value)}
-                  placeholder="John Doe"
-                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                />
-              </label>
-              <label className="block text-sm font-medium text-ink">
-                Phone
-                <input
-                  type="tel"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  placeholder="+254..."
-                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                />
-              </label>
-              <label className="block text-sm font-medium text-ink">
-                Email
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="rider@fleet.co"
-                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                />
-              </label>
+
+            {/* Tab Swifter */}
+            <div className="mb-5 flex border-b border-line">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormMode('direct');
+                  setGeneratedInvite(null);
+                  setInviteError(null);
+                  setCreateError(null);
+                }}
+                className={cx(
+                  "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition-all duration-200 outline-none",
+                  formMode === 'direct'
+                    ? "border-accent text-accent"
+                    : "border-transparent text-ink-muted hover:text-ink"
+                )}
+              >
+                <UserRound size={14} />
+                Register Directly
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormMode('invite');
+                  setGeneratedInvite(null);
+                  setInviteError(null);
+                  setCreateError(null);
+                }}
+                className={cx(
+                  "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition-all duration-200 outline-none",
+                  formMode === 'invite'
+                    ? "border-accent text-accent"
+                    : "border-transparent text-ink-muted hover:text-ink"
+                )}
+              >
+                <KeyRound size={14} />
+                Generate Invite Link
+              </button>
             </div>
+
+            {formMode === 'direct' ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="block text-sm font-medium text-ink">
+                  Full name
+                  <input
+                    type="text"
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    placeholder="John Doe"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-ink">
+                  Phone
+                  <input
+                    type="tel"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="+254..."
+                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-ink">
+                  Email
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="rider@fleet.co"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <label className="block text-sm font-medium text-ink">
+                    Rider's email (optional constraint)
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="rider@fleet.co"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Rider's phone (optional constraint)
+                    <input
+                      type="tel"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      placeholder="+254..."
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Expiry duration (hours)
+                    <input
+                      type="number"
+                      value={expiresInHours}
+                      onChange={(e) => setExpiresInHours(e.target.value)}
+                      min="1"
+                      max="720"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    />
+                  </label>
+                </div>
+
+                {generatedInvite && (
+                  <div className="mt-4 rounded-xl border border-success-ink/20 bg-success-soft/30 p-4 animate-scale-in">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-bold text-success-ink flex items-center gap-1.5">
+                        <Check size={16} /> Invite Code Generated Successfully!
+                      </h4>
+                    </div>
+                    <p className="text-xs text-success-ink/80 mb-3">
+                      Share this unique link with the rider. They can register their account directly.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={generatedInvite.link}
+                        className="flex-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-ink outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110"
+                      >
+                        {copiedInvite ? <Check size={13} /> : <Copy size={13} />}
+                        {copiedInvite ? 'Copied' : 'Copy link'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {createError && (
               <p className="mt-3 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-2.5 text-sm text-danger-ink">
                 {createError}
               </p>
             )}
-            <div className="mt-4 flex justify-end gap-2">
+
+            {inviteError && (
+              <p className="mt-3 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-2.5 text-sm text-danger-ink">
+                {inviteError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setGeneratedInvite(null);
+                  setInviteError(null);
+                  setCreateError(null);
+                }}
                 className="rounded-xl border border-line bg-surface-hover px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface-muted"
               >
-                Cancel
+                Close
               </button>
-              <button
-                type="button"
-                disabled={isCreating || (!newPhone && !newEmail)}
-                onClick={() => void handleCreateRider()}
-                className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCreating ? 'Creating...' : 'Create rider'}
-              </button>
+              {formMode === 'direct' ? (
+                <button
+                  type="button"
+                  disabled={isCreating || (!newPhone && !newEmail)}
+                  onClick={() => void handleCreateRider()}
+                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreating ? 'Creating...' : 'Create rider'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isGeneratingInvite}
+                  onClick={() => void handleGenerateInvite()}
+                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGeneratingInvite ? 'Generating...' : 'Generate Invite Link'}
+                </button>
+              )}
             </div>
           </div>
         )}

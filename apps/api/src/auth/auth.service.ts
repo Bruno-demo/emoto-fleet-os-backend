@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,11 +18,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { AuthenticatedUser, JwtPayload } from './auth.types';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { PublicRegisterDto } from './dto/public-register.dto';
 import { RedeemInviteDto } from './dto/redeem-invite.dto';
 import { RegisterFleetDto } from './dto/register-fleet.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SendOtpDto } from './dto/send-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginOtpDto } from './dto/login-otp.dto';
 
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_SECONDS = 900; // 15 minutes
@@ -60,11 +66,19 @@ export class AuthService {
   ) {}
 
   // Authenticates with email/password or phone/password and returns an access token.
-  async login(dto: LoginDto): Promise<{
-    accessToken: string;
-    tokenType: 'Bearer';
-    user: AuthenticatedUser;
-  }> {
+  async login(dto: LoginDto): Promise<
+    | {
+        accessToken: string;
+        tokenType: 'Bearer';
+        user: AuthenticatedUser;
+      }
+    | {
+        requireOtp: true;
+        email: string;
+        tempToken: string;
+        otp?: string;
+      }
+  > {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
@@ -104,6 +118,37 @@ export class AuthService {
     }
 
     await this.clearFailedAttempts(identifier);
+
+    // If the user has a registered email, enforce OTP login verification
+    if (user.email) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpKey = `email_otp:login:${user.email}`;
+      await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
+
+      const border = '='.repeat(40);
+      this.logger.log(`
+\x1b[33m${border}\x1b[0m
+\x1b[32m  [OTP Verification] for LOGIN\x1b[0m
+\x1b[36m  Email: ${user.email}\x1b[0m
+\x1b[35m  OTP:   ${otp}\x1b[0m
+\x1b[33m${border}\x1b[0m
+`);
+
+      const tempToken = `temp_login_session_${randomBytes(24).toString('hex')}`;
+      const tempKey = `temp_login_data:${tempToken}`;
+      await this.redisService.set(
+        tempKey,
+        JSON.stringify({ userId: user.id, rememberMe: dto.rememberMe ?? false }),
+        300, // 5 minutes TTL
+      );
+
+      return {
+        requireOtp: true,
+        email: user.email,
+        tempToken,
+        otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+      };
+    }
 
     const authenticatedUser = this.toAuthenticatedUser(user);
 
@@ -209,6 +254,13 @@ export class AuthService {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
+    if (normalizedEmail) {
+      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      if (isVerified !== 'true') {
+        throw new BadRequestException('Please verify your email address using OTP first');
+      }
+    }
+
     const canAssignAnyRole =
       actor.role === UserRole.OWNER || actor.role === UserRole.ADMIN;
     if (!canAssignAnyRole && dto.role && dto.role !== UserRole.RIDER) {
@@ -232,6 +284,10 @@ export class AuthService {
         },
         select: userSelectForAuth,
       });
+
+      if (normalizedEmail) {
+        await this.redisService.del(`email_verified:${normalizedEmail}`);
+      }
 
       return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
@@ -268,6 +324,13 @@ export class AuthService {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
+    if (normalizedEmail) {
+      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      if (isVerified !== 'true') {
+        throw new BadRequestException('Please verify your email address using OTP first');
+      }
+    }
+
     const fleet = await this.prismaService.fleet.findUnique({
       where: { id: dto.fleetId },
       select: { id: true },
@@ -289,6 +352,10 @@ export class AuthService {
         },
         select: userSelectForAuth,
       });
+
+      if (normalizedEmail) {
+        await this.redisService.del(`email_verified:${normalizedEmail}`);
+      }
 
       return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
@@ -325,6 +392,13 @@ export class AuthService {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
+    if (normalizedEmail) {
+      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      if (isVerified !== 'true') {
+        throw new BadRequestException('Please verify your email address using OTP first');
+      }
+    }
+
     const passwordHash = await this.hashPassword(dto.password);
 
     try {
@@ -356,6 +430,10 @@ export class AuthService {
       this.logger.log(
         `Fleet "${dto.fleetName}" created with admin ${normalizedEmail ?? dto.phone} (bikeRange: ${dto.bikeRange})`,
       );
+
+      if (normalizedEmail) {
+        await this.redisService.del(`email_verified:${normalizedEmail}`);
+      }
 
       return this.toAuthenticatedUser(result);
     } catch (error: unknown) {
@@ -467,6 +545,13 @@ export class AuthService {
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
+    if (normalizedEmail) {
+      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      if (isVerified !== 'true') {
+        throw new BadRequestException('Please verify your email address using OTP first');
+      }
+    }
+
     if (invite.email && !normalizedEmail) {
       throw new ForbiddenException('Email required for this invite');
     }
@@ -508,6 +593,10 @@ export class AuthService {
         return user;
       });
 
+      if (normalizedEmail) {
+        await this.redisService.del(`email_verified:${normalizedEmail}`);
+      }
+
       return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
       if (
@@ -521,6 +610,66 @@ export class AuthService {
 
       throw error;
     }
+  }
+
+  // Generates a one-time secure token, stores it in Redis with user.id mapping, and returns success response.
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token: string }> {
+    const normalizedIdentifier = dto.identifier.trim().toLowerCase();
+    
+    // Look up the user by email or phone
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedIdentifier },
+          { phone: dto.identifier.trim() },
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Account not found');
+    }
+
+    // Generate secure 6-character alphanumeric reset token
+    const token = randomBytes(3).toString('hex').toUpperCase();
+
+    // Cache the user ID with the token mapping in Redis for 1 hour
+    await this.redisService.set(`password_reset:${token}`, user.id, 3600);
+
+    return {
+      message: 'Reset token generated.',
+      token,
+    };
+  }
+
+  // Completes the password reset by checking token validity, updating database, and removing it from Redis.
+  async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
+    const userId = await this.redisService.get(`password_reset:${dto.token}`);
+    if (!userId) {
+      throw new BadRequestException('Reset token is invalid or has expired');
+    }
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Hash the new password and update user in database
+    const passwordHash = await this.hashPassword(dto.password);
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    // Delete token from Redis
+    await this.redisService.del(`password_reset:${dto.token}`);
+
+    return {
+      success: true,
+      message: 'Password updated successfully.',
+    };
   }
 
   // Lists all users in the caller's fleet for team management.
@@ -678,6 +827,122 @@ export class AuthService {
     }
 
     return this.toAuthenticatedUser(user);
+  }
+
+  // Generates and stores a one-time OTP for email verification.
+  async sendOtp(dto: SendOtpDto): Promise<{ message: string; otp?: string }> {
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
+    if (dto.reason === 'register') {
+      const existingUser = await this.prismaService.user.findFirst({
+        where: { email: normalizedEmail },
+      });
+      if (existingUser) {
+        throw new ConflictException('Email is already registered');
+      }
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpKey = `email_otp:${dto.reason}:${normalizedEmail}`;
+    await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
+
+    const border = '='.repeat(40);
+    this.logger.log(`
+\x1b[33m${border}\x1b[0m
+\x1b[32m  [OTP Verification] for ${dto.reason.toUpperCase()}\x1b[0m
+\x1b[36m  Email: ${normalizedEmail}\x1b[0m
+\x1b[35m  OTP:   ${otp}\x1b[0m
+\x1b[33m${border}\x1b[0m
+`);
+
+    return {
+      message: 'OTP sent successfully',
+      otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+    };
+  }
+
+  // Verifies email OTP during registration.
+  async verifyOtp(dto: VerifyOtpDto): Promise<{ success: boolean; message: string }> {
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const otpKey = `email_otp:${dto.reason}:${normalizedEmail}`;
+    const cachedOtp = await this.redisService.get(otpKey);
+
+    if (!cachedOtp || cachedOtp !== dto.otp) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    if (dto.reason === 'register') {
+      await this.redisService.set(`email_verified:${normalizedEmail}`, 'true', 900); // 15 minutes TTL
+    }
+
+    await this.redisService.del(otpKey);
+
+    return {
+      success: true,
+      message: 'Email verified successfully',
+    };
+  }
+
+  // Verifies the login OTP using the temporary session token.
+  async loginWithOtp(dto: LoginOtpDto): Promise<{
+    accessToken: string;
+    tokenType: 'Bearer';
+    user: AuthenticatedUser;
+    rememberMe: boolean;
+  }> {
+    const tempKey = `temp_login_data:${dto.tempToken}`;
+    const rawData = await this.redisService.get(tempKey);
+    if (!rawData) {
+      throw new UnauthorizedException('Session expired. Please log in again.');
+    }
+
+    const { userId, rememberMe } = JSON.parse(rawData) as {
+      userId: string;
+      rememberMe: boolean;
+    };
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: userSelectForAuth,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const otpKey = `email_otp:login:${user.email}`;
+    const cachedOtp = await this.redisService.get(otpKey);
+    if (!cachedOtp || cachedOtp !== dto.otp) {
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
+    await this.redisService.del(tempKey);
+    await this.redisService.del(otpKey);
+
+    const authenticatedUser = this.toAuthenticatedUser(user);
+
+    this.auditService
+      .createAuditLog({
+        fleetId: authenticatedUser.fleetId,
+        actorUserId: authenticatedUser.id,
+        actionType: AuditActionType.LOGIN_SUCCESS,
+        targetType: 'User',
+        targetId: authenticatedUser.id,
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Failed to log login audit: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
+      });
+
+    const authResponse = await this.buildAuthResponse(authenticatedUser, rememberMe);
+
+    return {
+      accessToken: authResponse.accessToken,
+      tokenType: 'Bearer',
+      user: authenticatedUser,
+      rememberMe,
+    };
   }
 
   // Maps user records into the authenticated user payload used by the API and dashboard.

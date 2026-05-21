@@ -146,6 +146,18 @@ function isAuthBypassPath(pathname: string): boolean {
   if (pathname.startsWith('/auth/register')) {
     return true;
   }
+  if (pathname.startsWith('/auth/send-otp')) {
+    return true;
+  }
+  if (pathname.startsWith('/auth/verify-otp')) {
+    return true;
+  }
+  if (pathname.startsWith('/auth/forgot-password')) {
+    return true;
+  }
+  if (pathname.startsWith('/auth/reset-password')) {
+    return true;
+  }
   if (pathname.startsWith('/partner/oauth/token')) {
     return true;
   }

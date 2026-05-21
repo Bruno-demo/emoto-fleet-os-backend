@@ -32,11 +32,19 @@ export const loginFormSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-export const loginResponseSchema = z.object({
-  accessToken: z.string().min(1),
-  tokenType: z.literal('Bearer'),
-  user: authUserSchema,
-});
+export const loginResponseSchema = z.union([
+  z.object({
+    accessToken: z.string().min(1),
+    tokenType: z.literal('Bearer'),
+    user: authUserSchema,
+  }),
+  z.object({
+    requireOtp: z.literal(true),
+    email: z.string(),
+    tempToken: z.string().min(1),
+    otp: z.string().optional(),
+  }),
+]);
 
 export const meResponseSchema = authUserSchema;
 

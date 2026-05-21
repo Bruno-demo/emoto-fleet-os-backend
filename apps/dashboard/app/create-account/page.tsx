@@ -172,6 +172,16 @@ function CreateAccountInner() {
     terms: false,
   });
 
+  const [otpCode, setOtpCode] = useState('');
+  const [isEmailOtpSent, setIsEmailOtpSent] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+
+  const isGateLocked = email.trim().length > 0 && !isEmailVerified;
+
   const registrationMode = useMemo(() => {
     if (!hasWindow) {
       return 'checking';
@@ -275,6 +285,62 @@ function CreateAccountInner() {
       setInviteRole(inviteRoleOptions[0]!.value);
     }
   }, [inviteRoleOptions, inviteRole]);
+
+  const sendOtpCode = async () => {
+    setIsSendingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await apiFetch<{ otp?: string }>('/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim(), reason: 'register' }),
+      }, { auth: false });
+      
+      setIsEmailOtpSent(true);
+      if (res.otp) {
+        setDevOtp(res.otp);
+      }
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setOtpError(err.message);
+      } else {
+        setOtpError('Failed to send OTP code');
+      }
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      await apiFetch('/auth/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim(), otp: otpCode.trim(), reason: 'register' }),
+      }, { auth: false });
+
+      setIsEmailVerified(true);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setOtpError(err.message);
+      } else {
+        setOtpError('Invalid or expired OTP code');
+      }
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleEmailBlur = async () => {
+    setTouched((prev) => ({ ...prev, email: true }));
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    if (!z.string().email().safeParse(trimmed).success) return;
+
+    if (isEmailVerified || isSendingOtp || isEmailOtpSent) return;
+
+    await sendOtpCode();
+  };
 
   // Validates inputs and calls the admin-only register endpoint for the current fleet.
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -609,11 +675,27 @@ function CreateAccountInner() {
             label="Email address"
             placeholder="operator@fleet.example"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setIsEmailOtpSent(false);
+              setIsEmailVerified(false);
+              setOtpCode('');
+              setDevOtp(null);
+              setOtpError(null);
+            }}
+            onBlur={handleEmailBlur}
             error={mergedErrors.email}
             disabled={isFormDisabled}
             icon={<AtSign size={16} />}
+            rightElement={
+              isEmailVerified ? (
+                <span className="flex items-center gap-1 text-[10px] font-bold text-success-ink bg-success/15 rounded-full px-2 py-0.5 border border-success/30">
+                  <BadgeCheck size={12} className="text-success-ink" /> Verified
+                </span>
+              ) : isSendingOtp ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : null
+            }
           />
           <AuthInput
             label="Phone number"
@@ -627,6 +709,69 @@ function CreateAccountInner() {
           />
         </div>
 
+        {isEmailOtpSent && !isEmailVerified && (
+          <div className="rounded-[20px] border border-accent/20 bg-accent/[0.03] p-4 space-y-3 transition-all animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+                Email Verification
+              </p>
+              {devOtp && (
+                <span className="text-[10px] font-bold bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20">
+                  Dev Mode OTP: {devOtp}
+                </span>
+              )}
+            </div>
+            
+            <p className="text-xs text-ink-muted leading-relaxed">
+              We have sent a 6-digit verification code to <span className="font-semibold text-ink">{email}</span>. Please enter it below to proceed.
+            </p>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="Enter 6-digit OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full rounded-[14px] border border-line bg-surface px-4 py-2.5 text-center font-mono text-sm tracking-[0.3em] text-ink placeholder:font-sans placeholder:tracking-normal placeholder:text-ink-soft focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
+                  disabled={isVerifyingOtp}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={otpCode.length !== 6 || isVerifyingOtp}
+                className="flex items-center justify-center rounded-[14px] bg-accent px-4 text-xs font-semibold text-white transition hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {isVerifyingOtp ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  'Verify OTP'
+                )}
+              </button>
+            </div>
+
+            {otpError && (
+              <p className="text-xs font-semibold text-danger-ink">
+                {otpError}
+              </p>
+            )}
+
+            <div className="flex justify-between items-center text-[10px] text-ink-muted">
+              <span>Didn't receive the code?</span>
+              <button
+                type="button"
+                onClick={sendOtpCode}
+                className="font-bold text-accent hover:underline"
+                disabled={isSendingOtp}
+              >
+                {isSendingOtp ? 'Sending...' : 'Resend Code'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-3 sm:grid-cols-2">
           <AuthInput
             label="Password"
@@ -636,7 +781,7 @@ function CreateAccountInner() {
             onChange={(event) => setPassword(event.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
             error={mergedErrors.password}
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isGateLocked}
             icon={<Lock size={16} />}
             rightElement={
               <button
@@ -657,7 +802,7 @@ function CreateAccountInner() {
             onChange={(event) => setConfirmPassword(event.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, confirmPassword: true }))}
             error={mergedErrors.confirmPassword}
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isGateLocked}
             icon={<Lock size={16} />}
             rightElement={
               <button
@@ -678,7 +823,7 @@ function CreateAccountInner() {
             value={role}
             onChange={(event) => setRole(event.target.value as UserRole)}
             error={mergedErrors.role}
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isGateLocked}
           >
             {availableRoles.map((option) => (
               <option key={option.value} value={option.value}>
@@ -694,22 +839,24 @@ function CreateAccountInner() {
                 <button
                   type="button"
                   onClick={() => { setSignupType('rider'); setRole('RIDER'); }}
+                  disabled={isFormDisabled || isGateLocked}
                   className={`flex items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 transition-all ${
                     signupType === 'rider'
                       ? 'border-2 border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)]'
                       : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
-                  }`}
+                  } disabled:opacity-50`}
                 >
                   <Bike size={14} /> Rider
                 </button>
                 <button
                   type="button"
                   onClick={() => { setSignupType('admin'); setRole('ADMIN'); }}
+                  disabled={isFormDisabled || isGateLocked}
                   className={`flex items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 transition-all ${
                     signupType === 'admin'
                       ? 'border-2 border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)]'
                       : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
-                  }`}
+                  } disabled:opacity-50`}
                 >
                   <ShieldCheck size={14} /> Fleet Admin
                 </button>
@@ -724,7 +871,7 @@ function CreateAccountInner() {
                 onChange={(event) => setInviteToken(event.target.value)}
                 onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
                 error={mergedErrors.inviteToken}
-                disabled={isFormDisabled}
+                disabled={isFormDisabled || isGateLocked}
                 icon={<UsersRound size={16} />}
                 helper="Ask your fleet admin for an invite code to join their fleet."
               />
@@ -737,14 +884,14 @@ function CreateAccountInner() {
                   placeholder="e.g. Kigali Express Fleet"
                   value={fleetName}
                   onChange={(event) => setFleetName(event.target.value)}
-                  disabled={isFormDisabled}
+                  disabled={isFormDisabled || isGateLocked}
                   icon={<Building2 size={16} />}
                 />
                 <AuthSelect
                   label="Fleet size"
                   value={bikeRange}
                   onChange={(event) => setBikeRange(event.target.value)}
-                  disabled={isFormDisabled}
+                  disabled={isFormDisabled || isGateLocked}
                 >
                   {BIKE_RANGE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -761,7 +908,7 @@ function CreateAccountInner() {
           checked={termsAccepted}
           onChange={setTermsAccepted}
           label="I agree to the Terms & Conditions and Privacy Policy."
-          disabled={isFormDisabled}
+          disabled={isFormDisabled || isGateLocked}
         />
         {mergedErrors.terms ? (
           <p className="text-xs font-medium text-danger-ink">{mergedErrors.terms}</p>
@@ -771,7 +918,7 @@ function CreateAccountInner() {
           type="submit"
           label={isSubmitting ? 'Creating account...' : 'Create account'}
           isLoading={isSubmitting}
-          disabled={isFormDisabled}
+          disabled={isFormDisabled || isGateLocked}
         />
 
         <div className="flex items-center gap-3 text-xs text-ink-muted">

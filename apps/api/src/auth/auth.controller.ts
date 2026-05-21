@@ -6,11 +6,16 @@ import { UserRole } from '@prisma/client';
 import type { Response } from 'express';
 import { CurrentUser } from './current-user.decorator';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { PublicRegisterDto } from './dto/public-register.dto';
 import { RedeemInviteDto } from './dto/redeem-invite.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterFleetDto } from './dto/register-fleet.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SendOtpDto } from './dto/send-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginOtpDto } from './dto/login-otp.dto';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -34,14 +39,74 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
+  ): Promise<
+    | {
+        accessToken: string;
+        tokenType: 'Bearer';
+        user: AuthenticatedUser;
+      }
+    | {
+        requireOtp: true;
+        email: string;
+        tempToken: string;
+        otp?: string;
+      }
+  > {
+    const result = await this.authService.login(dto);
+    if ('accessToken' in result) {
+      this.setAuthCookie(response, result.accessToken, dto.rememberMe ?? false);
+    }
+    return result;
+  }
+
+  @Post('send-otp')
+  @Public()
+  @HttpCode(200)
+  @Throttle({
+    default: { limit: 10, ttl: 60_000 },
+  })
+  @ApiOperation({ summary: 'Send email OTP verification code' })
+  async sendOtp(
+    @Body() dto: SendOtpDto,
+  ): Promise<{ message: string; otp?: string }> {
+    return this.authService.sendOtp(dto);
+  }
+
+  @Post('verify-otp')
+  @Public()
+  @HttpCode(200)
+  @Throttle({
+    default: { limit: 10, ttl: 60_000 },
+  })
+  @ApiOperation({ summary: 'Verify email OTP' })
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.authService.verifyOtp(dto);
+  }
+
+  @Post('login-otp')
+  @Public()
+  @HttpCode(200)
+  @Throttle({
+    default: { limit: 10, ttl: 60_000 },
+  })
+  @ApiOperation({ summary: 'Verify login OTP and complete authentication' })
+  async loginWithOtp(
+    @Body() dto: LoginOtpDto,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<{
     accessToken: string;
     tokenType: 'Bearer';
     user: AuthenticatedUser;
   }> {
-    const result = await this.authService.login(dto);
-    this.setAuthCookie(response, result.accessToken, dto.rememberMe ?? false);
-    return result;
+    const result = await this.authService.loginWithOtp(dto);
+    this.setAuthCookie(response, result.accessToken, result.rememberMe);
+    return {
+      accessToken: result.accessToken,
+      tokenType: 'Bearer',
+      user: result.user,
+    };
   }
 
   @Post('logout')
@@ -53,6 +118,32 @@ export class AuthController {
   }> {
     this.clearAuthCookie(response);
     return { ok: true };
+  }
+
+  @Post('forgot-password')
+  @Public()
+  @HttpCode(200)
+  @Throttle({
+    default: { limit: 5, ttl: 60_000 },
+  })
+  @ApiOperation({ summary: 'Request password reset with email or phone' })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string; token: string }> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @Public()
+  @HttpCode(200)
+  @Throttle({
+    default: { limit: 5, ttl: 60_000 },
+  })
+  @ApiOperation({ summary: 'Reset password using recovery token' })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.authService.resetPassword(dto);
   }
 
   @Post('register')

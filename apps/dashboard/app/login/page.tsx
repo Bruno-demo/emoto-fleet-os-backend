@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  ArrowLeft,
   AtSign,
   Eye,
   EyeOff,
@@ -47,6 +48,16 @@ export default function LoginPage() {
   const [isExpired, setIsExpired] = useState(false);
   const loginPresentation = getLoginPresentation();
 
+  // OTP login flow state
+  const [requireOtp, setRequireOtp] = useState(false);
+  const [tempToken, setTempToken] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('expired') === 'true') {
@@ -77,7 +88,7 @@ export default function LoginPage() {
     return errors;
   }, [identifier, password, touched.identifier, touched.password]);
 
-  // Validates credentials then requests a JWT from the Nest auth endpoint.
+  // Validates credentials then requests a JWT or OTP prompt from the Nest auth endpoint.
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -109,13 +120,25 @@ export default function LoginPage() {
         },
       );
 
-      if (response.user.status === 'PENDING_SETUP') {
+      if ('requireOtp' in response && response.requireOtp) {
+        setRequireOtp(true);
+        setTempToken(response.tempToken);
+        setUserEmail(response.email);
+        if (response.otp) {
+          setDevOtp(response.otp);
+        }
+        return;
+      }
+
+      if ('user' in response && response.user.status === 'PENDING_SETUP') {
         await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
         setError('Your hardware installation is still pending.');
         return;
       }
 
-      router.replace(nextPath);
+      if ('accessToken' in response) {
+        router.replace(nextPath);
+      }
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {
         setError(requestError.message);
@@ -124,6 +147,77 @@ export default function LoginPage() {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Submits the OTP code to complete authentication.
+  const handleVerifyOtpAndLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setOtpError(null);
+    
+    if (otpCode.length !== 6) {
+      setOtpError('Please enter a 6-digit OTP code');
+      return;
+    }
+    if (!tempToken) {
+      setOtpError('Invalid session. Please login again.');
+      return;
+    }
+
+    try {
+      setIsVerifyingOtp(true);
+      const response = await apiFetch<{
+        accessToken: string;
+        tokenType: 'Bearer';
+        user: any;
+      }>('/auth/login-otp', {
+        method: 'POST',
+        body: JSON.stringify({
+          tempToken,
+          otp: otpCode.trim(),
+        }),
+      }, { auth: false });
+
+      if (response.user.status === 'PENDING_SETUP') {
+        await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+        setOtpError('Your hardware installation is still pending.');
+        return;
+      }
+
+      router.replace(nextPath);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setOtpError(err.message);
+      } else {
+        setOtpError('Invalid or expired OTP code');
+      }
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // Resends the login OTP code to user's verified email.
+  const resendLoginOtp = async () => {
+    if (!userEmail) return;
+    setIsSendingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await apiFetch<{ otp?: string }>('/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: userEmail, reason: 'login' }),
+      }, { auth: false });
+      
+      if (res.otp) {
+        setDevOtp(res.otp);
+      }
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setOtpError(err.message);
+      } else {
+        setOtpError('Failed to resend OTP code');
+      }
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
@@ -158,101 +252,172 @@ export default function LoginPage() {
       />
       <AuthTabs active="login" />
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        <AuthInput
-          label="Email or phone"
-          placeholder={loginPresentation.identifierPlaceholder}
-          value={identifier}
-          onChange={(event) => setIdentifier(event.target.value)}
-          onBlur={() => setTouched((prev) => ({ ...prev, identifier: true }))}
-          autoComplete="username"
-          icon={<AtSign size={16} />}
-          error={fieldErrors.identifier}
-          helper="Use the phone or email issued by your fleet admin."
-        />
-        <AuthInput
-          label="Password"
-          placeholder="Enter your password"
-          type={showPassword ? 'text' : 'password'}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
-          autoComplete="current-password"
-          icon={<Lock size={16} />}
-          error={fieldErrors.password}
-          rightElement={
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+      {requireOtp ? (
+        <form className="mt-6 space-y-4" onSubmit={handleVerifyOtpAndLogin}>
+          <div className="rounded-[20px] border border-accent/20 bg-accent/[0.03] p-5 space-y-4 transition-all animate-in fade-in duration-300">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-accent" /> Email Verification
+              </p>
+              {devOtp && (
+                <span className="text-[10px] font-bold bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20">
+                  Dev Mode OTP: {devOtp}
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-ink-muted leading-relaxed">
+              A 6-digit verification code has been sent to the email address <span className="font-semibold text-ink">{userEmail}</span> to complete your login.
+            </p>
+
+            <div className="space-y-2">
+              <input
+                type="text"
+                maxLength={6}
+                placeholder="Enter 6-digit OTP"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                className="w-full rounded-[14px] border border-line bg-surface px-4 py-3 text-center font-mono text-lg tracking-[0.4em] text-ink placeholder:font-sans placeholder:tracking-normal placeholder:text-ink-soft placeholder:text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
+                disabled={isVerifyingOtp}
+                autoFocus
+              />
+            </div>
+
+            {otpError && (
+              <AuthNotice message={otpError} tone="error" />
+            )}
+
+            <div className="flex justify-between items-center text-xs text-ink-muted">
+              <span>Didn't receive the code?</span>
+              <button
+                type="button"
+                onClick={resendLoginOtp}
+                className="font-semibold text-accent hover:underline focus:outline-none"
+                disabled={isSendingOtp}
+              >
+                {isSendingOtp ? 'Sending...' : 'Resend Code'}
+              </button>
+            </div>
+          </div>
+
+          <AuthButton
+            type="submit"
+            label={isVerifyingOtp ? 'Verifying...' : 'Verify & Login'}
+            isLoading={isVerifyingOtp}
+            disabled={otpCode.length !== 6 || isVerifyingOtp}
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              setRequireOtp(false);
+              setTempToken(null);
+              setOtpCode('');
+              setOtpError(null);
+              setDevOtp(null);
+            }}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-ink-muted transition hover:text-ink py-2"
+          >
+            <ArrowLeft size={14} /> Back to credentials
+          </button>
+        </form>
+      ) : (
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          <AuthInput
+            label="Email or phone"
+            placeholder={loginPresentation.identifierPlaceholder}
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, identifier: true }))}
+            autoComplete="username"
+            icon={<AtSign size={16} />}
+            error={fieldErrors.identifier}
+            helper="Use the phone or email issued by your fleet admin."
+          />
+          <AuthInput
+            label="Password"
+            placeholder="Enter your password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+            autoComplete="current-password"
+            icon={<Lock size={16} />}
+            error={fieldErrors.password}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="text-xs font-semibold text-ink-muted transition hover:text-ink"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <AuthCheckbox
+              checked={rememberMe}
+              onChange={setRememberMe}
+              label="Remember me for 30 days"
+              disabled={isSubmitting}
+            />
+            <Link
+              href="/forgot-password"
               className="text-xs font-semibold text-ink-muted transition hover:text-ink"
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          }
-        />
+              Forgot password?
+            </Link>
+          </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <AuthCheckbox
-            checked={rememberMe}
-            onChange={setRememberMe}
-            label="Remember me for 30 days"
+          {isExpired ? (
+            <AuthNotice
+              message="Your session has expired. Please log in again to continue."
+              tone="warning"
+            />
+          ) : null}
+          {error ? <AuthNotice message={error} tone="error" /> : null}
+          {socialNotice ? <AuthNotice message={socialNotice} tone="warning" /> : null}
+
+          <AuthButton
+            type="submit"
+            label={isSubmitting ? 'Signing in...' : 'Login'}
+            isLoading={isSubmitting}
             disabled={isSubmitting}
           />
-          <Link
-            href="/forgot-password"
-            className="text-xs font-semibold text-ink-muted transition hover:text-ink"
-          >
-            Forgot password?
-          </Link>
-        </div>
 
-        {isExpired ? (
-          <AuthNotice
-            message="Your session has expired. Please log in again to continue."
-            tone="warning"
-          />
-        ) : null}
-        {error ? <AuthNotice message={error} tone="error" /> : null}
-        {socialNotice ? <AuthNotice message={socialNotice} tone="warning" /> : null}
+          <div className="flex items-center gap-3 text-xs text-ink-muted">
+            <span className="h-px flex-1 bg-line" />
+            <span>Or continue with</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
 
-        <AuthButton
-          type="submit"
-          label={isSubmitting ? 'Signing in...' : 'Login'}
-          isLoading={isSubmitting}
-          disabled={isSubmitting}
-        />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <AuthButton
+              type="button"
+              variant="secondary"
+              label="Google"
+              icon={<span className="text-base font-semibold">G</span>}
+              onClick={() => handleSocialLogin('google', setSocialNotice)}
+            />
+            <AuthButton
+              type="button"
+              variant="secondary"
+              label="Apple"
+              icon={<span className="text-base font-semibold">A</span>}
+              onClick={() => handleSocialLogin('apple', setSocialNotice)}
+            />
+          </div>
 
-        <div className="flex items-center gap-3 text-xs text-ink-muted">
-          <span className="h-px flex-1 bg-line" />
-          <span>Or continue with</span>
-          <span className="h-px flex-1 bg-line" />
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <AuthButton
-            type="button"
-            variant="secondary"
-            label="Google"
-            icon={<span className="text-base font-semibold">G</span>}
-            onClick={() => handleSocialLogin('google', setSocialNotice)}
-          />
-          <AuthButton
-            type="button"
-            variant="secondary"
-            label="Apple"
-            icon={<span className="text-base font-semibold">A</span>}
-            onClick={() => handleSocialLogin('apple', setSocialNotice)}
-          />
-        </div>
-
-        <p className="text-center text-xs text-ink-muted">
-          New to Fleet OS?{' '}
-          <Link href="/create-account" className="font-semibold text-ink">
-            Create an account
-          </Link>
-        </p>
-      </form>
+          <p className="text-center text-xs text-ink-muted">
+            New to Fleet OS?{' '}
+            <Link href="/create-account" className="font-semibold text-ink">
+              Create an account
+            </Link>
+          </p>
+        </form>
+      )}
 
       {loginPresentation.showDemoCredentials ? (
         <div className="mt-6 rounded-[20px] border border-line bg-surface-muted p-4">
