@@ -22,9 +22,19 @@ export class ReportsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   // Builds a 7-day fleet summary report for scoring and risk ranking.
-  async getWeeklyReport(user: AuthenticatedUser): Promise<WeeklyReport> {
-    const to = new Date();
-    const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+  async getWeeklyReport(user: AuthenticatedUser, fromStr?: string, toStr?: string): Promise<WeeklyReport> {
+    const to = toStr ? new Date(toStr) : new Date();
+    const from = fromStr ? new Date(fromStr) : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    let insurerBikeFilter: { bikeId?: { in: string[] } } = {};
+    if (user.role === 'INSURER') {
+      const insuredBikes = await this.prismaService.bike.findMany({
+        where: { insurerUserId: user.id, fleetId: user.fleetId },
+        select: { id: true },
+      });
+      const bikeIds = insuredBikes.map(b => b.id);
+      insurerBikeFilter = { bikeId: { in: bikeIds } };
+    }
 
     const [trips, groupedEvents] = await Promise.all([
       this.prismaService.trip.findMany({
@@ -34,6 +44,7 @@ export class ReportsService {
             gte: from,
             lte: to,
           },
+          ...insurerBikeFilter,
         },
         select: {
           id: true,
@@ -50,6 +61,7 @@ export class ReportsService {
             gte: from,
             lte: to,
           },
+          ...insurerBikeFilter,
         },
         _count: {
           _all: true,
@@ -69,9 +81,12 @@ export class ReportsService {
     const bikeLabels = await this.loadBikeLabels(
       bikeMetrics.map((metric) => metric.bikeId),
     );
+    const riderNames = await this.loadRiderNames(
+      riderMetrics.map((metric) => metric.riderId),
+    );
 
     const topRiskyBikes = this.buildTopRiskyBikes(bikeMetrics, bikeLabels);
-    const topRiskyRiders = this.buildTopRiskyRiders(riderMetrics);
+    const topRiskyRiders = this.buildTopRiskyRiders(riderMetrics, riderNames);
     const avgScore =
       trips.length === 0
         ? 100
@@ -203,13 +218,46 @@ export class ReportsService {
       });
   }
 
+  private async loadRiderNames(
+    riderIds: string[],
+  ): Promise<Map<string, string>> {
+    if (riderIds.length === 0) {
+      return new Map();
+    }
+
+    const users = await this.prismaService.user.findMany({
+      where: {
+        id: { in: riderIds },
+      },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        riderProfile: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    return new Map(
+      users.map((u) => {
+        const name = u.riderProfile?.fullName || u.email || u.phone || `Rider ${u.id.slice(0, 8)}`;
+        return [u.id, name];
+      }),
+    );
+  }
+
   // Builds sorted top-risk rider list using average trip score.
   private buildTopRiskyRiders(
     riderMetrics: AggregatedRiderMetrics[],
+    riderNames: Map<string, string>,
   ): WeeklyRiskRider[] {
     return riderMetrics
       .map((metric) => ({
         riderId: metric.riderId,
+        fullName: riderNames.get(metric.riderId) ?? 'Unknown',
         tripCount: metric.tripCount,
         avgScore: Number((metric.scoreSum / metric.tripCount).toFixed(2)),
       }))

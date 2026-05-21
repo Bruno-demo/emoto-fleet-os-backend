@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { StyleSheet, Text, View } from 'react-native';
+import { Clipboard, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { ScreenContainer } from '../components/screen-container';
 import { AppCard } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -49,6 +50,23 @@ export function ProfileScreen() {
   const auth = useAuth();
   const me = auth.riderMe;
   const user = auth.user;
+  const [copiedId, setCopiedId] = useState<'rider' | 'fleet' | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const copyToClipboard = (text: string) => {
+    if (Clipboard && typeof Clipboard.setString === 'function') {
+      Clipboard.setString(text);
+    } else if (navigator?.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text);
+    }
+  };
+
+  const handleCopy = (idType: 'rider' | 'fleet', text: string) => {
+    copyToClipboard(text);
+    setCopiedId(idType);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const firstName = (me?.fullName ?? 'Rider').split(' ')[0];
   const initials = (me?.fullName ?? 'R')
     .split(' ')
@@ -152,8 +170,6 @@ export function ProfileScreen() {
           <InfoRow label="Full Name" value={me?.fullName} />
           <InfoRow label="Phone" value={me?.phone} />
           <InfoRow label="Email" value={me?.email} fallback="Not set" />
-          <InfoRow label="Rider ID" value={me?.userId?.slice(0, 12)} />
-          <InfoRow label="Fleet ID" value={me?.fleetId?.slice(0, 12)} />
         </View>
       </AppCard>
 
@@ -227,6 +243,70 @@ export function ProfileScreen() {
           </View>
         </AppCard>
       ) : null}
+
+      {/* Support & Diagnostics */}
+      <AppCard title="Support & Diagnostics">
+        <Pressable
+          onPress={() => setShowDiagnostics(!showDiagnostics)}
+          style={({ pressed }) => [
+            styles.diagnosticsTrigger,
+            pressed && { backgroundColor: theme.colors.surfaceMuted },
+          ]}
+        >
+          <View style={styles.diagnosticsHeader}>
+            <Text style={styles.diagnosticsTitle}>🔧 System Diagnostics</Text>
+            <Text style={styles.diagnosticsToggle}>
+              {showDiagnostics ? 'Hide details ▲' : 'Show details ▼'}
+            </Text>
+          </View>
+        </Pressable>
+
+        {showDiagnostics && (
+          <View style={styles.diagnosticsContent}>
+            <Text style={styles.diagnosticsDescription}>
+              If you are experiencing issues with your bike, connectivity, or trips, our support team may request the parameters below. Tap any value to copy it.
+            </Text>
+
+            <View style={styles.diagnosticsStack}>
+              <Pressable
+                onPress={() => handleCopy('rider', me?.userId ?? '')}
+                style={({ pressed }) => [
+                  styles.copyableRow,
+                  pressed && { backgroundColor: theme.colors.surfaceMuted },
+                ]}
+              >
+                <View>
+                  <Text style={styles.copyableLabel}>RIDER USER ID</Text>
+                  <Text style={styles.copyableValue}>{me?.userId ?? '—'}</Text>
+                </View>
+                <View style={styles.copyBadge}>
+                  <Text style={styles.copyBadgeText}>
+                    {copiedId === 'rider' ? '✓ Copied' : '📋 Copy'}
+                  </Text>
+                </View>
+              </Pressable>
+
+              <Pressable
+                onPress={() => handleCopy('fleet', me?.fleetId ?? '')}
+                style={({ pressed }) => [
+                  styles.copyableRow,
+                  pressed && { backgroundColor: theme.colors.surfaceMuted },
+                ]}
+              >
+                <View>
+                  <Text style={styles.copyableLabel}>OPERATING FLEET ID</Text>
+                  <Text style={styles.copyableValue}>{me?.fleetId ?? '—'}</Text>
+                </View>
+                <View style={styles.copyBadge}>
+                  <Text style={styles.copyBadgeText}>
+                    {copiedId === 'fleet' ? '✓ Copied' : '📋 Copy'}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </AppCard>
 
       {/* Sign out */}
       <View style={styles.signOutWrap}>
@@ -404,5 +484,71 @@ const styles = StyleSheet.create({
   },
   signOutWrap: {
     paddingBottom: theme.spacing.xl,
+  },
+  diagnosticsTrigger: {
+    paddingVertical: theme.spacing.xs,
+  },
+  diagnosticsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  diagnosticsTitle: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  diagnosticsToggle: {
+    fontSize: theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  diagnosticsContent: {
+    paddingTop: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+  diagnosticsDescription: {
+    fontSize: theme.typography.caption - 1,
+    color: theme.colors.textMuted,
+    lineHeight: 16,
+  },
+  diagnosticsStack: {
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+  },
+  copyableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.input,
+    backgroundColor: theme.colors.surfaceMuted,
+    padding: theme.spacing.md,
+  },
+  copyableLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: theme.colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  copyableValue: {
+    fontSize: 11,
+    color: theme.colors.text,
+    fontWeight: '600',
+  },
+  copyBadge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primarySoft,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryBorder,
+  },
+  copyBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
 });

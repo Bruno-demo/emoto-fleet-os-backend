@@ -58,6 +58,11 @@ export class PartnerService {
     this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
     await this.assertFleetAccess(partner.partnerId, fleetId);
 
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    const bikeFilter = isInsurer
+      ? { insurerUserId: partner.partnerId }
+      : undefined;
+
     const range = this.resolveTimeRange(query);
     const [tripCount, eventCount, incidentCount, crashCount, scoreAggregate] =
       await Promise.all([
@@ -68,6 +73,7 @@ export class PartnerService {
               gte: range.from,
               lte: range.to,
             },
+            ...(bikeFilter ? { bike: bikeFilter } : {}),
           },
         }),
         this.prismaService.event.count({
@@ -77,6 +83,7 @@ export class PartnerService {
               gte: range.from,
               lte: range.to,
             },
+            ...(bikeFilter ? { bike: bikeFilter } : {}),
           },
         }),
         this.prismaService.incident.count({
@@ -86,6 +93,7 @@ export class PartnerService {
               gte: range.from,
               lte: range.to,
             },
+            ...(bikeFilter ? { bike: bikeFilter } : {}),
           },
         }),
         this.prismaService.event.count({
@@ -96,6 +104,7 @@ export class PartnerService {
               gte: range.from,
               lte: range.to,
             },
+            ...(bikeFilter ? { bike: bikeFilter } : {}),
           },
         }),
         this.prismaService.trip.aggregate({
@@ -105,6 +114,7 @@ export class PartnerService {
               gte: range.from,
               lte: range.to,
             },
+            ...(bikeFilter ? { bike: bikeFilter } : {}),
           },
           _avg: {
             score: true,
@@ -147,6 +157,7 @@ export class PartnerService {
       select: {
         id: true,
         fleetId: true,
+        insurerUserId: true,
       },
     });
     if (!bike) {
@@ -154,6 +165,11 @@ export class PartnerService {
     }
 
     await this.assertFleetAccess(partner.partnerId, bike.fleetId);
+
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    if (isInsurer && bike.insurerUserId !== partner.partnerId) {
+      throw new ForbiddenException('Access to this bike is denied');
+    }
     const range = this.resolveTimeRange(query);
     const where: Prisma.TripWhereInput = {
       fleetId: bike.fleetId,
@@ -211,6 +227,11 @@ export class PartnerService {
             ts: true,
           },
         },
+        bike: {
+          select: {
+            insurerUserId: true,
+          },
+        },
       },
     });
     if (!incident) {
@@ -218,6 +239,14 @@ export class PartnerService {
     }
 
     await this.assertFleetAccess(partner.partnerId, incident.fleetId);
+
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    if (isInsurer) {
+      if (!incident.bike || incident.bike.insurerUserId !== partner.partnerId) {
+        throw new ForbiddenException('Access to this incident is denied');
+      }
+    }
+
     const timeline = await this.loadIncidentTimeline(incident);
 
     await this.auditPartnerApiAccess(
@@ -249,6 +278,24 @@ export class PartnerService {
     incidentId: string,
   ): Promise<PartnerEvidencePackSummary> {
     this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
+
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    if (isInsurer) {
+      const incident = await this.prismaService.incident.findUnique({
+        where: { id: incidentId },
+        select: {
+          bike: {
+            select: { insurerUserId: true },
+          },
+        },
+      });
+      if (!incident) {
+        throw new NotFoundException('Incident not found');
+      }
+      if (!incident.bike || incident.bike.insurerUserId !== partner.partnerId) {
+        throw new ForbiddenException('Access to this evidence pack is denied');
+      }
+    }
 
     const evidencePack = await this.evidenceService.getEvidencePackForPartner(
       partner,
@@ -338,6 +385,13 @@ export class PartnerService {
       return;
     }
 
+    const bike = incident.bikeId
+      ? await this.prismaService.bike.findUnique({
+          where: { id: incident.bikeId },
+          select: { insurerUserId: true },
+        })
+      : null;
+
     const webhooks = await this.prismaService.partnerWebhook.findMany({
       where: {
         active: true,
@@ -358,7 +412,23 @@ export class PartnerService {
       },
     });
 
+    const partnerIds = webhooks.map((w) => w.partnerId);
+    const insurers = await this.prismaService.user.findMany({
+      where: {
+        id: { in: partnerIds },
+        role: 'INSURER',
+      },
+      select: { id: true },
+    });
+    const insurerIds = new Set(insurers.map((u) => u.id));
+
     for (const webhook of webhooks) {
+      const isInsurer = insurerIds.has(webhook.partnerId);
+      if (isInsurer) {
+        if (!bike || bike.insurerUserId !== webhook.partnerId) {
+          continue;
+        }
+      }
       const notification = await this.prismaService.notification.create({
         data: {
           fleetId: incident.fleetId,
@@ -549,5 +619,17 @@ export class PartnerService {
     } catch {
       return 'invalid-url';
     }
+  }
+
+  // Determines if the partner ID corresponds to an INSURER role in the User table.
+  private async isInsurerPartner(partnerId: string): Promise<boolean> {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: partnerId,
+        role: 'INSURER',
+      },
+      select: { id: true },
+    });
+    return !!user;
   }
 }

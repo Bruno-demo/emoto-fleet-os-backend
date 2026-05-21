@@ -10,6 +10,7 @@ export interface WeeklyRiskBike {
 
 export interface WeeklyRiskRider {
   riderId: string;
+  fullName: string;
   tripCount: number;
   avgScore: number;
 }

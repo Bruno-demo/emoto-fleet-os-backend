@@ -136,7 +136,7 @@ export default function BikesPage() {
 
   const insurersQuery = useQuery({
     queryKey: ['fleet-users', 'insurers'],
-    queryFn: () => apiFetch<Array<{ id: string; email: string | null; phone: string | null; role: string }>>('/auth/fleet-users'),
+    queryFn: () => apiFetch<Array<{ id: string; email: string | null; phone: string | null; role: string; riderProfile?: { fullName: string } | null }>>('/auth/fleet-users'),
     enabled: !!currentUser && canProvisionDevices(currentUser.role),
   });
 
@@ -166,13 +166,14 @@ export default function BikesPage() {
   };
 
   const handleAssignInsurer = async () => {
-    if (!selectedBikeId || !assignInsurerId) return;
+    if (!selectedBikeId) return;
     setAssignInsurerError(null);
     setIsAssigningInsurer(true);
     try {
+      const targetInsurerUserId = (assignInsurerId === 'none' || !assignInsurerId) ? null : assignInsurerId;
       await apiFetch(`/bikes/${selectedBikeId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ insurerUserId: assignInsurerId || null }),
+        body: JSON.stringify({ insurerUserId: targetInsurerUserId }),
       });
       await queryClient.invalidateQueries({ queryKey: ['bikes'] });
       setShowAssignInsurer(false);
@@ -493,6 +494,18 @@ export default function BikesPage() {
                 value={<span>{assignmentByBikeId.get(activeBike.id)?.riderFullName ?? 'Unassigned'}</span>}
               />
               <KeyMetric
+                label="Assigned insurer"
+                value={
+                  <span>
+                    {activeBike.insurer
+                      ? activeBike.insurer.riderProfile?.fullName
+                        ? `${activeBike.insurer.riderProfile.fullName} (${activeBike.insurer.email ?? activeBike.insurer.phone})`
+                        : (activeBike.insurer.email ?? activeBike.insurer.phone ?? 'Assigned')
+                      : 'Unassigned'}
+                  </span>
+                }
+              />
+              <KeyMetric
                 label="Latest trip"
                 value={
                   <span>
@@ -518,7 +531,11 @@ export default function BikesPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowAssignInsurer(true); setAssignInsurerError(null); }}
+                    onClick={() => {
+                      setShowAssignInsurer(true);
+                      setAssignInsurerError(null);
+                      setAssignInsurerId(activeBike.insurerUserId || 'none');
+                    }}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                   >
                     <Shield size={16} />
@@ -566,13 +583,17 @@ export default function BikesPage() {
                           onChange={(e) => setAssignInsurerId(e.target.value)}
                           className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-accent cursor-pointer"
                         >
-                          <option value="">— Select insurer —</option>
+                          <option value="none">No Insurer (Unassign)</option>
                           {insurerUsers.map((u) => (
-                            <option key={u.id} value={u.id}>{u.email ?? u.phone ?? u.id.slice(0,8)}</option>
+                            <option key={u.id} value={u.id}>
+                              {u.riderProfile?.fullName
+                                ? `${u.riderProfile.fullName} (${u.email ?? u.phone ?? 'no contact'})`
+                                : (u.email ?? u.phone ?? u.id.slice(0, 8))}
+                            </option>
                           ))}
                         </select>
                         {assignInsurerError && <p className="text-sm text-danger-ink">{assignInsurerError}</p>}
-                        <button type="button" onClick={handleAssignInsurer} disabled={isAssigningInsurer || !assignInsurerId} className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
+                        <button type="button" onClick={handleAssignInsurer} disabled={isAssigningInsurer} className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
                           {isAssigningInsurer ? 'Assigning...' : 'Confirm Insurer'}
                         </button>
                       </>

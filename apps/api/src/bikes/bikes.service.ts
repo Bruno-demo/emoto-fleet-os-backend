@@ -1,10 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditActionType, Bike, Prisma } from '@prisma/client';
+import { AuditActionType, Bike, Prisma, UserRole } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -31,13 +32,31 @@ export class BikesService {
   async listBikesForUser(
     user: AuthenticatedUser,
     query: PaginationQueryDto,
-  ): Promise<PaginatedResponse<Bike>> {
+  ): Promise<PaginatedResponse<any>> {
     const pagination = getPaginationParams(query);
     const where: Prisma.BikeWhereInput = { fleetId: user.fleetId };
+
+    if (user.role === UserRole.INSURER) {
+      where.insurerUserId = user.id;
+    }
 
     const [bikes, total] = await Promise.all([
       this.prismaService.bike.findMany({
         where,
+        include: {
+          insurer: {
+            select: {
+              id: true,
+              email: true,
+              phone: true,
+              riderProfile: {
+                select: {
+                  fullName: true,
+                },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
@@ -84,10 +103,14 @@ export class BikesService {
   }
 
   // Loads a bike by id and enforces fleet isolation on access.
-  async getBikeForUser(id: string, user: AuthenticatedUser): Promise<Bike> {
+  async getBikeForUser(id: string, user: AuthenticatedUser): Promise<any> {
     const bike = await this.loadBikeOrThrow(id);
 
     this.assertFleetAccess(bike.fleetId, user);
+
+    if (user.role === UserRole.INSURER && bike.insurerUserId !== user.id) {
+      throw new ForbiddenException('Access to this bike is denied');
+    }
 
     return bike;
   }
@@ -97,9 +120,26 @@ export class BikesService {
     id: string,
     dto: UpdateBikeDto,
     user: AuthenticatedUser,
-  ): Promise<Bike> {
+  ): Promise<any> {
     const bike = await this.loadBikeOrThrow(id);
     this.assertFleetAccess(bike.fleetId, user);
+
+    if (dto.insurerUserId) {
+      const insurerUser = await this.prismaService.user.findUnique({
+        where: { id: dto.insurerUserId },
+      });
+      if (!insurerUser) {
+        throw new NotFoundException('Insurer not found');
+      }
+      if (insurerUser.role !== UserRole.INSURER) {
+        throw new BadRequestException('User is not an insurer');
+      }
+      if (insurerUser.fleetId !== bike.fleetId) {
+        throw new BadRequestException(
+          'Insurer must belong to the same fleet as the bike',
+        );
+      }
+    }
 
     try {
       return await this.prismaService.bike.update({
@@ -111,6 +151,20 @@ export class BikesService {
           model: dto.model,
           status: dto.status,
           ...(dto.insurerUserId !== undefined ? { insurerUserId: dto.insurerUserId } : {}),
+        },
+        include: {
+          insurer: {
+            select: {
+              id: true,
+              email: true,
+              phone: true,
+              riderProfile: {
+                select: {
+                  fullName: true,
+                },
+              },
+            },
+          },
         },
       });
     } catch (error: unknown) {
@@ -172,9 +226,23 @@ export class BikesService {
   }
 
   // Fetches a bike record by id or throws 404.
-  private async loadBikeOrThrow(id: string): Promise<Bike> {
+  private async loadBikeOrThrow(id: string): Promise<any> {
     const bike = await this.prismaService.bike.findUnique({
       where: { id },
+      include: {
+        insurer: {
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            riderProfile: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!bike) {

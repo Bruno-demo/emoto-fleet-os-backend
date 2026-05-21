@@ -18,6 +18,11 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
   let provisionedDeviceId = '';
   let provisionedDeviceSecret = '';
   let provisionedDeviceUid = '';
+  let insurerSameFleetId = '';
+  let insurerSameFleetToken = '';
+  let insurerForeignFleetId = '';
+  let riderSameFleetId = '';
+  let assignedBikeId = '';
   const runId = randomUUID().replace(/-/g, '');
   const primaryFleetSeedId = randomUUID();
   const foreignFleetSeedId = randomUUID();
@@ -32,11 +37,16 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
 
     const fleet = await prisma.fleet.upsert({
       where: { id: primaryFleetSeedId },
-      update: {},
+      update: {
+        plan: 'PREMIUM',
+        subscriptionStatus: 'ACTIVE',
+      },
       create: {
         id: primaryFleetSeedId,
         name: 'Demo Fleet',
         type: 'DELIVERY',
+        plan: 'PREMIUM',
+        subscriptionStatus: 'ACTIVE',
       },
     });
     fleetId = fleet.id;
@@ -106,11 +116,16 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
 
     const foreignFleet = await prisma.fleet.upsert({
       where: { id: foreignFleetSeedId },
-      update: {},
+      update: {
+        plan: 'PREMIUM',
+        subscriptionStatus: 'ACTIVE',
+      },
       create: {
         id: foreignFleetSeedId,
         name: 'Foreign Fleet',
         type: 'COOP',
+        plan: 'PREMIUM',
+        subscriptionStatus: 'ACTIVE',
       },
     });
 
@@ -169,6 +184,100 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     });
 
     fleetBikeId = ownBike.id;
+
+    const insurerSameFleetEmail = `insurer.same.${runId}@demo.emoto`;
+    const insurerSameFleetPhone = `+25078${runId.slice(0, 7)}`;
+    const insurerPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
+
+    const insurerSameUser = await prisma.user.upsert({
+      where: {
+        fleetId_email: {
+          fleetId: fleet.id,
+          email: insurerSameFleetEmail,
+        },
+      },
+      update: {
+        role: 'INSURER',
+        phone: insurerSameFleetPhone,
+        passwordHash: insurerPasswordHash,
+        status: 'ACTIVE',
+      },
+      create: {
+        fleetId: fleet.id,
+        role: 'INSURER',
+        email: insurerSameFleetEmail,
+        phone: insurerSameFleetPhone,
+        passwordHash: insurerPasswordHash,
+        status: 'ACTIVE',
+      },
+    });
+    insurerSameFleetId = insurerSameUser.id;
+
+    const insurerForeignFleetEmail = `insurer.foreign.${runId}@demo.emoto`;
+    const insurerForeignUser = await prisma.user.upsert({
+      where: {
+        fleetId_email: {
+          fleetId: foreignFleet.id,
+          email: insurerForeignFleetEmail,
+        },
+      },
+      update: {
+        role: 'INSURER',
+        passwordHash: insurerPasswordHash,
+        status: 'ACTIVE',
+      },
+      create: {
+        fleetId: foreignFleet.id,
+        role: 'INSURER',
+        email: insurerForeignFleetEmail,
+        passwordHash: insurerPasswordHash,
+        status: 'ACTIVE',
+      },
+    });
+    insurerForeignFleetId = insurerForeignUser.id;
+
+    const riderSameFleetEmail = `rider.same.${runId}@demo.emoto`;
+    const riderSameUser = await prisma.user.upsert({
+      where: {
+        fleetId_email: {
+          fleetId: fleet.id,
+          email: riderSameFleetEmail,
+        },
+      },
+      update: {
+        role: 'RIDER',
+        passwordHash: insurerPasswordHash,
+        status: 'ACTIVE',
+      },
+      create: {
+        fleetId: fleet.id,
+        role: 'RIDER',
+        email: riderSameFleetEmail,
+        passwordHash: insurerPasswordHash,
+        status: 'ACTIVE',
+      },
+    });
+    riderSameFleetId = riderSameUser.id;
+
+    const assignedBike = await prisma.bike.upsert({
+      where: {
+        fleetId_label: {
+          fleetId: fleet.id,
+          label: 'Bike-INSURER-ASSIGNED',
+        },
+      },
+      update: {
+        insurerUserId: insurerSameUser.id,
+        status: 'ACTIVE',
+      },
+      create: {
+        fleetId: fleet.id,
+        label: 'Bike-INSURER-ASSIGNED',
+        insurerUserId: insurerSameUser.id,
+        status: 'ACTIVE',
+      },
+    });
+    assignedBikeId = assignedBike.id;
   };
 
   // Computes the persisted hash format used for device secrets.
@@ -387,5 +496,96 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         deviceUid: `DEV-FORBIDDEN-${Date.now()}`,
       })
       .expect(403);
+  });
+
+  it('logs in the insurer user', async () => {
+    const login = await request(httpServer)
+      .post('/auth/login')
+      .send({
+        email: `insurer.same.${runId}@demo.emoto`,
+        password: 'ChangeMe123!',
+      })
+      .expect(200);
+
+    insurerSameFleetToken = (login.body as { accessToken: string }).accessToken;
+  });
+
+  describe('Insurer-Bike Assignment Validation and Access Restrictions', () => {
+    it('prevents assigning insurerUserId to a non-existent user', async () => {
+      await request(httpServer)
+        .patch(`/bikes/${fleetBikeId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ insurerUserId: randomUUID() })
+        .expect(404);
+    });
+
+    it('prevents assigning insurerUserId to a user with role RIDER', async () => {
+      await request(httpServer)
+        .patch(`/bikes/${fleetBikeId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ insurerUserId: riderSameFleetId })
+        .expect(400);
+    });
+
+    it('prevents assigning insurerUserId to an insurer from a different fleet', async () => {
+      await request(httpServer)
+        .patch(`/bikes/${fleetBikeId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ insurerUserId: insurerForeignFleetId })
+        .expect(400);
+    });
+
+    it('allows assigning insurerUserId to a valid insurer in the same fleet', async () => {
+      const response = await request(httpServer)
+        .patch(`/bikes/${fleetBikeId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ insurerUserId: insurerSameFleetId })
+        .expect(200);
+
+      expect(response.body.insurerUserId).toBe(insurerSameFleetId);
+    });
+
+    it('allows INSURER to fetch assigned bikes list', async () => {
+      const response = await request(httpServer)
+        .get('/bikes')
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const data = response.body.data as Array<{ id: string }>;
+      const bikeIds = data.map((b) => b.id);
+      expect(bikeIds).toContain(assignedBikeId);
+      expect(bikeIds).toContain(fleetBikeId);
+    });
+
+    it('allows INSURER to fetch details of assigned bike', async () => {
+      await request(httpServer)
+        .get(`/bikes/${assignedBikeId}`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+    });
+
+    it('blocks INSURER from accessing details of unassigned bike in their own fleet', async () => {
+      const unassignedBike = await prisma.bike.create({
+        data: {
+          fleetId,
+          label: `Bike-UNASSIGNED-${Date.now()}`,
+          status: 'ACTIVE',
+        },
+      });
+
+      await request(httpServer)
+        .get(`/bikes/${unassignedBike.id}`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(403);
+    });
+
+    it('allows ADMIN to query audit-logs with pagination and actionType', async () => {
+      const response = await request(httpServer)
+        .get('/audit-logs?page=1&pageSize=25&actionType=BIKE_ASSIGNMENT_CHANGED')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.data).toBeDefined();
+    });
   });
 });

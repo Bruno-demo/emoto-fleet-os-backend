@@ -146,6 +146,20 @@ services:
         condition: service_completed_successfully
     command: ['node', 'apps/api/dist/src/worker.js']
 
+  demo-telemetry:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./scripts:/app/scripts
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ['node', 'scripts/demo_telemetry_loop.js']
+
   gateway:
     build:
       context: .

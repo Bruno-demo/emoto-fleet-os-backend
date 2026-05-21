@@ -151,7 +151,7 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
                       {formatDuration(trip.durationSec)}
                     </Text>
                     {trip.consumptionPct !== null && (
-                      <Badge label={`${trip.consumptionPct.toFixed(0)}% bat`} tone="success" size="small" />
+                      <Badge label={`${trip.consumptionPct.toFixed(0)}% bat`} tone="success" />
                     )}
                   </View>
                   <Text style={styles.tripDate}>

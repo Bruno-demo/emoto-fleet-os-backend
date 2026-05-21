@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { HqGuard } from './guards/hq.guard';
@@ -221,6 +222,123 @@ export class HqController {
       status,
       fleetId,
     });
+  }
+
+  // ── Telemetry Events ──────────────────────────────────────────────
+
+  @Get('telemetry-events')
+  @ApiOperation({ summary: 'List all telemetry events globally (paginated)' })
+  getTelemetryEvents(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('fleetId') fleetId?: string,
+    @Query('type') type?: string,
+    @Query('severity') severity?: string,
+  ) {
+    return this.hqService.getTelemetryEvents({
+      page: page ? parseInt(page, 10) : 1,
+      pageSize: pageSize ? parseInt(pageSize, 10) : 25,
+      fleetId,
+      type,
+      severity,
+    });
+  }
+
+  // ── Devices ────────────────────────────────────────────────────────
+
+  @Get('devices')
+  @ApiOperation({ summary: 'List all devices globally (paginated)' })
+  getDevices(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('fleetId') fleetId?: string,
+    @Query('status') status?: string,
+    @Query('assigned') assigned?: string,
+  ) {
+    return this.hqService.getDevices({
+      page: page ? parseInt(page, 10) : 1,
+      pageSize: pageSize ? parseInt(pageSize, 10) : 25,
+      fleetId,
+      status,
+      assigned,
+    });
+  }
+
+  @Post('devices/:id/assign-bike')
+  @ApiOperation({ summary: 'Assign a bike to a device' })
+  assignBikeToDevice(
+    @Param('id') id: string,
+    @Body() body: { bikeId: string },
+  ) {
+    return this.hqService.assignBikeToDevice(id, body.bikeId);
+  }
+
+  @Post('devices/:id/unassign-bike')
+  @ApiOperation({ summary: 'Unassign bike from a device' })
+  unassignBikeFromDevice(@Param('id') id: string) {
+    return this.hqService.unassignBikeFromDevice(id);
+  }
+
+  @Post('devices')
+  @ApiOperation({ summary: 'Create a new global device identity' })
+  createDevice(
+    @Body() body: { deviceUid: string; imei?: string; fleetId: string },
+  ) {
+    return this.hqService.createDevice(body);
+  }
+
+  @Post('devices/:id/rotate-secret')
+  @ApiOperation({ summary: 'Rotate the secret credentials of a device' })
+  rotateDeviceSecret(@Param('id') id: string) {
+    return this.hqService.rotateDeviceSecret(id);
+  }
+
+  // ── Insurers ──────────────────────────────────────────────────────
+
+  @Get('insurers')
+  @ApiOperation({ summary: 'List all insurers globally (paginated)' })
+  getInsurers(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.hqService.getInsurers({
+      page: page ? parseInt(page, 10) : 1,
+      pageSize: pageSize ? parseInt(pageSize, 10) : 25,
+      search,
+    });
+  }
+
+  @Get('insurers/:id')
+  @ApiOperation({ summary: 'Get insurer details by ID' })
+  getInsurerById(@Param('id') id: string) {
+    return this.hqService.getInsurerById(id);
+  }
+
+  @Post('insurers')
+  @ApiOperation({ summary: 'Create a new insurer user' })
+  createInsurer(
+    @Body() body: { email?: string; phone?: string; password: string; fullName: string; fleetId: string },
+  ) {
+    return this.hqService.createInsurer(body);
+  }
+
+  @Post('insurers/:id/assign-bike')
+  @ApiOperation({ summary: 'Assign a bike to an insurer' })
+  assignBikeToInsurer(
+    @Param('id') id: string,
+    @Body() body: { bikeId: string },
+  ) {
+    return this.hqService.assignBikeToInsurer(id, body.bikeId);
+  }
+
+  @Delete('insurers/:id/bikes/:bikeId')
+  @ApiOperation({ summary: 'Remove a bike from an insurer' })
+  unassignBikeFromInsurer(
+    @Param('id') id: string,
+    @Param('bikeId') bikeId: string,
+  ) {
+    return this.hqService.unassignBikeFromInsurer(id, bikeId);
   }
 
   // ── Monitoring ────────────────────────────────────────────────────

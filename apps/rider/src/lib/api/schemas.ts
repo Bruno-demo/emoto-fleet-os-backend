@@ -84,6 +84,7 @@ export const fleetDeviceCommandSchema = z.object({
 export const riderTripSchema = z.object({
   id: uuidLikeSchema,
   bikeId: uuidLikeSchema,
+  bikeLabel: z.string(),
   startTs: z.string(),
   endTs: z.string().nullable(),
   distanceKm: z.number(),

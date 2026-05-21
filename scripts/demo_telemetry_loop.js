@@ -1,7 +1,8 @@
 const Redis = require('ioredis');
 
 async function main() {
-  const redis = new Redis('redis://localhost:6379');
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  const redis = new Redis(redisUrl);
   
   const bikeId = '00000000-0000-0000-0000-000000000411';
   const actualFleetId = '00000000-0000-0000-0000-000000000004';

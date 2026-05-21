@@ -1,18 +1,32 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertCircle, AlertTriangle, Calendar, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, AlertCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api/client';
 import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
 
+function getDefaultRange() {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - 7);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  };
+}
+
 export default function ReportsPage() {
+  const [dateRange, setDateRange] = useState(getDefaultRange);
+
   const reportQuery = useQuery({
-    queryKey: ['reports', 'weekly'],
-    queryFn: () => apiFetch<WeeklyReport>('/reports/weekly'),
+    queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
+    queryFn: () => apiFetch<WeeklyReport>(`/reports/weekly?from=${dateRange.from}&to=${dateRange.to}`),
   });
 
   const report = reportQuery.data;
@@ -26,17 +40,12 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Date range */}
-      {report && (
-        <div className="flex items-center gap-2 text-xs text-ink-muted animate-fade-in">
-          <Calendar size={12} />
-          <span>
-            {new Date(report.range.from).toLocaleDateString()} &mdash;{' '}
-            {new Date(report.range.to).toLocaleDateString()}
-          </span>
-          <span className="text-ink-faint">&middot; Rolling 7 days</span>
-        </div>
-      )}
+      {/* Date range picker */}
+      <DateRangePicker
+        from={dateRange.from}
+        to={dateRange.to}
+        onChange={setDateRange}
+      />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {reportQuery.isLoading ? (
           <>

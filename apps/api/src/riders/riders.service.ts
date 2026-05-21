@@ -587,6 +587,13 @@ export class RidersService {
     const [trips, total] = await Promise.all([
       this.prismaService.trip.findMany({
         where,
+        include: {
+          bike: {
+            select: {
+              label: true,
+            },
+          },
+        },
         orderBy: {
           startTs: 'desc',
         },
@@ -597,9 +604,10 @@ export class RidersService {
     ]);
 
     return createPaginatedResponse(
-      trips.map((trip) => ({
+      trips.map((trip: any) => ({
         id: trip.id,
         bikeId: trip.bikeId,
+        bikeLabel: trip.bike?.label ?? 'Bike ' + trip.bikeId.slice(0, 8),
         startTs: trip.startTs.toISOString(),
         endTs: trip.endTs?.toISOString() ?? null,
         distanceKm: Number(trip.distanceKm),
@@ -627,6 +635,13 @@ export class RidersService {
         fleetId: user.fleetId,
         riderId: user.id,
       },
+      include: {
+        bike: {
+          select: {
+            label: true,
+          },
+        },
+      },
     });
 
     if (!trip) {
@@ -643,6 +658,7 @@ export class RidersService {
     return {
       id: trip.id,
       bikeId: trip.bikeId,
+      bikeLabel: trip.bike?.label ?? 'Bike ' + trip.bikeId.slice(0, 8),
       startTs: trip.startTs.toISOString(),
       endTs: trip.endTs?.toISOString() ?? null,
       distanceKm: Number(trip.distanceKm),

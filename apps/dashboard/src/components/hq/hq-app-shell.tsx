@@ -4,12 +4,14 @@ import {
   AlertTriangle,
   Building2, 
   ClipboardList,
+  Cpu,
   LayoutDashboard, 
   LogOut, 
   Menu, 
   Activity, 
   Users, 
   UserPlus, 
+  ShieldCheck,
   Zap,
   Globe
 } from 'lucide-react';
@@ -24,10 +26,13 @@ const HQ_NAV_LINKS = [
   { href: '/hq/overview', label: 'Command Center', icon: LayoutDashboard },
   { href: '/hq/fleets', label: 'Fleets', icon: Building2 },
   { href: '/hq/users', label: 'Users', icon: Users },
+  { href: '/hq/devices', label: 'Devices', icon: Cpu },
   { href: '/hq/pending-setups', label: 'Pending Setups', icon: UserPlus },
   { href: '/hq/incidents', label: 'Incidents', icon: AlertTriangle },
+  { href: '/hq/events', label: 'Events', icon: Zap },
   { href: '/hq/audit', label: 'Audit Log', icon: ClipboardList },
   { href: '/hq/partners', label: 'Partners & APIs', icon: Globe },
+  { href: '/hq/insurers', label: 'Insurers', icon: ShieldCheck },
   { href: '/hq/monitoring', label: 'Monitoring', icon: Activity },
 ];
 

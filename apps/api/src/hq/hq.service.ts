@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { UserStatus, UserRole, FleetPlan, FleetSubscriptionStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
+import { encryptDeviceSecret, hashDeviceSecret } from '../crypto/device-secret.crypto';
 
 @Injectable()
 export class HqService {
@@ -19,6 +21,8 @@ export class HqService {
       totalPartners,
       totalIncidents,
       openIncidents,
+      totalInsurers,
+      unassignedDevices,
     ] = await Promise.all([
       this.prisma.fleet.count(),
       this.prisma.bike.count(),
@@ -28,6 +32,8 @@ export class HqService {
       this.prisma.partner.count(),
       this.prisma.incident.count(),
       this.prisma.incident.count({ where: { status: 'OPEN' } }),
+      this.prisma.user.count({ where: { role: 'INSURER' } }),
+      this.prisma.device.count({ where: { bikeId: null, status: 'ACTIVE' } }),
     ]);
 
     return {
@@ -39,6 +45,8 @@ export class HqService {
       totalPartners,
       totalIncidents,
       openIncidents,
+      totalInsurers,
+      unassignedDevices,
     };
   }
 
@@ -286,10 +294,24 @@ export class HqService {
       throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
     }
 
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { status: status as UserStatus },
-      select: { id: true, email: true, phone: true, status: true },
+    return this.prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { status: status as UserStatus },
+        select: { id: true, email: true, phone: true, status: true, role: true },
+      });
+
+      if (user.role === 'INSURER') {
+        const partnerExists = await tx.partner.findUnique({ where: { id: userId } });
+        if (partnerExists) {
+          await tx.partner.update({
+            where: { id: userId },
+            data: { status: status === 'ACTIVE' ? 'ACTIVE' : 'DISABLED' },
+          });
+        }
+      }
+
+      return updatedUser;
     });
   }
 
@@ -297,7 +319,16 @@ export class HqService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    await this.prisma.user.delete({ where: { id: userId } });
+    await this.prisma.$transaction(async (tx) => {
+      if (user.role === 'INSURER') {
+        const partnerExists = await tx.partner.findUnique({ where: { id: userId } });
+        if (partnerExists) {
+          await tx.partner.delete({ where: { id: userId } });
+        }
+      }
+      await tx.user.delete({ where: { id: userId } });
+    });
+
     return { success: true };
   }
 
@@ -361,7 +392,7 @@ export class HqService {
     if (!partner) throw new NotFoundException('Partner not found');
 
     const clientSecret = crypto.randomBytes(32).toString('hex');
-    const clientSecretHash = crypto.createHash('sha256').update(clientSecret).digest('hex');
+    const clientSecretHash = await bcrypt.hash(clientSecret, 10);
 
     const client = await this.prisma.partnerClient.create({
       data: {
@@ -576,6 +607,417 @@ export class HqService {
       activeDevices,
       activeUsers: totalUsers,
       uptimeSeconds: Math.floor(process.uptime()),
+    };
+  }
+
+  // ── Devices ────────────────────────────────────────────────────────
+
+  async getDevices(opts: {
+    page: number;
+    pageSize: number;
+    fleetId?: string;
+    status?: string;
+    assigned?: string;
+  }) {
+    const where: any = {};
+
+    if (opts.fleetId) {
+      where.fleetId = opts.fleetId;
+    }
+
+    if (opts.status) {
+      where.status = opts.status;
+    }
+
+    if (opts.assigned === 'true') {
+      where.bikeId = { not: null };
+    } else if (opts.assigned === 'false') {
+      where.bikeId = null;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.device.findMany({
+        where,
+        skip: (opts.page - 1) * opts.pageSize,
+        take: opts.pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          bike: { select: { id: true, label: true, plate: true, status: true } },
+          fleet: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.device.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page: opts.page,
+      pageSize: opts.pageSize,
+      totalPages: Math.ceil(total / opts.pageSize),
+    };
+  }
+
+  async assignBikeToDevice(deviceId: string, bikeId: string) {
+    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) throw new NotFoundException('Device not found');
+
+    const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    if (device.fleetId !== bike.fleetId) {
+      throw new BadRequestException('Device and bike must belong to the same fleet');
+    }
+
+    return this.prisma.device.update({
+      where: { id: deviceId },
+      data: { bikeId },
+      include: {
+        bike: { select: { id: true, label: true, plate: true, status: true } },
+        fleet: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async unassignBikeFromDevice(deviceId: string) {
+    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) throw new NotFoundException('Device not found');
+
+    return this.prisma.device.update({
+      where: { id: deviceId },
+      data: { bikeId: null },
+      include: {
+        bike: { select: { id: true, label: true, plate: true, status: true } },
+        fleet: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async createDevice(body: { deviceUid: string; imei?: string; fleetId: string }) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: body.fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    const masterKey = process.env.DEVICE_SECRET_MASTER_KEY;
+    if (!masterKey) {
+      throw new Error('DEVICE_SECRET_MASTER_KEY is not defined in environment');
+    }
+
+    const deviceSecret = crypto.randomBytes(32).toString('base64url');
+    const secretHash = hashDeviceSecret(deviceSecret);
+    const secretEncrypted = encryptDeviceSecret(deviceSecret, masterKey);
+
+    try {
+      const device = await this.prisma.device.create({
+        data: {
+          fleetId: body.fleetId,
+          deviceUid: body.deviceUid,
+          imei: body.imei || null,
+          secretHash,
+          secretEncrypted,
+          status: 'ACTIVE',
+        },
+        include: {
+          bike: { select: { id: true, label: true, plate: true, status: true } },
+          fleet: { select: { id: true, name: true } },
+        },
+      });
+
+      return {
+        device,
+        deviceSecret,
+      };
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new BadRequestException('deviceUid or imei already exists');
+      }
+      throw error;
+    }
+  }
+
+  async rotateDeviceSecret(deviceId: string) {
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+      select: { id: true, deviceUid: true },
+    });
+    if (!device) throw new NotFoundException('Device not found');
+
+    const masterKey = process.env.DEVICE_SECRET_MASTER_KEY;
+    if (!masterKey) {
+      throw new Error('DEVICE_SECRET_MASTER_KEY is not defined in environment');
+    }
+
+    const deviceSecret = crypto.randomBytes(32).toString('base64url');
+    const secretHash = hashDeviceSecret(deviceSecret);
+    const secretEncrypted = encryptDeviceSecret(deviceSecret, masterKey);
+
+    await this.prisma.device.update({
+      where: { id: deviceId },
+      data: {
+        secretHash,
+        secretEncrypted,
+      },
+    });
+
+    return {
+      deviceId: device.id,
+      deviceUid: device.deviceUid,
+      deviceSecret,
+    };
+  }
+
+  // ── Insurers ──────────────────────────────────────────────────────
+
+  async getInsurers(opts: {
+    page: number;
+    pageSize: number;
+    search?: string;
+  }) {
+    const where: any = { role: 'INSURER' as UserRole };
+
+    if (opts.search) {
+      where.OR = [
+        { email: { contains: opts.search, mode: 'insensitive' } },
+        { phone: { contains: opts.search } },
+        { riderProfile: { fullName: { contains: opts.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip: (opts.page - 1) * opts.pageSize,
+        take: opts.pageSize,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          fleet: { select: { id: true, name: true } },
+          riderProfile: { select: { fullName: true } },
+          insuredBikes: {
+            select: {
+              id: true,
+              label: true,
+              plate: true,
+              status: true,
+            },
+          },
+          _count: { select: { insuredBikes: true } },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const mappedData = data.map((insurer) => {
+      const { insuredBikes, ...rest } = insurer;
+      return {
+        ...rest,
+        assignedBikes: insuredBikes,
+      };
+    });
+
+    return {
+      data: mappedData,
+      total,
+      page: opts.page,
+      pageSize: opts.pageSize,
+      totalPages: Math.ceil(total / opts.pageSize),
+    };
+  }
+
+  async getInsurerById(insurerId: string) {
+    const insurer = await this.prisma.user.findUnique({
+      where: { id: insurerId },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        fleetId: true,
+        fleet: { select: { id: true, name: true } },
+        riderProfile: { select: { fullName: true } },
+        insuredBikes: {
+          select: {
+            id: true,
+            label: true,
+            plate: true,
+            status: true,
+            fleet: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!insurer) throw new NotFoundException('Insurer not found');
+    if (insurer.role !== 'INSURER') throw new BadRequestException('User is not an insurer');
+
+    return insurer;
+  }
+
+  async createInsurer(body: {
+    email?: string;
+    phone?: string;
+    password: string;
+    fullName: string;
+    fleetId: string;
+  }) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: body.fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.create({
+        data: {
+          email: body.email,
+          phone: body.phone,
+          passwordHash: hashedPassword,
+          role: 'INSURER' as UserRole,
+          status: 'ACTIVE' as UserStatus,
+          fleetId: body.fleetId,
+          riderProfile: {
+            create: {
+              fullName: body.fullName,
+            },
+          },
+        },
+        include: {
+          fleet: { select: { id: true, name: true } },
+          riderProfile: { select: { fullName: true } },
+        },
+      });
+
+      // Synchronize creation with a matching Partner record using the same UUID
+      await tx.partner.create({
+        data: {
+          id: u.id,
+          name: body.fullName,
+          status: 'ACTIVE',
+        },
+      });
+
+      // Grant fleet access to this partner
+      await tx.partnerFleetAccess.create({
+        data: {
+          partnerId: u.id,
+          fleetId: body.fleetId,
+          active: true,
+        },
+      });
+
+      // Provision a default API client credential for this partner
+      const clientId = `client_${u.id.slice(0, 8)}`;
+      const clientSecret = crypto.randomBytes(16).toString('hex');
+      const clientSecretHash = await bcrypt.hash(clientSecret, 10);
+
+      await tx.partnerClient.create({
+        data: {
+          partnerId: u.id,
+          clientId,
+          clientSecretHash,
+          scopes: 'insurer:read webhooks:write',
+          status: 'ACTIVE',
+        },
+      });
+
+      return u;
+    });
+
+    return user;
+  }
+
+  async assignBikeToInsurer(insurerId: string, bikeId: string) {
+    const insurer = await this.prisma.user.findUnique({ where: { id: insurerId } });
+    if (!insurer) throw new NotFoundException('Insurer not found');
+    if (insurer.role !== 'INSURER') throw new BadRequestException('User is not an insurer');
+
+    const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    if (bike.fleetId !== insurer.fleetId) {
+      throw new BadRequestException('Bike must belong to the insurer\'s fleet');
+    }
+
+    return this.prisma.bike.update({
+      where: { id: bikeId },
+      data: { insurerUserId: insurerId },
+      include: {
+        fleet: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async unassignBikeFromInsurer(insurerId: string, bikeId: string) {
+    const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    if (bike.insurerUserId !== insurerId) {
+      throw new BadRequestException('Bike is not assigned to this insurer');
+    }
+
+    await this.prisma.bike.update({
+      where: { id: bikeId },
+      data: { insurerUserId: null },
+    });
+
+    return { success: true };
+  }
+
+  // ── Telemetry Events ────────────────────────────────────────────
+
+  async getTelemetryEvents(opts: {
+    page: number;
+    pageSize: number;
+    fleetId?: string;
+    type?: string;
+    severity?: string;
+  }) {
+    const where: any = {};
+
+    if (opts.fleetId) {
+      where.fleetId = opts.fleetId;
+    }
+
+    if (opts.type) {
+      where.type = opts.type;
+    }
+
+    if (opts.severity) {
+      where.severity = opts.severity;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        skip: (opts.page - 1) * opts.pageSize,
+        take: opts.pageSize,
+        orderBy: { ts: 'desc' },
+        include: {
+          fleet: { select: { id: true, name: true } },
+          bike: { select: { id: true, label: true } },
+          device: { select: { id: true, deviceUid: true } },
+        },
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    // Convert BigInt IDs to strings for JSON serialization
+    const serializedData = data.map(e => ({
+      ...e,
+      id: String(e.id),
+    }));
+
+    return {
+      data: serializedData,
+      total,
+      page: opts.page,
+      pageSize: opts.pageSize,
+      totalPages: Math.ceil(total / opts.pageSize),
     };
   }
 

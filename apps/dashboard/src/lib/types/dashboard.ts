@@ -36,6 +36,15 @@ export interface Bike {
   status: 'ACTIVE' | 'MAINTENANCE' | 'RETIRED';
   createdAt: string;
   updatedAt: string;
+  insurerUserId?: string | null;
+  insurer?: {
+    id: string;
+    email: string | null;
+    phone: string | null;
+    riderProfile?: {
+      fullName: string;
+    } | null;
+  } | null;
 }
 
 export interface Device {
@@ -214,6 +223,7 @@ export interface WeeklyReport {
   }>;
   topRiskyRiders: Array<{
     riderId: string;
+    fullName?: string;
     tripCount: number;
     avgScore: number;
   }>;

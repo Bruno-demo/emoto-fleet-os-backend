@@ -534,6 +534,11 @@ export class AuthService {
         role: true,
         status: true,
         createdAt: true,
+        riderProfile: {
+          select: {
+            fullName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });

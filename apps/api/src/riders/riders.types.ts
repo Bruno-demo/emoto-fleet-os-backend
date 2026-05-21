@@ -56,6 +56,7 @@ export interface RiderMeResponse {
 export interface RiderTripSummary {
   id: string;
   bikeId: string;
+  bikeLabel: string;
   startTs: string;
   endTs: string | null;
   distanceKm: number;

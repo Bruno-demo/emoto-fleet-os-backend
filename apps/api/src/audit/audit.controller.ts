@@ -1,12 +1,20 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { AuditActionType, UserRole } from '@prisma/client';
+import { IsEnum, IsOptional } from 'class-validator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { AuditService } from './audit.service';
+
+export class ListAuditLogsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ enum: AuditActionType })
+  @IsOptional()
+  @IsEnum(AuditActionType)
+  actionType?: AuditActionType;
+}
 
 @ApiTags('audit')
 @ApiBearerAuth()
@@ -20,19 +28,12 @@ export class AuditController {
   @ApiOperation({ summary: 'List audit logs for fleet' })
   async listAuditLogs(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: PaginationQueryDto,
-    @Query('actionType') actionType?: string,
+    @Query() query: ListAuditLogsQueryDto,
   ) {
-    const validActionType =
-      actionType &&
-      Object.values(AuditActionType).includes(actionType as AuditActionType)
-        ? (actionType as AuditActionType)
-        : undefined;
-
     return this.auditService.listAuditLogs(user.fleetId, {
       page: Number(query.page ?? 1),
       pageSize: Number(query.pageSize ?? 20),
-      actionType: validActionType,
+      actionType: query.actionType,
     });
   }
 }

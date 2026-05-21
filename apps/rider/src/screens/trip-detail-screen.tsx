@@ -171,7 +171,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
       <View style={styles.heroSection}>
         <View style={styles.heroDateRow}>
           <Text style={styles.heroDate}>{formatDate(trip.startTs)}</Text>
-          <Badge label={`Bike ${trip.bikeId.slice(0, 8)}`} tone="primary" />
+          <Badge label={trip.bikeLabel} tone="primary" />
         </View>
         <View style={styles.heroContent}>
           <ScoreRing score={trip.score} size={110} />

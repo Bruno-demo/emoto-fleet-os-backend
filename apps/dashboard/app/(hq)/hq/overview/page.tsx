@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   Building2, 
   Bike, 
+  Cpu,
   UserPlus, 
   Globe, 
   TrendingUp, 
@@ -26,6 +27,8 @@ const statsSchema = z.object({
   totalBikes: z.number(),
   totalPendingSetups: z.number(),
   totalPartners: z.number(),
+  totalInsurers: z.number().optional(),
+  unassignedDevices: z.number().optional(),
 });
 
 const healthSchema = z.array(z.object({
@@ -76,7 +79,7 @@ export default function HqOverviewPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard
           title="Total Fleets"
           value={statsLoading ? '-' : stats?.totalFleets.toLocaleString()}
@@ -106,6 +109,22 @@ export default function HqOverviewPage() {
           icon={<Globe size={20} />}
           trend="Healthy integration"
           trendUp={true}
+        />
+        <MetricCard
+          title="Insurers"
+          value={statsLoading ? '-' : (stats?.totalInsurers ?? 0).toLocaleString()}
+          icon={<ShieldCheck size={20} />}
+          trend="Insurance partners"
+          trendUp={true}
+          onClick={() => router.push('/hq/insurers')}
+        />
+        <MetricCard
+          title="Unassigned Devices"
+          value={statsLoading ? '-' : (stats?.unassignedDevices ?? 0).toLocaleString()}
+          icon={<Cpu size={20} />}
+          trend="Needs assignment"
+          alert={!!stats && (stats.unassignedDevices ?? 0) > 0}
+          onClick={() => router.push('/hq/devices')}
         />
       </div>
 
