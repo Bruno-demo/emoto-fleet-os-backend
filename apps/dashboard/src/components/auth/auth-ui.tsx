@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import { Command } from 'lucide-react';
 import { cx } from '@/lib/ui';
 
 interface AuthShellProps {
@@ -34,14 +35,14 @@ export function AuthShell({
 
         {/* Top Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-accent text-[color:var(--accent-foreground)] shadow-[var(--shadow-strong)]">
-            <span className="text-xl font-bold">E</span>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
-              E-Moto Fleet OS
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20">
+            <Command size={18} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">
+              E-Moto
             </p>
-            <p className="text-sm font-semibold text-accent">Smart Mobility</p>
+            <p className="font-display text-sm font-bold text-white">Fleet OS</p>
           </div>
         </div>
 

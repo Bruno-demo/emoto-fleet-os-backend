@@ -11,6 +11,7 @@ import {
   Bike,
   ChevronRight,
   ClipboardList,
+  Command,
   Cpu,
   Gauge,
   Globe2,
@@ -214,10 +215,15 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl" style={{colorScheme:'dark'}}>
         <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 h-16">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent transition group-hover:bg-accent/20">
-              <Bike size={18} />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+              <Command size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">
+                E-Moto
+              </p>
+              <p className="font-display text-sm font-bold text-white">Fleet OS</p>
             </div>
-            <span className="text-[15px] font-bold tracking-tight">eMoto Fleet OS</span>
           </Link>
 
           <div className="hidden items-center gap-8 text-[13px] font-medium md:flex" style={{color:'rgb(161,161,170)'}}>
@@ -565,11 +571,16 @@ export default function LandingContent({ hasSession }: { hasSession: boolean }) 
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             {/* Brand */}
             <div className="lg:col-span-1">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
-                  <Bike size={16} />
+              <div className="flex items-center gap-3 group">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-blue-600 text-ink shadow-md shadow-accent/15">
+                  <Command size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-accent">
+                    E-Moto
+                  </p>
+                  <p className="font-display text-xs font-bold text-white">Fleet OS</p>
                 </div>
-                <span className="text-sm font-bold">eMoto Fleet OS</span>
               </div>
               <p className="mt-4 text-xs leading-5 text-zinc-500 max-w-[200px]">
                 Smart mobility command center for electric motorcycle fleets.
