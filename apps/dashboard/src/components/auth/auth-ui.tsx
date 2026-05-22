@@ -114,7 +114,7 @@ export function AuthPanelHeader({ eyebrow, title, description }: AuthPanelHeader
 }
 
 interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label: ReactNode;
   icon?: ReactNode;
   error?: string | null;
   helper?: string;

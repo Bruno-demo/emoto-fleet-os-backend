@@ -28,7 +28,7 @@ import { apiFetch } from '@/lib/api/client';
 import { clearAuthToken } from '@/lib/auth/session';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
-import { canUseFeature, type DashboardFeature } from '@/lib/subscription';
+import { canUseFeature, getSubscriptionEntitlements, type DashboardFeature } from '@/lib/subscription';
 import { cx } from '@/lib/ui';
 
 interface NavGroup {
@@ -93,6 +93,7 @@ export function DashboardNav({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
+  const entitlements = getSubscriptionEntitlements(user);
 
   const handleLogout = async () => {
     disconnectFleetSocket();
@@ -268,9 +269,23 @@ export function DashboardNav({
                   <p className="truncate text-sm font-semibold text-ink">
                     {user?.email ?? user?.phone ?? 'User'}
                   </p>
-                  <div className="flex items-center gap-1.5">
-                    <Shield size={10} className="text-accent" />
-                    <p className="text-[11px] text-ink-muted">{roleLabel}</p>
+                  <div className="flex flex-col gap-0.5 mt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Shield size={10} className="text-accent" />
+                      <p className="text-[11px] text-ink-muted">{roleLabel}</p>
+                    </div>
+                    {user && (
+                      <p className="text-[10px] font-semibold text-ink-muted/80">
+                        {entitlements.planLabel} &middot;{' '}
+                        <span
+                          className={cx(
+                            entitlements.isActive ? 'text-emerald-400' : 'text-rose-400'
+                          )}
+                        >
+                          {entitlements.statusLabel}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

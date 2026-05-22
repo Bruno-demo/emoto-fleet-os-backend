@@ -8,7 +8,7 @@ import { ConnectionIndicator } from '@/components/ui/connection-indicator';
 import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
-import { canUseFeature } from '@/lib/subscription';
+import { canUseFeature, getSubscriptionEntitlements } from '@/lib/subscription';
 import type { Incident, PaginatedResponse, SessionUser } from '@/lib/types/dashboard';
 import { cx, formatTimeAgo } from '@/lib/ui';
 
@@ -20,6 +20,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: user } = useCurrentUser();
+  const entitlements = getSubscriptionEntitlements(user);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
@@ -91,9 +92,28 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                 {routeContext.eyebrow}
               </span>
             </div>
-            <p className="truncate text-xs text-ink-muted">
-              {fleetLabel} &middot; {user?.role ?? 'Operator'}
-            </p>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-muted mt-0.5">
+              <span className="truncate">{fleetLabel}</span>
+              <span className="text-ink-faint">&middot;</span>
+              <span className="truncate">{user?.role ?? 'Operator'}</span>
+              {user && (
+                <>
+                  <span className="text-ink-faint">&middot;</span>
+                  <span
+                    className={cx(
+                      'inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide ring-1 ring-inset uppercase transition-colors',
+                      entitlements.isActive
+                        ? entitlements.isPremium
+                          ? 'bg-accent/10 text-accent ring-accent/20'
+                          : 'bg-success-soft text-success-ink ring-success-ink/20'
+                        : 'bg-danger-soft text-danger-ink ring-danger-ink/20'
+                    )}
+                  >
+                    {entitlements.planLabel} &middot; {entitlements.statusLabel}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

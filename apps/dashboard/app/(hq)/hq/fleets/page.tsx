@@ -108,7 +108,7 @@ export default function HqFleetsPage() {
                     <td className="px-8 py-6">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">
                         <div className="h-1 w-1 rounded-full bg-accent" />
-                        {fleet.plan}
+                        {fleet.plan === 'PREMIUM' ? 'Operations Plus' : fleet.plan === 'DEMO' ? 'Safety Core' : fleet.plan}
                       </span>
                     </td>
                     <td className="px-8 py-6">

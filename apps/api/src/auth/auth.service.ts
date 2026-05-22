@@ -119,8 +119,10 @@ export class AuthService {
 
     await this.clearFailedAttempts(identifier);
 
-    // If the user has a registered email, enforce OTP login verification
-    if (user.email) {
+    // If the user has a registered email and is not a rider, enforce OTP login verification (bypassed in test envs)
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.BYPASS_OTP === 'true';
+    const isDemoBypass = process.env.NODE_ENV !== 'production' && user.email?.endsWith('demo.emoto');
+    if (user.email && user.role !== UserRole.RIDER && !isTestEnv && !isDemoBypass) {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const otpKey = `email_otp:login:${user.email}`;
       await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL

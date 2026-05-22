@@ -187,59 +187,190 @@ export default function SettingsPage() {
               />
               <SettingsField
                 label="Plan"
-                value={user?.fleetPlan ? formatEnumLabel(user.fleetPlan) : 'Unknown'}
+                value={entitlements.planLabel}
               />
               <SettingsField
                 label="Subscription"
-                value={
-                  user?.subscriptionStatus
-                    ? formatEnumLabel(user.subscriptionStatus)
-                    : 'Unknown'
-                }
+                value={entitlements.statusLabel}
               />
             </div>
           </DashboardCard>
 
           <DashboardCard
             eyebrow="Subscription"
-            title={`${entitlements.planLabel} usage`}
-            description="Dashboard access is controlled by the fleet plan and subscription status."
-            actions={
-              entitlements.isPremium && entitlements.isActive ? null : (
-                <Link
-                  href={entitlements.isActive ? '/checkout?plan=operations-plus' : '/settings'}
-                  className="inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
-                >
-                  {entitlements.isActive ? 'Upgrade plan' : 'Review billing'}
-                </Link>
-              )
-            }
+            title="Compare Plans"
+            description="View and compare the different service levels available for E-Moto Fleet OS."
           >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FeatureList
-                title="Included now"
-                items={[
-                  'Overview',
-                  'Live map and alerts',
-                  'Incident workflow',
-                  'Events',
-                  'Bikes and riders',
-                  'Fleet settings',
-                ]}
-                active
-              />
-              <FeatureList
-                title="Operations Plus"
-                items={[
-                  'Device provisioning',
-                  'Geofence zones',
-                  'Trip analytics and reports',
-                  'Audit log',
-                  'Evidence packs',
-                  'Remote lock and unlock',
-                ]}
-                active={entitlements.isPremium && entitlements.isActive}
-              />
+            <div className="grid gap-6 md:grid-cols-3">
+              {/* Safety Core Card */}
+              <div
+                className={cx(
+                  'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
+                  !entitlements.isPremium && entitlements.isActive
+                    ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
+                    : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
+                )}
+              >
+                {!entitlements.isPremium && entitlements.isActive && (
+                  <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                    Active Plan
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className={!entitlements.isPremium && entitlements.isActive ? "text-success-ink" : "text-ink-muted"} />
+                    <p className="text-sm font-bold text-ink">Safety Core</p>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-2xl font-extrabold text-ink">$6</span>
+                    <span className="text-xs text-ink-muted">/ bike / month</span>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                    Essential telemetry, safety event detection, and manual incident response tools.
+                  </p>
+                  
+                  <div className="h-px w-full bg-line my-4" />
+                  
+                  <ul className="space-y-2.5 text-xs text-ink-soft">
+                    {['Overview Dashboard', 'Live Map Tracking', 'Incident Escalation', 'Risk Events Feed', 'Bikes & Riders Directory', 'Fleet Configuration'].map((f) => (
+                      <li key={f} className="flex items-center gap-2">
+                        <CheckCircle2 size={12} className="text-success-ink shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                    {['Device provisioning', 'Policy geofencing', 'Remote commands', 'Audit logs'].map((f) => (
+                      <li key={f} className="flex items-center gap-2 opacity-50">
+                        <Lock size={10} className="text-ink-faint shrink-0" />
+                        <span className="line-through">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="mt-6">
+                  {!entitlements.isPremium && entitlements.isActive ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
+                    >
+                      Active Plan
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted py-2 text-xs font-semibold"
+                    >
+                      Included in higher tier
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Operations Plus Card */}
+              <div
+                className={cx(
+                  'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
+                  entitlements.isPremium && entitlements.isActive
+                    ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
+                    : 'border-accent/25 bg-accent/5 hover:bg-accent/[0.08] hover:border-accent'
+                )}
+              >
+                {entitlements.isPremium && entitlements.isActive && (
+                  <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                    Active Plan
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-accent" />
+                    <p className="text-sm font-bold text-ink">Operations Plus</p>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-2xl font-extrabold text-ink">$9</span>
+                    <span className="text-xs text-ink-muted">/ bike / month</span>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                    Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.
+                  </p>
+                  
+                  <div className="h-px w-full bg-line my-4" />
+                  
+                  <ul className="space-y-2.5 text-xs text-ink-soft">
+                    <li className="flex items-center gap-2 text-accent font-semibold">
+                      <CheckCircle2 size={12} className="text-accent shrink-0" />
+                      <span>Everything in Safety Core</span>
+                    </li>
+                    {['Device Provisioning (SIMs/Hardware)', 'Policy Geofencing (Speed/Parking)', 'Trip Analytics & Reports', 'Immutable Compliance Audit Logs', 'Remote Commands (Lock/Unlock/Sound)', 'Incident Evidence Packs'].map((f) => (
+                      <li key={f} className="flex items-center gap-2">
+                        <CheckCircle2 size={12} className="text-accent shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="mt-6">
+                  {entitlements.isPremium && entitlements.isActive ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
+                    >
+                      Active Plan
+                    </button>
+                  ) : (
+                    <Link
+                      href="/checkout?plan=operations-plus"
+                      className="block w-full text-center rounded-xl bg-accent hover:brightness-110 text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
+                    >
+                      Upgrade Plan
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* Enterprise Card */}
+              <div className="rounded-[20px] border border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-ink-muted" />
+                    <p className="text-sm font-bold text-ink">Enterprise</p>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-2xl font-extrabold text-ink">Custom</span>
+                    <span className="text-xs text-ink-muted">pricing</span>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                    Custom scale telemetry ingestion, developer API gateway keys, and dedicated enterprise SLA support.
+                  </p>
+                  
+                  <div className="h-px w-full bg-line my-4" />
+                  
+                  <ul className="space-y-2.5 text-xs text-ink-soft">
+                    <li className="flex items-center gap-2 font-semibold">
+                      <CheckCircle2 size={12} className="text-ink-muted shrink-0" />
+                      <span>Everything in Operations Plus</span>
+                    </li>
+                    {['Partner API & Access Token Keys', 'Dedicated Customer Support Manager', '99.9% Uptime Guarantee SLA', 'Custom Telemetry Connectors & Feeds', 'Volume Discounts for Large Fleets'].map((f) => (
+                      <li key={f} className="flex items-center gap-2">
+                        <CheckCircle2 size={12} className="text-success-ink shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="mt-6">
+                  <a
+                    href="mailto:sales@emotofleet.com?subject=Enterprise%20Plan%20Inquiry"
+                    className="block w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02]"
+                  >
+                    Contact Sales
+                  </a>
+                </div>
+              </div>
             </div>
           </DashboardCard>
         </div>

@@ -161,7 +161,7 @@ export default function FleetDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</p>
-              <p className="mt-2 text-2xl font-bold text-white">{fleet.plan}</p>
+              <p className="mt-2 text-2xl font-bold text-white">{fleet.plan === 'PREMIUM' ? 'Operations Plus' : fleet.plan === 'DEMO' ? 'Safety Core' : fleet.plan}</p>
               <p className="mt-1 text-xs text-zinc-600">Subscription {fleet.subscriptionStatus}</p>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
@@ -202,7 +202,7 @@ export default function FleetDetailPage() {
                   fleet.plan === 'DEMO' ? 'bg-accent text-white' : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
-                DEMO
+                Safety Core
               </button>
               <button
                 onClick={() => planMutation.mutate('PREMIUM')}
@@ -211,7 +211,7 @@ export default function FleetDetailPage() {
                   fleet.plan === 'PREMIUM' ? 'bg-accent text-white' : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
-                PREMIUM
+                Operations Plus
               </button>
             </div>
           </div>

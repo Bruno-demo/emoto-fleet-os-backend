@@ -672,7 +672,16 @@ function CreateAccountInner() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <AuthInput
-            label="Email address"
+            label={
+              <span className="flex items-center justify-between w-full">
+                <span>Email address</span>
+                {isEmailVerified && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-success-ink bg-success/15 rounded-full px-2 py-0.5 border border-success/30 animate-in fade-in zoom-in-95 duration-200">
+                    <BadgeCheck size={12} className="text-success-ink" /> Verified
+                  </span>
+                )}
+              </span>
+            }
             placeholder="operator@fleet.example"
             value={email}
             onChange={(event) => {
@@ -688,11 +697,7 @@ function CreateAccountInner() {
             disabled={isFormDisabled}
             icon={<AtSign size={16} />}
             rightElement={
-              isEmailVerified ? (
-                <span className="flex items-center gap-1 text-[10px] font-bold text-success-ink bg-success/15 rounded-full px-2 py-0.5 border border-success/30">
-                  <BadgeCheck size={12} className="text-success-ink" /> Verified
-                </span>
-              ) : isSendingOtp ? (
+              isSendingOtp ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
               ) : null
             }
@@ -759,7 +764,7 @@ function CreateAccountInner() {
             )}
 
             <div className="flex justify-between items-center text-[10px] text-ink-muted">
-              <span>Didn't receive the code?</span>
+              <span>{"Didn't receive the code?"}</span>
               <button
                 type="button"
                 onClick={sendOtpCode}

@@ -113,7 +113,7 @@ export default function PendingSetupsPage() {
                     </td>
                     <td className="px-8 py-7">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft uppercase tracking-wider">
-                        {user.fleet.plan}
+                        {user.fleet.plan === 'PREMIUM' ? 'Operations Plus' : user.fleet.plan === 'DEMO' ? 'Safety Core' : user.fleet.plan}
                       </span>
                     </td>
                     <td className="px-8 py-7">

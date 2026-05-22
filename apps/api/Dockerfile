@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:22 AS build
 
 WORKDIR /app
 
@@ -13,13 +13,13 @@ RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" \
     npm exec --workspace apps/api prisma generate --schema apps/api/prisma/schema.prisma
 RUN npm run build -w apps/api
 
-FROM node:22-alpine AS runtime
+FROM node:22 AS runtime
 
 WORKDIR /app
 
-RUN apk add --no-cache curl postgresql-client
+RUN apt-get update && apt-get install -y curl postgresql-client && rm -rf /var/lib/apt/lists/*
 
-RUN addgroup -S app && adduser -S app -G app
+RUN groupadd -r app && useradd -r -g app app
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
