@@ -10,9 +10,9 @@ const authUserSchema = z.object({
   id: uuidLikeSchema,
   fleetId: fleetIdSchema,
   role: z.literal('RIDER'),
-  email: z.string().email().nullable(),
+  email: z.string().nullable(),
   phone: z.string().nullable(),
-  status: z.enum(['INVITED', 'ACTIVE', 'SUSPENDED', 'DISABLED']),
+  status: z.enum(['INVITED', 'PENDING_SETUP', 'ACTIVE', 'SUSPENDED', 'DISABLED']),
 });
 
 export const loginResponseSchema = z.object({

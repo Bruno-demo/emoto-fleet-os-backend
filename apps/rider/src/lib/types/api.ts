@@ -6,7 +6,7 @@ export interface AuthUser {
   role: RiderRole;
   email: string | null;
   phone: string | null;
-  status: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  status: 'INVITED' | 'PENDING_SETUP' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
 }
 
 export interface LoginResponse {
