@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Building2, 
   ClipboardList,
+  Command,
   Cpu,
   LayoutDashboard, 
   LogOut, 
@@ -56,12 +57,17 @@ export function HqAppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu size={20} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white">
-              <Zap size={16} className="fill-current" />
+          <Link href="/hq/overview" className="flex items-center gap-3 group">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+              <Command size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">
+                E-Moto
+              </p>
+              <p className="font-display text-sm font-bold text-white">HQ</p>
             </div>
-            <span className="font-display font-bold tracking-tight">E-Moto HQ</span>
-          </div>
+          </Link>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden items-center gap-2 lg:flex">
