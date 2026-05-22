@@ -17,6 +17,9 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: 'eMoto Fleet Dashboard',
   description: 'Fleet dashboard for live telematics operations',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
