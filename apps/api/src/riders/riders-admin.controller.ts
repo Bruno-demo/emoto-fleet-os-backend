@@ -93,7 +93,7 @@ export class RidersAdminController {
   }
 
   @Get('poi')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
   @ApiOperation({ summary: 'List fleet and global POIs' })
   async listPoi(
     @CurrentUser() user: AuthenticatedUser,

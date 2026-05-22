@@ -8,8 +8,10 @@ import {
   Crosshair,
   Layers,
   Lock,
+  MapPin,
   Maximize2,
   Minimize2,
+  Phone,
   Radio,
   ShieldAlert,
   Unlock,
@@ -77,6 +79,20 @@ type RoadBounds = {
   maxLng: number;
 };
 
+export interface Poi {
+  id: string;
+  fleetId: string | null;
+  type: 'GARAGE' | 'SWAP' | 'CLINIC' | 'OTHER';
+  name: string;
+  phone: string | null;
+  lat: number;
+  lng: number;
+  address: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 type MapViewport = {
   bounds: RoadBounds;
   zoom: number;
@@ -98,6 +114,8 @@ export function LiveMapPanel() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [drawerDismissed, setDrawerDismissed] = useState(false);
   const [isFeedCollapsed, setIsFeedCollapsed] = useState(false);
+  const [showRoadFeatures, setShowRoadFeatures] = useState(true);
+  const [showHelpPoints, setShowHelpPoints] = useState(true);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
@@ -147,6 +165,12 @@ export function LiveMapPanel() {
       apiFetch<PaginatedResponse<Assignment>>('/assignments?page=1&pageSize=100&active=true'),
     enabled: assignmentsEnabled,
     retry: false,
+  });
+
+  const poisQuery = useQuery({
+    queryKey: ['pois', 'live-active'],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<Poi>>('/poi?page=1&pageSize=200&active=true'),
   });
 
   const selectedBikeEventsQuery = useQuery({
@@ -487,8 +511,14 @@ export function LiveMapPanel() {
                     centerSignal={centerSignal}
                     target={selectedState ? [selectedState.lat, selectedState.lng] : null}
                   />
-                  <MapBoundsTracker onViewportChange={handleViewportChange} />
-                  <RoadFeatureLayer features={roadFeaturesQuery.data ?? []} />
+                                  <MapBoundsTracker onViewportChange={handleViewportChange} />
+                  {showRoadFeatures && (
+                    <RoadFeatureLayer features={roadFeaturesQuery.data ?? []} />
+                  )}
+                  {showHelpPoints &&
+                    poisQuery.data?.data.map((poi) => (
+                      <PoiMarker key={poi.id} poi={poi} />
+                    ))}
                   {throttledStates.map((state) => (
                     <LiveBikeMarker
                       key={state.bikeId}
@@ -502,13 +532,42 @@ export function LiveMapPanel() {
                   <MapZoomControls />
                 </MapContainer>
 
-                {/* Road legend */}
-                <div className="pointer-events-none absolute bottom-4 left-4 z-[500]">
-                  <RoadLegend
-                    zoom={mapViewport?.zoom ?? 0}
-                    featureCount={roadFeaturesQuery.data?.length ?? 0}
-                  />
+                {/* Floating Map Layers Selector Control */}
+                <div className="absolute top-4 left-16 z-[500] pointer-events-auto">
+                  <div className="flex items-center gap-3 rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 shadow-sm backdrop-blur-md">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted flex items-center gap-1.5 border-r border-line pr-2.5">
+                      <Layers size={12} className="text-accent" /> Layers
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink hover:text-white transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={showHelpPoints}
+                        onChange={(e) => setShowHelpPoints(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-line bg-surface-strong text-accent focus:ring-accent"
+                      />
+                      <span>Help Points</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink hover:text-white transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={showRoadFeatures}
+                        onChange={(e) => setShowRoadFeatures(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-line bg-surface-strong text-accent focus:ring-accent"
+                      />
+                      <span>Road Context</span>
+                    </label>
+                  </div>
                 </div>
+
+                {/* Road legend */}
+                {showRoadFeatures && (
+                  <div className="pointer-events-none absolute bottom-4 left-4 z-[500]">
+                    <RoadLegend
+                      zoom={mapViewport?.zoom ?? 0}
+                      featureCount={roadFeaturesQuery.data?.length ?? 0}
+                    />
+                  </div>
+                )}
 
                 {/* Fullscreen hint */}
                 {isFullscreen && (
@@ -1549,5 +1608,92 @@ function getRoadFeatureStyle(feature: RoadFeature): {
     default:
       return { label: 'Road feature', fill: '#94a3b8', stroke: '#475569', radius: 4 };
   }
+}
+
+// Renders a Point of Interest (POI) marker with a premium dark-themed popup.
+const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
+  const icon = useMemo(() => createPoiMarkerIcon(poi.type), [poi.type]);
+
+  const typeColor = (t: string) => {
+    if (t === 'GARAGE') return 'bg-indigo-400/15 text-indigo-400 border-indigo-400/20';
+    if (t === 'SWAP') return 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20';
+    if (t === 'CLINIC') return 'bg-rose-400/15 text-rose-400 border-rose-400/20';
+    return 'bg-violet-400/15 text-violet-400 border-violet-400/20';
+  };
+
+  return (
+    <Marker position={[poi.lat, poi.lng]} icon={icon}>
+      <Popup className="emoto-poi-popup">
+        <div className="p-1 space-y-2 min-w-[200px]">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
+            <span className="font-semibold text-white text-sm">{poi.name}</span>
+            <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold ${typeColor(poi.type)}`}>
+              {poi.type}
+            </span>
+          </div>
+          {poi.address && (
+            <div className="text-xs text-zinc-300">
+              <span className="block font-medium text-zinc-500 uppercase tracking-wider text-[9px] mb-0.5">Address</span>
+              <p className="leading-normal">{poi.address}</p>
+            </div>
+          )}
+          {poi.phone && (
+            <div className="text-xs">
+              <span className="block font-medium text-zinc-500 uppercase tracking-wider text-[9px] mb-0.5">Contact</span>
+              <a href={`tel:${poi.phone}`} className="inline-flex items-center gap-1 text-accent hover:underline font-semibold">
+                <Phone size={10} />
+                {poi.phone}
+              </a>
+            </div>
+          )}
+          <div className="text-[10px] text-zinc-500 font-mono pt-0.5 flex justify-between border-t border-white/5">
+            <span>Lat: {poi.lat.toFixed(5)}</span>
+            <span>Lng: {poi.lng.toFixed(5)}</span>
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+});
+
+// Creates a custom, high-contrast Point of Interest (POI) marker icon.
+function createPoiMarkerIcon(type: 'GARAGE' | 'SWAP' | 'CLINIC' | 'OTHER') {
+  const emoji = {
+    GARAGE: '🔧',
+    SWAP: '🔋',
+    CLINIC: '🏥',
+    OTHER: '📍',
+  }[type];
+
+  const bgColor = {
+    GARAGE: '#818cf8', // Indigo
+    SWAP: '#34d399', // Emerald
+    CLINIC: '#f87171', // Rose
+    OTHER: '#a78bfa', // Violet
+  }[type];
+
+  return L.divIcon({
+    className: 'emoto-poi-marker',
+    html: `
+      <div style="
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: ${bgColor}22;
+        border: 2px solid ${bgColor};
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 10px ${bgColor}44;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        transition: all 150ms ease;
+      ">
+        <span>${emoji}</span>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
 }
 

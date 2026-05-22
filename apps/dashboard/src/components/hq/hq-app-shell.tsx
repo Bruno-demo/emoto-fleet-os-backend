@@ -13,7 +13,8 @@ import {
   UserPlus, 
   ShieldCheck,
   Zap,
-  Globe
+  Globe,
+  MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -32,6 +33,7 @@ const HQ_NAV_LINKS = [
   { href: '/hq/events', label: 'Events', icon: Zap },
   { href: '/hq/audit', label: 'Audit Log', icon: ClipboardList },
   { href: '/hq/partners', label: 'Partners & APIs', icon: Globe },
+  { href: '/hq/pois', label: 'Help Points (POIs)', icon: MapPin },
   { href: '/hq/insurers', label: 'Insurers', icon: ShieldCheck },
   { href: '/hq/monitoring', label: 'Monitoring', icon: Activity },
 ];
@@ -88,7 +90,7 @@ export function HqAppShell({ children }: { children: React.ReactNode }) {
           )}
         >
           <div className="flex h-full flex-col p-4">
-            <nav className="flex-1 space-y-1">
+            <nav className="flex-1 space-y-1 overflow-y-auto dashboard-scrollbar pr-1">
               {HQ_NAV_LINKS.map((link) => {
                 const isActive = pathname === link.href;
                 const Icon = link.icon;

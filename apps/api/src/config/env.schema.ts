@@ -31,6 +31,8 @@ export const envSchema = z.object({
   REDIS_IN_MEMORY: booleanString,
   MQTT_URL: z.string().url(),
   MQTT_DISABLED: booleanString,
+  SINOTRACK_ENABLED: booleanStringDefaultTrue,
+  SINOTRACK_PORT: z.coerce.number().int().positive().default(5013),
   NOTIFICATION_OUTBOX_INLINE: booleanString,
   OVERPASS_API_URL: z.string().url().default('https://overpass-api.de/api/interpreter'),
   ROAD_FEATURE_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(3600),

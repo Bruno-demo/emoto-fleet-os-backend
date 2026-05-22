@@ -113,6 +113,8 @@ services:
         condition: service_healthy
       emqx:
         condition: service_healthy
+    ports:
+      - '5013:5013'
     expose:
       - '3000'
     deploy:

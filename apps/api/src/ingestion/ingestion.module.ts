@@ -9,6 +9,7 @@ import { LiveController } from './live.controller';
 import { LiveStateService } from './live-state.service';
 import { RulesEngineService } from './rules-engine.service';
 import { TripBuilderService } from './trip-builder.service';
+import { SinoTrackAdapterService } from './sinotrack-adapter.service';
 
 @Module({
   imports: [PrismaModule, RedisModule, EventsModule, CommandsModule, RoadsModule],
@@ -18,6 +19,7 @@ import { TripBuilderService } from './trip-builder.service';
     LiveStateService,
     RulesEngineService,
     TripBuilderService,
+    SinoTrackAdapterService,
   ],
   exports: [LiveStateService],
 })

@@ -95,21 +95,21 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       {/* Tab navigation */}
-      <div className="flex gap-1 rounded-2xl border border-line bg-surface-muted p-1">
+      <div className="flex overflow-x-auto dashboard-scrollbar gap-1 rounded-2xl border border-line bg-surface-muted p-1 whitespace-nowrap">
         {ALL_TABS.filter(tab => !tab.adminOnly || (user && (user.role === 'ADMIN' || user.role === 'OWNER'))).map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={cx(
-              'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+              'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all shrink-0',
               activeTab === tab.id
                 ? 'bg-surface-strong text-ink shadow-sm'
                 : 'text-ink-muted hover:text-ink hover:bg-surface-hover',
             )}
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>

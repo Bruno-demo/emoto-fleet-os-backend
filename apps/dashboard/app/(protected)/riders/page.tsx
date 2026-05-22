@@ -304,7 +304,7 @@ export default function RidersPage() {
             </div>
 
             {/* Tab Swifter */}
-            <div className="mb-5 flex border-b border-line">
+            <div className="mb-5 flex overflow-x-auto dashboard-scrollbar border-b border-line whitespace-nowrap">
               <button
                 type="button"
                 onClick={() => {
@@ -314,7 +314,7 @@ export default function RidersPage() {
                   setCreateError(null);
                 }}
                 className={cx(
-                  "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition-all duration-200 outline-none",
+                  "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition-all duration-200 outline-none shrink-0",
                   formMode === 'direct'
                     ? "border-accent text-accent"
                     : "border-transparent text-ink-muted hover:text-ink"
@@ -332,7 +332,7 @@ export default function RidersPage() {
                   setCreateError(null);
                 }}
                 className={cx(
-                  "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition-all duration-200 outline-none",
+                  "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition-all duration-200 outline-none shrink-0",
                   formMode === 'invite'
                     ? "border-accent text-accent"
                     : "border-transparent text-ink-muted hover:text-ink"
