@@ -101,9 +101,10 @@ export default function HqEventsPage() {
   const { data: fleetsList } = useQuery({
     queryKey: ['hq', 'fleets-list'],
     queryFn: () =>
-      apiFetch('/hq/fleets?pageSize=200', {}).then(
-        (res: any) => (res.data ?? res) as Array<{ id: string; name: string }>
-      ),
+      apiFetch('/hq/fleets?pageSize=200', {}).then((res) => {
+        const r = res as { data?: Array<{ id: string; name: string }> };
+        return (r.data ?? r) as Array<{ id: string; name: string }>;
+      }),
   });
 
   // Compute severity distribution from current page data

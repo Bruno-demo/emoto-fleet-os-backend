@@ -84,7 +84,10 @@ export default function HqInsurersPage() {
 
   const { data: fleetsList } = useQuery({
     queryKey: ['hq', 'fleets-list'],
-    queryFn: () => apiFetch('/hq/fleets?pageSize=200', {}).then((res: any) => (res.data ?? res) as Array<{ id: string; name: string }>),
+    queryFn: () => apiFetch('/hq/fleets?pageSize=200', {}).then((res) => {
+      const r = res as { data?: Array<{ id: string; name: string }> };
+      return (r.data ?? r) as Array<{ id: string; name: string }>;
+    }),
   });
 
   // Fetch bikes for selected fleet when assigning
@@ -107,8 +110,9 @@ export default function HqInsurersPage() {
       setCreateForm({ email: '', phone: '', password: '', fullName: '', fleetId: '' });
       setCreateError(null);
     },
-    onError: (err: any) => {
-      setCreateError(err?.message ?? 'Failed to create insurer');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setCreateError(error?.message ?? 'Failed to create insurer');
     },
   });
 
@@ -126,8 +130,9 @@ export default function HqInsurersPage() {
       setAssignBikeId('');
       setAssignError(null);
     },
-    onError: (err: any) => {
-      setAssignError(err?.message ?? 'Failed to assign bike');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setAssignError(error?.message ?? 'Failed to assign bike');
     },
   });
 

@@ -15,7 +15,7 @@ export default function NotFound() {
       </h1>
 
       <p className="mt-4 max-w-md text-base leading-7 text-ink-muted">
-        The coordinate you are looking for doesn't exist in our telemetry. 
+        The coordinate you are looking for doesn&apos;t exist in our telemetry. 
         It might have been moved or the path was entered incorrectly.
       </p>
 

@@ -169,7 +169,7 @@ export default function LoginPage() {
       const response = await apiFetch<{
         accessToken: string;
         tokenType: 'Bearer';
-        user: any;
+        user: { status: string; role: string; email: string; id: string };
       }>('/auth/login-otp', {
         method: 'POST',
         body: JSON.stringify({
@@ -288,7 +288,7 @@ export default function LoginPage() {
             )}
 
             <div className="flex justify-between items-center text-xs text-ink-muted">
-              <span>Didn't receive the code?</span>
+              <span>Didn&apos;t receive the code?</span>
               <button
                 type="button"
                 onClick={resendLoginOtp}

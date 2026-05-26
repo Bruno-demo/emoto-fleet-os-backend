@@ -86,7 +86,10 @@ export default function HqDevicesPage() {
 
   const { data: fleetsList } = useQuery({
     queryKey: ['hq', 'fleets-list'],
-    queryFn: () => apiFetch('/hq/fleets?pageSize=200', {}).then((res: any) => (res.data ?? res) as Array<{ id: string; name: string }>),
+    queryFn: () => apiFetch('/hq/fleets?pageSize=200', {}).then((res) => {
+      const r = res as { data?: Array<{ id: string; name: string }> };
+      return (r.data ?? r) as Array<{ id: string; name: string }>;
+    }),
   });
 
   // Fetch bikes for selected fleet when assigning
@@ -110,8 +113,9 @@ export default function HqDevicesPage() {
       setAssignBikeId('');
       setAssignError(null);
     },
-    onError: (err: any) => {
-      setAssignError(err?.message ?? 'Failed to assign device');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setAssignError(error?.message ?? 'Failed to assign device');
     },
   });
 
@@ -130,18 +134,20 @@ export default function HqDevicesPage() {
         body: JSON.stringify(body),
         headers: { 'Content-Type': 'application/json' },
       }),
-    onSuccess: (res: any) => {
+    onSuccess: (res: unknown) => {
+      const result = res as { deviceSecret: string; device: { deviceUid: string } };
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
       setIsAddModalOpen(false);
       setNewDeviceUid('');
       setNewImei('');
       setNewFleetId('');
       setAddError(null);
-      setOneTimeSecret(res.deviceSecret);
-      setOneTimeSecretDeviceUid(res.device.deviceUid);
+      setOneTimeSecret(result.deviceSecret);
+      setOneTimeSecretDeviceUid(result.device.deviceUid);
     },
-    onError: (err: any) => {
-      setAddError(err?.message ?? 'Failed to provision device');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setAddError(error?.message ?? 'Failed to provision device');
     },
   });
 
@@ -150,13 +156,15 @@ export default function HqDevicesPage() {
       apiFetch(`/hq/devices/${deviceId}/rotate-secret`, {
         method: 'POST',
       }),
-    onSuccess: (res: any) => {
+    onSuccess: (res: unknown) => {
+      const result = res as { deviceSecret: string; deviceUid: string };
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
-      setOneTimeSecret(res.deviceSecret);
-      setOneTimeSecretDeviceUid(res.deviceUid);
+      setOneTimeSecret(result.deviceSecret);
+      setOneTimeSecretDeviceUid(result.deviceUid);
     },
-    onError: (err: any) => {
-      alert(err?.message ?? 'Failed to rotate device secret');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      alert(error?.message ?? 'Failed to rotate device secret');
     },
   });
 

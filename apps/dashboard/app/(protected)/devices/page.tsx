@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Cpu, Radio, ShieldCheck, Smartphone, Link2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { Device, PaginatedResponse } from '@/lib/types/dashboard';
@@ -16,6 +16,7 @@ const PAGE_SIZE = 20;
 
 export default function DevicesPage() {
   const [page, setPage] = useState(1);
+  const [currentTime, setCurrentTime] = useState<number>(0);
 
   const devicesQuery = useQuery({
     queryKey: ['devices', page],
@@ -25,21 +26,28 @@ export default function DevicesPage() {
       ),
   });
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentTime(Date.now());
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [devicesQuery.data?.data]);
+
   const deviceStats = useMemo(() => {
     const devices = devicesQuery.data?.data ?? [];
-    const recentCutoff = Date.now() - 10 * 60 * 1000;
+    const recentCutoff = currentTime - 10 * 60 * 1000;
     return {
       total: devicesQuery.data?.total ?? 0,
       active: devices.filter((device) => device.status === 'ACTIVE').length,
       assigned: devices.filter((device) => !!device.bikeId).length,
       recentlySeen: devices.filter((device) => {
-        if (!device.lastSeenAt) {
+        if (!device.lastSeenAt || currentTime === 0) {
           return false;
         }
         return Date.parse(device.lastSeenAt) >= recentCutoff;
       }).length,
     };
-  }, [devicesQuery.data?.data, devicesQuery.data?.total]);
+  }, [devicesQuery.data?.data, devicesQuery.data?.total, currentTime]);
 
   const columns = useMemo<Array<DataTableColumn<Device>>>(
     () => [

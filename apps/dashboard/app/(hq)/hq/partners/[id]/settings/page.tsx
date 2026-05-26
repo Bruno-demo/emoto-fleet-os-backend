@@ -57,9 +57,10 @@ export default function PartnerSettingsPage() {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    onSuccess: (data: any) => {
+    onSuccess: (data: unknown) => {
+      const result = data as { clientId: string; clientSecret: string };
       queryClient.invalidateQueries({ queryKey: ['hq', 'partner', id] });
-      setCreatedSecret({ clientId: data.clientId, secret: data.clientSecret });
+      setCreatedSecret({ clientId: result.clientId, secret: result.clientSecret });
       setNewClientId('');
       setShowNewCredentialForm(false);
     },
@@ -179,7 +180,7 @@ export default function PartnerSettingsPage() {
         {/* Created Secret Alert */}
         {createdSecret && (
           <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <p className="text-xs font-bold text-emerald-300 mb-3">⚠️ Secret Revealed (Save it now, you won't see it again)</p>
+            <p className="text-xs font-bold text-emerald-300 mb-3">⚠️ Secret Revealed (Save it now, you won&apos;t see it again)</p>
             <div className="space-y-2 font-mono text-xs">
               <div>
                 <p className="text-zinc-500">Client ID:</p>

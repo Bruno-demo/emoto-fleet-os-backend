@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { clearAuthToken } from '@/lib/auth/session';
 
@@ -20,19 +20,16 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const [isTimedOut, setIsTimedOut] = useState(false);
   useEffect(() => {
     if (!isLoading) {
-      setIsTimedOut(false);
-      return;
+      const timer = setTimeout(() => {
+        setIsTimedOut(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
     const timer = setTimeout(() => {
       if (isLoading) setIsTimedOut(true);
     }, 5000);
     return () => clearTimeout(timer);
   }, [isLoading]);
-
-  // Redirects unauthenticated users to login while preserving intended destination.
-  const redirectToLogin = useCallback(() => {
-    router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
-  }, [nextPath, router]);
 
   useEffect(() => {
     if (data?.status === 'PENDING_SETUP') {

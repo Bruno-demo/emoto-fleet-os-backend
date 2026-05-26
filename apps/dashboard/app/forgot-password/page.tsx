@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
 
     try {
       setIsSubmitting(true);
-      const response = await apiFetch<any>(
+      const response = await apiFetch<{ token?: string }>(
         resetEndpoint,
         {
           method: 'POST',

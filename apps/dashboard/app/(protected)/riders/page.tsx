@@ -407,7 +407,7 @@ export default function RidersPage() {
               <div className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <label className="block text-sm font-medium text-ink">
-                    Rider's email (optional constraint)
+                    Rider&apos;s email (optional constraint)
                     <input
                       type="email"
                       value={newEmail}
@@ -417,7 +417,7 @@ export default function RidersPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Rider's phone (optional constraint)
+                    Rider&apos;s phone (optional constraint)
                     <input
                       type="tel"
                       value={newPhone}

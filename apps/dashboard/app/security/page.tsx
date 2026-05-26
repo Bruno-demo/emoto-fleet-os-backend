@@ -76,10 +76,10 @@ export default function SecurityPage() {
             <span className="h-2 w-2 rounded-full bg-accent animate-pulse-soft" />
           </div>
           <div className="p-6 font-mono text-[11px] text-zinc-400 space-y-4 overflow-x-auto leading-relaxed">
-            <p className="text-accent">// TLS 1.3 Cipher Suites Enforced for MQTT Brokers</p>
+            <p className="text-accent">{"// TLS 1.3 Cipher Suites Enforced for MQTT Brokers"}</p>
             <p>TLS_AES_256_GCM_SHA384 • ECDHE-RSA-AES256-GCM-SHA384</p>
             
-            <p className="text-accent mt-4">// Remote Lock JWT Token Claim Structure</p>
+            <p className="text-accent mt-4">{"// Remote Lock JWT Token Claim Structure"}</p>
             <pre className="text-zinc-500">
 {`{
   "iss": "emoto-auth-server",

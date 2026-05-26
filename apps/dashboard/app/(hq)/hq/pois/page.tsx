@@ -76,7 +76,7 @@ export default function HqPoisPage() {
 
   // Create POI Mutation
   const createMutation = useMutation({
-    mutationFn: (body: any) =>
+    mutationFn: (body: unknown) =>
       apiFetch('/poi', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -86,14 +86,15 @@ export default function HqPoisPage() {
       queryClient.invalidateQueries({ queryKey: ['hq', 'pois'] });
       closeModal();
     },
-    onError: (err: any) => {
-      setFormError(err?.message ?? 'Failed to create help point');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setFormError(error?.message ?? 'Failed to create help point');
     },
   });
 
   // Update POI Mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: any }) =>
+    mutationFn: ({ id, body }: { id: string; body: unknown }) =>
       apiFetch(`/poi/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(body),
@@ -103,8 +104,9 @@ export default function HqPoisPage() {
       queryClient.invalidateQueries({ queryKey: ['hq', 'pois'] });
       closeModal();
     },
-    onError: (err: any) => {
-      setFormError(err?.message ?? 'Failed to update help point');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setFormError(error?.message ?? 'Failed to update help point');
     },
   });
 
@@ -115,8 +117,9 @@ export default function HqPoisPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'pois'] });
     },
-    onError: (err: any) => {
-      alert(err?.message ?? 'Failed to delete help point');
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      alert(error?.message ?? 'Failed to delete help point');
     },
   });
 
@@ -139,7 +142,7 @@ export default function HqPoisPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (poi: any) => {
+  const openEditModal = (poi: z.infer<typeof poiSchema>) => {
     setEditPoiId(poi.id);
     setFormName(poi.name);
     setFormType(poi.type);
@@ -464,7 +467,7 @@ export default function HqPoisPage() {
                   <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Type</label>
                   <select
                     value={formType}
-                    onChange={(e) => setFormType(e.target.value as any)}
+                    onChange={(e) => setFormType(e.target.value as 'GARAGE' | 'SWAP' | 'CLINIC' | 'OTHER')}
                     className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-zinc-400 focus:border-accent focus:outline-none"
                   >
                     <option value="GARAGE">🔧 Garage</option>

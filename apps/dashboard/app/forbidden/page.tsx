@@ -35,7 +35,7 @@ export default function ForbiddenPage() {
       </h1>
 
       <p className="mt-4 max-w-md text-base leading-7 text-ink-muted">
-        You don't have the required permissions to access the HQ command center. 
+        You don&apos;t have the required permissions to access the HQ command center. 
         This area is reserved for super-administrators only.
       </p>
 
