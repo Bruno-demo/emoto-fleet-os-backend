@@ -100,7 +100,12 @@ export async function apiFetch<T = unknown>(
         (p) => pathname === p || pathname.startsWith(`${p}/`),
       );
       if (!isGuestPath) {
-        // Redirect to login with expired flag.
+        // Clear cookie via server logout endpoint first, then redirect to login with expired flag.
+        try {
+          await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+        } catch {
+          // Ignore logout errors
+        }
         window.location.href = `/login?expired=true&next=${encodeURIComponent(pathname)}`;
       }
     }
