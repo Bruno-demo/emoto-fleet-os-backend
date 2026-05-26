@@ -53,6 +53,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
         <Link
           href={isInactive ? '/settings' : '/checkout?plan=operations-plus'}
           className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+          style={{ background: isInactive ? '#EF4444' : '#3B82F6', color: 'white' }}
         >
           <Sparkles size={15} />
           {isInactive ? 'Review subscription' : 'Upgrade plan'}

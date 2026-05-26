@@ -119,6 +119,7 @@ function SubscriptionNotice({
               ? 'bg-accent text-white hover:brightness-110'
               : 'bg-danger-ink text-white hover:brightness-110',
           )}
+          style={{ background: isActive ? '#3B82F6' : '#EF4444', color: 'white' }}
         >
           {isActive ? 'Upgrade' : 'Review subscription'}
         </a>

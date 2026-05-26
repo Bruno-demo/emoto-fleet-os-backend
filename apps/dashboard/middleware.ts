@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 const AUTH_COOKIE = process.env.AUTH_COOKIE_NAME ?? 'emoto_access_token';
 
 // Pages that authenticated users should never see.
-const GUEST_ONLY_PATHS = ['/login', '/create-account', '/forgot-password', '/reset-password'];
+const GUEST_ONLY_PATHS = ['/login', '/create-account'];
 
 // Pages that require authentication (protected routes).
 const PROTECTED_PATHS = [
