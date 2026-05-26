@@ -337,7 +337,8 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
         })
         .expect(200);
 
-      insurerToken = (tokenResponse.body as { accessToken: string }).accessToken;
+      insurerToken = (tokenResponse.body as { accessToken: string })
+        .accessToken;
     });
 
     it('aggregates stats only for assigned bikes in weekly summary', async () => {
@@ -456,9 +457,13 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
       });
 
       expect(genNotifAssigned).toBeDefined();
-      expect(genNotifAssigned?.to).toBe('https://general-webhook.example.com/callback');
+      expect(genNotifAssigned?.to).toBe(
+        'https://general-webhook.example.com/callback',
+      );
       expect(insurerNotifAssigned).toBeDefined();
-      expect(insurerNotifAssigned?.to).toBe('https://insurer-webhook.example.com/callback');
+      expect(insurerNotifAssigned?.to).toBe(
+        'https://insurer-webhook.example.com/callback',
+      );
 
       // Now clear notifications from the database
       await prisma.notification.deleteMany({
@@ -494,7 +499,9 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
       });
 
       expect(genNotifUnassigned).toBeDefined();
-      expect(genNotifUnassigned?.to).toBe('https://general-webhook.example.com/callback');
+      expect(genNotifUnassigned?.to).toBe(
+        'https://general-webhook.example.com/callback',
+      );
       expect(insurerNotifUnassigned).toBeNull();
     });
   });

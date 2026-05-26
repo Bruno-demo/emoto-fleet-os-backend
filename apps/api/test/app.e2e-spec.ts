@@ -581,7 +581,9 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
 
     it('allows ADMIN to query audit-logs with pagination and actionType', async () => {
       const response = await request(httpServer)
-        .get('/audit-logs?page=1&pageSize=25&actionType=BIKE_ASSIGNMENT_CHANGED')
+        .get(
+          '/audit-logs?page=1&pageSize=25&actionType=BIKE_ASSIGNMENT_CHANGED',
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 

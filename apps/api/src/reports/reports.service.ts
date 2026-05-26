@@ -22,9 +22,15 @@ export class ReportsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   // Builds a 7-day fleet summary report for scoring and risk ranking.
-  async getWeeklyReport(user: AuthenticatedUser, fromStr?: string, toStr?: string): Promise<WeeklyReport> {
+  async getWeeklyReport(
+    user: AuthenticatedUser,
+    fromStr?: string,
+    toStr?: string,
+  ): Promise<WeeklyReport> {
     const to = toStr ? new Date(toStr) : new Date();
-    const from = fromStr ? new Date(fromStr) : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const from = fromStr
+      ? new Date(fromStr)
+      : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     let insurerBikeFilter: { bikeId?: { in: string[] } } = {};
     if (user.role === 'INSURER') {
@@ -32,7 +38,7 @@ export class ReportsService {
         where: { insurerUserId: user.id, fleetId: user.fleetId },
         select: { id: true },
       });
-      const bikeIds = insuredBikes.map(b => b.id);
+      const bikeIds = insuredBikes.map((b) => b.id);
       insurerBikeFilter = { bikeId: { in: bikeIds } };
     }
 
@@ -243,7 +249,11 @@ export class ReportsService {
 
     return new Map(
       users.map((u) => {
-        const name = u.riderProfile?.fullName || u.email || u.phone || `Rider ${u.id.slice(0, 8)}`;
+        const name =
+          u.riderProfile?.fullName ||
+          u.email ||
+          u.phone ||
+          `Rider ${u.id.slice(0, 8)}`;
         return [u.id, name];
       }),
     );

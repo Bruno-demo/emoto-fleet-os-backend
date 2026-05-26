@@ -1,4 +1,9 @@
-import { FleetPlan, FleetSubscriptionStatus, UserRole, UserStatus } from '@prisma/client';
+import {
+  FleetPlan,
+  FleetSubscriptionStatus,
+  UserRole,
+  UserStatus,
+} from '@prisma/client';
 import { Request } from 'express';
 
 export interface JwtPayload {

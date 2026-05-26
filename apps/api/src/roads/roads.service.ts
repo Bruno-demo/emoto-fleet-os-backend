@@ -73,7 +73,11 @@ export class RoadFeaturesService {
 
     await this.refreshFeaturesIfStale(normalizedBounds);
     const features = await this.loadFeatures(normalizedBounds, types);
-    await this.redisService.set(cacheKey, JSON.stringify(features), this.cacheTtlSeconds);
+    await this.redisService.set(
+      cacheKey,
+      JSON.stringify(features),
+      this.cacheTtlSeconds,
+    );
     return features;
   }
 
@@ -98,7 +102,9 @@ export class RoadFeaturesService {
   }
 
   // Reloads Overpass data when cached features are stale or missing.
-  private async refreshFeaturesIfStale(bounds: RoadFeatureBounds): Promise<void> {
+  private async refreshFeaturesIfStale(
+    bounds: RoadFeatureBounds,
+  ): Promise<void> {
     const existing = await this.prismaService.roadFeature.findFirst({
       where: {
         lat: { gte: bounds.minLat, lte: bounds.maxLat },
@@ -108,7 +114,10 @@ export class RoadFeaturesService {
       select: { updatedAt: true },
     });
 
-    if (existing && Date.now() - existing.updatedAt.getTime() < this.refreshSeconds * 1000) {
+    if (
+      existing &&
+      Date.now() - existing.updatedAt.getTime() < this.refreshSeconds * 1000
+    ) {
       return;
     }
 
@@ -177,9 +186,7 @@ export class RoadFeaturesService {
   }
 
   // Pulls road, amenity, and sign features from the Overpass API.
-  private async fetchOverpassFeatures(
-    bounds: RoadFeatureBounds,
-  ): Promise<
+  private async fetchOverpassFeatures(bounds: RoadFeatureBounds): Promise<
     Array<{
       id: string;
       osmId: string;
@@ -215,11 +222,15 @@ export class RoadFeaturesService {
       });
 
       if (!response.ok) {
-        this.logger.warn(`Overpass request failed with status ${response.status}`);
+        this.logger.warn(
+          `Overpass request failed with status ${response.status}`,
+        );
         return [];
       }
 
-      const payload = (await response.json()) as { elements: OverpassElement[] };
+      const payload = (await response.json()) as {
+        elements: OverpassElement[];
+      };
       const elements = payload.elements ?? [];
       return elements
         .map((element) => this.normalizeOverpassElement(element))
@@ -245,7 +256,9 @@ export class RoadFeaturesService {
       return null;
     }
 
-    const speedLimitKph = hasSpeedLimit ? parseSpeedLimitKph(tags.maxspeed) : null;
+    const speedLimitKph = hasSpeedLimit
+      ? parseSpeedLimitKph(tags.maxspeed)
+      : null;
     const featureType = resolveFeatureType({
       amenity,
       isTrafficSignal,
@@ -270,7 +283,10 @@ export class RoadFeaturesService {
   }
 
   // Builds cache keys that keep feature lookups stable for each bounding box.
-  private cacheKey(bounds: RoadFeatureBounds, types: RoadFeatureType[]): string {
+  private cacheKey(
+    bounds: RoadFeatureBounds,
+    types: RoadFeatureType[],
+  ): string {
     const typeKey = types.length ? [...types].sort().join('|') : 'ALL';
     return `roads:features:${bounds.minLat}:${bounds.minLng}:${bounds.maxLat}:${bounds.maxLng}:${typeKey}`;
   }
@@ -348,11 +364,17 @@ function resolveFeatureType(input: {
 }
 
 // Resolves point coordinates from node/way/relational elements.
-function resolveElementLocation(element: OverpassElement): { lat: number; lng: number } | null {
+function resolveElementLocation(
+  element: OverpassElement,
+): { lat: number; lng: number } | null {
   if (typeof element.lat === 'number' && typeof element.lon === 'number') {
     return { lat: element.lat, lng: element.lon };
   }
-  if (element.center && typeof element.center.lat === 'number' && typeof element.center.lon === 'number') {
+  if (
+    element.center &&
+    typeof element.center.lat === 'number' &&
+    typeof element.center.lon === 'number'
+  ) {
     return { lat: element.center.lat, lng: element.center.lon };
   }
   return null;

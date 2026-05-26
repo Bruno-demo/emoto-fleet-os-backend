@@ -22,9 +22,8 @@ export class StorageService implements OnModuleInit {
       'http://localhost:9000',
     );
     const region = this.configService.get<string>('S3_REGION', 'us-east-1');
-    const accessKeyId = this.configService.getOrThrow<string>(
-      'S3_ACCESS_KEY_ID',
-    );
+    const accessKeyId =
+      this.configService.getOrThrow<string>('S3_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.getOrThrow<string>(
       'S3_SECRET_ACCESS_KEY',
     );

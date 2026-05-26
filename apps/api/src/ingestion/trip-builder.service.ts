@@ -107,7 +107,10 @@ export class TripBuilderService {
     this.tripStreamKey =
       this.configService.get<string>('STREAM_TRIPS_KEY', '') || null;
     this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
-    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
+    this.streamEnabled = this.configService.get<boolean>(
+      'STREAM_ENABLED',
+      true,
+    );
   }
 
   // Updates trip runtime state for each telemetry point and persists completed trips.
@@ -235,8 +238,12 @@ export class TripBuilderService {
       orderBy: { ts: 'asc' },
     });
 
-    const startBatteryPct = tripPoints[0]?.batteryPct ? Number(tripPoints[0].batteryPct) : null;
-    const endBatteryPct = tripPoints[tripPoints.length - 1]?.batteryPct ? Number(tripPoints[tripPoints.length - 1].batteryPct) : null;
+    const startBatteryPct = tripPoints[0]?.batteryPct
+      ? Number(tripPoints[0].batteryPct)
+      : null;
+    const endBatteryPct = tripPoints[tripPoints.length - 1]?.batteryPct
+      ? Number(tripPoints[tripPoints.length - 1].batteryPct)
+      : null;
 
     const normalizedPoints: TripPoint[] = tripPoints.map((point) => ({
       lat: Number(point.lat),

@@ -29,7 +29,11 @@ import { PartnerService } from './partner.service';
       }),
     }),
   ],
-  controllers: [PartnerAuthController, PartnerController, PartnerDocsController],
+  controllers: [
+    PartnerAuthController,
+    PartnerController,
+    PartnerDocsController,
+  ],
   providers: [PartnerAuthService, PartnerAuthGuard, PartnerService],
   exports: [PartnerService],
 })

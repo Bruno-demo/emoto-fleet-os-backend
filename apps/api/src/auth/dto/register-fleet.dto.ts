@@ -15,7 +15,10 @@ export class RegisterFleetDto {
   @MaxLength(100)
   fleetName!: string;
 
-  @ApiProperty({ example: '11-50', description: 'Approximate fleet size range' })
+  @ApiProperty({
+    example: '11-50',
+    description: 'Approximate fleet size range',
+  })
   @IsString()
   @IsIn(['1-10', '11-50', '51-200', '201-500', '500+'])
   bikeRange!: string;

@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Fleet, User, Bike, Device } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { Server as HttpServer } from 'http';
@@ -34,7 +34,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
   const seedFixtures = async (): Promise<void> => {
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
-    const fleet = await prisma.fleet.create({
+    const fleet: Fleet = await prisma.fleet.create({
       data: {
         name: `Demo Fleet Websocket ${runId.slice(0, 6)}`,
         type: 'DELIVERY',
@@ -42,7 +42,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     });
     fleetId = fleet.id;
 
-    const adminUser = await prisma.user.create({
+    const adminUser: User = await prisma.user.create({
       data: {
         fleetId,
         role: 'ADMIN',
@@ -54,7 +54,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     });
     adminUserId = adminUser.id;
 
-    const bike = await prisma.bike.create({
+    const bike: Bike = await prisma.bike.create({
       data: {
         fleetId,
         label: bikeLabel,
@@ -63,7 +63,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     });
     bikeId = bike.id;
 
-    const device = await prisma.device.create({
+    const device: Device = await prisma.device.create({
       data: {
         fleetId,
         bikeId,
@@ -165,8 +165,8 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     const address = nodeHttpServer.address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${address.port}`;
     httpServer = nodeHttpServer as unknown as Parameters<typeof request>[0];
-    eventsService = app.get(EventsService);
-    commandsService = app.get(CommandsService);
+    eventsService = app.get<EventsService>(EventsService);
+    commandsService = app.get<CommandsService>(CommandsService);
 
     const login = await request(httpServer).post('/auth/login').send({
       email: adminEmail,
@@ -214,9 +214,9 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
 
     const payload = await newEventPromise;
 
-    expect(payload.type).toBe('HARSH_BRAKE');
-    expect(payload.bikeId).toBe(bikeId);
-    expect(payload.deviceId).toBe(deviceId);
+    expect(payload['type'] as string).toBe('HARSH_BRAKE');
+    expect(payload['bikeId'] as string).toBe(bikeId);
+    expect(payload['deviceId'] as string).toBe(deviceId);
     expect(payload).not.toHaveProperty('fleetId');
   });
 
@@ -254,10 +254,10 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
 
     const payload = await commandStatusPromise;
 
-    expect(payload.commandId).toBe(command.id);
-    expect(payload.status).toBe('ACKED');
-    expect(payload.bikeId).toBe(bikeId);
-    expect(payload.deviceId).toBe(deviceId);
+    expect(payload['commandId'] as string).toBe(command.id);
+    expect(payload['status'] as string).toBe('ACKED');
+    expect(payload['bikeId'] as string).toBe(bikeId);
+    expect(payload['deviceId'] as string).toBe(deviceId);
 
     const updated = await prisma.deviceCommand.findUnique({
       where: { id: command.id },

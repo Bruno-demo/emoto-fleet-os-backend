@@ -1,4 +1,13 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  Res,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -190,9 +199,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'List all users in the caller fleet' })
-  async listFleetUsers(
-    @CurrentUser() actor: AuthenticatedUser,
-  ) {
+  async listFleetUsers(@CurrentUser() actor: AuthenticatedUser) {
     return this.authService.listFleetUsers(actor);
   }
 
@@ -205,7 +212,11 @@ export class AuthController {
     @Param('id') userId: string,
     @Body() body: { role: string },
   ) {
-    return this.authService.changeFleetUserRole(actor, userId, body.role as UserRole);
+    return this.authService.changeFleetUserRole(
+      actor,
+      userId,
+      body.role as UserRole,
+    );
   }
 
   @Post('register-fleet')
@@ -260,10 +271,7 @@ export class AuthController {
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
     );
-    const secure = this.configService.get<boolean>(
-      'AUTH_COOKIE_SECURE',
-      false,
-    );
+    const secure = this.configService.get<boolean>('AUTH_COOKIE_SECURE', false);
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
@@ -274,7 +282,9 @@ export class AuthController {
       'AUTH_REMEMBER_ME_DAYS',
       30,
     );
-    const maxAgeMs = rememberMe ? rememberDays * 24 * 60 * 60 * 1000 : undefined;
+    const maxAgeMs = rememberMe
+      ? rememberDays * 24 * 60 * 60 * 1000
+      : undefined;
 
     response.cookie(cookieName, token, {
       httpOnly: true,
@@ -293,10 +303,7 @@ export class AuthController {
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
     );
-    const secure = this.configService.get<boolean>(
-      'AUTH_COOKIE_SECURE',
-      false,
-    );
+    const secure = this.configService.get<boolean>('AUTH_COOKIE_SECURE', false);
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');

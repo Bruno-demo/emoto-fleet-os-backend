@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedUser } from '../../auth/auth.types';
 
@@ -13,7 +18,9 @@ export class HqGuard implements CanActivate {
     }
 
     if (user.fleetName !== 'E-Moto HQ') {
-      throw new ForbiddenException('Access restricted to E-Moto HQ staff only.');
+      throw new ForbiddenException(
+        'Access restricted to E-Moto HQ staff only.',
+      );
     }
 
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {

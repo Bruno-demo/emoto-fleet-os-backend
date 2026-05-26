@@ -12,7 +12,13 @@ import { TripBuilderService } from './trip-builder.service';
 import { SinoTrackAdapterService } from './sinotrack-adapter.service';
 
 @Module({
-  imports: [PrismaModule, RedisModule, EventsModule, CommandsModule, RoadsModule],
+  imports: [
+    PrismaModule,
+    RedisModule,
+    EventsModule,
+    CommandsModule,
+    RoadsModule,
+  ],
   controllers: [LiveController],
   providers: [
     IngestionService,

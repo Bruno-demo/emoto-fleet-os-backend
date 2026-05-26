@@ -9,7 +9,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationOutboxModule } from './notification-outbox.module';
 
 @Module({
-  imports: [PrismaModule, AuditModule, EvidenceModule, NotificationOutboxModule],
+  imports: [
+    PrismaModule,
+    AuditModule,
+    EvidenceModule,
+    NotificationOutboxModule,
+  ],
   controllers: [IncidentsController, ContactsController],
   providers: [IncidentsService, ContactsService],
   exports: [IncidentsService, NotificationOutboxModule],

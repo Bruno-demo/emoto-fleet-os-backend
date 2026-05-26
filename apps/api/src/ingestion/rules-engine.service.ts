@@ -91,7 +91,10 @@ export class RulesEngineService {
     this.rulesStreamKey =
       this.configService.get<string>('STREAM_RULES_KEY', '') || null;
     this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
-    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
+    this.streamEnabled = this.configService.get<boolean>(
+      'STREAM_ENABLED',
+      true,
+    );
   }
 
   // Evaluates all configured safety/security rules for one telemetry message.
@@ -116,7 +119,11 @@ export class RulesEngineService {
     }
 
     const evaluations: Array<[string, () => Promise<void>]> = [
-      ['overspeed', () => this.evaluateOverspeed(device, payload, activeZones, insideZoneIds)],
+      [
+        'overspeed',
+        () =>
+          this.evaluateOverspeed(device, payload, activeZones, insideZoneIds),
+      ],
       ['harshDynamics', () => this.evaluateHarshDynamics(device, payload)],
       ['crash', () => this.evaluateCrash(device, payload)],
       ['theft', () => this.evaluateTheft(device, payload, insideParkZone)],
@@ -432,7 +439,10 @@ export class RulesEngineService {
       return;
     }
 
-    if (payload.speedKph <= nearest.speedLimitKph + this.roadSpeedToleranceKph) {
+    if (
+      payload.speedKph <=
+      nearest.speedLimitKph + this.roadSpeedToleranceKph
+    ) {
       return;
     }
 
@@ -717,15 +727,37 @@ export class RulesEngineService {
 
 // Finds the nearest feature within the requested radius for road-safety checks.
 function findNearestFeature(
-  features: Array<{ id: string; lat: number; lng: number; speedLimitKph: number | null }>,
+  features: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    speedLimitKph: number | null;
+  }>,
   lat: number,
   lng: number,
   radiusMeters: number,
-): { id: string; lat: number; lng: number; speedLimitKph: number | null; distanceMeters: number } | null {
-  let nearest: { id: string; lat: number; lng: number; speedLimitKph: number | null; distanceMeters: number } | null = null;
+): {
+  id: string;
+  lat: number;
+  lng: number;
+  speedLimitKph: number | null;
+  distanceMeters: number;
+} | null {
+  let nearest: {
+    id: string;
+    lat: number;
+    lng: number;
+    speedLimitKph: number | null;
+    distanceMeters: number;
+  } | null = null;
 
   for (const feature of features) {
-    const distanceMeters = haversineDistanceMeters(lat, lng, feature.lat, feature.lng);
+    const distanceMeters = haversineDistanceMeters(
+      lat,
+      lng,
+      feature.lat,
+      feature.lng,
+    );
     if (distanceMeters > radiusMeters) {
       continue;
     }

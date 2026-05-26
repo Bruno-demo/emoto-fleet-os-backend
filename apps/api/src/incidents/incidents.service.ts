@@ -153,10 +153,18 @@ export class IncidentsService {
   async getIncidentStatsForUser(user: AuthenticatedUser) {
     const fleetId = user.fleetId;
     const [open, acknowledged, resolved, falseAlarm] = await Promise.all([
-      this.prismaService.incident.count({ where: { fleetId, status: IncidentStatus.OPEN } }),
-      this.prismaService.incident.count({ where: { fleetId, status: IncidentStatus.ACKNOWLEDGED } }),
-      this.prismaService.incident.count({ where: { fleetId, status: IncidentStatus.RESOLVED } }),
-      this.prismaService.incident.count({ where: { fleetId, status: IncidentStatus.FALSE_ALARM } }),
+      this.prismaService.incident.count({
+        where: { fleetId, status: IncidentStatus.OPEN },
+      }),
+      this.prismaService.incident.count({
+        where: { fleetId, status: IncidentStatus.ACKNOWLEDGED },
+      }),
+      this.prismaService.incident.count({
+        where: { fleetId, status: IncidentStatus.RESOLVED },
+      }),
+      this.prismaService.incident.count({
+        where: { fleetId, status: IncidentStatus.FALSE_ALARM },
+      }),
     ]);
     return { open, acknowledged, resolved, falseAlarm };
   }

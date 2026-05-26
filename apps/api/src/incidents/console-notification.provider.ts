@@ -94,7 +94,9 @@ export class ConsoleNotificationProvider implements NotificationProvider {
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error(`Webhook delivery failed with status ${response.status}`);
+        throw new Error(
+          `Webhook delivery failed with status ${response.status}`,
+        );
       }
     } finally {
       clearTimeout(timeout);

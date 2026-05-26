@@ -241,7 +241,9 @@ function markdownToHtml(markdown: string): string {
     if (line.startsWith('> ')) {
       flushParagraph();
       closeList();
-      output.push(`<blockquote>${inlineFormat(escapeHtml(line.slice(2)))}</blockquote>`);
+      output.push(
+        `<blockquote>${inlineFormat(escapeHtml(line.slice(2)))}</blockquote>`,
+      );
       continue;
     }
 
@@ -263,7 +265,10 @@ function inlineFormat(text: string): string {
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    .replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+    );
 }
 
 function escapeHtml(text: string): string {

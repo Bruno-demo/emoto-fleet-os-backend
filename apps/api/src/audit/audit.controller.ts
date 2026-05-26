@@ -1,5 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiPropertyOptional,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuditActionType, UserRole } from '@prisma/client';
 import { IsEnum, IsOptional } from 'class-validator';
 import { CurrentUser } from '../auth/current-user.decorator';

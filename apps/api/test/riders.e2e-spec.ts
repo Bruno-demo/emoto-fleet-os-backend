@@ -5,6 +5,11 @@ import {
   EventType,
   NotificationType,
   PrismaClient,
+  Fleet,
+  User,
+  Bike,
+  Device,
+  Trip,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
@@ -33,7 +38,7 @@ describe('Rider APIs (e2e)', () => {
     const riderPasswordHash = await bcrypt.hash(riderPassword, 10);
     const otherRiderPasswordHash = await bcrypt.hash('OtherRider123!', 10);
 
-    const fleet = await prisma.fleet.create({
+    const fleet: Fleet = await prisma.fleet.create({
       data: {
         name: `Rider Fleet ${runId.slice(0, 6)}`,
         type: 'DELIVERY',
@@ -41,7 +46,7 @@ describe('Rider APIs (e2e)', () => {
     });
     fleetId = fleet.id;
 
-    const rider = await prisma.user.create({
+    const rider: User = await prisma.user.create({
       data: {
         fleetId,
         role: 'RIDER',
@@ -59,7 +64,7 @@ describe('Rider APIs (e2e)', () => {
       },
     });
 
-    const otherRider = await prisma.user.create({
+    const otherRider: User = await prisma.user.create({
       data: {
         fleetId,
         role: 'RIDER',
@@ -76,7 +81,7 @@ describe('Rider APIs (e2e)', () => {
       },
     });
 
-    const bike = await prisma.bike.create({
+    const bike: Bike = await prisma.bike.create({
       data: {
         fleetId,
         label: `Bike-RIDER-${runId.slice(0, 6)}`,
@@ -85,7 +90,7 @@ describe('Rider APIs (e2e)', () => {
     });
     bikeId = bike.id;
 
-    const device = await prisma.device.create({
+    const device: Device = await prisma.device.create({
       data: {
         fleetId,
         bikeId: bike.id,
@@ -116,7 +121,7 @@ describe('Rider APIs (e2e)', () => {
       },
     });
 
-    const ownTrip = await prisma.trip.create({
+    const ownTrip: Trip = await prisma.trip.create({
       data: {
         fleetId,
         bikeId: bike.id,
@@ -130,7 +135,7 @@ describe('Rider APIs (e2e)', () => {
     });
     ownTripId = ownTrip.id;
 
-    const otherTrip = await prisma.trip.create({
+    const otherTrip: Trip = await prisma.trip.create({
       data: {
         fleetId,
         bikeId: bike.id,

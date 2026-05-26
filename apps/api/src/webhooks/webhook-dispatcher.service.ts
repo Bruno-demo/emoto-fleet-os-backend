@@ -1,6 +1,16 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NotificationChannel, NotificationType, PartnerStatus, Prisma } from '@prisma/client';
+import {
+  NotificationChannel,
+  NotificationType,
+  PartnerStatus,
+  Prisma,
+} from '@prisma/client';
 import Redis from 'ioredis';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -35,7 +45,10 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
       'webhook-dispatchers',
     );
     this.streamConsumer = `dispatcher-${process.pid}`;
-    this.pollMs = this.configService.get<number>('WEBHOOK_STREAM_POLL_MS', 1000);
+    this.pollMs = this.configService.get<number>(
+      'WEBHOOK_STREAM_POLL_MS',
+      1000,
+    );
 
     const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
     this.redis = new Redis(redisUrl, {
@@ -61,7 +74,13 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
   // Creates the Redis consumer group if it does not already exist.
   private async ensureGroup(): Promise<void> {
     try {
-      await this.redis.xgroup('CREATE', this.streamKey, this.streamGroup, '$', 'MKSTREAM');
+      await this.redis.xgroup(
+        'CREATE',
+        this.streamKey,
+        this.streamGroup,
+        '$',
+        'MKSTREAM',
+      );
       this.logger.log(`Webhook stream group created: ${this.streamGroup}`);
     } catch (error) {
       if (error instanceof Error && error.message.includes('BUSYGROUP')) {
@@ -83,7 +102,11 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
   // Main loop that reads new webhook entries from Redis Streams.
   private async pollLoop(): Promise<void> {
     while (!this.stopped) {
-      const result = (await (this.redis as unknown as { xreadgroup: (...args: string[]) => Promise<unknown> }).xreadgroup(
+      const result = (await (
+        this.redis as unknown as {
+          xreadgroup: (...args: string[]) => Promise<unknown>;
+        }
+      ).xreadgroup(
         'GROUP',
         this.streamGroup,
         this.streamConsumer,
@@ -93,7 +116,7 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
         '50',
         'STREAMS',
         this.streamKey,
-        '>'
+        '>',
       )) as Array<[string, Array<[string, string[]]>]> | null;
 
       if (!result) {
@@ -102,7 +125,7 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
 
       for (const [, entries] of result) {
         for (const [entryId, fields] of entries) {
-          await this.processEntry(entryId, fields as string[]);
+          await this.processEntry(entryId, fields);
         }
       }
     }
@@ -167,7 +190,9 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
           select: { id: true },
         });
 
-        await this.notificationOutboxService.enqueueNotification(notification.id);
+        await this.notificationOutboxService.enqueueNotification(
+          notification.id,
+        );
         await this.auditService.createAuditLog({
           fleetId,
           actionType: 'PARTNER_WEBHOOK_DELIVERY',
@@ -185,8 +210,13 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
       // Only ACK after successful processing.
       await this.redis.xack(this.streamKey, this.streamGroup, entryId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Webhook stream processing failed';
-      this.logger.warn(`Webhook stream entry ${entryId} failed (will be retried): ${message}`);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Webhook stream processing failed';
+      this.logger.warn(
+        `Webhook stream entry ${entryId} failed (will be retried): ${message}`,
+      );
       // Do NOT ACK — the entry remains pending for re-delivery.
     }
   }

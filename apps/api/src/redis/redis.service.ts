@@ -157,7 +157,14 @@ export class RedisService implements OnModuleDestroy {
     await this.ensureConnected();
     const entries = Object.entries(fields).flat();
     if (maxLen && maxLen > 0) {
-      return this.client!.xadd(streamKey, 'MAXLEN', '~', maxLen, '*', ...entries);
+      return this.client!.xadd(
+        streamKey,
+        'MAXLEN',
+        '~',
+        maxLen,
+        '*',
+        ...entries,
+      );
     }
 
     return this.client!.xadd(streamKey, '*', ...entries);

@@ -46,7 +46,10 @@ async function bootstrap(): Promise<void> {
   const allowedCorsOrigins = resolveCorsOrigins(configService);
 
   // Rejects cross-origin cookie-authenticated mutating requests to mitigate CSRF.
-  const cookieName = configService.get<string>('AUTH_COOKIE_NAME', 'emoto_access_token');
+  const cookieName = configService.get<string>(
+    'AUTH_COOKIE_NAME',
+    'emoto_access_token',
+  );
   app.use((req: Request, res: Response, next: NextFunction) => {
     const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
     const hasCookie = Boolean(req.cookies?.[cookieName]);

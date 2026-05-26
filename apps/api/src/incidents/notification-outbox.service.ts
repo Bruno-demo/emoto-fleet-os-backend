@@ -96,7 +96,8 @@ export class NotificationOutboxService
         concurrency: 5,
         settings: {
           backoffStrategy: (attemptsMade: number) => {
-            const base = NOTIFICATION_BACKOFF_DELAY_MS * Math.pow(2, attemptsMade - 1);
+            const base =
+              NOTIFICATION_BACKOFF_DELAY_MS * Math.pow(2, attemptsMade - 1);
             const jitter = Math.random() * base * 0.3;
             return Math.round(base + jitter);
           },

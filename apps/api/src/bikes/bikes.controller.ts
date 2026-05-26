@@ -28,7 +28,13 @@ export class BikesController {
   constructor(private readonly bikesService: BikesService) {}
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH, UserRole.INSURER)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+  )
   @ApiOperation({ summary: 'List bikes in caller fleet' })
   async listBikes(
     @CurrentUser() user: AuthenticatedUser,
@@ -48,7 +54,13 @@ export class BikesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH, UserRole.INSURER)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+  )
   @ApiOperation({ summary: 'Get bike by id with fleet isolation enforcement' })
   async getBike(
     @Param('id', ParseUUIDPipe) id: string,

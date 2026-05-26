@@ -504,11 +504,11 @@ export class RidersService {
   // Returns rider profile plus currently active bike assignments.
   async getRiderMe(user: AuthenticatedUser): Promise<RiderMeResponse> {
     const rider = await this.loadRiderIdentityOrThrow(user.id, user.fleetId);
-    
+
     const fleet = await this.prismaService.fleet.findUnique({
       where: { id: user.fleetId },
     });
-    
+
     return {
       userId: rider.id,
       fleetId: rider.fleetId,
@@ -532,14 +532,20 @@ export class RidersService {
   }
 
   // Requests lock command for personal bike owner
-  async requestLock(user: AuthenticatedUser, bikeId: string): Promise<FleetDeviceCommand> {
+  async requestLock(
+    user: AuthenticatedUser,
+    bikeId: string,
+  ): Promise<FleetDeviceCommand> {
     await this.assertBikeAssignedToRider(user, bikeId);
     await this.assertPersonalFleet(user.fleetId);
     return this.commandsService.requestLockForBike(bikeId, user);
   }
 
   // Requests unlock command for personal bike owner
-  async requestUnlock(user: AuthenticatedUser, bikeId: string): Promise<FleetDeviceCommand> {
+  async requestUnlock(
+    user: AuthenticatedUser,
+    bikeId: string,
+  ): Promise<FleetDeviceCommand> {
     await this.assertBikeAssignedToRider(user, bikeId);
     await this.assertPersonalFleet(user.fleetId);
     return this.commandsService.requestUnlockForBike(bikeId, user);
@@ -551,16 +557,25 @@ export class RidersService {
       where: { id: fleetId },
     });
     if (fleet?.type !== 'PERSONAL') {
-      throw new ForbiddenException('Remote lock/unlock is only available for personal owners');
+      throw new ForbiddenException(
+        'Remote lock/unlock is only available for personal owners',
+      );
     }
   }
 
   // Validates bike assignment
-  private async assertBikeAssignedToRider(user: AuthenticatedUser, bikeId: string): Promise<void> {
+  private async assertBikeAssignedToRider(
+    user: AuthenticatedUser,
+    bikeId: string,
+  ): Promise<void> {
     const rider = await this.loadRiderIdentityOrThrow(user.id, user.fleetId);
-    const isAssigned = rider.bikeAssignments.some(a => a.bikeId === bikeId && a.active);
+    const isAssigned = rider.bikeAssignments.some(
+      (a) => a.bikeId === bikeId && a.active,
+    );
     if (!isAssigned) {
-      throw new ForbiddenException('You must be actively assigned to this bike');
+      throw new ForbiddenException(
+        'You must be actively assigned to this bike',
+      );
     }
   }
 
@@ -937,7 +952,8 @@ export class RidersService {
     const weightedBaseByType = {
       OVERSPEED: counts.OVERSPEED * this.tripScoreWeights.overspeed,
       SPEED_LIMIT_VIOLATION:
-        counts.SPEED_LIMIT_VIOLATION * this.tripScoreWeights.speedLimitViolation,
+        counts.SPEED_LIMIT_VIOLATION *
+        this.tripScoreWeights.speedLimitViolation,
       SCHOOL_ZONE_SPEED:
         counts.SCHOOL_ZONE_SPEED * this.tripScoreWeights.schoolZoneSpeed,
       HOSPITAL_ZONE_SPEED:

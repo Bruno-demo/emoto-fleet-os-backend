@@ -36,7 +36,10 @@ export interface CommandStatusPayload {
 @WebSocketGateway({
   namespace: '/fleet-events',
   cors: {
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // Allow connections with no origin (e.g. server-to-server, mobile apps).
       if (!origin) {
         callback(null, true);
@@ -181,7 +184,9 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
       return fromAuthPayload;
     }
 
-    const headerToken = this.normalizeToken(socket.handshake.headers.authorization);
+    const headerToken = this.normalizeToken(
+      socket.handshake.headers.authorization,
+    );
     if (headerToken) {
       return headerToken;
     }

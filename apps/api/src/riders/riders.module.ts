@@ -10,7 +10,14 @@ import { RidersAdminController } from './riders-admin.controller';
 import { RidersService } from './riders.service';
 
 @Module({
-  imports: [PrismaModule, AuditModule, EventsModule, IncidentsModule, CommandsModule, IngestionModule],
+  imports: [
+    PrismaModule,
+    AuditModule,
+    EventsModule,
+    IncidentsModule,
+    CommandsModule,
+    IngestionModule,
+  ],
   controllers: [RidersAdminController, RiderController],
   providers: [RidersService],
 })

@@ -74,7 +74,10 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
     this.streamKey = this.configService.get<string>('STREAM_KEY', '') || null;
     this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
-    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
+    this.streamEnabled = this.configService.get<boolean>(
+      'STREAM_ENABLED',
+      true,
+    );
   }
 
   // Opens MQTT connection and subscribes to ingestion topics.
@@ -150,7 +153,11 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       const payload = JSON.parse(rawMessage) as unknown;
       const device = await this.loadDeviceByUid(parsedTopic.deviceUid);
       if (!device || device.status !== 'ACTIVE') {
-        this.metricsService.incrementMqttIngestion(kindLabel, 'rejected', 'unknown_device');
+        this.metricsService.incrementMqttIngestion(
+          kindLabel,
+          'rejected',
+          'unknown_device',
+        );
         this.logger.warn(
           `Ignoring message from unknown/inactive device ${this.truncateDeviceUid(parsedTopic.deviceUid)}`,
         );
@@ -228,7 +235,11 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       await this.liveStateService.setLatestBikeState(latestState);
     }
 
-    await this.publishStreamTelemetry(device, telemetryPayload, telemetryTimestamp);
+    await this.publishStreamTelemetry(
+      device,
+      telemetryPayload,
+      telemetryTimestamp,
+    );
 
     await this.rulesEngineService.evaluateTelemetry(device, telemetryPayload);
     await this.tripBuilderService.processTelemetryForTrips(
@@ -524,8 +535,10 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       const msg = error.message.toLowerCase();
       if (msg.includes('signature')) return 'signature';
       if (msg.includes('nonce') || msg.includes('replay')) return 'replay';
-      if (msg.includes('timestamp') || msg.includes('drift')) return 'timestamp_drift';
-      if (msg.includes('secret') || msg.includes('hash mismatch')) return 'crypto';
+      if (msg.includes('timestamp') || msg.includes('drift'))
+        return 'timestamp_drift';
+      if (msg.includes('secret') || msg.includes('hash mismatch'))
+        return 'crypto';
     }
     return 'unknown';
   }

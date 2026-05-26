@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { AuditActionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaginatedResponse, createPaginatedResponse } from '../common/pagination';
+import {
+  PaginatedResponse,
+  createPaginatedResponse,
+} from '../common/pagination';
 import { CreateAuditLogInput } from './audit.types';
 
 @Injectable()

@@ -150,7 +150,9 @@ export class BikesService {
           serial: dto.serial,
           model: dto.model,
           status: dto.status,
-          ...(dto.insurerUserId !== undefined ? { insurerUserId: dto.insurerUserId } : {}),
+          ...(dto.insurerUserId !== undefined
+            ? { insurerUserId: dto.insurerUserId }
+            : {}),
         },
         include: {
           insurer: {

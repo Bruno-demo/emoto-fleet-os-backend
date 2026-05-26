@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -113,10 +123,7 @@ export class HqController {
 
   @Put('users/:id/role')
   @ApiOperation({ summary: 'Change a user role' })
-  updateUserRole(
-    @Param('id') id: string,
-    @Body() body: { role: string },
-  ) {
+  updateUserRole(@Param('id') id: string, @Body() body: { role: string }) {
     return this.hqService.updateUserRole(id, body.role);
   }
 
@@ -150,7 +157,9 @@ export class HqController {
   }
 
   @Get('partners/:id')
-  @ApiOperation({ summary: 'Get partner details by ID with credentials and webhooks' })
+  @ApiOperation({
+    summary: 'Get partner details by ID with credentials and webhooks',
+  })
   getPartnerById(@Param('id') id: string) {
     return this.hqService.getPartnerById(id);
   }
@@ -161,7 +170,11 @@ export class HqController {
     @Param('id') partnerId: string,
     @Body() body: { clientId: string; scopes: string },
   ) {
-    return this.hqService.createPartnerCredential(partnerId, body.clientId, body.scopes);
+    return this.hqService.createPartnerCredential(
+      partnerId,
+      body.clientId,
+      body.scopes,
+    );
   }
 
   @Delete('partners/:partnerId/credentials/:credentialId')
@@ -175,19 +188,13 @@ export class HqController {
 
   @Post('partners/:id/webhooks')
   @ApiOperation({ summary: 'Create webhook endpoint for partner' })
-  createWebhook(
-    @Param('id') partnerId: string,
-    @Body() body: { url: string },
-  ) {
+  createWebhook(@Param('id') partnerId: string, @Body() body: { url: string }) {
     return this.hqService.createWebhook(partnerId, body.url);
   }
 
   @Put('webhooks/:id')
   @ApiOperation({ summary: 'Update webhook endpoint URL' })
-  updateWebhook(
-    @Param('id') webhookId: string,
-    @Body() body: { url: string },
-  ) {
+  updateWebhook(@Param('id') webhookId: string, @Body() body: { url: string }) {
     return this.hqService.updateWebhook(webhookId, body.url);
   }
 
@@ -218,7 +225,9 @@ export class HqController {
   // ── Incidents ─────────────────────────────────────────────────────
 
   @Get('incidents')
-  @ApiOperation({ summary: 'Get global incidents across all fleets (paginated)' })
+  @ApiOperation({
+    summary: 'Get global incidents across all fleets (paginated)',
+  })
   getIncidents(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
@@ -327,7 +336,14 @@ export class HqController {
   @Post('insurers')
   @ApiOperation({ summary: 'Create a new insurer user' })
   createInsurer(
-    @Body() body: { email?: string; phone?: string; password: string; fullName: string; fleetId: string },
+    @Body()
+    body: {
+      email?: string;
+      phone?: string;
+      password: string;
+      fullName: string;
+      fleetId: string;
+    },
   ) {
     return this.hqService.createInsurer(body);
   }

@@ -32,7 +32,10 @@ export class LiveStateService {
   }
 
   // Loads a single latest bike state from Redis cache.
-  async getBikeState(fleetId: string, bikeId: string): Promise<LiveBikeState | null> {
+  async getBikeState(
+    fleetId: string,
+    bikeId: string,
+  ): Promise<LiveBikeState | null> {
     const key = this.buildBikeStateKey(fleetId, bikeId);
     const value = await this.redisService.get(key);
     if (!value) {

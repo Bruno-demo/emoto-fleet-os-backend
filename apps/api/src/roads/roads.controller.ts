@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Query,
-} from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/roles.decorator';
@@ -19,15 +14,14 @@ export class RoadsController {
 
   @Get('features')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
-  @ApiOperation({ summary: 'List map-ready road features within a bounding box' })
+  @ApiOperation({
+    summary: 'List map-ready road features within a bounding box',
+  })
   async listFeatures(
     @Query() query: RoadFeaturesQueryDto,
   ): Promise<RoadFeatureSummary[]> {
     const bounds = parseBounds(query.bbox);
-    return this.roadFeaturesService.getFeaturesInBounds(
-      bounds,
-      query.types,
-    );
+    return this.roadFeaturesService.getFeaturesInBounds(bounds, query.types);
   }
 }
 

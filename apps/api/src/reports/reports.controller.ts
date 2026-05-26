@@ -17,7 +17,13 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('weekly')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH, UserRole.INSURER)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+  )
   @ApiOperation({ summary: 'Weekly fleet risk report and scoring summary' })
   async getWeeklyReport(
     @CurrentUser() user: AuthenticatedUser,

@@ -104,7 +104,9 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     if (this.mqttClient) {
-      await new Promise<void>((resolve) => this.mqttClient!.end(false, {}, () => resolve()));
+      await new Promise<void>((resolve) =>
+        this.mqttClient!.end(false, {}, () => resolve()),
+      );
       this.mqttClient = null;
       this.mqttConnected = false;
       this.logger.log('MQTT client disconnected');
@@ -355,7 +357,10 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Enforces lock safety constraints on speed and stationary duration.
-  private async assertSafeToLock(deviceId: string, state: LiveStateSnapshot): Promise<void> {
+  private async assertSafeToLock(
+    deviceId: string,
+    state: LiveStateSnapshot,
+  ): Promise<void> {
     if (Math.abs(state.speedKph) > 0.01) {
       throw new BadRequestException('Cannot lock while bike is moving');
     }
@@ -482,16 +487,24 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
     await Promise.race([
       new Promise<void>((resolve, reject) => {
-        this.mqttClient!.publish(topic, JSON.stringify(payload), { qos: 1 }, (error) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve();
-        });
+        this.mqttClient!.publish(
+          topic,
+          JSON.stringify(payload),
+          { qos: 1 },
+          (error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          },
+        );
       }),
       new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('MQTT publish timeout')), MQTT_PUBLISH_TIMEOUT_MS),
+        setTimeout(
+          () => reject(new Error('MQTT publish timeout')),
+          MQTT_PUBLISH_TIMEOUT_MS,
+        ),
       ),
     ]);
   }

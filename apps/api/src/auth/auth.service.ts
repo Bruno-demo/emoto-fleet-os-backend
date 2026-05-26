@@ -120,9 +120,17 @@ export class AuthService {
     await this.clearFailedAttempts(identifier);
 
     // If the user has a registered email and is not a rider, enforce OTP login verification (bypassed in test envs)
-    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.BYPASS_OTP === 'true';
-    const isDemoBypass = process.env.NODE_ENV !== 'production' && user.email?.endsWith('demo.emoto');
-    if (user.email && user.role !== UserRole.RIDER && !isTestEnv && !isDemoBypass) {
+    const isTestEnv =
+      process.env.NODE_ENV === 'test' || process.env.BYPASS_OTP === 'true';
+    const isDemoBypass =
+      process.env.NODE_ENV !== 'production' &&
+      user.email?.endsWith('demo.emoto');
+    if (
+      user.email &&
+      user.role !== UserRole.RIDER &&
+      !isTestEnv &&
+      !isDemoBypass
+    ) {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const otpKey = `email_otp:login:${user.email}`;
       await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
@@ -140,7 +148,10 @@ export class AuthService {
       const tempKey = `temp_login_data:${tempToken}`;
       await this.redisService.set(
         tempKey,
-        JSON.stringify({ userId: user.id, rememberMe: dto.rememberMe ?? false }),
+        JSON.stringify({
+          userId: user.id,
+          rememberMe: dto.rememberMe ?? false,
+        }),
         300, // 5 minutes TTL
       );
 
@@ -257,9 +268,13 @@ export class AuthService {
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
-      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      const isVerified = await this.redisService.get(
+        `email_verified:${normalizedEmail}`,
+      );
       if (isVerified !== 'true') {
-        throw new BadRequestException('Please verify your email address using OTP first');
+        throw new BadRequestException(
+          'Please verify your email address using OTP first',
+        );
       }
     }
 
@@ -327,9 +342,13 @@ export class AuthService {
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
-      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      const isVerified = await this.redisService.get(
+        `email_verified:${normalizedEmail}`,
+      );
       if (isVerified !== 'true') {
-        throw new BadRequestException('Please verify your email address using OTP first');
+        throw new BadRequestException(
+          'Please verify your email address using OTP first',
+        );
       }
     }
 
@@ -395,9 +414,13 @@ export class AuthService {
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
-      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      const isVerified = await this.redisService.get(
+        `email_verified:${normalizedEmail}`,
+      );
       if (isVerified !== 'true') {
-        throw new BadRequestException('Please verify your email address using OTP first');
+        throw new BadRequestException(
+          'Please verify your email address using OTP first',
+        );
       }
     }
 
@@ -548,9 +571,13 @@ export class AuthService {
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
-      const isVerified = await this.redisService.get(`email_verified:${normalizedEmail}`);
+      const isVerified = await this.redisService.get(
+        `email_verified:${normalizedEmail}`,
+      );
       if (isVerified !== 'true') {
-        throw new BadRequestException('Please verify your email address using OTP first');
+        throw new BadRequestException(
+          'Please verify your email address using OTP first',
+        );
       }
     }
 
@@ -615,16 +642,15 @@ export class AuthService {
   }
 
   // Generates a one-time secure token, stores it in Redis with user.id mapping, and returns success response.
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+  ): Promise<{ message: string; token?: string }> {
     const normalizedIdentifier = dto.identifier.trim().toLowerCase();
-    
+
     // Look up the user by email or phone
     const user = await this.prismaService.user.findFirst({
       where: {
-        OR: [
-          { email: normalizedIdentifier },
-          { phone: dto.identifier.trim() },
-        ],
+        OR: [{ email: normalizedIdentifier }, { phone: dto.identifier.trim() }],
       },
     });
 
@@ -645,7 +671,9 @@ export class AuthService {
   }
 
   // Completes the password reset by checking token validity, updating database, and removing it from Redis.
-  async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
+  async resetPassword(
+    dto: ResetPasswordDto,
+  ): Promise<{ success: boolean; message: string }> {
     const userId = await this.redisService.get(`password_reset:${dto.token}`);
     if (!userId) {
       throw new BadRequestException('Reset token is invalid or has expired');
@@ -720,7 +748,9 @@ export class AuthService {
       (newRole === UserRole.OWNER || targetUser.role === UserRole.OWNER) &&
       actor.role !== UserRole.OWNER
     ) {
-      throw new ForbiddenException('Only fleet owners can assign owner/admin roles');
+      throw new ForbiddenException(
+        'Only fleet owners can assign owner/admin roles',
+      );
     }
 
     const updated = await this.prismaService.user.update({
@@ -864,7 +894,9 @@ export class AuthService {
   }
 
   // Verifies email OTP during registration.
-  async verifyOtp(dto: VerifyOtpDto): Promise<{ success: boolean; message: string }> {
+  async verifyOtp(
+    dto: VerifyOtpDto,
+  ): Promise<{ success: boolean; message: string }> {
     const normalizedEmail = dto.email.trim().toLowerCase();
     const otpKey = `email_otp:${dto.reason}:${normalizedEmail}`;
     const cachedOtp = await this.redisService.get(otpKey);
@@ -874,7 +906,11 @@ export class AuthService {
     }
 
     if (dto.reason === 'register') {
-      await this.redisService.set(`email_verified:${normalizedEmail}`, 'true', 900); // 15 minutes TTL
+      await this.redisService.set(
+        `email_verified:${normalizedEmail}`,
+        'true',
+        900,
+      ); // 15 minutes TTL
     }
 
     await this.redisService.del(otpKey);
@@ -937,7 +973,10 @@ export class AuthService {
         );
       });
 
-    const authResponse = await this.buildAuthResponse(authenticatedUser, rememberMe);
+    const authResponse = await this.buildAuthResponse(
+      authenticatedUser,
+      rememberMe,
+    );
 
     return {
       accessToken: authResponse.accessToken,

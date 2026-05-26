@@ -46,14 +46,20 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   ) {
     this.enabled = this.configService.get<boolean>('SINOTRACK_ENABLED', true);
     this.port = this.configService.get<number>('SINOTRACK_PORT', 5013);
-    this.streamKey = this.configService.get<string>('STREAM_KEY', 'telemetry:stream') || null;
+    this.streamKey =
+      this.configService.get<string>('STREAM_KEY', 'telemetry:stream') || null;
     this.streamMaxLen = this.configService.get<number>('STREAM_MAX_LEN', 10000);
-    this.streamEnabled = this.configService.get<boolean>('STREAM_ENABLED', true);
+    this.streamEnabled = this.configService.get<boolean>(
+      'STREAM_ENABLED',
+      true,
+    );
   }
 
   onModuleInit(): void {
     if (!this.enabled) {
-      this.logger.log('SinoTrack ST-901 TCP Ingestion Adapter is disabled by configuration');
+      this.logger.log(
+        'SinoTrack ST-901 TCP Ingestion Adapter is disabled by configuration',
+      );
       return;
     }
 
@@ -65,11 +71,16 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     this.tcpServer.maxConnections = 5000;
 
     this.tcpServer.on('error', (err) => {
-      this.logger.error(`SinoTrack TCP Server error: ${err.message}`, err.stack);
+      this.logger.error(
+        `SinoTrack TCP Server error: ${err.message}`,
+        err.stack,
+      );
     });
 
     this.tcpServer.listen(this.port, '0.0.0.0', () => {
-      this.logger.log(`SinoTrack ST-901 TCP Ingestion Adapter listening on 0.0.0.0:${this.port}`);
+      this.logger.log(
+        `SinoTrack ST-901 TCP Ingestion Adapter listening on 0.0.0.0:${this.port}`,
+      );
     });
   }
 
@@ -96,7 +107,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     // Secure timeout: destroy connection if idle for 2 minutes
     socket.setTimeout(120000);
     socket.on('timeout', () => {
-      this.logger.debug(`SinoTrack TCP socket idle timeout for ${remoteAddress}. Destroying.`);
+      this.logger.debug(
+        `SinoTrack TCP socket idle timeout for ${remoteAddress}. Destroying.`,
+      );
       socket.destroy();
     });
 
@@ -105,13 +118,15 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     socket.on('data', (chunk) => {
       // Memory protection: Cap byte accumulator size at 2048 bytes to defend against heap overflow
       if (buffer.length + chunk.length > 2048) {
-        this.logger.warn(`SinoTrack socket ${remoteAddress} exceeded maximum GPRS accumulator size (2048 bytes). Destroying socket.`);
+        this.logger.warn(
+          `SinoTrack socket ${remoteAddress} exceeded maximum GPRS accumulator size (2048 bytes). Destroying socket.`,
+        );
         socket.destroy();
         return;
       }
 
       buffer += chunk.toString('ascii');
-      
+
       // Messages are terminated by '#'
       let boundaryIndex: number;
       while ((boundaryIndex = buffer.indexOf('#')) !== -1) {
@@ -122,7 +137,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     });
 
     socket.on('error', (err) => {
-      this.logger.warn(`SinoTrack connection error for ${remoteAddress}: ${err.message}`);
+      this.logger.warn(
+        `SinoTrack connection error for ${remoteAddress}: ${err.message}`,
+      );
     });
 
     socket.on('close', () => {
@@ -131,10 +148,15 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private async processRawPacket(rawPacket: string, socket: net.Socket): Promise<void> {
+  private async processRawPacket(
+    rawPacket: string,
+    socket: net.Socket,
+  ): Promise<void> {
     const trimmed = rawPacket.trim();
     if (!trimmed.startsWith('*HQ')) {
-      this.logger.warn(`Ignoring malformed packet (invalid header): "${trimmed}"`);
+      this.logger.warn(
+        `Ignoring malformed packet (invalid header): "${trimmed}"`,
+      );
       return;
     }
 
@@ -143,7 +165,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const parts = content.split(',');
 
     if (parts.length < 3) {
-      this.logger.warn(`Ignoring malformed packet (too few parts): "${trimmed}"`);
+      this.logger.warn(
+        `Ignoring malformed packet (too few parts): "${trimmed}"`,
+      );
       return;
     }
 
@@ -153,8 +177,14 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     try {
       const device = await this.loadDeviceByImei(imei);
       if (!device || device.status !== 'ACTIVE') {
-        this.metricsService.incrementMqttIngestion('sinotrack', 'rejected', 'unknown_device');
-        this.logger.warn(`Ignoring packet from unknown/inactive device with IMEI: ${imei}`);
+        this.metricsService.incrementMqttIngestion(
+          'sinotrack',
+          'rejected',
+          'unknown_device',
+        );
+        this.logger.warn(
+          `Ignoring packet from unknown/inactive device with IMEI: ${imei}`,
+        );
         return;
       }
 
@@ -164,9 +194,16 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         await this.processHeartbeatPacket(device, trimmed);
       }
     } catch (error: unknown) {
-      this.metricsService.incrementMqttIngestion('sinotrack', 'rejected', 'parse_error');
+      this.metricsService.incrementMqttIngestion(
+        'sinotrack',
+        'rejected',
+        'parse_error',
+      );
       const message = error instanceof Error ? error.message : 'unknown error';
-      this.logger.error(`Failed to process SinoTrack packet for IMEI=${imei}: ${message}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to process SinoTrack packet for IMEI=${imei}: ${message}`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 
@@ -176,24 +213,28 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     rawPacket: string,
   ): Promise<void> {
     if (parts.length < 13) {
-      throw new Error(`Location packet V1 has fewer parts than expected (length: ${parts.length})`);
+      throw new Error(
+        `Location packet V1 has fewer parts than expected (length: ${parts.length})`,
+      );
     }
 
-    const timeStr = parts[3];       // hhmmss
-    const validity = parts[4];      // A/V
-    const latStr = parts[5];        // ddmm.mmmm
-    const latHem = parts[6];        // N/S
-    const lngStr = parts[7];        // dddmm.mmmm
-    const lngHem = parts[8];        // E/W
-    const speedStr = parts[9];      // knots
-    const headingStr = parts[10];   // degrees
-    const dateStr = parts[11];      // ddmmyy
-    const statusHex = parts[12];    // 8-character hex status
+    const timeStr = parts[3]; // hhmmss
+    const validity = parts[4]; // A/V
+    const latStr = parts[5]; // ddmm.mmmm
+    const latHem = parts[6]; // N/S
+    const lngStr = parts[7]; // dddmm.mmmm
+    const lngHem = parts[8]; // E/W
+    const speedStr = parts[9]; // knots
+    const headingStr = parts[10]; // degrees
+    const dateStr = parts[11]; // ddmmyy
+    const statusHex = parts[12]; // 8-character hex status
 
     // If validity is Void, we don't process coordinates since they're inaccurate.
     // We update keep-alive instead.
     if (validity !== 'A') {
-      this.logger.debug(`Device IMEI=${parts[1]} reported invalid GPS fix (V). Updating keep-alive.`);
+      this.logger.debug(
+        `Device IMEI=${parts[1]} reported invalid GPS fix (V). Updating keep-alive.`,
+      );
       await this.processHeartbeatPacket(device, rawPacket);
       return;
     }
@@ -323,7 +364,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     lngHem: string,
   ): { lat: number; lng: number } {
     if (!latStr || !lngStr || latStr.length < 4 || lngStr.length < 5) {
-      throw new Error(`Invalid coordinate length (lat: ${latStr?.length}, lng: ${lngStr?.length})`);
+      throw new Error(
+        `Invalid coordinate length (lat: ${latStr?.length}, lng: ${lngStr?.length})`,
+      );
     }
 
     const latDeg = parseFloat(latStr.substring(0, 2));
@@ -337,7 +380,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     if (lngHem === 'W') lng = -lng;
 
     if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-      throw new Error(`Coordinate values parsed as NaN or non-finite: lat=${lat}, lng=${lng}`);
+      throw new Error(
+        `Coordinate values parsed as NaN or non-finite: lat=${lat}, lng=${lng}`,
+      );
     }
 
     return { lat, lng };
@@ -345,7 +390,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
   private parseDateTime(dateStr: string, timeStr: string): Date {
     if (!dateStr || !timeStr || dateStr.length !== 6 || timeStr.length !== 6) {
-      throw new Error(`Malformed date/time strings: date="${dateStr}", time="${timeStr}"`);
+      throw new Error(
+        `Malformed date/time strings: date="${dateStr}", time="${timeStr}"`,
+      );
     }
 
     const dd = parseInt(dateStr.substring(0, 2), 10);
@@ -357,8 +404,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const ss = parseInt(timeStr.substring(4, 6), 10);
 
     if (
-      isNaN(dd) || isNaN(mm) || isNaN(yy) ||
-      isNaN(hh) || isNaN(min) || isNaN(ss)
+      isNaN(dd) ||
+      isNaN(mm) ||
+      isNaN(yy) ||
+      isNaN(hh) ||
+      isNaN(min) ||
+      isNaN(ss)
     ) {
       throw new Error(`Date/time strings contain non-numeric characters`);
     }
@@ -376,7 +427,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     return dateObj;
   }
 
-  private async loadDeviceByImei(imei: string): Promise<DeviceForIngestion | null> {
+  private async loadDeviceByImei(
+    imei: string,
+  ): Promise<DeviceForIngestion | null> {
     return this.prismaService.device.findUnique({
       where: { imei },
       select: {

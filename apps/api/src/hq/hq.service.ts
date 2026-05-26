@@ -1,9 +1,22 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserStatus, UserRole, FleetPlan, FleetSubscriptionStatus, BikeStatus } from '@prisma/client';
+import {
+  UserStatus,
+  UserRole,
+  FleetPlan,
+  FleetSubscriptionStatus,
+  BikeStatus,
+} from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
-import { encryptDeviceSecret, hashDeviceSecret } from '../crypto/device-secret.crypto';
+import {
+  encryptDeviceSecret,
+  hashDeviceSecret,
+} from '../crypto/device-secret.crypto';
 
 @Injectable()
 export class HqService {
@@ -56,10 +69,22 @@ export class HqService {
     ]);
 
     return [
-      { label: 'EMQX Cluster', status: 'Operational', color: 'text-emerald-400' },
+      {
+        label: 'EMQX Cluster',
+        status: 'Operational',
+        color: 'text-emerald-400',
+      },
       { label: 'Core API', status: 'Healthy', color: 'text-emerald-400' },
-      { label: 'Telemetry Engine', status: 'Nominal', color: 'text-emerald-400' },
-      { label: 'Database Layer', status: dbOk ? 'Hypertable Active' : 'Degraded', color: dbOk ? 'text-sky-400' : 'text-rose-400' },
+      {
+        label: 'Telemetry Engine',
+        status: 'Nominal',
+        color: 'text-emerald-400',
+      },
+      {
+        label: 'Database Layer',
+        status: dbOk ? 'Hypertable Active' : 'Degraded',
+        color: dbOk ? 'text-sky-400' : 'text-rose-400',
+      },
     ];
   }
 
@@ -75,19 +100,21 @@ export class HqService {
     ]);
 
     const events = [
-      ...fleets.map(f => ({
+      ...fleets.map((f) => ({
         fleet: f.name,
         event: 'New Fleet Provisioned',
         time: this.formatRelative(f.createdAt),
         type: 'success',
       })),
-      ...users.map(u => ({
+      ...users.map((u) => ({
         fleet: u.fleet?.name ?? 'Unknown',
         event: 'Operator Account Activated',
         time: this.formatRelative(u.createdAt),
         type: 'info',
       })),
-    ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 8);
+    ]
+      .sort((a, b) => b.time.localeCompare(a.time))
+      .slice(0, 8);
 
     return events;
   }
@@ -110,7 +137,13 @@ export class HqService {
       where: { id: fleetId },
       include: {
         users: {
-          select: { id: true, email: true, phone: true, role: true, status: true },
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            role: true,
+            status: true,
+          },
           orderBy: { createdAt: 'desc' },
         },
         bikes: {
@@ -118,7 +151,14 @@ export class HqService {
           orderBy: { createdAt: 'desc' },
         },
         _count: {
-          select: { users: true, bikes: true, events: true, trips: true, devices: true, incidents: true },
+          select: {
+            users: true,
+            bikes: true,
+            events: true,
+            trips: true,
+            devices: true,
+            incidents: true,
+          },
         },
       },
     });
@@ -128,7 +168,9 @@ export class HqService {
   }
 
   async updateFleetPlan(fleetId: string, plan: string) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     if (!['DEMO', 'PREMIUM'].includes(plan)) {
@@ -143,7 +185,9 @@ export class HqService {
   }
 
   async updateFleetSubscription(fleetId: string, status: string) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     if (!['ACTIVE', 'PAST_DUE', 'CANCELED'].includes(status)) {
@@ -158,7 +202,9 @@ export class HqService {
   }
 
   async softDeleteFleet(fleetId: string) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     // Soft-delete: set subscription to CANCELED and all users to DISABLED
@@ -181,7 +227,10 @@ export class HqService {
       }),
     ]);
 
-    return { success: true, message: `Fleet "${fleet.name}" has been disabled.` };
+    return {
+      success: true,
+      message: `Fleet "${fleet.name}" has been disabled.`,
+    };
   }
 
   async updateBikeStatus(bikeId: string, status: string) {
@@ -222,7 +271,11 @@ export class HqService {
       where.OR = [
         { email: { contains: opts.search, mode: 'insensitive' } },
         { phone: { contains: opts.search } },
-        { riderProfile: { fullName: { contains: opts.search, mode: 'insensitive' } } },
+        {
+          riderProfile: {
+            fullName: { contains: opts.search, mode: 'insensitive' },
+          },
+        },
       ];
     }
 
@@ -288,9 +341,18 @@ export class HqService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const validRoles: string[] = ['OWNER', 'ADMIN', 'DISPATCHER', 'TECH', 'INSURER', 'RIDER'];
+    const validRoles: string[] = [
+      'OWNER',
+      'ADMIN',
+      'DISPATCHER',
+      'TECH',
+      'INSURER',
+      'RIDER',
+    ];
     if (!validRoles.includes(role)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+      );
     }
 
     return this.prisma.user.update({
@@ -306,18 +368,28 @@ export class HqService {
 
     const validStatuses = ['ACTIVE', 'SUSPENDED', 'DISABLED'];
     if (!validStatuses.includes(status)) {
-      throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
         where: { id: userId },
         data: { status: status as UserStatus },
-        select: { id: true, email: true, phone: true, status: true, role: true },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          status: true,
+          role: true,
+        },
       });
 
       if (user.role === 'INSURER') {
-        const partnerExists = await tx.partner.findUnique({ where: { id: userId } });
+        const partnerExists = await tx.partner.findUnique({
+          where: { id: userId },
+        });
         if (partnerExists) {
           await tx.partner.update({
             where: { id: userId },
@@ -336,7 +408,9 @@ export class HqService {
 
     await this.prisma.$transaction(async (tx) => {
       if (user.role === 'INSURER') {
-        const partnerExists = await tx.partner.findUnique({ where: { id: userId } });
+        const partnerExists = await tx.partner.findUnique({
+          where: { id: userId },
+        });
         if (partnerExists) {
           await tx.partner.delete({ where: { id: userId } });
         }
@@ -402,8 +476,14 @@ export class HqService {
     return partner;
   }
 
-  async createPartnerCredential(partnerId: string, clientId: string, scopes: string) {
-    const partner = await this.prisma.partner.findUnique({ where: { id: partnerId } });
+  async createPartnerCredential(
+    partnerId: string,
+    clientId: string,
+    scopes: string,
+  ) {
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+    });
     if (!partner) throw new NotFoundException('Partner not found');
 
     const clientSecret = crypto.randomBytes(32).toString('hex');
@@ -441,7 +521,9 @@ export class HqService {
   }
 
   async createWebhook(partnerId: string, url: string) {
-    const partner = await this.prisma.partner.findUnique({ where: { id: partnerId } });
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+    });
     if (!partner) throw new NotFoundException('Partner not found');
 
     const secret = crypto.randomBytes(32).toString('hex');
@@ -534,7 +616,7 @@ export class HqService {
     ]);
 
     return {
-      data: data.map(d => ({ ...d, id: String(d.id) })),
+      data: data.map((d) => ({ ...d, id: String(d.id) })),
       total,
       page: opts.page,
       pageSize: opts.pageSize,
@@ -576,7 +658,7 @@ export class HqService {
     ]);
 
     // Convert BigInt fields to strings to avoid JSON serialization errors
-    const serializedData = data.map(d => ({
+    const serializedData = data.map((d) => ({
       ...d,
       eventId: String(d.eventId),
       event: d.event ? { ...d.event, id: String(d.event.id) } : null,
@@ -604,10 +686,12 @@ export class HqService {
     ] = await Promise.all([
       this.prisma.$queryRaw<Array<{ size: string }>>`
         SELECT pg_size_pretty(pg_database_size(current_database())) as size
-      `.then(rows => rows[0]?.size ?? 'Unknown'),
+      `.then((rows) => rows[0]?.size ?? 'Unknown'),
       this.prisma.$queryRaw<Array<{ count: bigint }>>`
         SELECT COUNT(*) as count FROM "TelemetryPoint"
-      `.then(rows => Number(rows[0]?.count ?? 0)).catch(() => 0),
+      `
+        .then((rows) => Number(rows[0]?.count ?? 0))
+        .catch(() => 0),
       this.prisma.event.count(),
       this.prisma.trip.count(),
       this.prisma.device.count({ where: { status: 'ACTIVE' } }),
@@ -657,7 +741,9 @@ export class HqService {
         take: opts.pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          bike: { select: { id: true, label: true, plate: true, status: true } },
+          bike: {
+            select: { id: true, label: true, plate: true, status: true },
+          },
           fleet: { select: { id: true, name: true } },
         },
       }),
@@ -674,14 +760,18 @@ export class HqService {
   }
 
   async assignBikeToDevice(deviceId: string, bikeId: string) {
-    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+    });
     if (!device) throw new NotFoundException('Device not found');
 
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
     if (device.fleetId !== bike.fleetId) {
-      throw new BadRequestException('Device and bike must belong to the same fleet');
+      throw new BadRequestException(
+        'Device and bike must belong to the same fleet',
+      );
     }
 
     return this.prisma.device.update({
@@ -695,7 +785,9 @@ export class HqService {
   }
 
   async unassignBikeFromDevice(deviceId: string) {
-    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+    });
     if (!device) throw new NotFoundException('Device not found');
 
     return this.prisma.device.update({
@@ -708,8 +800,14 @@ export class HqService {
     });
   }
 
-  async createDevice(body: { deviceUid: string; imei?: string; fleetId: string }) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: body.fleetId } });
+  async createDevice(body: {
+    deviceUid: string;
+    imei?: string;
+    fleetId: string;
+  }) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: body.fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     const masterKey = process.env.DEVICE_SECRET_MASTER_KEY;
@@ -732,7 +830,9 @@ export class HqService {
           status: 'ACTIVE',
         },
         include: {
-          bike: { select: { id: true, label: true, plate: true, status: true } },
+          bike: {
+            select: { id: true, label: true, plate: true, status: true },
+          },
           fleet: { select: { id: true, name: true } },
         },
       });
@@ -782,18 +882,18 @@ export class HqService {
 
   // ── Insurers ──────────────────────────────────────────────────────
 
-  async getInsurers(opts: {
-    page: number;
-    pageSize: number;
-    search?: string;
-  }) {
+  async getInsurers(opts: { page: number; pageSize: number; search?: string }) {
     const where: any = { role: 'INSURER' as UserRole };
 
     if (opts.search) {
       where.OR = [
         { email: { contains: opts.search, mode: 'insensitive' } },
         { phone: { contains: opts.search } },
-        { riderProfile: { fullName: { contains: opts.search, mode: 'insensitive' } } },
+        {
+          riderProfile: {
+            fullName: { contains: opts.search, mode: 'insensitive' },
+          },
+        },
       ];
     }
 
@@ -869,7 +969,8 @@ export class HqService {
     });
 
     if (!insurer) throw new NotFoundException('Insurer not found');
-    if (insurer.role !== 'INSURER') throw new BadRequestException('User is not an insurer');
+    if (insurer.role !== 'INSURER')
+      throw new BadRequestException('User is not an insurer');
 
     return insurer;
   }
@@ -881,7 +982,9 @@ export class HqService {
     fullName: string;
     fleetId: string;
   }) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: body.fleetId } });
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: body.fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     const hashedPassword = await bcrypt.hash(body.password, 10);
@@ -947,15 +1050,18 @@ export class HqService {
   }
 
   async assignBikeToInsurer(insurerId: string, bikeId: string) {
-    const insurer = await this.prisma.user.findUnique({ where: { id: insurerId } });
+    const insurer = await this.prisma.user.findUnique({
+      where: { id: insurerId },
+    });
     if (!insurer) throw new NotFoundException('Insurer not found');
-    if (insurer.role !== 'INSURER') throw new BadRequestException('User is not an insurer');
+    if (insurer.role !== 'INSURER')
+      throw new BadRequestException('User is not an insurer');
 
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
     if (bike.fleetId !== insurer.fleetId) {
-      throw new BadRequestException('Bike must belong to the insurer\'s fleet');
+      throw new BadRequestException("Bike must belong to the insurer's fleet");
     }
 
     return this.prisma.bike.update({
@@ -1022,7 +1128,7 @@ export class HqService {
     ]);
 
     // Convert BigInt IDs to strings for JSON serialization
-    const serializedData = data.map(e => ({
+    const serializedData = data.map((e) => ({
       ...e,
       id: String(e.id),
     }));
