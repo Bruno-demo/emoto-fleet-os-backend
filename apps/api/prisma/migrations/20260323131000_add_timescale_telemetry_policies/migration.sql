@@ -24,7 +24,7 @@ BEGIN
 
     ALTER TABLE "TelemetryPoint" SET (
       timescaledb.compress,
-      timescaledb.compress_segmentby = 'deviceId'
+      timescaledb.compress_segmentby = '"deviceId"'
     );
 
     PERFORM add_compression_policy('"TelemetryPoint"', INTERVAL '7 days', if_not_exists => TRUE);
