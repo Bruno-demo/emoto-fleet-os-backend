@@ -38,7 +38,7 @@ export class JwtAuthGuard implements CanActivate {
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
     );
-    const cookieToken = request.cookies?.[cookieName];
+    const cookieToken = request.cookies?.[cookieName] as string | undefined;
     const resolvedToken = token ?? cookieToken;
 
     if (!resolvedToken) {

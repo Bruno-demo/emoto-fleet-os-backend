@@ -122,9 +122,9 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @ApiOperation({ summary: 'Clear the access token cookie' })
-  async logout(@Res({ passthrough: true }) response: Response): Promise<{
+  logout(@Res({ passthrough: true }) response: Response): {
     ok: true;
-  }> {
+  } {
     this.clearAuthCookie(response);
     return { ok: true };
   }

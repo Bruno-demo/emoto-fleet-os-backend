@@ -21,8 +21,8 @@ export class RoadFeaturesQueryDto {
   // Splits comma-separated values into the enum array expected by the service.
   @Transform(({ value }) =>
     typeof value === 'string'
-      ? value.split(',').map((item) => item.trim())
-      : value,
+      ? (value.split(',').map((item) => item.trim()) as RoadFeatureType[])
+      : (value as RoadFeatureType[] | undefined),
   )
   types?: RoadFeatureType[];
 }

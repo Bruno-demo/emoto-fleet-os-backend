@@ -20,6 +20,23 @@ import { CreateBikeDto } from './dto/create-bike.dto';
 import { LockActionDto } from './dto/lock-action.dto';
 import { UpdateBikeDto } from './dto/update-bike.dto';
 
+export type LoadedBike = Prisma.BikeGetPayload<{
+  include: {
+    insurer: {
+      select: {
+        id: true;
+        email: true;
+        phone: true;
+        riderProfile: {
+          select: {
+            fullName: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
 @Injectable()
 export class BikesService {
   constructor(
@@ -32,7 +49,7 @@ export class BikesService {
   async listBikesForUser(
     user: AuthenticatedUser,
     query: PaginationQueryDto,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<LoadedBike>> {
     const pagination = getPaginationParams(query);
     const where: Prisma.BikeWhereInput = { fleetId: user.fleetId };
 
@@ -103,7 +120,10 @@ export class BikesService {
   }
 
   // Loads a bike by id and enforces fleet isolation on access.
-  async getBikeForUser(id: string, user: AuthenticatedUser): Promise<any> {
+  async getBikeForUser(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<LoadedBike> {
     const bike = await this.loadBikeOrThrow(id);
 
     this.assertFleetAccess(bike.fleetId, user);
@@ -120,7 +140,7 @@ export class BikesService {
     id: string,
     dto: UpdateBikeDto,
     user: AuthenticatedUser,
-  ): Promise<any> {
+  ): Promise<Bike> {
     const bike = await this.loadBikeOrThrow(id);
     this.assertFleetAccess(bike.fleetId, user);
 
@@ -228,7 +248,7 @@ export class BikesService {
   }
 
   // Fetches a bike record by id or throws 404.
-  private async loadBikeOrThrow(id: string): Promise<any> {
+  private async loadBikeOrThrow(id: string): Promise<LoadedBike> {
     const bike = await this.prismaService.bike.findUnique({
       where: { id },
       include: {

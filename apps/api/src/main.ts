@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction, Application } from 'express';
 import { AppModule } from './app.module';
 
 // Resolves browser origins allowed to call the API for local dashboard and rider apps.
@@ -39,7 +39,7 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
 
   // Trust the first proxy hop so rate limiters and logging see real client IPs.
-  const expressApp = app.getHttpAdapter().getInstance();
+  const expressApp = app.getHttpAdapter().getInstance() as Application;
   expressApp.set('trust proxy', 1);
 
   const configService = app.get(ConfigService);

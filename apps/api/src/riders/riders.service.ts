@@ -619,7 +619,7 @@ export class RidersService {
     ]);
 
     return createPaginatedResponse(
-      trips.map((trip: any) => ({
+      trips.map((trip) => ({
         id: trip.id,
         bikeId: trip.bikeId,
         bikeLabel: trip.bike?.label ?? 'Bike ' + trip.bikeId.slice(0, 8),

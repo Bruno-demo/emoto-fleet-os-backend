@@ -10,6 +10,7 @@ import {
   FleetPlan,
   FleetSubscriptionStatus,
   BikeStatus,
+  Prisma,
 } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -257,14 +258,14 @@ export class HqService {
     status?: string;
     role?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (opts.status) {
-      where.status = opts.status;
+      where.status = opts.status as UserStatus;
     }
 
     if (opts.role) {
-      where.role = opts.role;
+      where.role = opts.role as UserRole;
     }
 
     if (opts.search) {
@@ -585,14 +586,15 @@ export class HqService {
     fleetId?: string;
     actionType?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
 
     if (opts.fleetId) {
       where.fleetId = opts.fleetId;
     }
 
     if (opts.actionType) {
-      where.actionType = opts.actionType;
+      where.actionType =
+        opts.actionType as Prisma.AuditLogWhereInput['actionType'];
     }
 
     const [data, total] = await Promise.all([
@@ -632,10 +634,10 @@ export class HqService {
     status?: string;
     fleetId?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.IncidentWhereInput = {};
 
     if (opts.status) {
-      where.status = opts.status;
+      where.status = opts.status as Prisma.IncidentWhereInput['status'];
     }
 
     if (opts.fleetId) {
@@ -718,14 +720,14 @@ export class HqService {
     status?: string;
     assigned?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.DeviceWhereInput = {};
 
     if (opts.fleetId) {
       where.fleetId = opts.fleetId;
     }
 
     if (opts.status) {
-      where.status = opts.status;
+      where.status = opts.status as Prisma.DeviceWhereInput['status'];
     }
 
     if (opts.assigned === 'true') {
@@ -841,8 +843,11 @@ export class HqService {
         device,
         deviceSecret,
       };
-    } catch (error: any) {
-      if (error?.code === 'P2002') {
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new BadRequestException('deviceUid or imei already exists');
       }
       throw error;
@@ -883,7 +888,7 @@ export class HqService {
   // ── Insurers ──────────────────────────────────────────────────────
 
   async getInsurers(opts: { page: number; pageSize: number; search?: string }) {
-    const where: any = { role: 'INSURER' as UserRole };
+    const where: Prisma.UserWhereInput = { role: UserRole.INSURER };
 
     if (opts.search) {
       where.OR = [
@@ -1098,18 +1103,18 @@ export class HqService {
     type?: string;
     severity?: string;
   }) {
-    const where: any = {};
+    const where: Prisma.EventWhereInput = {};
 
     if (opts.fleetId) {
       where.fleetId = opts.fleetId;
     }
 
     if (opts.type) {
-      where.type = opts.type;
+      where.type = opts.type as Prisma.EventWhereInput['type'];
     }
 
     if (opts.severity) {
-      where.severity = opts.severity;
+      where.severity = opts.severity as Prisma.EventWhereInput['severity'];
     }
 
     const [data, total] = await Promise.all([

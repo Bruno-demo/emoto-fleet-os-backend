@@ -5,13 +5,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import { AuthenticatedUser } from '../../auth/auth.types';
+import { AuthenticatedRequest } from '../../auth/auth.types';
 
 @Injectable()
 export class HqGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
-    const user = request.user as AuthenticatedUser;
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = request.user;
 
     if (!user) {
       return false; // Let JwtAuthGuard handle unauthenticated

@@ -168,8 +168,6 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
     let insurerClientSecret = '';
     let insurerToken = '';
     let unassignedBikeId = '';
-    let assignedBikeTripId = '';
-    let unassignedBikeTripId = '';
     let assignedIncidentId = '';
     let unassignedIncidentId = '';
 
@@ -234,7 +232,7 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
       });
 
       // Create trip for assigned bike (allowedBikeId)
-      const assignedTrip = await prisma.trip.create({
+      await prisma.trip.create({
         data: {
           fleetId: allowedFleetId,
           bikeId: allowedBikeId,
@@ -245,10 +243,9 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
           score: 95.0,
         },
       });
-      assignedBikeTripId = assignedTrip.id;
 
       // Create trip for unassigned bike (unassignedBikeId)
-      const unassignedTrip = await prisma.trip.create({
+      await prisma.trip.create({
         data: {
           fleetId: allowedFleetId,
           bikeId: unassignedBikeId,
@@ -259,7 +256,6 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
           score: 80.0,
         },
       });
-      unassignedBikeTripId = unassignedTrip.id;
 
       // Create devices to satisfy Event -> Device relation
       const deviceAssigned = await prisma.device.create({

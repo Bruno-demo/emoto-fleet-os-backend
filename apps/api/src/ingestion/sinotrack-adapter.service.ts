@@ -132,7 +132,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       while ((boundaryIndex = buffer.indexOf('#')) !== -1) {
         const rawPacket = buffer.substring(0, boundaryIndex + 1);
         buffer = buffer.substring(boundaryIndex + 1);
-        void this.processRawPacket(rawPacket, socket);
+        void this.processRawPacket(rawPacket);
       }
     });
 
@@ -148,10 +148,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private async processRawPacket(
-    rawPacket: string,
-    socket: net.Socket,
-  ): Promise<void> {
+  private async processRawPacket(rawPacket: string): Promise<void> {
     const trimmed = rawPacket.trim();
     if (!trimmed.startsWith('*HQ')) {
       this.logger.warn(
@@ -191,7 +188,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       if (command === 'V1') {
         await this.processTelemetryPacket(device, parts, trimmed);
       } else {
-        await this.processHeartbeatPacket(device, trimmed);
+        await this.processHeartbeatPacket(device);
       }
     } catch (error: unknown) {
       this.metricsService.incrementMqttIngestion(
@@ -345,7 +342,6 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
   private async processHeartbeatPacket(
     device: DeviceForIngestion,
-    rawPacket: string,
   ): Promise<void> {
     const timestamp = new Date();
     await this.prismaService.device.update({

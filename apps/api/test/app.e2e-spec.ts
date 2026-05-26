@@ -542,7 +542,8 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .send({ insurerUserId: insurerSameFleetId })
         .expect(200);
 
-      expect(response.body.insurerUserId).toBe(insurerSameFleetId);
+      const body = response.body as { insurerUserId: string };
+      expect(body.insurerUserId).toBe(insurerSameFleetId);
     });
 
     it('allows INSURER to fetch assigned bikes list', async () => {
@@ -551,7 +552,8 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .set('Authorization', `Bearer ${insurerSameFleetToken}`)
         .expect(200);
 
-      const data = response.body.data as Array<{ id: string }>;
+      const body = response.body as { data: Array<{ id: string }> };
+      const data = body.data;
       const bikeIds = data.map((b) => b.id);
       expect(bikeIds).toContain(assignedBikeId);
       expect(bikeIds).toContain(fleetBikeId);
@@ -587,7 +589,8 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(response.body.data).toBeDefined();
+      const body = response.body as { data: unknown };
+      expect(body.data).toBeDefined();
     });
   });
 });
