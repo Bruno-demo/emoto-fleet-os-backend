@@ -748,6 +748,7 @@ function CreateAccountInner() {
                 onClick={handleVerifyOtp}
                 disabled={otpCode.length !== 6 || isVerifyingOtp}
                 className="flex items-center justify-center rounded-[14px] bg-accent px-4 text-xs font-semibold text-white transition hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                style={{ background: '#3B82F6', color: 'white' }}
               >
                 {isVerifyingOtp ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
