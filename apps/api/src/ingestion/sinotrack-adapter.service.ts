@@ -232,7 +232,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(
         `Device IMEI=${parts[1]} reported invalid GPS fix (V). Updating keep-alive.`,
       );
-      await this.processHeartbeatPacket(device, rawPacket);
+      await this.processHeartbeatPacket(device);
       return;
     }
 
