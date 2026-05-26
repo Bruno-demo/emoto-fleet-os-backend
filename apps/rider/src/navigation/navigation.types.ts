@@ -8,6 +8,7 @@ export type RiderAuthStackParamList = {
   ForgotAccess: undefined;
   ResetAccess: {
     phone?: string;
+    token?: string;
   } | undefined;
   OtpHelp: undefined;
 };

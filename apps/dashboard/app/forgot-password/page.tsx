@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
       eyebrow="Account recovery"
       title="Reset requests are handled by your fleet admin."
       subtitle="For security reasons, password resets are initiated by your fleet operations team. Submit your email or phone so they can verify your request."
-      securityHint="Your data is सुरक्षित / secure"
+      securityHint="Your data is secure"
       features={[
         {
           icon: <Lock size={16} />,

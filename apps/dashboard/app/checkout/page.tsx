@@ -23,18 +23,19 @@ const PLAN_DETAILS: Record<
 > = {
   'safety-core': {
     title: 'Safety Core',
-    price: '$6',
+    price: '10,000 RWF',
     period: '/ bike / mo',
     features: [
       'Live map + alerts',
       'Incident workflows',
       'Rider scores',
       'Email support',
+      '+ 50,000 RWF device setup & install fee',
     ],
   },
   'operations-plus': {
     title: 'Operations Plus',
-    price: '$9',
+    price: '25,000 RWF',
     period: '/ bike / mo',
     features: [
       'Everything in Core',
@@ -42,6 +43,7 @@ const PLAN_DETAILS: Record<
       'Trip analytics',
       'Compliance reports',
       'Priority support',
+      '+ 50,000 RWF device setup & install fee',
     ],
   },
   enterprise: {
@@ -122,7 +124,8 @@ function CheckoutContent() {
           </p>
           <Link
             href="/#pricing"
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-bold text-white hover:scale-105 transition-transform"
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white hover:scale-105 transition-transform"
+            style={{ background: '#3B82F6', color: 'white' }}
           >
             View plans <ArrowRight size={14} />
           </Link>
@@ -190,7 +193,7 @@ function CheckoutContent() {
                 {plan.title}
               </p>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">
+                <span className="text-4xl font-extrabold text-ink">
                   {plan.price}
                 </span>
                 {plan.period && (
@@ -233,7 +236,7 @@ function CheckoutContent() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Banknote size={16} className="text-accent" />
-                    <span className="text-sm font-bold text-white">
+                    <span className="text-sm font-bold text-ink">
                       Cash on Install
                     </span>
                   </div>
@@ -264,7 +267,8 @@ function CheckoutContent() {
               type="button"
               onClick={handleConfirm}
               disabled={checkoutMutation.isPending || confirmed}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-4 text-sm font-bold text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:scale-[1.02] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-bold text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:scale-[1.02] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              style={{ background: '#3B82F6', color: 'white' }}
             >
               {confirmed ? (
                 <>
@@ -295,7 +299,7 @@ function CheckoutContent() {
                 </>
               ) : (
                 <>
-                  Confirm &amp; Launch Dashboard <ArrowRight size={14} />
+                  Confirm & Launch Dashboard <ArrowRight size={14} />
                 </>
               )}
             </button>

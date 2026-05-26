@@ -91,8 +91,13 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
                 'rounded-xl px-3 py-2 text-xs font-bold transition-all',
                 (activePreset === key || (key === 'custom' && showCustom))
                   ? 'bg-accent text-white'
-                  : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white',
+                  : 'border border-line bg-white/5 text-zinc-400 hover:bg-surface-hover hover:text-ink',
               )}
+              style={
+                (activePreset === key || (key === 'custom' && showCustom))
+                  ? { background: '#3B82F6', color: 'white' }
+                  : undefined
+              }
             >
               {label}
             </button>
@@ -105,14 +110,14 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
               type="date"
               value={from}
               onChange={(e) => onChange({ from: e.target.value, to })}
-              className="h-8 rounded-lg border border-line bg-surface-strong px-2.5 text-xs text-white outline-none transition focus:border-accent [color-scheme:dark]"
+              className="h-8 rounded-lg border border-line bg-surface-strong px-2.5 text-xs text-zinc-900 dark:text-white outline-none transition focus:border-accent light dark:[color-scheme:dark]"
             />
             <span className="text-xs text-zinc-500">to</span>
             <input
               type="date"
               value={to}
               onChange={(e) => onChange({ from, to: e.target.value })}
-              className="h-8 rounded-lg border border-line bg-surface-strong px-2.5 text-xs text-white outline-none transition focus:border-accent [color-scheme:dark]"
+              className="h-8 rounded-lg border border-line bg-surface-strong px-2.5 text-xs text-zinc-900 dark:text-white outline-none transition focus:border-accent light dark:[color-scheme:dark]"
             />
           </div>
         )}

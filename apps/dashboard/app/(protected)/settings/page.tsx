@@ -221,9 +221,12 @@ export default function SettingsPage() {
                     <CheckCircle2 size={16} className={!entitlements.isPremium && entitlements.isActive ? "text-success-ink" : "text-ink-muted"} />
                     <p className="text-sm font-bold text-ink">Safety Core</p>
                   </div>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-ink">$6</span>
-                    <span className="text-xs text-ink-muted">/ bike / month</span>
+                  <div className="mt-4 flex flex-col items-start gap-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
+                      <span className="text-xs text-ink-muted">/ bike / month</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-success-ink">+ 50,000 RWF device setup & install</span>
                   </div>
                   <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                     Essential telemetry, safety event detection, and manual incident response tools.
@@ -287,9 +290,12 @@ export default function SettingsPage() {
                     <CheckCircle2 size={16} className="text-accent" />
                     <p className="text-sm font-bold text-ink">Operations Plus</p>
                   </div>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-ink">$9</span>
-                    <span className="text-xs text-ink-muted">/ bike / month</span>
+                  <div className="mt-4 flex flex-col items-start gap-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold text-ink">25,000 RWF</span>
+                      <span className="text-xs text-ink-muted">/ bike / month</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-accent">+ 50,000 RWF device setup & install</span>
                   </div>
                   <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                     Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.

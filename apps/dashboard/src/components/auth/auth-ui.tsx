@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import Link from 'next/link';
 import { Command } from 'lucide-react';
 import { cx } from '@/lib/ui';
 
@@ -34,17 +35,17 @@ export function AuthShell({
         <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.3)_0%,transparent_50%)]" />
 
         {/* Top Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20">
+        <Link href="/" className="relative z-10 flex items-center gap-3 self-start group">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:scale-105 transition-transform">
             <Command size={18} />
           </span>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent group-hover:text-accent/80 transition-colors">
               E-Moto
             </p>
-            <p className="font-display text-sm font-bold text-white">Fleet OS</p>
+            <p className="font-display text-sm font-bold text-white group-hover:text-white/80 transition-colors">Fleet OS</p>
           </div>
-        </div>
+        </Link>
 
         {/* Content Box */}
         <div className="relative z-10 mb-8">

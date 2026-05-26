@@ -41,16 +41,16 @@ const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
 const PLAN_DETAILS: Record<string, { title: string; price: string; period: string; description: string; icon: React.ReactNode }> = {
   'safety-core': { 
     title: 'Safety Core', 
-    price: '$6', 
+    price: '10,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Essential rider safety and telemetry.',
+    description: 'Essential safety (+ 50,000 RWF setup).',
     icon: <ShieldCheck size={18} />
   },
   'operations-plus': { 
     title: 'Operations Plus', 
-    price: '$9', 
+    price: '25,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Advanced fleet ops and maintenance.',
+    description: 'Advanced fleet ops (+ 50,000 RWF setup).',
     icon: <Zap size={18} />
   },
   enterprise: { 
@@ -554,7 +554,7 @@ function CreateAccountInner() {
       eyebrow="Fleet identity"
       title="Create safe access for every rider and operator."
       subtitle="Provision accounts with the right roles and invite codes so each team member sees only the data they need."
-      securityHint="Your data is सुरक्षित / secure"
+      securityHint="Your data is secure"
       features={[
         {
           icon: <UserPlus size={16} />,

@@ -14,9 +14,10 @@ import {
   UserCheck,
   UserRound,
   X,
+  Search,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRealtime } from '@/components/realtime/realtime-provider';
 import { Badge } from '@/components/ui/badge';
 import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
@@ -220,12 +221,29 @@ export default function BikesPage() {
       return bikes;
     }
 
+    const tokens = query.split(/\s+/).filter(Boolean);
     return bikes.filter((bike) => {
       const device = deviceByBikeId.get(bike.id);
       const assignment = assignmentByBikeId.get(bike.id);
-      return [bike.label, bike.plate, bike.model, device?.deviceUid, assignment?.riderFullName]
-        .filter(Boolean)
-        .some((value) => value?.toLowerCase().includes(query));
+      
+      return tokens.every((token) => {
+        return [
+          bike.label,
+          bike.plate,
+          bike.model,
+          bike.serial,
+          bike.status,
+          formatEnumLabel(bike.status),
+          device?.deviceUid,
+          device?.imei,
+          assignment?.riderFullName,
+          bike.insurer?.riderProfile?.fullName,
+          bike.insurer?.email,
+          bike.insurer?.phone,
+        ]
+          .filter((val): val is string => !!val)
+          .some((val) => val.toLowerCase().includes(token));
+      });
     });
   }, [assignmentByBikeId, bikesQuery.data?.data, deviceByBikeId, searchQuery]);
 
@@ -316,18 +334,82 @@ export default function BikesPage() {
     }
   };
 
+  const getBikeLockStatus = useCallback(
+    (bikeId: string) => {
+      const bikeCommands = commandStatuses
+        .filter(
+          (status) =>
+            status.bikeId === bikeId && (status.action === 'LOCK' || status.action === 'UNLOCK'),
+        )
+        .sort((left, right) => right.ts.localeCompare(left.ts));
+      if (bikeCommands.length === 0) return 'UNLOCKED';
+      const latest = bikeCommands[0];
+      if (latest.action === 'LOCK') {
+        if (latest.status === 'ACKED') return 'LOCKED';
+        if (
+          latest.status === 'PENDING' ||
+          latest.status === 'SENT' ||
+          latest.status === 'QUEUED'
+        ) {
+          return 'LOCKING';
+        }
+        return 'UNLOCKED';
+      } else {
+        if (latest.status === 'ACKED') return 'UNLOCKED';
+        if (
+          latest.status === 'PENDING' ||
+          latest.status === 'SENT' ||
+          latest.status === 'QUEUED'
+        ) {
+          return 'UNLOCKING';
+        }
+        return 'LOCKED';
+      }
+    },
+    [commandStatuses],
+  );
+
   const columns = useMemo<Array<DataTableColumn<FleetBike>>>(
     () => [
       {
         header: 'Bike',
-        render: (bike) => (
-          <div>
-            <p className="font-semibold text-ink">{bike.label}</p>
-            <p className="mt-1 text-xs leading-5 text-ink-soft">
-              {bike.plate ?? bike.model ?? bike.serial ?? bike.id.slice(0, 8)}
-            </p>
-          </div>
-        ),
+        render: (bike) => {
+          const lockStatus = getBikeLockStatus(bike.id);
+          return (
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-ink">{bike.label}</span>
+                {lockStatus === 'LOCKED' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[10px] font-semibold text-danger-ink border border-danger-ink/10 shadow-sm animate-pulse">
+                    <Lock size={10} className="text-danger-ink" />
+                    Locked
+                  </span>
+                )}
+                {lockStatus === 'LOCKING' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning-ink border border-warning-ink/10 shadow-sm animate-pulse">
+                    <Lock size={10} className="text-warning-ink animate-bounce" />
+                    Locking
+                  </span>
+                )}
+                {lockStatus === 'UNLOCKING' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent border border-accent/10 shadow-sm animate-pulse">
+                    <Unlock size={10} className="text-accent animate-bounce" />
+                    Unlocking
+                  </span>
+                )}
+                {lockStatus === 'UNLOCKED' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success-ink border border-success-ink/10 shadow-sm">
+                    <Unlock size={10} className="text-success-ink" />
+                    Unlocked
+                  </span>
+                )}
+              </div>
+              <p className="text-xs leading-5 text-ink-soft">
+                {bike.plate ?? bike.model ?? bike.serial ?? bike.id.slice(0, 8)}
+              </p>
+            </div>
+          );
+        },
       },
       {
         header: 'Status',
@@ -364,7 +446,7 @@ export default function BikesPage() {
         ),
       },
     ],
-    [assignmentByBikeId, deviceByBikeId],
+    [assignmentByBikeId, deviceByBikeId, getBikeLockStatus],
   );
 
   return (
@@ -375,6 +457,7 @@ export default function BikesPage() {
             type="button"
             onClick={() => setShowCreateBike(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm"
+            style={{ background: '#3B82F6', color: 'white' }}
           >
             <Plus size={16} strokeWidth={3} />
             Add Bike
@@ -420,12 +503,32 @@ export default function BikesPage() {
       >
         <DataTableToolbar>
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-            <TextField
-              label="Search"
-              placeholder="Search bike, plate, rider, or device"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-ink">Search</label>
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
+                />
+                <input
+                  type="text"
+                  placeholder="Search bike label, plate, model, serial, status, rider, device UID, or insurer..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 pl-10 pr-10 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
                 Visible bikes
@@ -485,6 +588,46 @@ export default function BikesPage() {
           <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-2">
               <KeyMetric label="Bike status" value={<BikeStatusBadge status={activeBike.status} />} />
+              <KeyMetric
+                label="Security state"
+                value={
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const lockStatus = getBikeLockStatus(activeBike.id);
+                      switch (lockStatus) {
+                        case 'LOCKED':
+                          return (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger-ink border border-danger-ink/10 shadow-sm animate-pulse">
+                              <Lock size={12} className="text-danger-ink" />
+                              Locked
+                            </span>
+                          );
+                        case 'LOCKING':
+                          return (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning-ink border border-warning-ink/10 shadow-sm animate-pulse">
+                              <Lock size={12} className="text-warning-ink animate-bounce" />
+                              Locking...
+                            </span>
+                          );
+                        case 'UNLOCKING':
+                          return (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent border border-accent/10 shadow-sm animate-pulse">
+                              <Unlock size={12} className="text-accent animate-bounce" />
+                              Unlocking...
+                            </span>
+                          );
+                        default:
+                          return (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-ink border border-success-ink/10 shadow-sm">
+                              <Unlock size={12} className="text-success-ink" />
+                              Unlocked
+                            </span>
+                          );
+                      }
+                    })()}
+                  </div>
+                }
+              />
               <KeyMetric
                 label="Assigned device"
                 value={<span>{deviceByBikeId.get(activeBike.id)?.deviceUid ?? 'Unassigned'}</span>}
@@ -561,7 +704,13 @@ export default function BikesPage() {
                       ))}
                     </select>
                     {assignRiderError && <p className="text-sm text-danger-ink">{assignRiderError}</p>}
-                    <button type="button" onClick={handleAssignRider} disabled={isAssigningRider || !assignRiderId} className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
+                    <button
+                      type="button"
+                      onClick={handleAssignRider}
+                      disabled={isAssigningRider || !assignRiderId}
+                      className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60"
+                      style={{ background: '#3B82F6', color: 'white' }}
+                    >
                       {isAssigningRider ? 'Assigning...' : 'Confirm Assignment'}
                     </button>
                   </div>
@@ -593,7 +742,13 @@ export default function BikesPage() {
                           ))}
                         </select>
                         {assignInsurerError && <p className="text-sm text-danger-ink">{assignInsurerError}</p>}
-                        <button type="button" onClick={handleAssignInsurer} disabled={isAssigningInsurer} className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60">
+                        <button
+                          type="button"
+                          onClick={handleAssignInsurer}
+                          disabled={isAssigningInsurer}
+                          className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60"
+                          style={{ background: '#3B82F6', color: 'white' }}
+                        >
                           {isAssigningInsurer ? 'Assigning...' : 'Confirm Insurer'}
                         </button>
                       </>
@@ -775,7 +930,13 @@ export default function BikesPage() {
                 <button type="button" onClick={() => setShowCreateBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
                   Cancel
                 </button>
-                <button type="button" onClick={handleCreateBike} disabled={isCreatingBike} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60">
+                <button
+                  type="button"
+                  onClick={handleCreateBike}
+                  disabled={isCreatingBike}
+                  className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  style={{ background: '#3B82F6', color: 'white' }}
+                >
                   {isCreatingBike ? 'Creating...' : 'Create Bike'}
                 </button>
               </div>

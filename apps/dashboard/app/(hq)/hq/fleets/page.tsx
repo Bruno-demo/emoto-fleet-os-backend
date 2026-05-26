@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Building2, Search, Filter, MoreHorizontal, User, Bike, Calendar } from 'lucide-react';
+import { Building2, Search, Filter, MoreHorizontal, User, Bike, Calendar, X } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -30,10 +30,25 @@ export default function HqFleetsPage() {
     queryFn: () => apiFetch('/hq/fleets', {}, { schema: fleetsSchema }),
   });
 
-  const filteredFleets = fleets?.filter(f => 
-    f.name.toLowerCase().includes(search.toLowerCase()) || 
-    f.plan.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredFleets = fleets?.filter((f) => {
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+
+    const tokens = query.split(/\s+/).filter(Boolean);
+    const planText = f.plan === 'PREMIUM' ? 'operations plus' : f.plan === 'DEMO' ? 'safety core' : f.plan;
+
+    return tokens.every((token) => {
+      return [
+        f.name,
+        f.plan,
+        planText,
+        f.subscriptionStatus,
+        f.id,
+      ]
+        .filter(Boolean)
+        .some((val) => val.toLowerCase().includes(token));
+    });
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -48,11 +63,21 @@ export default function HqFleetsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-accent transition-colors" size={16} />
             <input 
               type="text"
-              placeholder="Search fleets..."
+              placeholder="Search by name, plan, or ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-full rounded-xl border border-line bg-surface-strong pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent sm:w-64 transition-all"
+              className="h-10 w-full rounded-xl border border-line bg-surface-strong pl-10 pr-10 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent sm:w-64 transition-all"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-zinc-500 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-strong text-zinc-400 hover:bg-white/5 hover:text-white transition-all">
             <Filter size={16} />

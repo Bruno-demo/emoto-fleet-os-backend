@@ -7,6 +7,7 @@ import { InputField } from '../components/ui/input-field';
 import { PrimaryButton, SecondaryButton } from '../components/ui/button';
 import type { RiderAuthStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
+import { ApiError, apiFetch } from '../lib/api/client';
 
 type ForgotAccessScreenProps = NativeStackScreenProps<
   RiderAuthStackParamList,
@@ -17,9 +18,10 @@ type ForgotAccessScreenProps = NativeStackScreenProps<
 export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Validates the rider phone format before advancing to reset guidance.
-  const continueToReset = () => {
+  // Validates the rider phone format and requests a reset token.
+  const continueToReset = async () => {
     if (!phone.trim()) {
       setPhoneError('Enter the rider phone number tied to this account.');
       return;
@@ -31,7 +33,31 @@ export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
     }
 
     setPhoneError(null);
-    navigation.navigate('ResetAccess', { phone: phone.trim() });
+    setIsSubmitting(true);
+
+    try {
+      const res = await apiFetch<{ message: string; token?: string }>(
+        '/auth/forgot-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({ identifier: phone.trim() }),
+        },
+        { auth: false },
+      );
+
+      navigation.navigate('ResetAccess', {
+        phone: phone.trim(),
+        token: res.token,
+      });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setPhoneError(error.message);
+      } else {
+        setPhoneError('Failed to request reset token. Please check connection.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,16 +77,26 @@ export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
           error={phoneError}
           placeholder="+250700000101"
           keyboardType="phone-pad"
+          editable={!isSubmitting}
         />
-        <PrimaryButton label="Continue" onPress={continueToReset} />
-        <SecondaryButton label="Back to login" onPress={() => navigation.goBack()} />
+        <PrimaryButton
+          label="Continue"
+          onPress={continueToReset}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+        />
+        <SecondaryButton
+          label="Back to login"
+          onPress={() => navigation.goBack()}
+          disabled={isSubmitting}
+        />
       </AppCard>
 
-      <AppCard title="What happens next" subtitle="Password recovery is still fleet-assisted in this deployment.">
+      <AppCard title="What happens next" subtitle="Password recovery is now self-service for your account.">
         <View style={styles.stepList}>
           <Text style={styles.stepText}>1. Confirm the phone number your fleet admin registered.</Text>
-          <Text style={styles.stepText}>2. Ask dispatch or your fleet admin for a temporary password if needed.</Text>
-          <Text style={styles.stepText}>3. Return to login and sign in again with the new password.</Text>
+          <Text style={styles.stepText}>2. Enter the 6-character reset token sent to your device.</Text>
+          <Text style={styles.stepText}>3. Choose a new secure password to access your rider profile.</Text>
         </View>
       </AppCard>
     </AuthShell>

@@ -226,7 +226,7 @@ export default function LoginPage() {
       eyebrow="Secure Access"
       title="Trusted access for live fleet operations."
       subtitle="Log in to the Fleet OS command center to monitor riders, resolve incidents, and coordinate safer journeys in real time."
-      securityHint="Your data is सुरक्षित / secure"
+      securityHint="Your data is secure"
       features={[
         {
           icon: <Navigation2 size={16} />,

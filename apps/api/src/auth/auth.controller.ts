@@ -129,7 +129,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Request password reset with email or phone' })
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
-  ): Promise<{ message: string; token: string }> {
+  ): Promise<{ message: string; token?: string }> {
     return this.authService.forgotPassword(dto);
   }
 

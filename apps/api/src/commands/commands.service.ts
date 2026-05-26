@@ -193,7 +193,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (type === 'LOCK') {
-      this.assertSafeToLock(latestState);
+      await this.assertSafeToLock(device.id, latestState);
     }
 
     const command = await this.prismaService.deviceCommand.create({
@@ -355,15 +355,29 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Enforces lock safety constraints on speed and stationary duration.
-  private assertSafeToLock(state: LiveStateSnapshot): void {
+  private async assertSafeToLock(deviceId: string, state: LiveStateSnapshot): Promise<void> {
     if (Math.abs(state.speedKph) > 0.01) {
       throw new BadRequestException('Cannot lock while bike is moving');
     }
 
-    const stationaryMs = Date.now() - Date.parse(state.ts);
+    // Query database to find when the bike was last moving
+    const lastMovingPoint = await this.prismaService.telemetryPoint.findFirst({
+      where: {
+        deviceId,
+        speedKph: { gt: 0.01 },
+      },
+      orderBy: {
+        ts: 'desc',
+      },
+    });
+
+    const stationaryMs = lastMovingPoint
+      ? Date.now() - lastMovingPoint.ts.getTime()
+      : Date.now() - Date.parse(state.ts); // fallback if it was never moving
+
     if (stationaryMs < LOCK_MIN_STATIONARY_MS) {
       throw new BadRequestException(
-        'Bike must be speed 0 for at least 15 seconds before lock',
+        `Bike must be speed 0 for at least 15 seconds before lock (currently stopped for ${Math.round(stationaryMs / 1000)}s)`,
       );
     }
   }

@@ -44,6 +44,8 @@ export default function RidersPage() {
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newFullName, setNewFullName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+
 
   // Invite creation state
   const [formMode, setFormMode] = useState<'direct' | 'invite'>('direct');
@@ -109,14 +111,27 @@ export default function RidersPage() {
   const totalRiders = ridersQuery.data?.total ?? 0;
 
   const filteredRiders = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return riders;
-    return riders.filter(
-      (r) =>
-        r.fullName?.toLowerCase().includes(q) ||
-        r.email?.toLowerCase().includes(q) ||
-        r.phone?.toLowerCase().includes(q),
-    );
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return riders;
+
+    const tokens = query.split(/\s+/).filter(Boolean);
+    return riders.filter((r) => {
+      const assignment = r.activeAssignments?.[0];
+      const bikeLabel = assignment ? assignment.bikeLabel : 'unassigned';
+      
+      return tokens.every((token) => {
+        return [
+          r.fullName,
+          r.email,
+          r.phone,
+          r.status,
+          formatEnumLabel(r.status),
+          bikeLabel,
+        ]
+          .filter((val): val is string => !!val)
+          .some((val) => val.toLowerCase().includes(token));
+      });
+    });
   }, [riders, searchQuery]);
 
   const activeCount = riders.filter((r) => r.status === 'ACTIVE').length;
@@ -135,6 +150,7 @@ export default function RidersPage() {
           phone: newPhone || undefined,
           email: newEmail || undefined,
           fullName: newFullName || undefined,
+          password: newPassword || undefined,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
@@ -142,6 +158,7 @@ export default function RidersPage() {
       setNewPhone('');
       setNewEmail('');
       setNewFullName('');
+      setNewPassword('');
     } catch (error) {
       if (error instanceof ApiError) {
         setCreateError(error.message);
@@ -344,7 +361,7 @@ export default function RidersPage() {
             </div>
 
             {formMode === 'direct' ? (
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-ink">
                   Full name
                   <input
@@ -372,6 +389,16 @@ export default function RidersPage() {
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="rider@fleet.co"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-ink">
+                  Password
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
                     className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                   />
                 </label>
@@ -432,7 +459,8 @@ export default function RidersPage() {
                       <button
                         type="button"
                         onClick={handleCopyLink}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110"
+                        className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110"
+                        style={{ background: '#3B82F6', color: 'white' }}
                       >
                         {copiedInvite ? <Check size={13} /> : <Copy size={13} />}
                         {copiedInvite ? 'Copied' : 'Copy link'}
@@ -471,9 +499,10 @@ export default function RidersPage() {
               {formMode === 'direct' ? (
                 <button
                   type="button"
-                  disabled={isCreating || (!newPhone && !newEmail)}
+                  disabled={isCreating || (!newPhone && !newEmail) || !newPassword || newPassword.length < 8}
                   onClick={() => void handleCreateRider()}
-                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#3B82F6', color: 'white' }}
                 >
                   {isCreating ? 'Creating...' : 'Create rider'}
                 </button>
@@ -482,7 +511,8 @@ export default function RidersPage() {
                   type="button"
                   disabled={isGeneratingInvite}
                   onClick={() => void handleGenerateInvite()}
-                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#3B82F6', color: 'white' }}
                 >
                   {isGeneratingInvite ? 'Generating...' : 'Generate Invite Link'}
                 </button>
@@ -501,9 +531,19 @@ export default function RidersPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, email, or phone..."
-              className="w-full rounded-xl border border-line bg-surface-hover py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+              placeholder="Search name, email, phone, status, or assigned bike..."
+              className="w-full rounded-xl border border-line bg-surface-hover py-2.5 pl-10 pr-10 text-sm text-ink placeholder:text-ink-muted outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </DataTableToolbar>
 

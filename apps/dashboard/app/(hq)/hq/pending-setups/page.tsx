@@ -126,7 +126,8 @@ export default function PendingSetupsPage() {
                       <button
                         onClick={() => activateMutation.mutate(user.id)}
                         disabled={activateMutation.isPending}
-                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                        style={{ background: '#10B981', color: '#070B14' }}
                       >
                         <Check size={14} strokeWidth={3} />
                         Activate Account

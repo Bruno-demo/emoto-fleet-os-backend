@@ -615,7 +615,7 @@ export class AuthService {
   }
 
   // Generates a one-time secure token, stores it in Redis with user.id mapping, and returns success response.
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token: string }> {
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
     const normalizedIdentifier = dto.identifier.trim().toLowerCase();
     
     // Look up the user by email or phone
@@ -640,7 +640,7 @@ export class AuthService {
 
     return {
       message: 'Reset token generated.',
-      token,
+      token: process.env.NODE_ENV !== 'production' ? token : undefined,
     };
   }
 
