@@ -421,7 +421,7 @@ export class AuthService {
             email: normalizedEmail,
             phone: dto.phone,
             passwordHash,
-            status: dto.plan === 'DEMO' ? 'ACTIVE' : 'PENDING_SETUP',
+            status: 'ACTIVE',
           },
           select: userSelectForAuth,
         });

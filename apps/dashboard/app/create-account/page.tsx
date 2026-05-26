@@ -434,7 +434,7 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
-              plan: isDemo ? 'DEMO' : 'PREMIUM',
+              plan: 'PREMIUM',
             }),
           },
           { auth: false },
