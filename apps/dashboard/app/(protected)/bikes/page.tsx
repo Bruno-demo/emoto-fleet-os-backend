@@ -769,6 +769,7 @@ export default function BikesPage() {
                   disabled={!canSendCommands || isSendingCommand}
                   onClick={() => setCommandIntent('LOCK')}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: '#EF4444', color: 'white' }}
                 >
                   <Lock size={16} />
                   Lock bike
