@@ -186,7 +186,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (command === 'V1') {
-        await this.processTelemetryPacket(device, parts, trimmed);
+        await this.processTelemetryPacket(device, parts);
       } else {
         await this.processHeartbeatPacket(device);
       }
@@ -207,7 +207,6 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   private async processTelemetryPacket(
     device: DeviceForIngestion,
     parts: string[],
-    rawPacket: string,
   ): Promise<void> {
     if (parts.length < 13) {
       throw new Error(
