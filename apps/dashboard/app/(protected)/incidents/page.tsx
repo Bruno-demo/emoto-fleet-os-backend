@@ -191,7 +191,9 @@ export default function IncidentsPage() {
       header: 'Incident',
       render: (incident) => (
         <div>
-          <p className="font-semibold text-ink">{maskIdentifier(incident.id)}</p>
+          <p className="font-semibold text-ink">
+            {incident.eventType ? formatEnumLabel(incident.eventType) : maskIdentifier(incident.id)}
+          </p>
           <p className="mt-1 text-xs leading-5 text-ink-soft">
             Created {formatTimestamp(incident.createdAt)}
           </p>
@@ -336,7 +338,11 @@ export default function IncidentsPage() {
 
       <Drawer
         open={!!selectedIncidentId}
-        title={selectedIncident ? maskIdentifier(selectedIncident.id) : 'Incident detail'}
+        title={
+          selectedIncident
+            ? `${selectedIncident.eventType ? formatEnumLabel(selectedIncident.eventType) : 'Incident'} Details`
+            : 'Incident detail'
+        }
         description="Review timeline context, take the next workflow action, and manage evidence-pack output."
         onClose={() => {
           setSelectedIncidentId(null);
@@ -741,7 +747,11 @@ function actionConfirmLabel(action: IncidentAction) {
 }
 
 function actionDescription(action: IncidentAction, incident: Incident | null) {
-  const incidentLabel = incident ? maskIdentifier(incident.id) : 'this incident';
+  const incidentLabel = incident
+    ? incident.eventType
+      ? `${formatEnumLabel(incident.eventType)} incident`
+      : maskIdentifier(incident.id)
+    : 'this incident';
   if (action === 'acknowledge') {
     return `Move ${incidentLabel} into the acknowledged queue and assign ownership to the current operator.`;
   }

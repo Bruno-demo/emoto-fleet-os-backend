@@ -172,6 +172,7 @@ export interface Incident {
   resolvedByUserId: string | null;
   resolvedAt: string | null;
   notes: string | null;
+  eventType?: string;
 }
 
 export interface IncidentEvidencePack {

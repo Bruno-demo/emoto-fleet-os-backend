@@ -21,6 +21,7 @@ export interface FleetIncident {
   resolvedByUserId: string | null;
   resolvedAt: Date | null;
   notes: string | null;
+  eventType?: string;
 }
 
 export interface FleetEmergencyContact {

@@ -137,6 +137,7 @@ export class IncidentsService {
         orderBy: { createdAt: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
+        include: { event: true },
       }),
       this.prismaService.incident.count({ where }),
     ]);
@@ -279,9 +280,10 @@ export class IncidentsService {
   }
 
   // Loads one incident by id or raises 404 when not found.
-  private async loadIncidentOrThrow(id: string): Promise<Incident> {
+  private async loadIncidentOrThrow(id: string) {
     const incident = await this.prismaService.incident.findUnique({
       where: { id },
+      include: { event: true },
     });
     if (!incident) {
       throw new NotFoundException('Incident not found');
@@ -298,7 +300,9 @@ export class IncidentsService {
   }
 
   // Maps persisted incidents into API-safe response payloads.
-  private toFleetIncident(incident: Incident): FleetIncident {
+  private toFleetIncident(
+    incident: Incident & { event?: { type: string } },
+  ): FleetIncident {
     return {
       id: incident.id,
       fleetId: incident.fleetId,
@@ -313,6 +317,7 @@ export class IncidentsService {
       resolvedByUserId: incident.resolvedByUserId,
       resolvedAt: incident.resolvedAt,
       notes: incident.notes,
+      eventType: incident.event?.type,
     };
   }
 }
