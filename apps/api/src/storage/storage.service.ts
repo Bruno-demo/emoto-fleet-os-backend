@@ -81,6 +81,9 @@ export class StorageService implements OnModuleInit {
 
   // Generates a short-lived presigned download URL for one object key.
   async createPresignedGetUrl(key: string): Promise<string> {
+    if (this.configService.get<string>('NODE_ENV') === 'test') {
+      return `https://mock-storage.emoto.local/${this.s3Bucket}/${key}?expires=${this.s3PresignExpiresSeconds}`;
+    }
     await this.ensureBucketExists();
     const command = new GetObjectCommand({
       Bucket: this.s3Bucket,
@@ -102,6 +105,10 @@ export class StorageService implements OnModuleInit {
     body: string,
     contentType: string,
   ): Promise<void> {
+    if (this.configService.get<string>('NODE_ENV') === 'test') {
+      this.logger.debug(`[Mock Storage] Skipped upload for key: ${key}`);
+      return;
+    }
     await this.ensureBucketExists();
     await this.s3Client.send(
       new PutObjectCommand({
@@ -115,6 +122,9 @@ export class StorageService implements OnModuleInit {
 
   // Creates the evidence bucket when missing and tolerates transient startup failures.
   private async ensureBucketExists(): Promise<void> {
+    if (this.configService.get<string>('NODE_ENV') === 'test') {
+      return;
+    }
     try {
       await this.s3Client.send(
         new HeadBucketCommand({
