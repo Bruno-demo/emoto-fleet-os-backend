@@ -22,7 +22,8 @@ export default function NotFound() {
       <div className="mt-10">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-[16px] bg-ink px-6 py-3 text-sm font-semibold text-surface transition hover:bg-ink/90 active:scale-95"
+          className="inline-flex items-center gap-2 rounded-[16px] px-6 py-3 text-sm font-semibold transition active:scale-95 hover:brightness-110 shadow-sm"
+          style={{ background: '#3B82F6', color: 'white' }}
         >
           <Home size={16} />
           Return Home

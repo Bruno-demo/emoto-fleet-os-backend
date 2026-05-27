@@ -25,21 +25,21 @@ export function OfflineBanner() {
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: theme.colors.warningSoft,
+    backgroundColor: '#FEF3C7', // Solid, high-contrast light amber-100 background
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.warningBorder,
+    borderBottomColor: '#F59E0B', // Solid warm warning border
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
     gap: 2,
   },
   title: {
-    color: theme.colors.warning,
+    color: '#B45309', // Rich dark warning amber-700
     fontSize: theme.typography.caption,
     fontWeight: '700',
     textAlign: 'center',
   },
   text: {
-    color: theme.colors.text,
+    color: '#78350F', // Deep, highly legible warning brown-900 for perfect contrast (WCAG AAA)
     fontSize: theme.typography.caption,
     fontWeight: '600',
     textAlign: 'center',

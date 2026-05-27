@@ -1207,10 +1207,12 @@ function ActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cx(
-        'inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
-        tone === 'danger'
-          ? 'bg-danger-ink text-white hover:brightness-110'
-          : 'border border-line bg-surface-muted text-ink hover:bg-surface-hover',
+        'inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed',
+        disabled
+          ? 'bg-zinc-200 text-zinc-500 border border-zinc-300 dark:bg-zinc-800/80 dark:text-zinc-400 dark:border-zinc-700/50'
+          : tone === 'danger'
+            ? 'bg-danger-ink text-white hover:brightness-110'
+            : 'border border-line bg-surface-muted text-ink hover:bg-surface-hover',
       )}
     >
       {icon}
@@ -1625,28 +1627,28 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
     <Marker position={[poi.lat, poi.lng]} icon={icon}>
       <Popup className="emoto-poi-popup">
         <div className="p-1 space-y-2 min-w-[200px]">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
-            <span className="font-semibold text-white text-sm">{poi.name}</span>
+          <div className="flex items-center justify-between gap-3 border-b border-line pb-1.5">
+            <span className="font-semibold text-ink text-sm">{poi.name}</span>
             <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold ${typeColor(poi.type)}`}>
               {poi.type}
             </span>
           </div>
           {poi.address && (
-            <div className="text-xs text-zinc-300">
-              <span className="block font-medium text-zinc-500 uppercase tracking-wider text-[9px] mb-0.5">Address</span>
+            <div className="text-xs text-ink-soft">
+              <span className="block font-medium text-ink-muted uppercase tracking-wider text-[9px] mb-0.5">Address</span>
               <p className="leading-normal">{poi.address}</p>
             </div>
           )}
           {poi.phone && (
             <div className="text-xs">
-              <span className="block font-medium text-zinc-500 uppercase tracking-wider text-[9px] mb-0.5">Contact</span>
+              <span className="block font-medium text-ink-muted uppercase tracking-wider text-[9px] mb-0.5">Contact</span>
               <a href={`tel:${poi.phone}`} className="inline-flex items-center gap-1 text-accent hover:underline font-semibold">
                 <Phone size={10} />
                 {poi.phone}
               </a>
             </div>
           )}
-          <div className="text-[10px] text-zinc-500 font-mono pt-0.5 flex justify-between border-t border-white/5">
+          <div className="text-[10px] text-ink-muted font-mono pt-0.5 flex justify-between border-t border-line">
             <span>Lat: {poi.lat.toFixed(5)}</span>
             <span>Lng: {poi.lng.toFixed(5)}</span>
           </div>

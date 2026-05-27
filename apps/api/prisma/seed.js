@@ -1,4 +1,4 @@
-﻿const { createCipheriv, createHash, randomBytes } = require('crypto');
+const { createCipheriv, createHash, randomBytes } = require('crypto');
 const bcrypt = require('bcrypt');
 const Redis = require('ioredis');
 const { PrismaClient } = require('@prisma/client');
@@ -997,8 +997,26 @@ async function seed() {
     totals.bikes   += bikeFixtures.length;
     totals.devices += deviceFixtures.length;
 
-    console.log('   DONE: ' + userFixtures.length + ' users, ' + bikeFixtures.length + ' bikes, ' + deviceFixtures.length + ' devices');
   }
+
+  // --- E-Moto HQ Fleet & Admin User ---
+  console.log('\n-- E-Moto HQ --');
+  const hqFleetId = '00000000-0000-0000-0000-000000000000';
+  await prisma.fleet.upsert({
+    where: { id: hqFleetId },
+    update: { name: 'E-Moto HQ', type: 'DELIVERY', plan: 'PREMIUM', subscriptionStatus: 'ACTIVE' },
+    create: { id: hqFleetId, name: 'E-Moto HQ', type: 'DELIVERY', plan: 'PREMIUM', subscriptionStatus: 'ACTIVE' },
+  });
+
+  const hqAdminEmail = 'admin@hq.emoto';
+  const hqAdminPhone = '+250788000000';
+  await prisma.user.upsert({
+    where: { fleetId_email: { fleetId: hqFleetId, email: hqAdminEmail } },
+    update: { role: 'ADMIN', phone: hqAdminPhone, passwordHash: demoHash, status: 'ACTIVE' },
+    create: { fleetId: hqFleetId, role: 'ADMIN', email: hqAdminEmail, phone: hqAdminPhone, passwordHash: demoHash, status: 'ACTIVE' },
+  });
+  console.log('   E-Moto HQ fleet and admin@hq.emoto user seeded.');
+
 
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PARTNERS
@@ -1130,8 +1148,9 @@ async function seed() {
     seedVersion: 'comprehensive-v2',
   }, null, 2));
   console.log('\nLogin credentials:');
-  console.log('  Demo Fleet:        admin@demo.emoto / ChangeMe123!');
-  console.log('  North Ops Fleet:   admin@north.demo.emoto / FleetTwo123!');
+  console.log('  E-Moto HQ Staff:   admin@hq.emoto / ChangeMe123!');
+  console.log('  Demo Fleet:        admin.01@demo.emoto / ChangeMe123!');
+  console.log('  North Ops Fleet:   admin.01@north.demo.emoto / FleetTwo123!');
   console.log('  South Metro Fleet: admin@south.demo.emoto / FleetThree123!');
 }
 
