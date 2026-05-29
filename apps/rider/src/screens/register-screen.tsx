@@ -17,7 +17,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [registerType, setRegisterType] = useState<'fleet' | 'self'>('fleet');
   const [inviteCode, setInviteCode] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+250');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,8 +62,11 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       setFullNameError(null);
     }
 
-    if (!phone.trim()) {
+    if (!phoneNumber.trim()) {
       setPhoneError('Enter your phone number.');
+      hasError = true;
+    } else if (phoneNumber.trim().length < 8) {
+      setPhoneError('Phone number is too short.');
       hasError = true;
     } else {
       setPhoneError(null);
@@ -82,9 +86,12 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       setConfirmPasswordError(null);
     }
 
-    // If email is provided but not verified, block submission
-    if (email.trim().length > 0 && !isEmailVerified) {
-      setErrorMessage('Please verify your email address first.');
+    // Email is now strictly required and must be verified with OTP
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setErrorMessage('Enter a valid email address.');
+      hasError = true;
+    } else if (!isEmailVerified) {
+      setErrorMessage('Please verify your email address with the OTP first.');
       hasError = true;
     }
 
@@ -145,6 +152,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     setSuccessMessage(null);
     setIsSubmitting(true);
 
+    const fullPhone = countryCode + phoneNumber.trim();
+
     try {
       if (registerType === 'fleet') {
         await apiFetch(
@@ -153,8 +162,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             method: 'POST',
             body: JSON.stringify({
               token: inviteCode.trim(),
-              email: email.trim() || undefined,
-              phone: phone.trim(),
+              email: email.trim(),
+              phone: fullPhone,
               password: password,
             }),
           },
@@ -167,8 +176,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             method: 'POST',
             body: JSON.stringify({
               fullName: fullName.trim(),
-              email: email.trim() || undefined,
-              phone: phone.trim(),
+              email: email.trim(),
+              phone: fullPhone,
               password: password,
             }),
           },
@@ -180,7 +189,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       // Clear form
       setInviteCode('');
       setFullName('');
-      setPhone('');
+      setPhoneNumber('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -297,19 +306,52 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             autoComplete="name"
           />
 
+          {/* Country Code Selector */}
+          <View style={styles.countrySelectorWrap}>
+            <Text style={styles.label}>Country Code</Text>
+            <View style={styles.countryRow}>
+              {[
+                { code: '+250', flag: '🇷🇼', name: 'Rwanda' },
+                { code: '+254', flag: '🇰🇪', name: 'Kenya' },
+                { code: '+256', flag: '🇺🇬', name: 'Uganda' },
+                { code: '+255', flag: '🇹🇿', name: 'Tanzania' },
+                { code: '+257', flag: '🇧🇮', name: 'Burundi' },
+              ].map((c) => (
+                <Pressable
+                  key={c.code}
+                  onPress={() => setCountryCode(c.code)}
+                  style={[
+                    styles.countryBadge,
+                    countryCode === c.code ? styles.countryBadgeActive : null,
+                  ]}
+                >
+                  <Text style={styles.countryFlag}>{c.flag}</Text>
+                  <Text
+                    style={[
+                      styles.countryCodeText,
+                      countryCode === c.code ? styles.countryCodeTextActive : null,
+                    ]}
+                  >
+                    {c.code}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
           <InputField
-            label="Phone"
-            value={phone}
-            onChangeText={setPhone}
+            label="Phone number"
+            value={phoneNumber}
+            onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, ''))}
             error={phoneError}
-            placeholder="+250700000101"
+            placeholder="e.g. 788123456"
             keyboardType="phone-pad"
             autoCapitalize="none"
             autoComplete="tel"
           />
 
           <InputField
-            label="Email (optional)"
+            label="Email"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -577,5 +619,47 @@ const styles = StyleSheet.create({
   segmentButtonTextActive: {
     color: theme.colors.text,
     fontWeight: '800',
+  },
+  countrySelectorWrap: {
+    gap: theme.layout.textGap,
+    marginBottom: theme.spacing.xs,
+  },
+  countryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  countryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.input,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceRaised,
+  },
+  countryBadgeActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
+  },
+  countryFlag: {
+    fontSize: 16,
+  },
+  countryCodeText: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  countryCodeTextActive: {
+    color: theme.colors.text,
+    fontWeight: '800',
+  },
+  label: {
+    fontSize: theme.typography.body,
+    lineHeight: theme.typography.lineHeight.body,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
 });

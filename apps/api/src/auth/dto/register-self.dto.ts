@@ -14,10 +14,9 @@ export class RegisterSelfDto {
   @MaxLength(100)
   fullName!: string;
 
-  @ApiPropertyOptional({ example: 'owner@personal.emoto' })
-  @IsOptional()
+  @ApiProperty({ example: 'owner@personal.emoto' })
   @IsEmail()
-  email?: string;
+  email!: string;
 
   @ApiPropertyOptional({ example: '+250700000333' })
   @IsOptional()

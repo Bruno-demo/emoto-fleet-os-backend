@@ -6,10 +6,9 @@ export class RedeemInviteDto {
   @IsString()
   token!: string;
 
-  @ApiPropertyOptional({ example: 'rider@demo.emoto' })
-  @IsOptional()
+  @ApiProperty({ example: 'rider@demo.emoto' })
   @IsEmail()
-  email?: string;
+  email!: string;
 
   @ApiPropertyOptional({ example: '+250700000222' })
   @IsOptional()

@@ -157,6 +157,37 @@ export class RidersService {
     dto: CreateRiderDto,
   ): Promise<RiderSummary> {
     const normalizedEmail = dto.email?.toLowerCase() ?? null;
+
+    // Check global uniqueness for email and phone number
+    const OR: Prisma.UserWhereInput[] = [];
+    if (normalizedEmail) {
+      OR.push({ email: normalizedEmail.trim() });
+    }
+    if (dto.phone) {
+      OR.push({ phone: dto.phone.trim() });
+    }
+    if (OR.length > 0) {
+      const existingUser = await this.prismaService.user.findFirst({
+        where: { OR },
+      });
+      if (existingUser) {
+        if (
+          normalizedEmail &&
+          existingUser.email?.toLowerCase() === normalizedEmail.trim()
+        ) {
+          throw new ConflictException(
+            'Email is already in use by another account',
+          );
+        }
+        if (dto.phone && existingUser.phone === dto.phone.trim()) {
+          throw new ConflictException(
+            'Phone number is already in use by another account',
+          );
+        }
+        throw new ConflictException('Email or phone already exists');
+      }
+    }
+
     const passwordHash = await this.hashPassword(dto.password);
 
     try {

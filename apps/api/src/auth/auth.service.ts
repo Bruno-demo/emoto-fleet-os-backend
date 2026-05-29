@@ -336,6 +336,7 @@ export class AuthService {
 
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
+    await this.assertIdentifierUnique(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
       const isVerified = await this.redisService.get(
@@ -401,6 +402,7 @@ export class AuthService {
 
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
+    await this.assertIdentifierUnique(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
       const isVerified = await this.redisService.get(
@@ -486,6 +488,7 @@ export class AuthService {
 
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
+    await this.assertIdentifierUnique(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
       const isVerified = await this.redisService.get(
@@ -643,6 +646,7 @@ export class AuthService {
 
     const normalizedEmail = dto.email?.toLowerCase();
     this.assertIdentifierProvided(normalizedEmail, dto.phone);
+    await this.assertIdentifierUnique(normalizedEmail, dto.phone);
 
     if (normalizedEmail) {
       const isVerified = await this.redisService.get(
@@ -918,6 +922,44 @@ export class AuthService {
   private assertIdentifierProvided(email?: string, phone?: string): void {
     if (!email && !phone) {
       throw new BadRequestException('Provide either email or phone');
+    }
+  }
+
+  // Asserts that the email and phone number are not already in use by any other account.
+  private async assertIdentifierUnique(
+    email?: string,
+    phone?: string,
+  ): Promise<void> {
+    const OR: Prisma.UserWhereInput[] = [];
+    if (email) {
+      OR.push({ email: email.trim().toLowerCase() });
+    }
+    if (phone) {
+      OR.push({ phone: phone.trim() });
+    }
+    if (OR.length === 0) {
+      return;
+    }
+
+    const existingUser = await this.prismaService.user.findFirst({
+      where: { OR },
+    });
+
+    if (existingUser) {
+      if (
+        email &&
+        existingUser.email?.toLowerCase() === email.trim().toLowerCase()
+      ) {
+        throw new ConflictException(
+          'Email is already in use by another account',
+        );
+      }
+      if (phone && existingUser.phone === phone.trim()) {
+        throw new ConflictException(
+          'Phone number is already in use by another account',
+        );
+      }
+      throw new ConflictException('Email or phone number already in use');
     }
   }
 
