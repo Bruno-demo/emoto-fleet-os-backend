@@ -119,17 +119,15 @@ export class AuthService {
 
     await this.clearFailedAttempts(identifier);
 
-    // If the user has a registered email and is not a rider, enforce OTP login verification (bypassed in test envs)
+    // If the user is the HQ super admin, enforce OTP login verification (bypassed in test envs)
     const isTestEnv =
       process.env.NODE_ENV === 'test' || process.env.BYPASS_OTP === 'true';
-    const isDemoBypass =
-      process.env.NODE_ENV !== 'production' &&
-      user.email?.endsWith('demo.emoto');
+    const isHqSuperAdmin =
+      user.email === 'admin@hq.emoto' ||
+      user.fleetId === '00000000-0000-0000-0000-000000000000';
     if (
-      user.email &&
-      user.role !== UserRole.RIDER &&
-      !isTestEnv &&
-      !isDemoBypass
+      isHqSuperAdmin &&
+      !isTestEnv
     ) {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const otpKey = `email_otp:login:${user.email}`;
@@ -157,7 +155,7 @@ export class AuthService {
 
       return {
         requireOtp: true,
-        email: user.email,
+        email: user.email!,
         tempToken,
         otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
       };
