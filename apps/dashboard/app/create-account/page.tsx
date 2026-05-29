@@ -435,7 +435,7 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
-              plan: 'PREMIUM',
+              plan: selectedPlanSlug === 'safety-core' ? 'DEMO' : 'PREMIUM',
             }),
           },
           { auth: false },

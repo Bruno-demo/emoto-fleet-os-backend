@@ -26,6 +26,16 @@ export class TripsController {
     return this.tripsService.listBikeTripsForUser(user, bikeId, query);
   }
 
+  @Get('trips')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({ summary: 'List all historical trips inside caller fleet' })
+  async listAllTrips(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListTripsDto,
+  ): Promise<PaginatedResponse<FleetTrip>> {
+    return this.tripsService.listAllTripsForUser(user, query);
+  }
+
   @Get('trips/:id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
   @ApiOperation({ summary: 'Get one trip by id' })

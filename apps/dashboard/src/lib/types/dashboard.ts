@@ -129,6 +129,24 @@ export interface BikeTrip {
   eventCounts: Record<string, number>;
 }
 
+export interface FleetTrip {
+  id: string;
+  fleetId: string;
+  bikeId: string;
+  bikeLabel?: string;
+  riderId: string | null;
+  riderName?: string | null;
+  startTs: string;
+  endTs: string | null;
+  distanceKm: number;
+  durationSec: number;
+  score: number;
+  startBatteryPct: number | null;
+  endBatteryPct: number | null;
+  powerUsedPct: number | null;
+  eventCounts: Record<string, number>;
+}
+
 export interface DeviceCommand {
   id: string;
   fleetId: string;

@@ -16,6 +16,7 @@ import {
   Map,
   MapPin,
   Radio,
+  Route,
   Settings,
   Shield,
   Users,
@@ -60,6 +61,7 @@ const NAV_GROUPS: NavGroup[] = [
     links: [
       { href: '/bikes', label: 'Bikes', icon: Bike, feature: 'bikes' },
       { href: '/riders', label: 'Riders', icon: Users, feature: 'riders' },
+      { href: '/trips', label: 'Trips', icon: Route, feature: 'bikes' },
       { href: '/devices', label: 'Devices', icon: Zap, feature: 'devices' },
     ],
   },

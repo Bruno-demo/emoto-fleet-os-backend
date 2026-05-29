@@ -19,6 +19,87 @@ import { FleetTrip } from './trips.types';
 export class TripsService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  // Lists all trips in the caller's fleet with optional filtering.
+  async listAllTripsForUser(
+    user: AuthenticatedUser,
+    query: ListTripsDto,
+  ): Promise<PaginatedResponse<FleetTrip>> {
+    const where: Prisma.TripWhereInput = {
+      fleetId: user.fleetId,
+    };
+
+    if (query.from || query.to) {
+      where.startTs = {};
+      if (query.from) {
+        where.startTs.gte = new Date(query.from);
+      }
+      if (query.to) {
+        where.startTs.lte = new Date(query.to);
+      }
+    }
+
+    if (query.minScore !== undefined || query.maxScore !== undefined) {
+      where.score = {};
+      if (query.minScore !== undefined) {
+        where.score.gte = query.minScore;
+      }
+      if (query.maxScore !== undefined) {
+        where.score.lte = query.maxScore;
+      }
+    }
+
+    if (
+      query.minDistanceKm !== undefined ||
+      query.maxDistanceKm !== undefined
+    ) {
+      where.distanceKm = {};
+      if (query.minDistanceKm !== undefined) {
+        where.distanceKm.gte = query.minDistanceKm;
+      }
+      if (query.maxDistanceKm !== undefined) {
+        where.distanceKm.lte = query.maxDistanceKm;
+      }
+    }
+
+    const pagination = getPaginationParams(query);
+
+    const [trips, total] = await Promise.all([
+      this.prismaService.trip.findMany({
+        where,
+        include: {
+          bike: {
+            select: {
+              label: true,
+            },
+          },
+          rider: {
+            select: {
+              riderProfile: {
+                select: {
+                  fullName: true,
+                },
+              },
+              email: true,
+              phone: true,
+            },
+          },
+        },
+        orderBy: { startTs: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prismaService.trip.count({ where }),
+    ]);
+
+    const data = await Promise.all(trips.map((trip) => this.toFleetTrip(trip)));
+    return createPaginatedResponse(
+      data,
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
+  }
+
   // Lists trips for one bike in caller fleet with optional date filtering.
   async listBikeTripsForUser(
     user: AuthenticatedUser,
@@ -81,6 +162,24 @@ export class TripsService {
     const [trips, total] = await Promise.all([
       this.prismaService.trip.findMany({
         where,
+        include: {
+          bike: {
+            select: {
+              label: true,
+            },
+          },
+          rider: {
+            select: {
+              riderProfile: {
+                select: {
+                  fullName: true,
+                },
+              },
+              email: true,
+              phone: true,
+            },
+          },
+        },
         orderBy: { startTs: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
@@ -104,6 +203,24 @@ export class TripsService {
   ): Promise<FleetTrip> {
     const trip = await this.prismaService.trip.findUnique({
       where: { id },
+      include: {
+        bike: {
+          select: {
+            label: true,
+          },
+        },
+        rider: {
+          select: {
+            riderProfile: {
+              select: {
+                fullName: true,
+              },
+            },
+            email: true,
+            phone: true,
+          },
+        },
+      },
     });
 
     if (!trip) {
@@ -115,19 +232,30 @@ export class TripsService {
   }
 
   // Converts persisted trip plus event aggregates into API response object.
-  private async toFleetTrip(trip: Trip): Promise<FleetTrip> {
+  private async toFleetTrip(trip: any): Promise<FleetTrip> {
     const eventCounts = await this.getTripEventCounts(trip);
+    const startBatteryPct = trip.startBatteryPct !== null ? Number(trip.startBatteryPct) : null;
+    const endBatteryPct = trip.endBatteryPct !== null ? Number(trip.endBatteryPct) : null;
+    const powerUsedPct =
+      startBatteryPct !== null && endBatteryPct !== null
+        ? Number((startBatteryPct - endBatteryPct).toFixed(2))
+        : null;
 
     return {
       id: trip.id,
       fleetId: trip.fleetId,
       bikeId: trip.bikeId,
+      bikeLabel: trip.bike?.label,
       riderId: trip.riderId,
+      riderName: trip.rider?.riderProfile?.fullName ?? trip.rider?.email ?? trip.rider?.phone ?? null,
       startTs: trip.startTs,
       endTs: trip.endTs,
       distanceKm: Number(trip.distanceKm),
       durationSec: trip.durationSec,
       score: Number(trip.score),
+      startBatteryPct,
+      endBatteryPct,
+      powerUsedPct,
       eventCounts,
     };
   }

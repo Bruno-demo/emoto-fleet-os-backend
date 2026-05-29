@@ -249,6 +249,7 @@ function getRouteContext(pathname: string) {
   if (pathname.startsWith('/bikes')) return { eyebrow: 'Fleet assets', title: 'Bikes' };
   if (pathname.startsWith('/devices')) return { eyebrow: 'Provisioning', title: 'Devices' };
   if (pathname.startsWith('/events')) return { eyebrow: 'Risk signals', title: 'Events' };
+  if (pathname.startsWith('/trips')) return { eyebrow: 'Fleet telemetry', title: 'Trips' };
   if (pathname.startsWith('/zones')) return { eyebrow: 'Policy controls', title: 'Zones' };
   if (pathname.startsWith('/reports')) return { eyebrow: 'Reporting', title: 'Reports' };
   if (pathname.startsWith('/riders')) return { eyebrow: 'Fleet personnel', title: 'Riders' };

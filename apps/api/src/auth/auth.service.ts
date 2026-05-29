@@ -119,9 +119,11 @@ export class AuthService {
 
     await this.clearFailedAttempts(identifier);
 
-    // Enforce OTP login verification for every system user (bypassed in test envs)
+    // Enforce OTP login verification for every system user (bypassed in test envs and rider accounts)
     const isTestEnv =
-      process.env.NODE_ENV === 'test' || process.env.BYPASS_OTP === 'true';
+      process.env.NODE_ENV === 'test' ||
+      process.env.BYPASS_OTP === 'true' ||
+      user.role === UserRole.RIDER;
     if (!isTestEnv) {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const userIdentifier = user.email ?? user.phone ?? user.id;
@@ -437,7 +439,7 @@ export class AuthService {
             email: normalizedEmail,
             phone: dto.phone,
             passwordHash,
-            status: 'ACTIVE',
+            status: 'PENDING_SETUP',
           },
           select: userSelectForAuth,
         });
