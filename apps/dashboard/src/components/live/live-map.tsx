@@ -116,6 +116,7 @@ export function LiveMapPanel() {
   const [isFeedCollapsed, setIsFeedCollapsed] = useState(false);
   const [showRoadFeatures, setShowRoadFeatures] = useState(true);
   const [showHelpPoints, setShowHelpPoints] = useState(true);
+  const [mapStyle, setMapStyle] = useState<'standard' | 'satellite' | 'hybrid'>('standard');
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
@@ -500,12 +501,39 @@ export function LiveMapPanel() {
                   style={{ height: '100%', width: '100%' }}
                   zoomControl={false}
                 >
-                  <TileLayer
-                    attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                    url={resolvedTheme === 'light' 
-                      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-                      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'}
-                  />
+                  {mapStyle === 'standard' && (
+                    <TileLayer
+                      key="standard"
+                      attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                      url={resolvedTheme === 'light' 
+                        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'}
+                    />
+                  )}
+                  {mapStyle === 'satellite' && (
+                    <TileLayer
+                      key="satellite"
+                      attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    />
+                  )}
+                  {mapStyle === 'hybrid' && (
+                    <>
+                      <TileLayer
+                        key="hybrid-base"
+                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                      />
+                      <TileLayer
+                        key="hybrid-labels"
+                        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                        url={resolvedTheme === 'light'
+                          ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png'
+                          : 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'}
+                        zIndex={10}
+                      />
+                    </>
+                  )}
                   <MapSizeController />
                   <MapViewportController
                     centerSignal={centerSignal}
@@ -538,6 +566,47 @@ export function LiveMapPanel() {
                     <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted flex items-center gap-1.5 border-r border-line pr-2.5">
                       <Layers size={12} className="text-accent" /> Layers
                     </span>
+                    
+                    {/* Map Style Selector Buttons */}
+                    <div className="flex items-center gap-1 border-r border-line pr-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setMapStyle('standard')}
+                        className={cx(
+                          'rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
+                          mapStyle === 'standard'
+                            ? 'bg-accent/20 text-accent'
+                            : 'text-ink-soft hover:text-ink hover:bg-surface-hover'
+                        )}
+                      >
+                        Map
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMapStyle('satellite')}
+                        className={cx(
+                          'rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
+                          mapStyle === 'satellite'
+                            ? 'bg-accent/20 text-accent'
+                            : 'text-ink-soft hover:text-ink hover:bg-surface-hover'
+                        )}
+                      >
+                        Satellite
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMapStyle('hybrid')}
+                        className={cx(
+                          'rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
+                          mapStyle === 'hybrid'
+                            ? 'bg-accent/20 text-accent'
+                            : 'text-ink-soft hover:text-ink hover:bg-surface-hover'
+                        )}
+                      >
+                        Hybrid
+                      </button>
+                    </div>
+
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink hover:text-white transition-colors">
                       <input
                         type="checkbox"
