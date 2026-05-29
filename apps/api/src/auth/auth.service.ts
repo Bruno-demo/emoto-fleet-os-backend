@@ -119,25 +119,20 @@ export class AuthService {
 
     await this.clearFailedAttempts(identifier);
 
-    // If the user is the HQ super admin, enforce OTP login verification (bypassed in test envs)
+    // Enforce OTP login verification for every system user (bypassed in test envs)
     const isTestEnv =
       process.env.NODE_ENV === 'test' || process.env.BYPASS_OTP === 'true';
-    const isHqSuperAdmin =
-      user.email === 'admin@hq.emoto' ||
-      user.fleetId === '00000000-0000-0000-0000-000000000000';
-    if (
-      isHqSuperAdmin &&
-      !isTestEnv
-    ) {
+    if (!isTestEnv) {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpKey = `email_otp:login:${user.email}`;
+      const userIdentifier = user.email ?? user.phone ?? user.id;
+      const otpKey = `email_otp:login:${userIdentifier}`;
       await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
 
       const border = '='.repeat(40);
       this.logger.log(`
 \x1b[33m${border}\x1b[0m
 \x1b[32m  [OTP Verification] for LOGIN\x1b[0m
-\x1b[36m  Email: ${user.email}\x1b[0m
+\x1b[36m  User:  ${userIdentifier}\x1b[0m
 \x1b[35m  OTP:   ${otp}\x1b[0m
 \x1b[33m${border}\x1b[0m
 `);
@@ -155,7 +150,7 @@ export class AuthService {
 
       return {
         requireOtp: true,
-        email: user.email!,
+        email: userIdentifier,
         tempToken,
         otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
       };
@@ -946,7 +941,8 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    const otpKey = `email_otp:login:${user.email}`;
+    const userIdentifier = user.email ?? user.phone ?? user.id;
+    const otpKey = `email_otp:login:${userIdentifier}`;
     const cachedOtp = await this.redisService.get(otpKey);
     if (!cachedOtp || cachedOtp !== dto.otp) {
       throw new UnauthorizedException('Invalid or expired OTP');
