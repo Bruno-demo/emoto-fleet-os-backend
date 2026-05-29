@@ -15,11 +15,23 @@ const authUserSchema = z.object({
   status: z.enum(['INVITED', 'PENDING_SETUP', 'ACTIVE', 'SUSPENDED', 'DISABLED']),
 });
 
-export const loginResponseSchema = z.object({
-  accessToken: z.string().min(1),
-  tokenType: z.literal('Bearer'),
-  user: authUserSchema,
-});
+// Union handles both direct-auth and OTP-challenge responses from the backend.
+// Rider login should always receive the direct-auth variant because the backend
+// bypasses OTP for RIDER role, but this defensive union prevents opaque Zod
+// crashes if a stale backend build ever sends the OTP challenge instead.
+export const loginResponseSchema = z.union([
+  z.object({
+    accessToken: z.string().min(1),
+    tokenType: z.literal('Bearer'),
+    user: authUserSchema,
+  }),
+  z.object({
+    requireOtp: z.literal(true),
+    email: z.string(),
+    tempToken: z.string().min(1),
+    otp: z.string().optional(),
+  }),
+]);
 
 export const riderAssignmentSchema = z.object({
   id: uuidLikeSchema,

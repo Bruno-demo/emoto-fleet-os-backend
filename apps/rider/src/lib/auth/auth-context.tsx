@@ -96,6 +96,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           schema: loginResponseSchema,
         });
 
+        // Backend sends OTP challenge when RIDER bypass is missing (stale build).
+        if ('requireOtp' in payload && payload.requireOtp) {
+          throw new Error(
+            'Server requires OTP verification. Please contact support or try again later.',
+          );
+        }
+
+        if (!('accessToken' in payload)) {
+          throw new Error('Unexpected login response from server');
+        }
+
         if (payload.user.role !== 'RIDER') {
           throw new Error('This account is not a rider account');
         }
