@@ -16,7 +16,8 @@ type LoginScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Login'>
 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const auth = useAuth();
-  const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+250');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -25,8 +26,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
 
   const validateForm = () => {
     let hasError = false;
-    if (!phone.trim()) {
-      setPhoneError('Enter your rider phone number.');
+    if (!phoneNumber.trim()) {
+      setPhoneError('Enter your phone number or email.');
       hasError = true;
     } else {
       setPhoneError(null);
@@ -47,8 +48,14 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     if (!validateForm()) return;
     setErrorMessage(null);
     setIsSubmitting(true);
+
+    const trimmedInput = phoneNumber.trim();
+    const finalIdentifier = trimmedInput.includes('@')
+      ? trimmedInput
+      : countryCode + trimmedInput.replace(/\D/g, '');
+
     try {
-      await auth.login(phone.trim(), password);
+      await auth.login(finalIdentifier, password);
     } catch (error: unknown) {
       logAppError('rider.login_failed', error, {
         feature: 'auth',
@@ -84,15 +91,48 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             <Badge label="Secure" tone="primary" />
           </View>
 
+          {/* Country Code Selector */}
+          <View style={styles.countrySelectorWrap}>
+            <Text style={styles.label}>Country Code</Text>
+            <View style={styles.countryRow}>
+              {[
+                { code: '+250', flag: '🇷🇼', name: 'Rwanda' },
+                { code: '+254', flag: '🇰🇪', name: 'Kenya' },
+                { code: '+256', flag: '🇺🇬', name: 'Uganda' },
+                { code: '+255', flag: '🇹🇿', name: 'Tanzania' },
+                { code: '+257', flag: '🇧🇮', name: 'Burundi' },
+              ].map((c) => (
+                <Pressable
+                  key={c.code}
+                  onPress={() => setCountryCode(c.code)}
+                  style={[
+                    styles.countryBadge,
+                    countryCode === c.code ? styles.countryBadgeActive : null,
+                  ]}
+                >
+                  <Text style={styles.countryFlag}>{c.flag}</Text>
+                  <Text
+                    style={[
+                      styles.countryCodeText,
+                      countryCode === c.code ? styles.countryCodeTextActive : null,
+                    ]}
+                  >
+                    {c.code}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
           <InputField
-            label="Phone"
-            value={phone}
-            onChangeText={setPhone}
+            label="Phone number or Email"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
             error={phoneError}
-            placeholder="+250700000101"
-            keyboardType="phone-pad"
+            placeholder="e.g. 788123456"
+            keyboardType="email-address"
             autoCapitalize="none"
-            autoComplete="tel"
+            autoComplete="username"
           />
           <InputField
             label="Password"
@@ -233,5 +273,47 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '300',
     color: theme.colors.textMuted,
+  },
+  countrySelectorWrap: {
+    gap: theme.layout.textGap,
+    marginBottom: theme.spacing.xs,
+  },
+  countryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  countryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.input,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceRaised,
+  },
+  countryBadgeActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
+  },
+  countryFlag: {
+    fontSize: 16,
+  },
+  countryCodeText: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  countryCodeTextActive: {
+    color: theme.colors.text,
+    fontWeight: '800',
+  },
+  label: {
+    fontSize: theme.typography.body,
+    lineHeight: theme.typography.lineHeight.body,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
 });
