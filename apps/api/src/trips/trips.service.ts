@@ -15,6 +15,27 @@ import { ListTripsDto } from './dto/list-trips.dto';
 import { normalizeTripEventCounts } from './trip-scoring.util';
 import { FleetTrip } from './trips.types';
 
+type TripWithRelations = Prisma.TripGetPayload<{
+  include: {
+    bike: {
+      select: {
+        label: true;
+      };
+    };
+    rider: {
+      select: {
+        riderProfile: {
+          select: {
+            fullName: true;
+          };
+        };
+        email: true;
+        phone: true;
+      };
+    };
+  };
+}>;
+
 @Injectable()
 export class TripsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -232,10 +253,12 @@ export class TripsService {
   }
 
   // Converts persisted trip plus event aggregates into API response object.
-  private async toFleetTrip(trip: any): Promise<FleetTrip> {
+  private async toFleetTrip(trip: TripWithRelations): Promise<FleetTrip> {
     const eventCounts = await this.getTripEventCounts(trip);
-    const startBatteryPct = trip.startBatteryPct !== null ? Number(trip.startBatteryPct) : null;
-    const endBatteryPct = trip.endBatteryPct !== null ? Number(trip.endBatteryPct) : null;
+    const startBatteryPct =
+      trip.startBatteryPct !== null ? Number(trip.startBatteryPct) : null;
+    const endBatteryPct =
+      trip.endBatteryPct !== null ? Number(trip.endBatteryPct) : null;
     const powerUsedPct =
       startBatteryPct !== null && endBatteryPct !== null
         ? Number((startBatteryPct - endBatteryPct).toFixed(2))
@@ -247,7 +270,11 @@ export class TripsService {
       bikeId: trip.bikeId,
       bikeLabel: trip.bike?.label,
       riderId: trip.riderId,
-      riderName: trip.rider?.riderProfile?.fullName ?? trip.rider?.email ?? trip.rider?.phone ?? null,
+      riderName:
+        trip.rider?.riderProfile?.fullName ??
+        trip.rider?.email ??
+        trip.rider?.phone ??
+        null,
       startTs: trip.startTs,
       endTs: trip.endTs,
       distanceKm: Number(trip.distanceKm),

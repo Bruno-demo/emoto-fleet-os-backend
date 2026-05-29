@@ -96,20 +96,18 @@ export class HqController {
   }
 
   @Post('bikes/:id/lock')
-  @ApiOperation({ summary: 'Send a remote LOCK command to any bike (HQ override)' })
-  lockBike(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
+  @ApiOperation({
+    summary: 'Send a remote LOCK command to any bike (HQ override)',
+  })
+  lockBike(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.commandsService.requestLockForBikeHq(id, user);
   }
 
   @Post('bikes/:id/unlock')
-  @ApiOperation({ summary: 'Send a remote UNLOCK command to any bike (HQ override)' })
-  unlockBike(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
+  @ApiOperation({
+    summary: 'Send a remote UNLOCK command to any bike (HQ override)',
+  })
+  unlockBike(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.commandsService.requestUnlockForBikeHq(id, user);
   }
 
