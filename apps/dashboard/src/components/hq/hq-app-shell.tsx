@@ -18,8 +18,10 @@ import {
   MapPin
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api/client';
 import { clearAuthToken } from '@/lib/auth/session';
 import { cx } from '@/lib/ui';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -42,8 +44,21 @@ const HQ_NAV_LINKS = [
 export function HqAppShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: user } = useCurrentUser();
+
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+    } catch {
+      // Ignore logout errors
+    }
+    clearAuthToken();
+    queryClient.clear();
+    router.replace('/login');
+  };
 
   return (
     <div className="dark min-h-screen bg-[#09090b] text-white">
@@ -129,10 +144,7 @@ export function HqAppShell({ children }: { children: React.ReactNode }) {
               </Link>
               <button
                 type="button"
-                onClick={() => {
-                  clearAuthToken();
-                  window.location.href = '/login';
-                }}
+                onClick={handleLogout}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-danger-ink hover:bg-danger-ink/10 transition-colors"
               >
                 <LogOut size={18} />
