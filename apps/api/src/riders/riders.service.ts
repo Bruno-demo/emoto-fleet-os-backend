@@ -15,6 +15,7 @@ import {
   Poi,
   Prisma,
   UserRole,
+  UserStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuditService } from '../audit/audit.service';
@@ -68,7 +69,7 @@ interface RiderIdentity {
   fleetId: string;
   email: string | null;
   phone: string | null;
-  status: string;
+  status: UserStatus;
   riderProfile: {
     fullName: string;
   } | null;
@@ -1386,7 +1387,7 @@ export class RidersService {
       fleetId: rider.fleetId,
       phone: rider.phone,
       email: rider.email,
-      status: rider.status as RiderSummary['status'],
+      status: rider.status,
       fullName: rider.riderProfile?.fullName ?? null,
       activeAssignments: rider.bikeAssignments.map((assignment) =>
         this.toAssignmentSummary(assignment),
