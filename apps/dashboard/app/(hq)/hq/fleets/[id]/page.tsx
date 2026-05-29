@@ -1,10 +1,11 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api/client';
+import { apiFetch, ApiError } from '@/lib/api/client';
 import { useParams, useRouter } from 'next/navigation';
-import { Building2, ArrowLeft, Bike, User, Shield, Zap, Calendar, MapPin, Activity, TrendingUp, Users, Trash2, RefreshCw } from 'lucide-react';
+import { Building2, ArrowLeft, Bike, User, Shield, Zap, Calendar, MapPin, Activity, TrendingUp, Users, Trash2, RefreshCw, Lock, Unlock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 import { z } from 'zod';
 
 const fleetDetailSchema = z.object({
@@ -76,6 +77,35 @@ export default function FleetDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq'] });
       router.push('/hq/fleets');
+    },
+  });
+
+  const [lockingBikeId, setLockingBikeId] = useState<string | null>(null);
+  const [lockError, setLockError] = useState<string | null>(null);
+  const [lockSuccess, setLockSuccess] = useState<string | null>(null);
+
+  const lockMutation = useMutation({
+    mutationFn: ({ bikeId, action }: { bikeId: string; action: 'lock' | 'unlock' }) =>
+      apiFetch(`/hq/bikes/${bikeId}/${action}`, { method: 'POST' }),
+    onMutate: ({ bikeId }) => {
+      setLockingBikeId(bikeId);
+      setLockError(null);
+      setLockSuccess(null);
+    },
+    onSuccess: (_data, { action, bikeId }) => {
+      const bike = fleet?.bikes.find(b => b.id === bikeId);
+      setLockSuccess(`${action === 'lock' ? 'Lock' : 'Unlock'} command sent to ${bike?.label ?? 'bike'}`);
+      setLockingBikeId(null);
+      setTimeout(() => setLockSuccess(null), 4000);
+    },
+    onError: (err: unknown) => {
+      setLockingBikeId(null);
+      if (err instanceof ApiError) {
+        setLockError(err.message);
+      } else {
+        setLockError('Command failed');
+      }
+      setTimeout(() => setLockError(null), 5000);
     },
   });
 
@@ -305,6 +335,18 @@ export default function FleetDetailPage() {
             Fleet Nodes ({fleet.bikes.length})
           </h2>
         </div>
+
+        {lockError && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-2.5">
+            <span className="text-xs font-semibold text-rose-400">{lockError}</span>
+          </div>
+        )}
+        {lockSuccess && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5">
+            <span className="text-xs font-semibold text-emerald-400">{lockSuccess}</span>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -312,12 +354,13 @@ export default function FleetDetailPage() {
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Label</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Plate</th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Status</th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {fleet.bikes.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-zinc-500">
+                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-zinc-500">
                     No bikes assigned to this fleet
                   </td>
                 </tr>
@@ -343,6 +386,38 @@ export default function FleetDetailPage() {
                         <option value="MAINTENANCE" className="bg-zinc-950 text-white">MAINTENANCE</option>
                         <option value="RETIRED" className="bg-zinc-950 text-white">RETIRED</option>
                       </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (confirm(`Lock bike "${bike.label}"? This will immobilize the vehicle.`)) {
+                              lockMutation.mutate({ bikeId: bike.id, action: 'lock' });
+                            }
+                          }}
+                          disabled={lockingBikeId === bike.id || bike.status !== 'ACTIVE'}
+                          title="Lock bike"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-400 transition-all hover:bg-amber-500/15 hover:border-amber-500/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {lockingBikeId === bike.id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Lock size={14} />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => lockMutation.mutate({ bikeId: bike.id, action: 'unlock' })}
+                          disabled={lockingBikeId === bike.id || bike.status !== 'ACTIVE'}
+                          title="Unlock bike"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 transition-all hover:bg-emerald-500/15 hover:border-emerald-500/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {lockingBikeId === bike.id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Unlock size={14} />
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

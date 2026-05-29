@@ -129,6 +129,22 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     return this.requestCommandForBike('UNLOCK', bikeId, user);
   }
 
+  // Creates and dispatches a LOCK command for any bike (HQ admin override).
+  async requestLockForBikeHq(
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<FleetDeviceCommand> {
+    return this.requestCommandForBikeHq('LOCK', bikeId, user);
+  }
+
+  // Creates and dispatches an UNLOCK command for any bike (HQ admin override).
+  async requestUnlockForBikeHq(
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<FleetDeviceCommand> {
+    return this.requestCommandForBikeHq('UNLOCK', bikeId, user);
+  }
+
   // Applies command acknowledgement updates from MQTT uplink ack messages.
   async handleCommandAckFromDevice(
     device: Pick<Device, 'id' | 'fleetId' | 'deviceUid'>,
@@ -223,6 +239,92 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
         status: command.status,
         bikeId: command.bikeId,
         deviceId: command.deviceId,
+      },
+    });
+
+    const unsignedPayload = this.buildDownlinkPayload(command);
+    const topic = `v1/devices/${device.deviceUid}/command`;
+
+    try {
+      const deviceSecret = this.decryptAndValidateSecret(device);
+      const sig = computePayloadSignature(deviceSecret, unsignedPayload);
+      const payload = {
+        ...unsignedPayload,
+        sig,
+      };
+
+      await this.publishMqtt(topic, payload);
+
+      const sentCommand = await this.transitionStatus(
+        command,
+        'SENT',
+        {
+          sentAt: new Date(),
+          errorMessage: null,
+        },
+        user.id,
+      );
+      return this.toFleetDeviceCommand(sentCommand);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const failedCommand = await this.transitionStatus(
+        command,
+        'FAILED',
+        {
+          errorMessage: message,
+        },
+        user.id,
+      );
+      return this.toFleetDeviceCommand(failedCommand);
+    }
+  }
+
+  // Creates pending command row for HQ admin, bypassing fleet ownership.
+  private async requestCommandForBikeHq(
+    type: DeviceCommandType,
+    bikeId: string,
+    user: AuthenticatedUser,
+  ): Promise<FleetDeviceCommand> {
+    const bike = await this.loadBikeOrThrow(bikeId);
+    const device = await this.loadActiveBikeDeviceOrThrow(
+      bike.id,
+      bike.fleetId,
+    );
+    const latestState = await this.loadLatestStateOrThrow(
+      bike.fleetId,
+      bike.id,
+    );
+
+    if (type === 'LOCK') {
+      await this.assertSafeToLock(device.id, latestState);
+    }
+
+    const command = await this.prismaService.deviceCommand.create({
+      data: {
+        fleetId: bike.fleetId,
+        deviceId: device.id,
+        bikeId: bike.id,
+        type,
+        status: 'PENDING',
+        requestedByUserId: user.id,
+        payloadJson: {},
+        nonce: randomUUID(),
+        expiresAt: new Date(Date.now() + this.commandTtlSeconds * 1000),
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: command.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.DEVICE_COMMAND_REQUESTED,
+      targetType: 'DEVICE_COMMAND',
+      targetId: command.id,
+      metaJson: {
+        commandType: command.type,
+        status: command.status,
+        bikeId: command.bikeId,
+        deviceId: command.deviceId,
+        hqOverride: true,
       },
     });
 
@@ -403,6 +505,17 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       throw new ForbiddenException('Fleet access violation');
     }
 
+    return bike;
+  }
+
+  // Loads a bike without fleet ownership constraints (for HQ admin).
+  private async loadBikeOrThrow(bikeId: string): Promise<Bike> {
+    const bike = await this.prismaService.bike.findUnique({
+      where: { id: bikeId },
+    });
+    if (!bike) {
+      throw new NotFoundException('Bike not found');
+    }
     return bike;
   }
 

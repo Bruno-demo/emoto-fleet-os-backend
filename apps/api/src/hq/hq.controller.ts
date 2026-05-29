@@ -12,6 +12,9 @@ import {
 
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/auth.types';
+import { CommandsService } from '../commands/commands.service';
 import { HqGuard } from './guards/hq.guard';
 import { HqService } from './hq.service';
 
@@ -20,7 +23,10 @@ import { HqService } from './hq.service';
 @UseGuards(JwtAuthGuard, HqGuard)
 @Controller('hq')
 export class HqController {
-  constructor(private readonly hqService: HqService) {}
+  constructor(
+    private readonly hqService: HqService,
+    private readonly commandsService: CommandsService,
+  ) {}
 
   // ── Overview ──────────────────────────────────────────────────────
 
@@ -87,6 +93,24 @@ export class HqController {
     @Body() body: { status: 'ACTIVE' | 'MAINTENANCE' | 'RETIRED' },
   ) {
     return this.hqService.updateBikeStatus(id, body.status);
+  }
+
+  @Post('bikes/:id/lock')
+  @ApiOperation({ summary: 'Send a remote LOCK command to any bike (HQ override)' })
+  lockBike(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.commandsService.requestLockForBikeHq(id, user);
+  }
+
+  @Post('bikes/:id/unlock')
+  @ApiOperation({ summary: 'Send a remote UNLOCK command to any bike (HQ override)' })
+  unlockBike(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.commandsService.requestUnlockForBikeHq(id, user);
   }
 
   // ── Users ─────────────────────────────────────────────────────────
