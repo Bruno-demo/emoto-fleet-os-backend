@@ -424,7 +424,7 @@ export class AuthService {
           data: {
             name: `${dto.fullName}'s Bike`,
             type: 'PERSONAL',
-            plan: 'DEMO',
+            plan: dto.plan ?? 'DEMO',
             subscriptionStatus: 'ACTIVE',
           },
         });
@@ -437,7 +437,7 @@ export class AuthService {
             email: normalizedEmail,
             phone: dto.phone,
             passwordHash,
-            status: 'ACTIVE',
+            status: 'PENDING_SETUP',
           },
           select: userSelectForAuth,
         });

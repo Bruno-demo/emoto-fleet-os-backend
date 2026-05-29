@@ -15,6 +15,7 @@ type RegisterScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Regi
 
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [registerType, setRegisterType] = useState<'fleet' | 'self'>('fleet');
+  const [selectedPlan, setSelectedPlan] = useState<'DEMO' | 'PREMIUM'>('DEMO');
   const [inviteCode, setInviteCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [countryCode, setCountryCode] = useState('+250');
@@ -179,13 +180,18 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
               email: email.trim(),
               phone: fullPhone,
               password: password,
+              plan: selectedPlan,
             }),
           },
           { auth: false },
         );
       }
 
-      setSuccessMessage('Account created! You can now sign in with your credentials.');
+      if (registerType === 'self') {
+        setSuccessMessage('Account created! Your hardware installation is pending. E-Moto HQ will activate your profile shortly.');
+      } else {
+        setSuccessMessage('Account created! You can now sign in with your credentials.');
+      }
       // Clear form
       setInviteCode('');
       setFullName('');
@@ -275,6 +281,57 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
               </Text>
             </Pressable>
           </View>
+
+          {/* Plan Selector for Self Bike Owner */}
+          {registerType === 'self' && (
+            <View style={styles.planSelectorWrap}>
+              <Text style={styles.label}>Choose Your Plan</Text>
+              <View style={styles.planCardsRow}>
+                <Pressable
+                  onPress={() => setSelectedPlan('DEMO')}
+                  style={[
+                    styles.planCard,
+                    selectedPlan === 'DEMO' ? styles.planCardActive : null,
+                  ]}
+                >
+                  <Text style={styles.planIcon}>🛡️</Text>
+                  <Text
+                    style={[
+                      styles.planTitle,
+                      selectedPlan === 'DEMO' ? styles.planTitleActive : null,
+                    ]}
+                  >
+                    Safety Core
+                  </Text>
+                  <Text style={styles.planDetail}>
+                    Essential safety & analytics.
+                  </Text>
+                  <Text style={styles.planPrice}>10K RWF/mo</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSelectedPlan('PREMIUM')}
+                  style={[
+                    styles.planCard,
+                    selectedPlan === 'PREMIUM' ? styles.planCardActive : null,
+                  ]}
+                >
+                  <Text style={styles.planIcon}>⚡</Text>
+                  <Text
+                    style={[
+                      styles.planTitle,
+                      selectedPlan === 'PREMIUM' ? styles.planTitleActive : null,
+                    ]}
+                  >
+                    Operations Plus
+                  </Text>
+                  <Text style={styles.planDetail}>
+                    Adds Remote Lock/Unlock & Map.
+                  </Text>
+                  <Text style={styles.planPrice}>25K RWF/mo</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           {successMessage ? (
             <View style={styles.successContainer}>
@@ -661,5 +718,55 @@ const styles = StyleSheet.create({
     lineHeight: theme.typography.lineHeight.body,
     fontWeight: '700',
     color: theme.colors.text,
+  },
+  planSelectorWrap: {
+    gap: theme.layout.textGap,
+    marginBottom: theme.spacing.md,
+    marginTop: theme.spacing.xs,
+  },
+  planCardsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  planCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceRaised,
+    alignItems: 'center',
+    gap: 4,
+  },
+  planCardActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
+  },
+  planIcon: {
+    fontSize: 24,
+    marginBottom: 2,
+  },
+  planTitle: {
+    fontSize: theme.typography.body,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  planTitleActive: {
+    color: theme.colors.text,
+    fontWeight: '800',
+  },
+  planDetail: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 14,
+    minHeight: 28,
+  },
+  planPrice: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    marginTop: 4,
   },
 });

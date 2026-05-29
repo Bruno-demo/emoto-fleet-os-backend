@@ -12,6 +12,7 @@ import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
+import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { PaginatedResponse } from '../common/pagination';
 import { PoiNearQueryDto } from './dto/poi-near-query.dto';
 import { RiderEventsQueryDto } from './dto/rider-events-query.dto';
@@ -47,6 +48,7 @@ export class RiderController {
 
   @Get('bikes/:id/state')
   @Roles(UserRole.RIDER)
+  @RequireSubscriptionFeature('commands')
   @ApiOperation({ summary: 'Get live telemetry for an assigned bike' })
   async getBikeState(
     @CurrentUser() user: AuthenticatedUser,
@@ -57,6 +59,7 @@ export class RiderController {
 
   @Post('bikes/:id/lock')
   @Roles(UserRole.RIDER)
+  @RequireSubscriptionFeature('commands')
   @ApiOperation({ summary: 'Send lock command to personal bike' })
   async lockBike(
     @CurrentUser() user: AuthenticatedUser,
@@ -67,6 +70,7 @@ export class RiderController {
 
   @Post('bikes/:id/unlock')
   @Roles(UserRole.RIDER)
+  @RequireSubscriptionFeature('commands')
   @ApiOperation({ summary: 'Send unlock command to personal bike' })
   async unlockBike(
     @CurrentUser() user: AuthenticatedUser,

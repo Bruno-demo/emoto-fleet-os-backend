@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsOptional,
   IsString,
+  IsEnum,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -27,4 +28,9 @@ export class RegisterSelfDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @ApiPropertyOptional({ example: 'DEMO', enum: ['DEMO', 'PREMIUM'] })
+  @IsOptional()
+  @IsEnum(['DEMO', 'PREMIUM'])
+  plan?: 'DEMO' | 'PREMIUM';
 }

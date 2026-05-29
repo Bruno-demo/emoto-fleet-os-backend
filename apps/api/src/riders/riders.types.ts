@@ -48,6 +48,8 @@ export interface RiderMeResponse {
   fleetId: string;
   phone: string | null;
   email: string | null;
+  status: UserStatus;
+  plan: string;
   fullName: string | null;
   assignments: AssignmentSummary[];
   isPersonalOwner: boolean;

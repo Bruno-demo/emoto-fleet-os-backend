@@ -294,6 +294,38 @@ export function HomeScreen() {
     );
   }
 
+  if (auth.riderMe?.status === 'PENDING_SETUP') {
+    const chosenPlanLabel = auth.riderMe.plan === 'PREMIUM' ? 'Operations Plus Plan' : 'Safety Core Plan';
+    return (
+      <ScreenContainer
+        refreshing={weeklyScoreQuery.isRefetching}
+        onRefresh={() => void refreshAll()}
+      >
+        <View style={styles.pendingContainer}>
+          <Text style={styles.pendingIcon}>⚙️</Text>
+          <Text style={styles.pendingTitle}>Hardware Installation Pending</Text>
+          <Text style={styles.pendingText}>
+            Your {auth.riderMe.isPersonalOwner ? 'personal owner' : 'rider'} profile has been created successfully on the <Text style={{ fontWeight: '800', color: theme.colors.primary }}>{chosenPlanLabel}</Text>, but your telemetry hardware node is pending installation.
+          </Text>
+          
+          <AppCard title="What happens next" subtitle="Our team is preparing your hardware kit.">
+            <View style={styles.stepList}>
+              <Text style={styles.stepText}>1. E-Moto technicians will schedule your vehicle's device deployment.</Text>
+              <Text style={styles.stepText}>2. The tracker is physically installed and calibrated on your bike.</Text>
+              <Text style={styles.stepText}>3. HQ activates your account, enabling remote controls, mapping, and analytics instantly!</Text>
+            </View>
+          </AppCard>
+
+          <View style={styles.pendingButtons}>
+            <SecondaryButton label="Refresh status" onPress={() => void refreshAll()} />
+            <View style={{ height: theme.spacing.sm }} />
+            <PrimaryButton label="Sign out" onPress={() => void auth.logout()} />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer
       refreshing={
@@ -835,5 +867,41 @@ const styles = StyleSheet.create({
   scoreSkeletonText: {
     flex: 1,
     gap: theme.spacing.sm,
+  },
+  pendingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.lg,
+  },
+  pendingIcon: {
+    fontSize: 64,
+    textAlign: 'center',
+  },
+  pendingTitle: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '800',
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  pendingText: {
+    fontSize: theme.typography.body,
+    lineHeight: 22,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: theme.spacing.lg,
+  },
+  pendingButtons: {
+    width: '100%',
+    marginTop: theme.spacing.md,
+  },
+  stepList: {
+    gap: theme.spacing.sm,
+  },
+  stepText: {
+    fontSize: theme.typography.body,
+    lineHeight: 22,
+    color: theme.colors.textSecondary,
   },
 });

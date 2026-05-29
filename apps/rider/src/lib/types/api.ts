@@ -33,6 +33,8 @@ export interface RiderMeResponse {
   fleetId: string;
   phone: string | null;
   email: string | null;
+  status: 'INVITED' | 'PENDING_SETUP' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  plan: string;
   fullName: string | null;
   assignments: RiderAssignment[];
   isPersonalOwner: boolean;

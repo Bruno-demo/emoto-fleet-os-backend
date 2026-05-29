@@ -51,6 +51,8 @@ export const riderMeResponseSchema = z.object({
   fleetId: fleetIdSchema,
   phone: z.string().nullable(),
   email: z.string().nullable(),
+  status: z.enum(['INVITED', 'PENDING_SETUP', 'ACTIVE', 'SUSPENDED', 'DISABLED']),
+  plan: z.string(),
   fullName: z.string().nullable(),
   assignments: z.array(riderAssignmentSchema),
   isPersonalOwner: z.boolean(),

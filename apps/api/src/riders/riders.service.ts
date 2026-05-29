@@ -545,6 +545,8 @@ export class RidersService {
       fleetId: rider.fleetId,
       phone: rider.phone,
       email: rider.email,
+      status: rider.status,
+      plan: fleet?.plan ?? 'DEMO',
       fullName: rider.riderProfile?.fullName ?? null,
       assignments: rider.bikeAssignments.map((assignment) =>
         this.toAssignmentSummary(assignment),
