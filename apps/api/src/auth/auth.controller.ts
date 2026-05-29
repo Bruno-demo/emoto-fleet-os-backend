@@ -25,6 +25,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
+import { RegisterSelfDto } from './dto/register-self.dto';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -245,6 +246,19 @@ export class AuthController {
     @Body() dto: PublicRegisterDto,
   ): Promise<AuthenticatedUser> {
     return this.authService.registerPublic(dto);
+  }
+
+  @Post('register-self')
+  @Public()
+  @Throttle({
+    default: { limit: 10, ttl: 60_000 },
+  })
+  @ApiOperation({
+    summary:
+      'Public registration for self-bike owner (self driver) rider accounts',
+  })
+  async registerSelf(@Body() dto: RegisterSelfDto): Promise<AuthenticatedUser> {
+    return this.authService.registerSelfDriver(dto);
   }
 
   @Post('register-invite')

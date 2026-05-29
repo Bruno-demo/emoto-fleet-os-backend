@@ -28,6 +28,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
+import { RegisterSelfDto } from './dto/register-self.dto';
 
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_SECONDS = 900; // 15 minutes
@@ -384,6 +385,84 @@ export class AuthService {
         );
       }
 
+      throw error;
+    }
+  }
+
+  // Registers a self-bike owner (self driver) creating a personal fleet and rider account.
+  async registerSelfDriver(dto: RegisterSelfDto): Promise<AuthenticatedUser> {
+    const registerEnabled = this.configService.get<boolean>(
+      'AUTH_REGISTER_ENABLED',
+      false,
+    );
+    if (!registerEnabled) {
+      throw new ForbiddenException('Registration is disabled');
+    }
+
+    const normalizedEmail = dto.email?.toLowerCase();
+    this.assertIdentifierProvided(normalizedEmail, dto.phone);
+
+    if (normalizedEmail) {
+      const isVerified = await this.redisService.get(
+        `email_verified:${normalizedEmail}`,
+      );
+      if (isVerified !== 'true') {
+        throw new BadRequestException(
+          'Please verify your email address using OTP first',
+        );
+      }
+    }
+
+    const passwordHash = await this.hashPassword(dto.password);
+
+    try {
+      const createdUser = await this.prismaService.$transaction(async (tx) => {
+        // Create the personal fleet for the self owner
+        const fleet = await tx.fleet.create({
+          data: {
+            name: `${dto.fullName}'s Bike`,
+            type: 'PERSONAL',
+            plan: 'DEMO',
+            subscriptionStatus: 'ACTIVE',
+          },
+        });
+
+        // Create the rider user
+        const user = await tx.user.create({
+          data: {
+            fleetId: fleet.id,
+            role: UserRole.RIDER,
+            email: normalizedEmail,
+            phone: dto.phone,
+            passwordHash,
+            status: 'ACTIVE',
+          },
+          select: userSelectForAuth,
+        });
+
+        // Create the rider profile
+        await tx.riderProfile.create({
+          data: {
+            userId: user.id,
+            fullName: dto.fullName,
+          },
+        });
+
+        return user;
+      });
+
+      if (normalizedEmail) {
+        await this.redisService.del(`email_verified:${normalizedEmail}`);
+      }
+
+      return this.toAuthenticatedUser(createdUser as AuthUserRecord);
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email or phone already exists');
+      }
       throw error;
     }
   }

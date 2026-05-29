@@ -14,6 +14,7 @@ import { theme } from '../theme/tokens';
 type RegisterScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Register'>;
 
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
+  const [registerType, setRegisterType] = useState<'fleet' | 'self'>('fleet');
   const [inviteCode, setInviteCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -42,9 +43,13 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
   const validateForm = () => {
     let hasError = false;
 
-    if (!inviteCode.trim() || inviteCode.trim().length < 12) {
-      setInviteCodeError('Enter the invite code from your fleet admin.');
-      hasError = true;
+    if (registerType === 'fleet') {
+      if (!inviteCode.trim() || inviteCode.trim().length < 12) {
+        setInviteCodeError('Enter the invite code from your fleet admin.');
+        hasError = true;
+      } else {
+        setInviteCodeError(null);
+      }
     } else {
       setInviteCodeError(null);
     }
@@ -141,19 +146,35 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     setIsSubmitting(true);
 
     try {
-      await apiFetch(
-        '/auth/register-invite',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            token: inviteCode.trim(),
-            email: email.trim() || undefined,
-            phone: phone.trim(),
-            password: password,
-          }),
-        },
-        { auth: false },
-      );
+      if (registerType === 'fleet') {
+        await apiFetch(
+          '/auth/register-invite',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              token: inviteCode.trim(),
+              email: email.trim() || undefined,
+              phone: phone.trim(),
+              password: password,
+            }),
+          },
+          { auth: false },
+        );
+      } else {
+        await apiFetch(
+          '/auth/register-self',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              fullName: fullName.trim(),
+              email: email.trim() || undefined,
+              phone: phone.trim(),
+              password: password,
+            }),
+          },
+          { auth: false },
+        );
+      }
 
       setSuccessMessage('Account created! You can now sign in with your credentials.');
       // Clear form
@@ -196,14 +217,54 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     >
       <AuthShell
         eyebrow="eMoto Fleet"
-        title="Join your fleet."
-        description="Use the invite code from your fleet admin to create your rider account."
+        title={registerType === 'fleet' ? 'Join your fleet.' : 'Register as Owner.'}
+        description={
+          registerType === 'fleet'
+            ? 'Use the invite code from your fleet admin to create your rider account.'
+            : 'Register your personal bike and start driving independently.'
+        }
       >
         {/* Registration form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
             <Text style={styles.formTitle}>Create Account</Text>
-            <Badge label="Invite" tone="primary" />
+            <Badge label={registerType === 'fleet' ? 'Invite' : 'Self Owner'} tone="primary" />
+          </View>
+
+          {/* Registration Type Selector Segmented Control */}
+          <View style={styles.segmentContainer}>
+            <Pressable
+              onPress={() => setRegisterType('fleet')}
+              style={[
+                styles.segmentButton,
+                registerType === 'fleet' ? styles.segmentButtonActive : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.segmentButtonText,
+                  registerType === 'fleet' ? styles.segmentButtonTextActive : null,
+                ]}
+              >
+                Join Fleet
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setRegisterType('self')}
+              style={[
+                styles.segmentButton,
+                registerType === 'self' ? styles.segmentButtonActive : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.segmentButtonText,
+                  registerType === 'self' ? styles.segmentButtonTextActive : null,
+                ]}
+              >
+                Self Bike Owner
+              </Text>
+            </Pressable>
           </View>
 
           {successMessage ? (
@@ -214,15 +275,17 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {errorMessage ? <InlineNotice description={errorMessage} /> : null}
 
-          <InputField
-            label="Invite code"
-            value={inviteCode}
-            onChangeText={setInviteCode}
-            error={inviteCodeError}
-            placeholder="Paste the invite code from your admin"
-            autoCapitalize="none"
-            autoComplete="off"
-          />
+          {registerType === 'fleet' ? (
+            <InputField
+              label="Invite code"
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              error={inviteCodeError}
+              placeholder="Paste the invite code from your admin"
+              autoCapitalize="none"
+              autoComplete="off"
+            />
+          ) : null}
 
           <InputField
             label="Full name"
@@ -487,5 +550,32 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '300',
     color: theme.colors.textMuted,
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surfaceMuted,
+    borderRadius: theme.radius.input,
+    padding: 4,
+    marginBottom: theme.spacing.sm,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.input - 2,
+  },
+  segmentButtonActive: {
+    backgroundColor: theme.colors.surface,
+    ...theme.shadowLight,
+  },
+  segmentButtonText: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+  },
+  segmentButtonTextActive: {
+    color: theme.colors.text,
+    fontWeight: '800',
   },
 });
