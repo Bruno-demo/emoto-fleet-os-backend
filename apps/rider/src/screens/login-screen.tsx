@@ -141,6 +141,17 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             </View>
             <Text style={styles.helpChevron}>›</Text>
           </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('Register')}
+            style={({ pressed }) => [styles.helpLink, pressed ? styles.helpLinkPressed : null]}
+          >
+            <Text style={styles.helpIcon}>📋</Text>
+            <View style={styles.helpLinkText}>
+              <Text style={styles.helpLinkTitle}>Register with invite code</Text>
+              <Text style={styles.helpLinkSub}>Got an invite from your fleet admin? Create your account</Text>
+            </View>
+            <Text style={styles.helpChevron}>›</Text>
+          </Pressable>
         </View>
       </AuthShell>
     </KeyboardAvoidingView>

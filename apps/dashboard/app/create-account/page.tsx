@@ -133,13 +133,14 @@ function CreateAccountInner() {
   const searchParams = useSearchParams();
   const planSlugFromUrl = searchParams.get('plan');
   const flow = searchParams.get('flow');
+  const tokenFromUrl = searchParams.get('token');
   const [selectedPlanSlug, setSelectedPlanSlug] = useState<string | null>(planSlugFromUrl);
   
   const selectedPlan = selectedPlanSlug ? PLAN_DETAILS[selectedPlanSlug] : null;
   const isDemo = flow === 'demo';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
-  const [signupType, setSignupType] = useState<SignupType>('rider');
-  const [inviteToken, setInviteToken] = useState('');
+  const [signupType, setSignupType] = useState<SignupType>(tokenFromUrl ? 'rider' : 'rider');
+  const [inviteToken, setInviteToken] = useState(tokenFromUrl ?? '');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -163,7 +164,7 @@ function CreateAccountInner() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [touched, setTouched] = useState({
-    inviteToken: false,
+    inviteToken: Boolean(tokenFromUrl),
     fullName: false,
     email: false,
     phone: false,

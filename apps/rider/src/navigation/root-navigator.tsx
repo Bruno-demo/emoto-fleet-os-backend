@@ -9,6 +9,7 @@ import { ForgotAccessScreen } from '../screens/forgot-access-screen';
 import { HomeScreen } from '../screens/home-screen';
 import { LoginScreen } from '../screens/login-screen';
 import { OtpHelpScreen } from '../screens/otp-help-screen';
+import { RegisterScreen } from '../screens/register-screen';
 import { PoiNearbyScreen } from '../screens/poi-nearby-screen';
 import { ProfileScreen } from '../screens/profile-screen';
 import { ResetAccessScreen } from '../screens/reset-access-screen';
@@ -59,6 +60,7 @@ function AuthStackNavigator() {
       }}
     >
       <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
       <AuthStack.Screen name="ForgotAccess" component={ForgotAccessScreen} />
       <AuthStack.Screen name="ResetAccess" component={ResetAccessScreen} />
       <AuthStack.Screen name="OtpHelp" component={OtpHelpScreen} />

@@ -5,6 +5,7 @@ export type RiderRootStackParamList = {
 
 export type RiderAuthStackParamList = {
   Login: undefined;
+  Register: undefined;
   ForgotAccess: undefined;
   ResetAccess: {
     phone?: string;
