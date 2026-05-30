@@ -523,7 +523,8 @@ export default function HqDevicesPage() {
                     setCopiedSecret(true);
                     setTimeout(() => setCopiedSecret(false), 2000);
                   }}
-                  className="flex w-full h-12 items-center justify-center gap-2 rounded-xl bg-amber-505 text-sm font-bold bg-amber-500 text-black hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/10"
+                  className="flex w-full h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:brightness-110 shadow-lg shadow-amber-500/10"
+                  style={{ backgroundColor: '#f59e0b', color: '#09090b' }}
                 >
                   {copiedSecret ? (
                     <>
