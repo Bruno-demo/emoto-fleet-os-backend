@@ -144,11 +144,29 @@ export class HqService {
             phone: true,
             role: true,
             status: true,
+            riderProfile: {
+              select: {
+                fullName: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
         },
         bikes: {
-          select: { id: true, label: true, plate: true, status: true },
+          select: {
+            id: true,
+            label: true,
+            plate: true,
+            serial: true,
+            model: true,
+            status: true,
+            devices: {
+              select: {
+                id: true,
+                deviceUid: true,
+              },
+            },
+          },
           orderBy: { createdAt: 'desc' },
         },
         _count: {
@@ -1145,6 +1163,247 @@ export class HqService {
       pageSize: opts.pageSize,
       totalPages: Math.ceil(total / opts.pageSize),
     };
+  }
+
+  // ── HQ Node CRUD Actions ──────────────────────────────────────────
+
+  async createBikeForFleet(
+    fleetId: string,
+    dto: {
+      label: string;
+      plate?: string;
+      serial?: string;
+      model?: string;
+      status?: BikeStatus;
+    },
+  ) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const bike = await tx.bike.create({
+          data: {
+            fleetId,
+            label: dto.label,
+            plate: dto.plate || null,
+            serial: dto.serial || null,
+            model: dto.model || null,
+            status: dto.status ?? 'ACTIVE',
+          },
+        });
+
+        // If this is a PERSONAL fleet, automatically assign the bike to the rider(s) in the fleet!
+        if (fleet.type === 'PERSONAL') {
+          const rider = await tx.user.findFirst({
+            where: { fleetId, role: 'RIDER' },
+          });
+          if (rider) {
+            // Deactivate any existing active assignments
+            await tx.bikeAssignment.updateMany({
+              where: { fleetId, riderUserId: rider.id, active: true },
+              data: { active: false, unassignedAt: new Date() },
+            });
+
+            // Create new assignment
+            await tx.bikeAssignment.create({
+              data: {
+                fleetId,
+                bikeId: bike.id,
+                riderUserId: rider.id,
+                active: true,
+              },
+            });
+          }
+        }
+
+        return bike;
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException(
+          'Bike label, plate, or serial already exists',
+        );
+      }
+      throw error;
+    }
+  }
+
+  async updateBikeHq(
+    id: string,
+    dto: {
+      label?: string;
+      plate?: string;
+      serial?: string;
+      model?: string;
+      status?: BikeStatus;
+    },
+  ) {
+    const bike = await this.prisma.bike.findUnique({ where: { id } });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    try {
+      return await this.prisma.bike.update({
+        where: { id },
+        data: {
+          label: dto.label,
+          plate: dto.plate !== undefined ? dto.plate || null : undefined,
+          serial: dto.serial !== undefined ? dto.serial || null : undefined,
+          model: dto.model !== undefined ? dto.model || null : undefined,
+          status: dto.status,
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException(
+          'Bike label, plate, or serial already exists',
+        );
+      }
+      throw error;
+    }
+  }
+
+  async deleteBikeHq(id: string) {
+    const bike = await this.prisma.bike.findUnique({ where: { id } });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    await this.prisma.bike.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async createUserForFleet(
+    fleetId: string,
+    body: {
+      email?: string;
+      phone?: string;
+      role: UserRole;
+      status?: UserStatus;
+      password?: string;
+      fullName?: string;
+    },
+  ) {
+    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    const normalizedEmail = body.email?.toLowerCase();
+    if (normalizedEmail) {
+      const existing = await this.prisma.user.findFirst({
+        where: { fleetId, email: normalizedEmail },
+      });
+      if (existing) {
+        throw new BadRequestException('Email already exists in this fleet');
+      }
+    }
+    if (body.phone) {
+      const existing = await this.prisma.user.findFirst({
+        where: { fleetId, phone: body.phone },
+      });
+      if (existing) {
+        throw new BadRequestException('Phone number already exists in this fleet');
+      }
+    }
+
+    const passwordHash = body.password
+      ? await bcrypt.hash(body.password, 10)
+      : await bcrypt.hash('DefaultPass123!', 10);
+
+    return this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.create({
+        data: {
+          fleetId,
+          email: normalizedEmail || null,
+          phone: body.phone || null,
+          role: body.role,
+          status: body.status ?? 'ACTIVE',
+          passwordHash,
+        },
+      });
+
+      if (body.fullName) {
+        await tx.riderProfile.create({
+          data: {
+            userId: u.id,
+            fullName: body.fullName,
+          },
+        });
+      }
+
+      return {
+        id: u.id,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        status: u.status,
+      };
+    });
+  }
+
+  async updateUserHq(
+    id: string,
+    body: {
+      email?: string;
+      phone?: string;
+      role?: UserRole;
+      status?: UserStatus;
+      fullName?: string;
+    },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { riderProfile: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const normalizedEmail = body.email?.toLowerCase();
+    if (normalizedEmail && normalizedEmail !== user.email) {
+      const existing = await this.prisma.user.findFirst({
+        where: { fleetId: user.fleetId, email: normalizedEmail },
+      });
+      if (existing) {
+        throw new BadRequestException('Email already exists in this fleet');
+      }
+    }
+    if (body.phone && body.phone !== user.phone) {
+      const existing = await this.prisma.user.findFirst({
+        where: { fleetId: user.fleetId, phone: body.phone },
+      });
+      if (existing) {
+        throw new BadRequestException('Phone number already exists in this fleet');
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id },
+        data: {
+          email: normalizedEmail !== undefined ? normalizedEmail || null : undefined,
+          phone: body.phone !== undefined ? body.phone || null : undefined,
+          role: body.role,
+          status: body.status,
+        },
+      });
+
+      if (body.fullName !== undefined) {
+        if (user.riderProfile) {
+          await tx.riderProfile.update({
+            where: { userId: id },
+            data: { fullName: body.fullName },
+          });
+        } else {
+          await tx.riderProfile.create({
+            data: { userId: id, fullName: body.fullName },
+          });
+        }
+      }
+
+      return updated;
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────

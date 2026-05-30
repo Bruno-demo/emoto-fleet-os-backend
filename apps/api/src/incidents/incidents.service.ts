@@ -108,6 +108,86 @@ export class IncidentsService {
     return this.toFleetIncident(createdResult.incident);
   }
 
+  // Creates one incident and notification outbox rows from an eligible SOS event.
+  async createIncidentFromSosEvent(
+    event: FleetEvent,
+  ): Promise<FleetIncident | null> {
+    const eventId = this.parseEventIdOrThrow(event.id);
+    const createdResult = await this.prismaService.$transaction(
+      async (tx) => {
+        const existingIncident = await tx.incident.findUnique({
+          where: { eventId },
+        });
+        if (existingIncident) {
+          return {
+            incident: null,
+            notificationIds: [] as string[],
+          };
+        }
+
+        const incident = await tx.incident.create({
+          data: {
+            fleetId: event.fleetId,
+            bikeId: event.bikeId,
+            deviceId: event.deviceId,
+            eventId,
+            status: IncidentStatus.OPEN,
+          },
+        });
+
+        const activeContacts = await tx.emergencyContact.findMany({
+          where: {
+            fleetId: event.fleetId,
+            active: true,
+          },
+          select: {
+            id: true,
+            phone: true,
+          },
+        });
+
+        const notificationIds: string[] = [];
+        for (const contact of activeContacts) {
+          const notification = await tx.notification.create({
+            data: {
+              fleetId: event.fleetId,
+              type: NotificationType.SOS_ALERT,
+              channel: NotificationChannel.SMS,
+              to: contact.phone,
+              payloadJson: {
+                incidentId: incident.id,
+                eventId: event.id,
+                bikeId: event.bikeId,
+                deviceId: event.deviceId,
+                severity: event.severity,
+                eventTs: event.ts.toISOString(),
+                eventType: event.type,
+              },
+            },
+            select: { id: true },
+          });
+          notificationIds.push(notification.id);
+        }
+
+        return {
+          incident,
+          notificationIds,
+        };
+      },
+      { timeout: 15_000 },
+    );
+
+    for (const notificationId of createdResult.notificationIds) {
+      await this.notificationOutboxService.enqueueNotification(notificationId);
+    }
+
+    if (!createdResult.incident) {
+      return null;
+    }
+
+    return this.toFleetIncident(createdResult.incident);
+  }
+
   // Lists incidents for the caller fleet with optional status/time filters.
   async listIncidentsForUser(
     user: AuthenticatedUser,

@@ -120,12 +120,24 @@ export class EventsService {
       fleetEvent.severity,
     );
 
-    const incident = await this.tryCreateIncidentFromCrashEvent(fleetEvent);
+    let incident = await this.tryCreateIncidentFromCrashEvent(fleetEvent);
+    if (!incident && fleetEvent.type === 'SOS') {
+      const fleet = await this.prismaService.fleet.findUnique({
+        where: { id: fleetEvent.fleetId },
+        select: { type: true },
+      });
+      if (fleet?.type === 'PERSONAL') {
+        incident = await this.incidentsService.createIncidentFromSosEvent(fleetEvent);
+      }
+    }
+
     if (incident) {
-      await this.partnerService.enqueueCrashIncidentWebhooks(
-        incident,
-        fleetEvent,
-      );
+      if (fleetEvent.type === 'CRASH') {
+        await this.partnerService.enqueueCrashIncidentWebhooks(
+          incident,
+          fleetEvent,
+        );
+      }
       this.eventsGateway.emitNewIncident(
         input.fleetId,
         this.toIncidentBroadcastPayload(incident),

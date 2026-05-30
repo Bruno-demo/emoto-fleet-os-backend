@@ -13,25 +13,37 @@ import type { RiderAuthStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
 
 type LoginScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Login'>;
-
+ 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const auth = useAuth();
-  const [countryCode, setCountryCode] = useState('+250');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+ 
   const validateForm = () => {
     let hasError = false;
-    if (!phoneNumber.trim()) {
+    const trimmed = phoneNumber.trim();
+    if (!trimmed) {
       setPhoneError('Enter your phone number or email.');
       hasError = true;
+    } else if (!trimmed.includes('@')) {
+      // It's a phone number, validate country code starting with '+'
+      if (!trimmed.startsWith('+')) {
+        setPhoneError('Include country code starting with + (e.g. +250788123456)');
+        hasError = true;
+      } else if (trimmed.replace(/\D/g, '').length < 8) {
+        setPhoneError('Enter a valid phone number with country code.');
+        hasError = true;
+      } else {
+        setPhoneError(null);
+      }
     } else {
       setPhoneError(null);
     }
+
     if (!password.trim()) {
       setPasswordError('Enter your password.');
       hasError = true;
@@ -43,17 +55,20 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     }
     return !hasError;
   };
-
+ 
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
     setErrorMessage(null);
     setIsSubmitting(true);
-
+ 
     const trimmedInput = phoneNumber.trim();
-    const finalIdentifier = trimmedInput.includes('@')
-      ? trimmedInput
-      : countryCode + trimmedInput.replace(/\D/g, '');
-
+    let finalIdentifier = trimmedInput;
+    if (!trimmedInput.includes('@')) {
+      const hasPlus = trimmedInput.startsWith('+');
+      const digitsOnly = trimmedInput.replace(/\D/g, '');
+      finalIdentifier = (hasPlus ? '+' : '') + digitsOnly;
+    }
+ 
     try {
       await auth.login(finalIdentifier, password);
     } catch (error: unknown) {
@@ -73,7 +88,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       setIsSubmitting(false);
     }
   };
-
+ 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -90,46 +105,13 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             <Text style={styles.formTitle}>Sign In</Text>
             <Badge label="Secure" tone="primary" />
           </View>
-
-          {/* Country Code Selector */}
-          <View style={styles.countrySelectorWrap}>
-            <Text style={styles.label}>Country Code</Text>
-            <View style={styles.countryRow}>
-              {[
-                { code: '+250', flag: '🇷🇼', name: 'Rwanda' },
-                { code: '+254', flag: '🇰🇪', name: 'Kenya' },
-                { code: '+256', flag: '🇺🇬', name: 'Uganda' },
-                { code: '+255', flag: '🇹🇿', name: 'Tanzania' },
-                { code: '+257', flag: '🇧🇮', name: 'Burundi' },
-              ].map((c) => (
-                <Pressable
-                  key={c.code}
-                  onPress={() => setCountryCode(c.code)}
-                  style={[
-                    styles.countryBadge,
-                    countryCode === c.code ? styles.countryBadgeActive : null,
-                  ]}
-                >
-                  <Text style={styles.countryFlag}>{c.flag}</Text>
-                  <Text
-                    style={[
-                      styles.countryCodeText,
-                      countryCode === c.code ? styles.countryCodeTextActive : null,
-                    ]}
-                  >
-                    {c.code}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
+ 
           <InputField
             label="Phone number or Email"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             error={phoneError}
-            placeholder="e.g. 788123456"
+            placeholder="e.g. +250788123456 or rider@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="username"
@@ -144,9 +126,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             autoCapitalize="none"
             autoComplete="password"
           />
-
+ 
           {errorMessage ? <InlineNotice description={errorMessage} /> : null}
-
+ 
           <PrimaryButton
             label={isSubmitting ? 'Signing in...' : 'Sign in'}
             loading={isSubmitting}
@@ -155,7 +137,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             }}
           />
         </View>
-
+ 
         {/* Help links */}
         <View style={styles.helpCard}>
           <Text style={styles.helpTitle}>Need help?</Text>

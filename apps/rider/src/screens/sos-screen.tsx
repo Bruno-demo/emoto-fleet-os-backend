@@ -14,6 +14,8 @@ import { riderSosResponseSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderSosResponse } from '../lib/types/api';
 import { theme } from '../theme/tokens';
+import { useAuth } from '../lib/auth/auth-context';
+import { PendingSetupGate } from '../components/pending-setup-gate';
 
 async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | null> {
   const permission = await Location.requestForegroundPermissionsAsync();
@@ -36,6 +38,7 @@ function toSosErrorMessage(error: unknown): string {
 }
 
 export function SosScreen() {
+  const auth = useAuth();
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [response, setResponse] = useState<RiderSosResponse | null>(null);
@@ -74,6 +77,24 @@ export function SosScreen() {
       setConfirmVisible(false);
     }
   };
+
+  if (auth.riderMe?.status === 'PENDING_SETUP') {
+    return (
+      <ScreenContainer
+        refreshing={isSubmitting}
+        onRefresh={() => {
+          void auth.refreshRiderMe();
+        }}
+      >
+        <PendingSetupGate
+          isRefetching={isSubmitting}
+          onRefresh={() => {
+            void auth.refreshRiderMe();
+          }}
+        />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>

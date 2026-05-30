@@ -18,6 +18,8 @@ import { nearbyPoiSchema } from '../lib/api/schemas';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { NearbyPoi, PoiType } from '../lib/types/api';
 import { theme } from '../theme/tokens';
+import { useAuth } from '../lib/auth/auth-context';
+import { PendingSetupGate } from '../components/pending-setup-gate';
 
 const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC', 'OTHER'];
 const POI_ICONS: Record<PoiType, string> = { GARAGE: '🔧', SWAP: '🔋', CLINIC: '🏥', OTHER: '📍' };
@@ -64,6 +66,7 @@ async function openDirections(poi: NearbyPoi): Promise<void> {
 
 // Retrieves and filters nearby POIs around current rider coordinates.
 export function PoiNearbyScreen() {
+  const auth = useAuth();
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -127,6 +130,24 @@ export function PoiNearbyScreen() {
   }
 
   const rows = poiQuery.data ?? [];
+
+  if (auth.riderMe?.status === 'PENDING_SETUP') {
+    return (
+      <ScreenContainer
+        refreshing={poiQuery.isRefetching || isResolvingLocation}
+        onRefresh={() => {
+          void auth.refreshRiderMe();
+        }}
+      >
+        <PendingSetupGate
+          isRefetching={poiQuery.isRefetching || isResolvingLocation}
+          onRefresh={() => {
+            void auth.refreshRiderMe();
+          }}
+        />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer

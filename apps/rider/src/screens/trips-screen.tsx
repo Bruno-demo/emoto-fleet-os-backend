@@ -16,6 +16,8 @@ import { logAppError } from '../lib/monitoring/error-log';
 import type { PaginatedResponse, RiderTripSummary } from '../lib/types/api';
 import type { RiderTripsStackParamList } from '../navigation/navigation.types';
 import { getScoreTone, theme } from '../theme/tokens';
+import { useAuth } from '../lib/auth/auth-context';
+import { PendingSetupGate } from '../components/pending-setup-gate';
 
 type TripsScreenProps = NativeStackScreenProps<
   RiderTripsStackParamList,
@@ -51,6 +53,7 @@ function formatShortDate(iso: string): string {
 }
 
 export function TripsScreen({ navigation }: TripsScreenProps) {
+  const auth = useAuth();
   const [page, setPage] = useState(1);
 
   const tripsQuery = useQuery({
@@ -75,6 +78,26 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
   const rows = payload?.data ?? [];
   const canGoPrevious = page > 1;
   const canGoNext = Boolean(payload && page < payload.totalPages);
+
+  if (auth.riderMe?.status === 'PENDING_SETUP') {
+    return (
+      <ScreenContainer
+        refreshing={tripsQuery.isRefetching}
+        onRefresh={() => {
+          void tripsQuery.refetch();
+          void auth.refreshRiderMe();
+        }}
+      >
+        <PendingSetupGate
+          isRefetching={tripsQuery.isRefetching}
+          onRefresh={() => {
+            void tripsQuery.refetch();
+            void auth.refreshRiderMe();
+          }}
+        />
+      </ScreenContainer>
+    );
+  }
 
   if (tripsQuery.isLoading && !payload) {
     return (

@@ -16,22 +16,32 @@ type ForgotAccessScreenProps = NativeStackScreenProps<
 
 // Collects the rider phone number before showing the recovery guidance screen.
 export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
-  const [countryCode, setCountryCode] = useState('+250');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Validates the rider phone format and requests a reset token.
   const continueToReset = async () => {
-    if (!phoneNumber.trim()) {
+    const trimmed = phoneNumber.trim();
+    if (!trimmed) {
       setPhoneError('Enter your phone number or email.');
       return;
     }
 
-    const trimmedInput = phoneNumber.trim();
-    const finalIdentifier = trimmedInput.includes('@')
-      ? trimmedInput
-      : countryCode + trimmedInput.replace(/\D/g, '');
+    if (!trimmed.includes('@')) {
+      if (!trimmed.startsWith('+')) {
+        setPhoneError('Include country code starting with + (e.g. +250788123456)');
+        return;
+      }
+      if (trimmed.replace(/\D/g, '').length < 8) {
+        setPhoneError('Enter a valid phone number with country code.');
+        return;
+      }
+    }
+
+    const finalIdentifier = trimmed.includes('@')
+      ? trimmed
+      : '+' + trimmed.replace(/\D/g, '');
 
     setPhoneError(null);
     setIsSubmitting(true);
@@ -71,46 +81,12 @@ export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
         title="Check your rider phone"
         subtitle="Start with the phone number registered by your fleet admin."
       >
-        {/* Country Code Selector */}
-        <View style={styles.countrySelectorWrap}>
-          <Text style={styles.label}>Country Code</Text>
-          <View style={styles.countryRow}>
-            {[
-              { code: '+250', flag: '🇷🇼', name: 'Rwanda' },
-              { code: '+254', flag: '🇰🇪', name: 'Kenya' },
-              { code: '+256', flag: '🇺🇬', name: 'Uganda' },
-              { code: '+255', flag: '🇹🇿', name: 'Tanzania' },
-              { code: '+257', flag: '🇧🇮', name: 'Burundi' },
-            ].map((c) => (
-              <Pressable
-                key={c.code}
-                onPress={() => setCountryCode(c.code)}
-                disabled={isSubmitting}
-                style={[
-                  styles.countryBadge,
-                  countryCode === c.code ? styles.countryBadgeActive : null,
-                ]}
-              >
-                <Text style={styles.countryFlag}>{c.flag}</Text>
-                <Text
-                  style={[
-                    styles.countryCodeText,
-                    countryCode === c.code ? styles.countryCodeTextActive : null,
-                  ]}
-                >
-                  {c.code}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
         <InputField
           label="Rider phone number or Email"
           value={phoneNumber}
           onChangeText={setPhoneNumber}
           error={phoneError}
-          placeholder="e.g. 788123456"
+          placeholder="e.g. +250788123456 or rider@example.com"
           keyboardType="email-address"
           editable={!isSubmitting}
         />

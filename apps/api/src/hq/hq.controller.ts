@@ -95,6 +95,30 @@ export class HqController {
     return this.hqService.updateBikeStatus(id, body.status);
   }
 
+  @Post('fleets/:fleetId/bikes')
+  @ApiOperation({ summary: 'Create a new bike for a fleet (HQ admin)' })
+  createBikeForFleet(
+    @Param('fleetId') fleetId: string,
+    @Body() body: { label: string; plate?: string; serial?: string; model?: string; status?: any },
+  ) {
+    return this.hqService.createBikeForFleet(fleetId, body);
+  }
+
+  @Put('bikes/:id')
+  @ApiOperation({ summary: 'Update a bike details (HQ admin)' })
+  updateBikeHq(
+    @Param('id') id: string,
+    @Body() body: { label?: string; plate?: string; serial?: string; model?: string; status?: any },
+  ) {
+    return this.hqService.updateBikeHq(id, body);
+  }
+
+  @Delete('bikes/:id')
+  @ApiOperation({ summary: 'Delete a bike permanently (HQ admin)' })
+  deleteBikeHq(@Param('id') id: string) {
+    return this.hqService.deleteBikeHq(id);
+  }
+
   @Post('bikes/:id/lock')
   @ApiOperation({
     summary: 'Send a remote LOCK command to any bike (HQ override)',
@@ -162,6 +186,24 @@ export class HqController {
   @ApiOperation({ summary: 'Delete a user permanently' })
   deleteUser(@Param('id') id: string) {
     return this.hqService.deleteUser(id);
+  }
+
+  @Post('fleets/:fleetId/users')
+  @ApiOperation({ summary: 'Create a new operator/rider user for a fleet (HQ admin)' })
+  createUserForFleet(
+    @Param('fleetId') fleetId: string,
+    @Body() body: { email?: string; phone?: string; role: any; status?: any; password?: string; fullName?: string },
+  ) {
+    return this.hqService.createUserForFleet(fleetId, body);
+  }
+
+  @Put('users/:id')
+  @ApiOperation({ summary: 'Update operator/rider user details (HQ admin)' })
+  updateUserHq(
+    @Param('id') id: string,
+    @Body() body: { email?: string; phone?: string; role?: any; status?: any; fullName?: string },
+  ) {
+    return this.hqService.updateUserHq(id, body);
   }
 
   // ── Partners ──────────────────────────────────────────────────────

@@ -214,7 +214,15 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
         status: error instanceof ApiError ? error.status : undefined,
       });
       if (error instanceof ApiError) {
-        setErrorMessage(error.message);
+        const msg = error.message.toLowerCase();
+        if (msg.includes('email')) {
+          setErrorMessage('This email address is already in use by another account.');
+        } else if (msg.includes('phone')) {
+          setPhoneError('This phone number is already in use by another account.');
+          setErrorMessage('This phone number is already in use by another account.');
+        } else {
+          setErrorMessage(error.message);
+        }
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {

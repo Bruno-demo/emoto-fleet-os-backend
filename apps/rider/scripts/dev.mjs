@@ -2,12 +2,42 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import net from 'node:net';
 import os from 'node:os';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DEFAULT_PORT = 8082;
 const MAX_PORT = 8090;
 const DEFAULT_API_PORT = 3000;
 const require = createRequire(import.meta.url);
 const expoCliBin = require.resolve('expo/bin/cli');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.resolve(__dirname, '../.env');
+
+const envConfig = {};
+try {
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    for (const line of envContent.split(/\r?\n/)) {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (match) {
+        const key = match[1];
+        let value = match[2] || '';
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1);
+        } else if (value.startsWith("'") && value.endsWith("'")) {
+          value = value.slice(1, -1);
+        }
+        envConfig[key] = value.trim();
+      }
+    }
+  }
+} catch (e) {
+  // ignore
+}
+
 const READY_PATTERNS = [
   /waiting on/i,
   /logs for your project will appear below/i,
@@ -104,19 +134,16 @@ function resolveLanAddress() {
 
 // Resolves the API base URL that rider clients should call in development.
 function resolveApiBaseUrl(lanAddress) {
-  const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const configuredUrl = (process.env.EXPO_PUBLIC_API_URL || envConfig.EXPO_PUBLIC_API_URL)?.trim();
   const apiPort = process.env.API_HOST_PORT?.trim() || process.env.PORT?.trim() || String(DEFAULT_API_PORT);
 
-  if (configuredUrl && !/localhost|127\.0\.0\.1/i.test(configuredUrl)) {
+  // If the user explicitly configured an API URL, respect it completely
+  if (configuredUrl) {
     return configuredUrl.replace(/\/$/, '');
   }
 
   if (lanAddress) {
     return `http://${lanAddress}:${apiPort}`;
-  }
-
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, '');
   }
 
   return `http://localhost:${apiPort}`;
