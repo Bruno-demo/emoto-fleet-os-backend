@@ -92,6 +92,10 @@ const unassignedDevicesSchema = z.object({
   total: z.number()
 });
 
+type FleetDetail = z.infer<typeof fleetDetailSchema>;
+type FleetUser = FleetDetail['users'][number];
+type FleetBike = FleetDetail['bikes'][number];
+
 export default function FleetDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -367,7 +371,7 @@ export default function FleetDetailPage() {
     setIsBikeModalOpen(true);
   };
 
-  const openEditBikeModal = (bike: any) => {
+  const openEditBikeModal = (bike: FleetBike) => {
     setSelectedBikeId(bike.id);
     setBikeLabel(bike.label);
     setBikePlate(bike.plate || '');
@@ -384,7 +388,7 @@ export default function FleetDetailPage() {
     setIsUserModalOpen(true);
   };
 
-  const openEditUserModal = (user: any) => {
+  const openEditUserModal = (user: FleetUser) => {
     setSelectedUserId(user.id);
     setUserFullName(user.riderProfile?.fullName || '');
     setUserEmail(user.email || '');
