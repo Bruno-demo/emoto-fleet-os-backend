@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/screen-container';
 import { PendingSetupGate } from '../components/pending-setup-gate';
 import { AppCard } from '../components/ui/card';
@@ -423,6 +423,72 @@ export function HomeScreen() {
                 />
               </View>
             </View>
+          </View>
+        </AppCard>
+      )}
+
+      {/* Personal Owner Bike Location */}
+      {auth.riderMe?.isPersonalOwner && activeAssignment && (
+        <AppCard title="My Bike Location">
+          <View style={styles.ownerLocation}>
+            <View style={styles.locationMetaRow}>
+              <View style={styles.gpsIconWrap}>
+                <Text style={styles.gpsIcon}>📍</Text>
+              </View>
+              <View style={styles.gpsTextWrap}>
+                <View style={styles.gpsStatusRow}>
+                  <Text style={styles.gpsTitle}>GPS Tracking</Text>
+                  {liveStateQuery.data ? (
+                    <View style={styles.activeGlowContainer}>
+                      <View style={styles.activeGlowPulse} />
+                      <Text style={styles.activeGlowText}>Live</Text>
+                    </View>
+                  ) : (
+                    <Badge label="Off" tone="warning" />
+                  )}
+                </View>
+                <Text style={styles.gpsDetail}>
+                  {liveStateQuery.data
+                    ? `${liveStateQuery.data.lat.toFixed(6)}, ${liveStateQuery.data.lng.toFixed(6)}`
+                    : liveStateQuery.isLoading
+                    ? 'Acquiring satellites...'
+                    : 'Coordinates unavailable'}
+                </Text>
+              </View>
+            </View>
+
+            {liveStateQuery.data && (
+              <View style={styles.gpsStatsRow}>
+                <View style={styles.gpsStat}>
+                  <Text style={styles.gpsStatLabel}>Satellites</Text>
+                  <Text style={styles.gpsStatVal}>🛰️ {liveStateQuery.data.gnssSats}</Text>
+                </View>
+                <View style={styles.gpsStat}>
+                  <Text style={styles.gpsStatLabel}>Signal</Text>
+                  <Text style={styles.gpsStatVal}>📶 {liveStateQuery.data.signalDbm}dBm</Text>
+                </View>
+                <View style={styles.gpsStat}>
+                  <Text style={styles.gpsStatLabel}>Status</Text>
+                  <Text style={styles.gpsStatVal}>
+                    {liveStateQuery.data.motion ? 'Moving 🏍️' : 'Parked 🔒'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <PrimaryButton
+              label="Track on Live Map"
+              disabled={!liveStateQuery.data}
+              onPress={async () => {
+                if (liveStateQuery.data) {
+                  const directionsLink = `https://www.google.com/maps/search/?api=1&query=${liveStateQuery.data.lat},${liveStateQuery.data.lng}`;
+                  const canOpen = await Linking.canOpenURL(directionsLink);
+                  if (canOpen) {
+                    await Linking.openURL(directionsLink);
+                  }
+                }
+              }}
+            />
           </View>
         </AppCard>
       )}
@@ -886,5 +952,89 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body,
     lineHeight: 22,
     color: theme.colors.textSecondary,
+  },
+  ownerLocation: {
+    gap: theme.spacing.md,
+  },
+  locationMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  gpsIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gpsIcon: {
+    fontSize: 22,
+  },
+  gpsTextWrap: {
+    flex: 1,
+  },
+  gpsStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  gpsTitle: {
+    fontSize: theme.typography.emphasis,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  gpsDetail: {
+    fontSize: theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  activeGlowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.successSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  activeGlowPulse: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.success,
+  },
+  activeGlowText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.success,
+  },
+  gpsStatsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+  },
+  gpsStat: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.input,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceMuted,
+    alignItems: 'center',
+    gap: 2,
+  },
+  gpsStatLabel: {
+    fontSize: theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+  },
+  gpsStatVal: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.text,
   },
 });
