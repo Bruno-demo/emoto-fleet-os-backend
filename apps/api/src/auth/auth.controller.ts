@@ -198,7 +198,7 @@ export class AuthController {
 
   @Get('fleet-users')
   @ApiBearerAuth()
-  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.RIDER)
   @ApiOperation({ summary: 'List all users in the caller fleet' })
   async listFleetUsers(@CurrentUser() actor: AuthenticatedUser) {
     return this.authService.listFleetUsers(actor);

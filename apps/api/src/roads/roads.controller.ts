@@ -13,7 +13,13 @@ export class RoadsController {
   constructor(private readonly roadFeaturesService: RoadFeaturesService) {}
 
   @Get('features')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({
     summary: 'List map-ready road features within a bounding box',
   })
