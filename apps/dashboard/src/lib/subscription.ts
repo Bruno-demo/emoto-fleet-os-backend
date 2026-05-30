@@ -13,7 +13,8 @@ export type DashboardFeature =
   | 'audit'
   | 'settings'
   | 'commands'
-  | 'evidence';
+  | 'evidence'
+  | 'financial';
 
 export type SubscriptionTier = 'core' | 'premium';
 
@@ -34,6 +35,7 @@ const CORE_FEATURES: DashboardFeature[] = [
   'bikes',
   'riders',
   'settings',
+  'commands',
 ];
 
 const PREMIUM_FEATURES: DashboardFeature[] = [
@@ -42,8 +44,8 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
   'zones',
   'reports',
   'audit',
-  'commands',
   'evidence',
+  'financial',
 ];
 
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
@@ -53,8 +55,8 @@ const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
   zones: 'Policy zones',
   reports: 'Trip analytics and reports',
   audit: 'Compliance audit log',
-  commands: 'Remote lock and unlock',
   evidence: 'Incident evidence packs',
+  financial: 'Financial management',
 };
 
 export function getSubscriptionEntitlements(
@@ -103,6 +105,7 @@ export function featureForPath(pathname: string): DashboardFeature {
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/audit')) return 'audit';
   if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/financial')) return 'financial';
   return 'overview';
 }
 

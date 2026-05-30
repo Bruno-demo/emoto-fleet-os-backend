@@ -20,6 +20,7 @@ const PROTECTED_PATHS = [
   '/settings',
   '/checkout',
   '/hq',
+  '/financial',
 ];
 
 export function middleware(request: NextRequest) {
@@ -64,5 +65,6 @@ export const config = {
     '/settings/:path*',
     '/checkout/:path*',
     '/hq/:path*',
+    '/financial/:path*',
   ],
 };

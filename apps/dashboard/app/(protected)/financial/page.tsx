@@ -1,0 +1,843 @@
+'use client';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Banknote,
+  Calendar,
+  Coins,
+  CreditCard,
+  Download,
+  HelpCircle,
+  Plus,
+  RefreshCw,
+  TrendingUp,
+  User,
+  Users,
+  Wallet,
+  X,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Badge } from '@/components/ui/badge';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { InlineNotice, SelectField, TextAreaField, TextField } from '@/components/ui/form-controls';
+import { ApiError, apiFetch } from '@/lib/api/client';
+import { buildQueryString } from '@/lib/api/query-string';
+import type { PaginatedResponse, Rider } from '@/lib/types/dashboard';
+import { cx } from '@/lib/ui';
+
+const PAGE_SIZE = 15;
+const DAILY_LEASE_RATE = 15000; // default daily lease rate in RWF
+
+interface PaymentRecord {
+  id: string;
+  fleetId: string;
+  riderId: string;
+  riderName: string;
+  riderEmail: string | null;
+  riderPhone: string | null;
+  amount: number;
+  paidAt: string;
+  method: 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER';
+  status: 'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE';
+  reference: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface FinancialSummary {
+  earnedToday: number;
+  earnedThisMonth: number;
+  earnedThisYear: number;
+  totalEarnedAllTime: number;
+  totalEarnedRange: number;
+  activeRidersCount: number;
+  overdueCount: number;
+  unpaidCount: number;
+  unpaidLogsSum: number;
+  methodBreakdown: Record<string, number>;
+  statusBreakdown: Record<string, number>;
+  dailyEarnings: Array<{ date: string; amount: number }>;
+}
+
+export default function FinancialsPage() {
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [showCollectModal, setShowCollectModal] = useState(false);
+  const [collectError, setCollectError] = useState<string | null>(null);
+
+  // Close modal on Escape key and lock body scroll
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowCollectModal(false);
+      }
+    };
+    if (showCollectModal) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCollectModal]);
+
+  // Date ranges
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 14); // default 2 weeks range
+    return d.toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Collect payment form state
+  const [formRiderId, setFormRiderId] = useState('');
+  const [formAmount, setFormAmount] = useState(String(DAILY_LEASE_RATE));
+  const [formPaidAt, setFormPaidAt] = useState(() => new Date().toISOString().slice(0, 16));
+  const [formMethod, setFormMethod] = useState<'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER'>('CASH');
+  const [formStatus, setFormStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE'>('PAID');
+  const [formReference, setFormReference] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+
+  // 1. Fetch Riders (for dropdown and matrix)
+  const ridersQuery = useQuery({
+    queryKey: ['riders', 'financials-dropdown'],
+    queryFn: () => apiFetch<PaginatedResponse<Rider>>('/riders?page=1&pageSize=200'),
+  });
+
+  // 2. Fetch Payments History Log
+  const paymentsQuery = useQuery({
+    queryKey: ['payments', page],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<PaymentRecord>>(
+        `/financials${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
+      ),
+  });
+
+  // 3. Fetch Aggregate Summary metrics
+  const summaryQuery = useQuery({
+    queryKey: ['financials-summary', startDate, endDate],
+    queryFn: () =>
+      apiFetch<FinancialSummary>(`/financials/summary?startDate=${startDate}&endDate=${endDate}`),
+  });
+
+  // Mutations
+  const recordPaymentMutation = useMutation({
+    mutationFn: (data: {
+      riderId: string;
+      amount: number;
+      paidAt: string;
+      method: string;
+      status: string;
+      reference?: string;
+      notes?: string;
+    }) =>
+      apiFetch<PaymentRecord>('/financials', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
+      setShowCollectModal(false);
+      resetForm();
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        setCollectError(error.message);
+      } else {
+        setCollectError('Failed to record payment');
+      }
+    },
+  });
+
+  const resetForm = () => {
+    setFormRiderId('');
+    setFormAmount(String(DAILY_LEASE_RATE));
+    setFormPaidAt(new Date().toISOString().slice(0, 16));
+    setFormMethod('CASH');
+    setFormStatus('PAID');
+    setFormReference('');
+    setFormNotes('');
+    setCollectError(null);
+  };
+
+  const ridersList = ridersQuery.data?.data ?? [];
+  const paymentsList = paymentsQuery.data?.data ?? [];
+  const summary = summaryQuery.data;
+
+  // Compute current week calendar matrix
+  const weekDays = useMemo(() => {
+    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const current = new Date();
+    // Monday is 1st day in grid
+    const first = current.getDate() - current.getDay() + (current.getDay() === 0 ? -6 : 1);
+    
+    return Array.from({ length: 7 }, (_, i) => {
+      const next = new Date(current.getFullYear(), current.getMonth(), first + i);
+      return {
+        dayLabel: daysOfWeek[i],
+        dateString: next.toISOString().slice(0, 10),
+        displayDate: next.getDate(),
+      };
+    });
+  }, []);
+
+  const openCollectForMatrix = (riderId: string, dateString: string) => {
+    setFormRiderId(riderId);
+    setFormPaidAt(`${dateString}T12:00`);
+    setShowCollectModal(true);
+  };
+
+  // Helper to check payment on a matrix day
+  const getMatrixCellStatus = (riderId: string, dateString: string) => {
+    // Check if there is an existing payment record in the current page list or active cache
+    const matched = paymentsList.find(
+      (p) => p.riderId === riderId && p.paidAt.slice(0, 10) === dateString,
+    );
+    if (!matched) return 'unpaid';
+    return matched.status.toLowerCase();
+  };
+
+  // CSV Export helper
+  const handleExportCSV = () => {
+    if (paymentsList.length === 0) return;
+    const headers = ['Rider', 'Email', 'Phone', 'Amount', 'Date', 'Method', 'Status', 'Reference', 'Notes'];
+    const rows = paymentsList.map((p) => [
+      p.riderName,
+      p.riderEmail ?? '',
+      p.riderPhone ?? '',
+      p.amount,
+      p.paidAt,
+      p.method,
+      p.status,
+      p.reference ?? '',
+      p.notes ?? '',
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.map((val) => `"${val}"`).join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `fleet_collections_${startDate}_to_${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleRecordPaymentSubmit = () => {
+    if (!formRiderId) {
+      setCollectError('Please select a rider.');
+      return;
+    }
+    const amountNum = parseFloat(formAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setCollectError('Please input a valid amount greater than zero.');
+      return;
+    }
+    recordPaymentMutation.mutate({
+      riderId: formRiderId,
+      amount: amountNum,
+      paidAt: new Date(formPaidAt).toISOString(),
+      method: formMethod,
+      status: formStatus,
+      reference: formReference || undefined,
+      notes: formNotes || undefined,
+    });
+  };
+
+  // Table columns
+  const columns = useMemo<Array<DataTableColumn<PaymentRecord>>>(
+    () => [
+      {
+        header: 'Rider',
+        render: (pay) => (
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent font-semibold text-xs">
+              <User size={13} />
+            </span>
+            <div>
+              <p className="font-semibold text-ink leading-none">{pay.riderName}</p>
+              <p className="text-[10px] text-ink-muted mt-0.5">{pay.riderPhone ?? 'No Phone'}</p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        header: 'Amount Collected',
+        render: (pay) => (
+          <span className="font-mono text-sm font-bold text-ink-soft">
+            {pay.amount.toLocaleString()} RWF
+          </span>
+        ),
+      },
+      {
+        header: 'Collection Date',
+        render: (pay) => (
+          <span className="text-xs text-ink-muted tabular-nums">
+            {new Date(pay.paidAt).toLocaleDateString()} &middot;{' '}
+            {new Date(pay.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        ),
+      },
+      {
+        header: 'Payment Method',
+        render: (pay) => (
+          <div className="flex items-center gap-1 text-xs text-ink-soft">
+            {pay.method === 'MOBILE_MONEY' && <Wallet size={12} className="text-emerald-400" />}
+            {pay.method === 'CASH' && <Coins size={12} className="text-amber-400" />}
+            {pay.method === 'BANK_TRANSFER' && <CreditCard size={12} className="text-blue-400" />}
+            {pay.method === 'OTHER' && <HelpCircle size={12} className="text-purple-400" />}
+            <span>
+              {pay.method
+                .replace('_', ' ')
+                .toLowerCase()
+                .replace(/\b\w/g, (c) => c.toUpperCase())}
+            </span>
+          </div>
+        ),
+      },
+      {
+        header: 'Status',
+        render: (pay) => (
+          <Badge
+            label={pay.status}
+            tone={
+              pay.status === 'PAID'
+                ? 'success'
+                : pay.status === 'PARTIAL'
+                  ? 'warning'
+                  : pay.status === 'OVERDUE'
+                    ? 'danger'
+                    : 'neutral'
+            }
+          />
+        ),
+      },
+      {
+        header: 'Reference Code',
+        render: (pay) => (
+          <span className="font-mono text-xs text-ink-faint">{pay.reference ?? '--'}</span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  // SVG Chart values
+  const svgChartPath = useMemo(() => {
+    if (!summary || summary.dailyEarnings.length === 0) return '';
+    const data = summary.dailyEarnings;
+    const maxVal = Math.max(...data.map((d) => d.amount), 50);
+    const height = 110;
+    const width = 680;
+    const padding = 15;
+    
+    const xStep = (width - padding * 2) / (data.length === 1 ? 1 : data.length - 1);
+    
+    const coords = data.map((d, index) => {
+      const x = padding + index * xStep;
+      const y = height - padding - (d.amount / maxVal) * (height - padding * 2);
+      return { x, y };
+    });
+
+    if (coords.length === 0) return '';
+    
+    // Create spline or line path
+    let path = `M ${coords[0].x} ${coords[0].y}`;
+    for (let i = 1; i < coords.length; i++) {
+      path += ` L ${coords[i].x} ${coords[i].y}`;
+    }
+
+    // Closed path for background gradient
+    const closedPath = `${path} L ${coords[coords.length - 1].x} ${height - padding} L ${coords[0].x} ${height - padding} Z`;
+    
+    return { linePath: path, areaPath: closedPath, points: coords };
+  }, [summary]);
+
+  return (
+    <div className="space-y-6">
+      {/* Date selector header */}
+      <section className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-line pb-4">
+        <div>
+          <h2 className="font-display text-xl font-bold text-ink">Fleet Financials</h2>
+          <p className="text-xs text-ink-muted">Track rider daily rates, payments, and overall revenues.</p>
+        </div>
+        <div className="flex items-center gap-3 bg-surface-muted border border-line rounded-2xl p-1.5 self-start sm:self-auto">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="bg-transparent text-xs font-semibold text-ink px-2 outline-none"
+          />
+          <span className="text-ink-faint text-xs">&rarr;</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="bg-transparent text-xs font-semibold text-ink px-2 outline-none"
+          />
+        </div>
+      </section>
+
+      {/* KPI summaries */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {summaryQuery.isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-2xl border border-line bg-surface-muted animate-pulse" />
+          ))
+        ) : (
+          <>
+            <MetricCard
+              title="Today's Collections"
+              value={summary ? `${summary.earnedToday.toLocaleString()} RWF` : '0 RWF'}
+              hint="Revenue recorded today"
+              icon={<Coins size={18} />}
+              tone="success"
+            />
+            <MetricCard
+              title="This Month"
+              value={summary ? `${summary.earnedThisMonth.toLocaleString()} RWF` : '0 RWF'}
+              hint="Revenues collected this month"
+              icon={<TrendingUp size={18} />}
+              tone="info"
+            />
+            <MetricCard
+              title="Outstanding Debts"
+              value={summary ? `${summary.unpaidLogsSum.toLocaleString()} RWF` : '0 RWF'}
+              hint={`${summary?.overdueCount ?? 0} overdue payments pending`}
+              icon={<Banknote size={18} />}
+              tone={summary && summary.unpaidLogsSum > 0 ? 'warning' : 'neutral'}
+            />
+            <MetricCard
+              title="Collection Average"
+              value={summary ? `${(summary.totalEarnedRange / Math.max(summary.activeRidersCount, 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })} RWF` : '0 RWF'}
+              hint="Avg rate collected per active rider"
+              icon={<Users size={18} />}
+              tone="info"
+            />
+          </>
+        )}
+      </section>
+
+      {/* Grid: Charts + Daily Payment Matrix */}
+      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-5">
+          {/* Earning Graph */}
+          <DashboardCard
+            eyebrow="Revenue Streams"
+            title="Earning progression"
+            actions={
+              <button
+                type="button"
+                onClick={() => void queryClient.invalidateQueries({ queryKey: ['financials-summary'] })}
+                className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition"
+                title="Refresh stats"
+              >
+                <RefreshCw size={12} />
+              </button>
+            }
+          >
+            {summaryQuery.isLoading ? (
+              <div className="h-[120px] w-full bg-surface-hover rounded-xl animate-pulse" />
+            ) : summary && summary.dailyEarnings.length > 0 ? (
+              <div className="space-y-3">
+                <div className="relative h-[120px] w-full overflow-hidden">
+                  <svg viewBox="0 0 680 110" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(59, 130, 246, 0.2)" />
+                        <stop offset="100%" stopColor="rgba(59, 130, 246, 0.0)" />
+                      </linearGradient>
+                    </defs>
+                    {/* Fill Area */}
+                    {typeof svgChartPath === 'object' && (
+                      <path d={svgChartPath.areaPath} fill="url(#chartGrad)" />
+                    )}
+                    {/* Line path */}
+                    {typeof svgChartPath === 'object' && (
+                      <path
+                        d={svgChartPath.linePath}
+                        fill="none"
+                        stroke="#3B82F6"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    )}
+                    {/* Dots */}
+                    {typeof svgChartPath === 'object' &&
+                      svgChartPath.points.map((p, i) => (
+                        <circle
+                          key={i}
+                          cx={p.x}
+                          cy={p.y}
+                          r="3.5"
+                          fill="#1E293B"
+                          stroke="#3B82F6"
+                          strokeWidth="2"
+                        />
+                      ))}
+                  </svg>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-ink-muted px-2">
+                  <span>{new Date(startDate).toLocaleDateString()}</span>
+                  <span>Average collection trend active</span>
+                  <span>{new Date(endDate).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={<TrendingUp size={18} />}
+                title="No revenue logged"
+                description="Collections data graphs will appear here once logs are entered."
+              />
+            )}
+          </DashboardCard>
+
+          {/* Interactive Matrix Grid */}
+          <DashboardCard
+            eyebrow="Operational Tracker"
+            title="Interactive payment matrix"
+          >
+            {ridersQuery.isLoading ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-10 bg-surface-muted rounded-xl" />
+                <div className="h-10 bg-surface-muted rounded-xl" />
+                <div className="h-10 bg-surface-muted rounded-xl" />
+              </div>
+            ) : ridersList.length === 0 ? (
+              <EmptyState
+                icon={<Calendar size={18} />}
+                title="No riders registered"
+                description="Riders must be added to your registry to track daily lease matrix."
+              />
+            ) : (
+              <div className="overflow-x-auto dashboard-scrollbar">
+                <table className="w-full min-w-[500px] border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-ink-faint">
+                      <th className="py-2.5 font-bold">Rider</th>
+                      {weekDays.map((d) => (
+                        <th key={d.dateString} className="py-2.5 text-center font-bold">
+                          <div>{d.dayLabel}</div>
+                          <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ridersList.map((rider) => (
+                      <tr key={rider.id} className="border-b border-line hover:bg-surface-hover transition-colors">
+                        <td className="py-3 font-semibold text-ink flex items-center gap-2">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
+                            {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
+                          </span>
+                          <span className="truncate max-w-[120px]">
+                            {rider.fullName ?? `Rider ${rider.id.slice(0, 8)}`}
+                          </span>
+                        </td>
+                        {weekDays.map((day) => {
+                          const status = getMatrixCellStatus(rider.id, day.dateString);
+                          return (
+                            <td key={day.dateString} className="py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => openCollectForMatrix(rider.id, day.dateString)}
+                                className={cx(
+                                  'h-6 w-6 rounded-md text-[10px] font-bold transition-all border outline-none',
+                                  status === 'paid' && 'bg-success-soft/30 border-success-ink/20 text-success-ink hover:bg-success-soft/50',
+                                  status === 'partial' && 'bg-warning-soft/30 border-warning-ink/20 text-warning-ink hover:bg-warning-soft/50',
+                                  status === 'overdue' && 'bg-danger-soft/30 border-danger-ink/20 text-danger-ink hover:bg-danger-soft/50',
+                                  status === 'unpaid' && 'bg-surface-muted border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
+                                )}
+                                title={
+                                  status === 'unpaid'
+                                    ? `Log rate for ${rider.fullName} on ${day.dayLabel}`
+                                    : `Status: ${status.toUpperCase()} (Click to log new)`
+                                }
+                              >
+                                {status === 'paid' && '✓'}
+                                {status === 'partial' && 'P'}
+                                {status === 'overdue' && '!'}
+                                {status === 'unpaid' && '+'}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DashboardCard>
+        </div>
+
+        {/* Right side: Method pie/doughnut + quick record panel shortcut */}
+        <div className="space-y-5">
+          {/* Method Chart */}
+          <DashboardCard eyebrow="Financial Distribution" title="Collections by payment method">
+            {summaryQuery.isLoading ? (
+              <div className="h-[140px] w-full bg-surface-hover rounded-xl animate-pulse" />
+            ) : summary && summary.totalEarnedRange > 0 ? (
+              <div className="flex flex-col sm:flex-row items-center justify-around gap-4 py-2">
+                {/* SVG Doughnut chart */}
+                <div className="relative h-28 w-28 shrink-0">
+                  <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                    {(() => {
+                      const total = summary.totalEarnedRange;
+                      let currentOffset = 0;
+                      return Object.entries(summary.methodBreakdown).map(([method, amount]) => {
+                        const percent = (amount / total) * 100;
+                        const strokeDash = `${percent} ${100 - percent}`;
+                        const offset = currentOffset;
+                        currentOffset += percent;
+
+                        let strokeColor = '#94A3B8'; // OTHER
+                        if (method === 'CASH') strokeColor = '#FBBF24'; // amber
+                        if (method === 'MOBILE_MONEY') strokeColor = '#34D399'; // emerald
+                        if (method === 'BANK_TRANSFER') strokeColor = '#60A5FA'; // blue
+
+                        return (
+                          <circle
+                            key={method}
+                            cx="18"
+                            cy="18"
+                            r="15.915"
+                            fill="none"
+                            stroke={strokeColor}
+                            strokeWidth="3.2"
+                            strokeDasharray={strokeDash}
+                            strokeDashoffset={100 - offset}
+                            strokeLinecap="round"
+                          />
+                        );
+                      });
+                    })()}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Total</span>
+                    <span className="text-[11px] font-bold text-ink leading-none">{summary.totalEarnedRange.toLocaleString()} RWF</span>
+                  </div>
+                </div>
+
+                {/* Legends */}
+                <div className="grid gap-2 text-xs">
+                  {Object.entries(summary.methodBreakdown).map(([method, val]) => {
+                    let dotColor = 'bg-slate-400';
+                    if (method === 'CASH') dotColor = 'bg-amber-400';
+                    if (method === 'MOBILE_MONEY') dotColor = 'bg-emerald-400';
+                    if (method === 'BANK_TRANSFER') dotColor = 'bg-blue-400';
+
+                    return (
+                      <div key={method} className="flex items-center gap-2">
+                        <span className={cx('h-2 w-2 rounded-full shrink-0', dotColor)} />
+                        <span className="font-semibold text-ink-soft min-w-[90px]">
+                          {method.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </span>
+                        <span className="font-mono text-ink font-bold">{val.toLocaleString()} RWF</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={<Coins size={18} />}
+                title="No distribution data"
+                description="Distribution analysis requires recorded transaction history."
+              />
+            )}
+          </DashboardCard>
+
+          {/* Quick Collection Panel shortcut */}
+          <DashboardCard eyebrow="Shortcuts" title="Cash collections console">
+            <p className="text-xs text-ink-muted mb-4">
+              Directly collect lease payments from riders, clear outstanding arrears, or log mobile transactions.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setShowCollectModal(true);
+              }}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-accent hover:bg-accent-strong text-white font-semibold py-3 text-sm transition-all shadow-md shadow-accent/15"
+            >
+              <Plus size={14} />
+              Collect lease payment
+            </button>
+          </DashboardCard>
+        </div>
+      </section>
+
+      {/* History table */}
+      <DashboardCard
+        eyebrow="Registry"
+        title="Collection Logs history"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={paymentsList.length === 0}
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-muted hover:bg-surface-hover text-ink-soft hover:text-ink transition-all px-3 py-2 text-xs font-semibold disabled:opacity-50"
+            >
+              <Download size={12} />
+              Export CSV
+            </button>
+          </div>
+        }
+      >
+        <div className="mt-2">
+          <DataTable
+            data={paymentsList}
+            columns={columns}
+            keyExtractor={(pay) => pay.id}
+            loading={paymentsQuery.isLoading}
+            emptyState={
+              <EmptyState
+                icon={<Coins size={18} />}
+                title="No collections logged"
+                description="Create custom entries to see logs here."
+              />
+            }
+          />
+        </div>
+
+        <PaginationControls
+          page={paymentsQuery.data?.page ?? page}
+          totalPages={paymentsQuery.data?.totalPages ?? 1}
+          onPageChange={setPage}
+        />
+      </DashboardCard>
+
+      {/* Quick Collect lease Modal */}
+      {showCollectModal && (
+        <div
+          onClick={() => setShowCollectModal(false)}
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-[4px] p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border border-line bg-surface shadow-2xl animate-scale-in overflow-hidden cursor-default"
+          >
+            {/* Header: fixed height */}
+            <div className="flex items-center justify-between border-b border-line p-5 shrink-0">
+              <h3 className="font-display text-lg font-bold text-ink">Collect daily lease rate</h3>
+              <button
+                type="button"
+                onClick={() => setShowCollectModal(false)}
+                className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body: scrollable */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 dashboard-scrollbar">
+              {collectError && <InlineNotice message={collectError} tone="danger" />}
+
+              <SelectField
+                label="Rider"
+                value={formRiderId}
+                onChange={(e) => setFormRiderId(e.target.value)}
+              >
+                <option value="">-- Select Rider --</option>
+                {ridersList.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.fullName} ({r.phone ?? r.email ?? 'No contact info'})
+                  </option>
+                ))}
+              </SelectField>
+
+              <div className="grid grid-cols-2 gap-4">
+                <TextField
+                  label="Lease Rate Collected (RWF)"
+                  type="number"
+                  value={formAmount}
+                  onChange={(e) => setFormAmount(e.target.value)}
+                  step="1"
+                  min="1"
+                />
+                <TextField
+                  label="Date & Time"
+                  type="datetime-local"
+                  value={formPaidAt}
+                  onChange={(e) => setFormPaidAt(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <SelectField
+                  label="Payment Method"
+                  value={formMethod}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormMethod(e.target.value as 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER')}
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="MOBILE_MONEY">Mobile Money (M-Pesa)</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="OTHER">Other</option>
+                </SelectField>
+
+                <SelectField
+                  label="Rate Status"
+                  value={formStatus}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormStatus(e.target.value as 'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE')}
+                >
+                  <option value="PAID">Full Payment (Paid)</option>
+                  <option value="PARTIAL">Arrears/Partial</option>
+                  <option value="UNPAID">Unpaid</option>
+                  <option value="OVERDUE">Overdue Rate</option>
+                </SelectField>
+              </div>
+
+              <TextField
+                label="Transaction Reference Code (Optional)"
+                type="text"
+                placeholder="e.g. Mobile Money ID or Bank Receipt number"
+                value={formReference}
+                onChange={(e) => setFormReference(e.target.value)}
+              />
+
+              <TextAreaField
+                label="Operator Notes (Optional)"
+                placeholder="Remarks about the payment"
+                value={formNotes}
+                onChange={(e) => setFormNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Footer: fixed height */}
+            <div className="flex justify-end gap-3 border-t border-line p-5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowCollectModal(false)}
+                className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink-soft hover:bg-surface-hover hover:text-ink transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={recordPaymentMutation.isPending}
+                onClick={handleRecordPaymentSubmit}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent text-white font-semibold px-5 py-2.5 text-sm hover:bg-accent-strong disabled:opacity-50 transition"
+              >
+                {recordPaymentMutation.isPending ? 'Saving...' : 'Confirm Collection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

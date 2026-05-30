@@ -20,6 +20,7 @@ const FEATURE_LABELS: Record<SubscriptionFeature, string> = {
   audit: 'Compliance audit log',
   commands: 'Remote lock and unlock',
   evidence: 'Incident evidence packs',
+  financial: 'Financial management',
 };
 
 @Injectable()
@@ -45,6 +46,7 @@ export class SubscriptionFeatureGuard implements CanActivate {
       user.subscriptionStatus === FleetSubscriptionStatus.ACTIVE &&
       (user.fleetPlan === FleetPlan.PREMIUM ||
         feature === 'reports' ||
+        feature === 'commands' ||
         (feature === 'devices' && request.method === 'GET'))
     ) {
       return true;

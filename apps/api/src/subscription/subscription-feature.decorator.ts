@@ -8,7 +8,8 @@ export type SubscriptionFeature =
   | 'reports'
   | 'audit'
   | 'commands'
-  | 'evidence';
+  | 'evidence'
+  | 'financial';
 
 export const RequireSubscriptionFeature = (
   feature: SubscriptionFeature,

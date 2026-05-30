@@ -190,6 +190,7 @@ enum AuditActionType {
   LOGIN_SUCCESS
   LOGIN_FAILED
   ACCOUNT_LOCKED
+  RIDER_PAYMENT_RECORDED
 }
 
 model Fleet {
@@ -215,6 +216,7 @@ model Fleet {
   partnerAccesses   PartnerFleetAccess[]
   bikeAssignments   BikeAssignment[]
   pois              Poi[]
+  payments          RiderPayment[]
 }
 
 model User {
@@ -237,6 +239,7 @@ model User {
   bikeAssignments       BikeAssignment[] @relation("BikeAssignmentRider")
   usedInvites           RegistrationInvite[] @relation("InviteUsedBy")
   insuredBikes          Bike[]               @relation("BikeInsurer")
+  payments              RiderPayment[]
 
   @@unique([fleetId, email])
   @@unique([fleetId, phone])
@@ -331,7 +334,7 @@ model TelemetryPoint {
   accelY    Decimal? @db.Decimal(8, 4)
   accelZ    Decimal? @db.Decimal(8, 4)
   batteryV  Decimal? @db.Decimal(8, 3)
-  batteryPct Decimal? @db.Decimal(5, 2)
+  batteryPct Float?
   ignition  Boolean?
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
@@ -670,3 +673,40 @@ model PartnerWebhook {
   @@index([partnerId])
   @@index([partnerId, active])
 }
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  UNPAID
+  OVERDUE
+}
+
+model RiderPayment {
+  id        String        @id @default(uuid()) @db.Uuid
+  fleetId   String        @db.Uuid
+  riderId   String        @db.Uuid
+  amount    Decimal       @db.Decimal(10, 2)
+  paidAt    DateTime      @db.Timestamptz(6)
+  method    PaymentMethod @default(CASH)
+  status    PaymentStatus @default(PAID)
+  reference String?
+  notes     String?
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(6)
+
+  fleet     Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  rider     User          @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@index([fleetId])
+  @@index([riderId])
+  @@index([paidAt])
+  @@index([fleetId, paidAt])
+}
+

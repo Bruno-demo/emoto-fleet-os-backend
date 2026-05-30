@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ClipboardList,
   Command,
+  DollarSign,
   FileBarChart2,
   Gauge,
   Lock,
@@ -70,6 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
     links: [
       { href: '/zones', label: 'Zones', icon: MapPin, feature: 'zones', requiresAdmin: true },
       { href: '/reports', label: 'Reports', icon: FileBarChart2, feature: 'reports' },
+      { href: '/financial', label: 'Financials', icon: DollarSign, feature: 'financial', requiresAdmin: true },
       { href: '/audit', label: 'Audit Log', icon: ClipboardList, feature: 'audit', requiresAdmin: true },
       { href: '/settings', label: 'Settings', icon: Settings, feature: 'settings', requiresAdmin: true },
     ],
