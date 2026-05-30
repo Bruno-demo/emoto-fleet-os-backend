@@ -23,6 +23,7 @@ export class ReportsController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.INSURER,
+    UserRole.RIDER,
   )
   @ApiOperation({ summary: 'Weekly fleet risk report and scoring summary' })
   async getWeeklyReport(

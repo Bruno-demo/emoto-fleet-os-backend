@@ -27,7 +27,13 @@ export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'List devices in caller fleet' })
   async listDevices(
     @CurrentUser() user: AuthenticatedUser,
@@ -37,7 +43,7 @@ export class DevicesController {
   }
 
   @Post()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
   @ApiOperation({
     summary: 'Create device and return one-time provisioning secret',
   })
@@ -49,7 +55,13 @@ export class DevicesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({
     summary: 'Get device by id with fleet isolation enforcement',
   })
@@ -61,7 +73,7 @@ export class DevicesController {
   }
 
   @Post(':id/assign-bike')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
   @ApiOperation({ summary: 'Assign a device to a bike in the same fleet' })
   async assignBike(
     @Param('id', ParseUUIDPipe) id: string,
@@ -72,7 +84,7 @@ export class DevicesController {
   }
 
   @Post(':id/rotate-secret')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
   @ApiOperation({
     summary: 'Rotate device secret and return new secret one-time',
   })

@@ -73,7 +73,7 @@ export class RidersAdminController {
   }
 
   @Get('assignments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
   @ApiOperation({ summary: 'List bike assignments with optional filters' })
   async listAssignments(
     @CurrentUser() user: AuthenticatedUser,
@@ -93,7 +93,13 @@ export class RidersAdminController {
   }
 
   @Get('poi')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'List fleet and global POIs' })
   async listPoi(
     @CurrentUser() user: AuthenticatedUser,
@@ -103,7 +109,13 @@ export class RidersAdminController {
   }
 
   @Get('poi/near')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Find nearby POIs by distance from coordinates' })
   async nearPoi(
     @CurrentUser() user: AuthenticatedUser,
@@ -113,7 +125,7 @@ export class RidersAdminController {
   }
 
   @Get('poi/:id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
   @ApiOperation({ summary: 'Get POI by id' })
   async getPoi(
     @CurrentUser() user: AuthenticatedUser,

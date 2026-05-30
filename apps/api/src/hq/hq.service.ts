@@ -1177,7 +1177,9 @@ export class HqService {
       status?: BikeStatus;
     },
   ) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     try {
@@ -1288,7 +1290,9 @@ export class HqService {
       fullName?: string;
     },
   ) {
-    const fleet = await this.prisma.fleet.findUnique({ where: { id: fleetId } });
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     const normalizedEmail = body.email?.toLowerCase();
@@ -1305,7 +1309,9 @@ export class HqService {
         where: { fleetId, phone: body.phone },
       });
       if (existing) {
-        throw new BadRequestException('Phone number already exists in this fleet');
+        throw new BadRequestException(
+          'Phone number already exists in this fleet',
+        );
       }
     }
 
@@ -1374,7 +1380,9 @@ export class HqService {
         where: { fleetId: user.fleetId, phone: body.phone },
       });
       if (existing) {
-        throw new BadRequestException('Phone number already exists in this fleet');
+        throw new BadRequestException(
+          'Phone number already exists in this fleet',
+        );
       }
     }
 
@@ -1382,7 +1390,8 @@ export class HqService {
       const updated = await tx.user.update({
         where: { id },
         data: {
-          email: normalizedEmail !== undefined ? normalizedEmail || null : undefined,
+          email:
+            normalizedEmail !== undefined ? normalizedEmail || null : undefined,
           phone: body.phone !== undefined ? body.phone || null : undefined,
           role: body.role,
           status: body.status,

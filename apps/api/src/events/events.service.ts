@@ -127,7 +127,8 @@ export class EventsService {
         select: { type: true },
       });
       if (fleet?.type === 'PERSONAL') {
-        incident = await this.incidentsService.createIncidentFromSosEvent(fleetEvent);
+        incident =
+          await this.incidentsService.createIncidentFromSosEvent(fleetEvent);
       }
     }
 

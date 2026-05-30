@@ -34,6 +34,7 @@ export class BikesController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.INSURER,
+    UserRole.RIDER,
   )
   @ApiOperation({ summary: 'List bikes in caller fleet' })
   async listBikes(
@@ -60,6 +61,7 @@ export class BikesController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.INSURER,
+    UserRole.RIDER,
   )
   @ApiOperation({ summary: 'Get bike by id with fleet isolation enforcement' })
   async getBike(

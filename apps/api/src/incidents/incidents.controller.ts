@@ -27,7 +27,13 @@ export class IncidentsController {
   constructor(private readonly incidentsService: IncidentsService) {}
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({
     summary: 'List fleet incidents with optional status/date filters',
   })
@@ -39,14 +45,26 @@ export class IncidentsController {
   }
 
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Get incident stats for the caller fleet' })
   async getIncidentStats(@CurrentUser() user: AuthenticatedUser) {
     return this.incidentsService.getIncidentStatsForUser(user);
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Get one incident by id' })
   async getIncident(
     @CurrentUser() user: AuthenticatedUser,
@@ -56,7 +74,13 @@ export class IncidentsController {
   }
 
   @Get(':id/evidence-pack')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @RequireSubscriptionFeature('evidence')
   @ApiOperation({
     summary:
@@ -70,7 +94,13 @@ export class IncidentsController {
   }
 
   @Post(':id/acknowledge')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Acknowledge an open incident' })
   async acknowledgeIncident(
     @CurrentUser() user: AuthenticatedUser,
@@ -81,7 +111,13 @@ export class IncidentsController {
   }
 
   @Post(':id/resolve')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Resolve an acknowledged incident' })
   async resolveIncident(
     @CurrentUser() user: AuthenticatedUser,
@@ -92,7 +128,13 @@ export class IncidentsController {
   }
 
   @Post(':id/false-alarm')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Mark an incident as false alarm' })
   async markIncidentFalseAlarm(
     @CurrentUser() user: AuthenticatedUser,

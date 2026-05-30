@@ -16,7 +16,13 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'List fleet events with optional filters' })
   async listEvents(
     @CurrentUser() user: AuthenticatedUser,

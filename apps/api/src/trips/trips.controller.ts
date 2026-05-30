@@ -16,7 +16,13 @@ export class TripsController {
   constructor(private readonly tripsService: TripsService) {}
 
   @Get('bikes/:id/trips')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'List trips for a bike in caller fleet' })
   async listBikeTrips(
     @CurrentUser() user: AuthenticatedUser,
@@ -27,7 +33,13 @@ export class TripsController {
   }
 
   @Get('trips')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'List all historical trips inside caller fleet' })
   async listAllTrips(
     @CurrentUser() user: AuthenticatedUser,
@@ -37,7 +49,13 @@ export class TripsController {
   }
 
   @Get('trips/:id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Get one trip by id' })
   async getTrip(
     @CurrentUser() user: AuthenticatedUser,

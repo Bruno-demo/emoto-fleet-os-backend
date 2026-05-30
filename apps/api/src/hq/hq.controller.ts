@@ -99,7 +99,14 @@ export class HqController {
   @ApiOperation({ summary: 'Create a new bike for a fleet (HQ admin)' })
   createBikeForFleet(
     @Param('fleetId') fleetId: string,
-    @Body() body: { label: string; plate?: string; serial?: string; model?: string; status?: any },
+    @Body()
+    body: {
+      label: string;
+      plate?: string;
+      serial?: string;
+      model?: string;
+      status?: any;
+    },
   ) {
     return this.hqService.createBikeForFleet(fleetId, body);
   }
@@ -108,7 +115,14 @@ export class HqController {
   @ApiOperation({ summary: 'Update a bike details (HQ admin)' })
   updateBikeHq(
     @Param('id') id: string,
-    @Body() body: { label?: string; plate?: string; serial?: string; model?: string; status?: any },
+    @Body()
+    body: {
+      label?: string;
+      plate?: string;
+      serial?: string;
+      model?: string;
+      status?: any;
+    },
   ) {
     return this.hqService.updateBikeHq(id, body);
   }
@@ -189,10 +203,20 @@ export class HqController {
   }
 
   @Post('fleets/:fleetId/users')
-  @ApiOperation({ summary: 'Create a new operator/rider user for a fleet (HQ admin)' })
+  @ApiOperation({
+    summary: 'Create a new operator/rider user for a fleet (HQ admin)',
+  })
   createUserForFleet(
     @Param('fleetId') fleetId: string,
-    @Body() body: { email?: string; phone?: string; role: any; status?: any; password?: string; fullName?: string },
+    @Body()
+    body: {
+      email?: string;
+      phone?: string;
+      role: any;
+      status?: any;
+      password?: string;
+      fullName?: string;
+    },
   ) {
     return this.hqService.createUserForFleet(fleetId, body);
   }
@@ -201,7 +225,14 @@ export class HqController {
   @ApiOperation({ summary: 'Update operator/rider user details (HQ admin)' })
   updateUserHq(
     @Param('id') id: string,
-    @Body() body: { email?: string; phone?: string; role?: any; status?: any; fullName?: string },
+    @Body()
+    body: {
+      email?: string;
+      phone?: string;
+      role?: any;
+      status?: any;
+      fullName?: string;
+    },
   ) {
     return this.hqService.updateUserHq(id, body);
   }

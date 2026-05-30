@@ -16,7 +16,13 @@ export class LiveController {
   constructor(private readonly liveStateService: LiveStateService) {}
 
   @Get('bikes')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.RIDER,
+  )
   @ApiOperation({ summary: 'Get latest bike states for caller fleet' })
   async getFleetLiveBikes(
     @CurrentUser() user: AuthenticatedUser,
