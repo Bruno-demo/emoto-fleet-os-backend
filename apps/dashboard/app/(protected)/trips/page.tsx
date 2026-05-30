@@ -533,27 +533,35 @@ export default function TripsPage() {
                 {/* Event breakdowns */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">Safety Events Breakdown</h4>
-                  {Object.keys(selectedTrip.eventCounts || {}).length === 0 ? (
-                    <div className="flex items-center gap-2 rounded-xl bg-emerald-400/5 px-4 py-3 text-xs text-emerald-400 border border-emerald-400/10">
-                      <ShieldCheck size={14} />
-                      <span>Perfect journey: Zero harsh actions or speed violations recorded!</span>
-                    </div>
-                  ) : (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {Object.entries(selectedTrip.eventCounts).map(([event, count]) => (
-                        <div
-                          key={event}
-                          className="flex items-center justify-between rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs"
-                        >
-                          <span className="flex items-center gap-1.5 text-ink-soft">
-                            <AlertTriangle size={12} className="text-rose-400" />
-                            {formatEnumLabel(event)}
-                          </span>
-                          <span className="font-bold text-ink">{count}</span>
+                  {(() => {
+                    const nonZeroEvents = Object.entries(selectedTrip.eventCounts || {}).filter(
+                      ([_, count]) => (count as number) > 0,
+                    );
+                    if (nonZeroEvents.length === 0) {
+                      return (
+                        <div className="flex items-center gap-2 rounded-xl bg-emerald-400/5 px-4 py-3 text-xs text-emerald-400 border border-emerald-400/10">
+                          <ShieldCheck size={14} />
+                          <span>Perfect journey: Zero harsh actions or speed violations recorded!</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    }
+                    return (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {nonZeroEvents.map(([event, count]) => (
+                          <div
+                            key={event}
+                            className="flex items-center justify-between rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs"
+                          >
+                            <span className="flex items-center gap-1.5 text-ink-soft">
+                              <AlertTriangle size={12} className="text-rose-400" />
+                              {formatEnumLabel(event)}
+                            </span>
+                            <span className="font-bold text-ink">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </DashboardCard>

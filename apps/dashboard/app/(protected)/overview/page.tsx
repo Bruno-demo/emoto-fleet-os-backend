@@ -179,7 +179,7 @@ export default function OverviewPage() {
                 <Skeleton className="h-24 w-full rounded-xl" />
                 <Skeleton className="h-24 w-full rounded-xl" />
               </div>
-            ) : report && Object.keys(report.eventCounts).length ? (
+            ) : report && totalEvents > 0 ? (
               <>
                 {/* Horizontal bar chart */}
                 <div className="space-y-3">

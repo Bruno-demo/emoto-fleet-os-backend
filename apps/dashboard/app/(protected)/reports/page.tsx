@@ -37,6 +37,9 @@ export default function ReportsPage() {
     (report?.eventCounts.SCHOOL_ZONE_SPEED ?? 0) +
     (report?.eventCounts.HOSPITAL_ZONE_SPEED ?? 0) +
     (report?.eventCounts.MARKET_ZONE_SPEED ?? 0);
+  const totalEvents = report
+    ? Object.values(report.eventCounts).reduce((s, v) => s + v, 0)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -204,7 +207,7 @@ export default function ReportsPage() {
             <Skeleton className="h-28 w-full rounded-[20px]" />
             <Skeleton className="h-28 w-full rounded-[20px]" />
           </div>
-        ) : report && Object.keys(report.eventCounts).length ? (
+        ) : report && totalEvents > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Object.entries(report.eventCounts).map(([type, count]) => (
               <div
