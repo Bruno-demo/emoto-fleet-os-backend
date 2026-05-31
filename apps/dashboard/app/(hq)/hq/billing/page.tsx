@@ -40,7 +40,7 @@ type BillingFleet = z.infer<typeof billingFleetSchema>[number];
 export default function HqBillingPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'PREMIUM' | 'CORE'>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'PREMIUM' | 'CORE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
 
   const { data: fleets, isLoading } = useQuery({
@@ -67,11 +67,24 @@ export default function HqBillingPage() {
     },
   });
 
+  const updateSubscriptionStatusMutation = useMutation({
+    mutationFn: ({ fleetId, status }: { fleetId: string; status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' }) => 
+      apiFetch(`/hq/fleets/${fleetId}/subscription`, { 
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
+    },
+  });
+
   // KPI calculations
   const totalCount = fleets?.length ?? 0;
   const outstandingSetupCount = fleets?.filter(f => !f.installationPaid).length ?? 0;
   const pendingUpgradeCount = fleets?.filter(f => f.upgradeRequested).length ?? 0;
   const premiumCount = fleets?.filter(f => f.plan === 'PREMIUM').length ?? 0;
+  const activeSubCount = fleets?.filter(f => f.subscriptionStatus === 'ACTIVE').length ?? 0;
+  const unpaidSubCount = fleets?.filter(f => f.subscriptionStatus !== 'ACTIVE').length ?? 0;
 
   // Filter fleets
   const filteredFleets = fleets?.filter((fleet) => {
@@ -95,6 +108,10 @@ export default function HqBillingPage() {
         return fleet.plan === 'PREMIUM';
       case 'CORE':
         return fleet.plan === 'DEMO';
+      case 'SUB_ACTIVE':
+        return fleet.subscriptionStatus === 'ACTIVE';
+      case 'SUB_UNPAID':
+        return fleet.subscriptionStatus !== 'ACTIVE';
       case 'ALL':
       default:
         return true;
@@ -218,6 +235,18 @@ export default function HqBillingPage() {
           Setup Paid ({totalCount - outstandingSetupCount})
         </button>
         <button
+          onClick={() => setFilterType('SUB_ACTIVE')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'SUB_ACTIVE' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+        >
+          Subscription Active ({activeSubCount})
+        </button>
+        <button
+          onClick={() => setFilterType('SUB_UNPAID')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'SUB_UNPAID' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+        >
+          Subscription Unpaid ({unpaidSubCount})
+        </button>
+        <button
           onClick={() => setFilterType('PREMIUM')}
           className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'PREMIUM' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
         >
@@ -240,6 +269,7 @@ export default function HqBillingPage() {
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (50k RWF)</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Subscription</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
               </tr>
@@ -248,14 +278,14 @@ export default function HqBillingPage() {
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-8 py-8">
+                    <td colSpan={6} className="px-8 py-8">
                       <div className="h-4 w-full rounded bg-white/5" />
                     </td>
                   </tr>
                 ))
               ) : filteredFleets?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-24 text-center">
+                  <td colSpan={6} className="px-8 py-24 text-center">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white/5 text-zinc-500">
                       <AlertCircle size={32} />
                     </div>
@@ -315,7 +345,37 @@ export default function HqBillingPage() {
                         </span>
                         
                         <p className="text-xs font-semibold text-zinc-500">
-                          ({(fleet._count.bikes * 50000).toLocaleString()} RWF total)
+                          ({(fleet._count.bikes * 50000).toLocaleString()} RWF)
+                        </p>
+                      </div>
+                    </td>
+
+                    {/* Monthly Subscription Status */}
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                          fleet.subscriptionStatus === 'ACTIVE' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : fleet.subscriptionStatus === 'PAST_DUE'
+                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse'
+                            : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                        }`}>
+                          <div className={`h-1 w-1 rounded-full ${
+                            fleet.subscriptionStatus === 'ACTIVE' 
+                              ? 'bg-emerald-400' 
+                              : fleet.subscriptionStatus === 'PAST_DUE'
+                              ? 'bg-rose-400'
+                              : 'bg-zinc-400'
+                          }`} />
+                          {fleet.subscriptionStatus === 'ACTIVE' 
+                            ? 'Paid' 
+                            : fleet.subscriptionStatus === 'PAST_DUE'
+                            ? 'Past Due'
+                            : 'Canceled'}
+                        </span>
+                        
+                        <p className="text-xs font-semibold text-zinc-500">
+                          ({(fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 25000 : 10000)).toLocaleString()} RWF/mo)
                         </p>
                       </div>
                     </td>
@@ -348,6 +408,23 @@ export default function HqBillingPage() {
                       >
                         <Banknote size={14} />
                         {fleet.installationPaid ? 'Mark Unpaid' : 'Mark Paid'}
+                      </button>
+
+                      {/* Toggle Monthly Subscription Status */}
+                      <button
+                        onClick={() => updateSubscriptionStatusMutation.mutate({
+                          fleetId: fleet.id,
+                          status: fleet.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE'
+                        })}
+                        disabled={updateSubscriptionStatusMutation.isPending}
+                        className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer ${
+                          fleet.subscriptionStatus === 'ACTIVE'
+                            ? 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-line'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30'
+                        }`}
+                      >
+                        <Clock size={14} />
+                        {fleet.subscriptionStatus === 'ACTIVE' ? 'Mark Overdue' : 'Mark Paid'}
                       </button>
 
                       {/* Approve Plan Upgrade */}
@@ -444,7 +521,7 @@ export default function HqBillingPage() {
               {/* Stat 4: Setup Fee Total */}
               <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1 sm:col-span-2 flex justify-between items-center">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">One-time Setup Fee (50k RWF/bike)</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">One-time Setup Fee (50k RWF/bike)</p>
                   <p className="text-lg font-extrabold text-white">
                     {(activeFleetDetails._count.bikes * 50000).toLocaleString()} RWF
                   </p>
@@ -456,6 +533,35 @@ export default function HqBillingPage() {
                       : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                   }`}>
                     {activeFleetDetails.installationPaid ? 'Paid' : 'Unpaid'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stat 5: Monthly Subscription Status */}
+              <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1 sm:col-span-2 flex justify-between items-center">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Subscription Status</p>
+                  <p className="text-lg font-extrabold text-white">
+                    {activeFleetDetails.subscriptionStatus === 'ACTIVE' 
+                      ? 'Active & Paid' 
+                      : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
+                      ? 'Overdue / Past Due'
+                      : 'Canceled / Suspended'}
+                  </p>
+                </div>
+                <div>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    activeFleetDetails.subscriptionStatus === 'ACTIVE' 
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                      : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse'
+                      : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                  }`}>
+                    {activeFleetDetails.subscriptionStatus === 'ACTIVE' 
+                      ? 'Paid' 
+                      : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
+                      ? 'Past Due'
+                      : 'Canceled'}
                   </span>
                 </div>
               </div>
@@ -506,6 +612,23 @@ export default function HqBillingPage() {
                 >
                   <Banknote size={14} />
                   {activeFleetDetails.installationPaid ? 'Mark Setup Unpaid' : 'Mark Setup Paid'}
+                </button>
+
+                {/* Subscription Status toggle */}
+                <button
+                  onClick={() => updateSubscriptionStatusMutation.mutate({
+                    fleetId: activeFleetDetails.id,
+                    status: activeFleetDetails.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE'
+                  })}
+                  disabled={updateSubscriptionStatusMutation.isPending}
+                  className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer ${
+                    activeFleetDetails.subscriptionStatus === 'ACTIVE' 
+                      ? 'bg-white/5 text-zinc-450 hover:bg-white/10 hover:text-white border border-line' 
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30'
+                  }`}
+                >
+                  <Clock size={14} />
+                  {activeFleetDetails.subscriptionStatus === 'ACTIVE' ? 'Mark Sub Past Due' : 'Mark Sub Paid'}
                 </button>
               </div>
 
