@@ -74,7 +74,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
   }
 
-  async onModuleInit(): Promise<void> {
+  onModuleInit(): void {
     if (this.mqttDisabled) {
       this.logger.log('MQTT is disabled — skipping client initialization');
       return;
@@ -104,9 +104,10 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       .then(() => {
         this.logger.log('MQTT client connection verified');
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
         this.logger.warn(
-          `MQTT client failed to connect on startup (will auto-reconnect): ${err.message}`,
+          `MQTT client failed to connect on startup (will auto-reconnect): ${message}`,
         );
       });
   }
