@@ -11,11 +11,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RequireAuth } from '@/components/auth/require-auth';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { subscriptionCheckoutResponseSchema } from '@/lib/api/schemas';
-import type { SessionUser } from '@/lib/types/dashboard';
 
 const PLAN_DETAILS: Record<
   string,
@@ -76,8 +75,24 @@ function CheckoutContent() {
   const planSlug = searchParams.get('plan');
   const plan = planSlug ? PLAN_DETAILS[planSlug] : null;
   const [confirmed, setConfirmed] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(6);
   const [error, setError] = useState<string | null>(null);
   const isOperationsPlus = planSlug === 'operations-plus';
+
+  useEffect(() => {
+    if (!showSuccess) return;
+    if (countdown <= 0) {
+      router.push('/live');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [showSuccess, countdown, router]);
 
   const checkoutMutation = useMutation({
     mutationFn: () =>
@@ -89,21 +104,10 @@ function CheckoutContent() {
         },
         { schema: subscriptionCheckoutResponseSchema },
       ),
-    onSuccess: async (result) => {
+    onSuccess: async () => {
       setConfirmed(true);
-      queryClient.setQueryData<SessionUser | undefined>(
-        ['auth', 'me'],
-        (currentUser) =>
-          currentUser
-            ? {
-                ...currentUser,
-                fleetPlan: result.fleetPlan,
-                subscriptionStatus: result.subscriptionStatus,
-              }
-            : currentUser,
-      );
       await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-      window.setTimeout(() => router.push('/live'), 800);
+      setShowSuccess(true);
     },
     onError: (requestError: unknown) => {
       setConfirmed(false);
@@ -114,6 +118,53 @@ function CheckoutContent() {
       );
     },
   });
+
+  if (showSuccess) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background text-ink px-6">
+        <div className="w-full max-w-lg rounded-3xl border border-white/[0.06] bg-[var(--background-subtle)] p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
+          {/* Subtle top light effect */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 border border-accent/30 text-accent">
+            <ShieldCheck size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">
+              Subscription Pending
+            </p>
+            <h2 className="text-2xl font-extrabold tracking-tight text-ink">
+              Upgrade Request Received!
+            </h2>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-black/30 border border-white/[0.04] space-y-3">
+            <p className="text-sm text-ink-soft leading-relaxed">
+              Your request to upgrade to <strong className="text-accent font-bold">Operations Plus</strong> is currently pending.
+            </p>
+            <p className="text-xs text-ink-muted leading-relaxed">
+              Please wait for your payment to be approved by the HQ admin. You will be kept on the <strong className="text-white font-semibold">Safety Core</strong> plan until the HQ admin confirms your upgrade payment.
+            </p>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            <Link
+              href="/live"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-bold text-white hover:scale-[1.02] transition-all"
+              style={{ background: '#3B82F6', color: 'white' }}
+            >
+              Launch Safety Core Dashboard <ArrowRight size={14} />
+            </Link>
+            
+            <p className="text-xs text-ink-muted">
+              Redirecting automatically in <span className="font-bold text-accent">{countdown}s</span>...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!plan) {
     return (
@@ -313,13 +364,13 @@ function CheckoutContent() {
 
             <p className="text-center text-[11px] text-ink-muted leading-relaxed">
               By confirming, you agree to the{' '}
-              <a href="#" className="underline hover:text-ink transition">
+              <Link href="/terms" className="underline hover:text-ink transition">
                 Terms of Service
-              </a>{' '}
+              </Link>{' '}
               and{' '}
-              <a href="#" className="underline hover:text-ink transition">
+              <Link href="/privacy" className="underline hover:text-ink transition">
                 Privacy Policy
-              </a>
+              </Link>
               . No charge until installation is complete.
             </p>
           </div>

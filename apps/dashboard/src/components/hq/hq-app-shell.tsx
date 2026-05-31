@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   Zap,
   Globe,
-  MapPin
+  MapPin,
+  Banknote
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -29,6 +30,7 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 const HQ_NAV_LINKS = [
   { href: '/hq/overview', label: 'Command Center', icon: LayoutDashboard },
   { href: '/hq/fleets', label: 'Fleets', icon: Building2 },
+  { href: '/hq/billing', label: 'Billing & Subscriptions', icon: Banknote },
   { href: '/hq/users', label: 'Users', icon: Users },
   { href: '/hq/devices', label: 'Devices', icon: Cpu },
   { href: '/hq/pending-setups', label: 'Pending Setups', icon: UserPlus },

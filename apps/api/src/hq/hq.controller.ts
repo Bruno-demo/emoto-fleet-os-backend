@@ -468,4 +468,22 @@ export class HqController {
   getMonitoringLive() {
     return this.hqService.getMonitoringLive();
   }
+
+  @Get('billing')
+  @ApiOperation({ summary: 'Get billing profiles for all fleets globally' })
+  getBillingFleets() {
+    return this.hqService.getBillingFleets();
+  }
+
+  @Put('fleets/:id/toggle-installation-payment')
+  @ApiOperation({ summary: 'Toggle one-time device installation fee payment status' })
+  toggleInstallationPayment(@Param('id') id: string) {
+    return this.hqService.toggleInstallationPayment(id);
+  }
+
+  @Post('fleets/:id/approve-upgrade')
+  @ApiOperation({ summary: 'Approve pending Operations Plus upgrade request' })
+  approveFleetUpgrade(@Param('id') id: string) {
+    return this.hqService.approveFleetUpgrade(id);
+  }
 }

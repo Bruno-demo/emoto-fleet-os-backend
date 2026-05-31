@@ -13,6 +13,7 @@ export class SubscriptionService {
   ): Promise<{
     fleetPlan: FleetPlan;
     subscriptionStatus: FleetSubscriptionStatus;
+    upgradeRequested: boolean;
   }> {
     if (plan !== FleetPlan.PREMIUM) {
       throw new BadRequestException(
@@ -23,18 +24,20 @@ export class SubscriptionService {
     const fleet = await this.prismaService.fleet.update({
       where: { id: user.fleetId },
       data: {
-        plan,
-        subscriptionStatus: FleetSubscriptionStatus.ACTIVE,
+        upgradeRequested: true,
+        upgradeRequestedAt: new Date(),
       },
       select: {
         plan: true,
         subscriptionStatus: true,
+        upgradeRequested: true,
       },
     });
 
     return {
       fleetPlan: fleet.plan,
       subscriptionStatus: fleet.subscriptionStatus,
+      upgradeRequested: fleet.upgradeRequested,
     };
   }
 }

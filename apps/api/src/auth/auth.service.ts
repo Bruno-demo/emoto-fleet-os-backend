@@ -46,6 +46,7 @@ const userSelectForAuth = {
       name: true,
       plan: true,
       subscriptionStatus: true,
+      upgradeRequested: true,
     },
   },
 } satisfies Prisma.UserSelect;
@@ -1111,6 +1112,7 @@ export class AuthService {
       fleetName: user.fleet.name,
       fleetPlan: user.fleet.plan,
       subscriptionStatus: user.fleet.subscriptionStatus,
+      upgradeRequested: user.fleet.upgradeRequested,
       role: user.role,
       email: user.email,
       phone: user.phone,

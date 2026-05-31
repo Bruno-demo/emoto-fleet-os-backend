@@ -21,6 +21,7 @@ export const authUserSchema = z.object({
   fleetName: z.string().nullable().optional(),
   fleetPlan: fleetPlanSchema.optional(),
   subscriptionStatus: subscriptionStatusSchema.optional(),
+  upgradeRequested: z.boolean().optional(),
   role: userRoleSchema,
   email: z.string().nullable(),
   phone: z.string().nullable(),
@@ -51,6 +52,7 @@ export const meResponseSchema = authUserSchema;
 export const subscriptionCheckoutResponseSchema = z.object({
   fleetPlan: fleetPlanSchema,
   subscriptionStatus: subscriptionStatusSchema,
+  upgradeRequested: z.boolean().optional(),
 });
 
 // Builds the backend login payload by mapping identifier to email or phone.

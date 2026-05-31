@@ -18,6 +18,7 @@ export interface AuthenticatedUser {
   fleetName: string;
   fleetPlan: FleetPlan;
   subscriptionStatus: FleetSubscriptionStatus;
+  upgradeRequested: boolean;
   role: UserRole;
   email: string | null;
   phone: string | null;

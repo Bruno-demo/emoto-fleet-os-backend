@@ -1415,6 +1415,57 @@ export class HqService {
     });
   }
 
+  async getBillingFleets() {
+    return this.prisma.fleet.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        subscriptionStatus: true,
+        installationPaid: true,
+        upgradeRequested: true,
+        upgradeRequestedAt: true,
+        createdAt: true,
+        _count: {
+          select: { users: true, bikes: true },
+        },
+      },
+    });
+  }
+
+  async toggleInstallationPayment(fleetId: string) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+      select: { id: true, installationPaid: true },
+    });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    return this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: { installationPaid: !fleet.installationPaid },
+      select: { id: true, name: true, installationPaid: true },
+    });
+  }
+
+  async approveFleetUpgrade(fleetId: string) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+      select: { id: true, upgradeRequested: true },
+    });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    return this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: {
+        plan: 'PREMIUM',
+        upgradeRequested: false,
+        upgradeRequestedAt: null,
+      },
+      select: { id: true, name: true, plan: true, upgradeRequested: true },
+    });
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────
 
   private formatRelative(date: Date) {

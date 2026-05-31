@@ -22,6 +22,7 @@ export class SubscriptionController {
   ): Promise<{
     fleetPlan: FleetPlan;
     subscriptionStatus: FleetSubscriptionStatus;
+    upgradeRequested: boolean;
   }> {
     return this.subscriptionService.updateCurrentFleetPlan(user, body.plan);
   }

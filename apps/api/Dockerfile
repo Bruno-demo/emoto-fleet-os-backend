@@ -7,6 +7,7 @@ COPY apps/api/package.json apps/api/package.json
 
 RUN npm ci
 
+ARG CACHEBUST=1
 COPY apps/api ./apps/api
 
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" \

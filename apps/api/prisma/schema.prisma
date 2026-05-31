@@ -199,6 +199,9 @@ model Fleet {
   type              FleetType
   plan              FleetPlan            @default(DEMO)
   subscriptionStatus FleetSubscriptionStatus @default(ACTIVE)
+  installationPaid  Boolean                 @default(false)
+  upgradeRequested  Boolean                 @default(false)
+  upgradeRequestedAt DateTime?              @db.Timestamptz(6)
   createdAt         DateTime             @default(now()) @db.Timestamptz(6)
   users             User[]
   bikes             Bike[]

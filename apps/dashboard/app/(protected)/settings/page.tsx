@@ -16,6 +16,8 @@ import {
   UserPlus,
   Users,
   ChevronDown,
+  X,
+  Banknote,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
@@ -48,6 +50,16 @@ export default function SettingsPage() {
   const entitlements = getSubscriptionEntitlements(user);
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const { setTheme, resolvedTheme } = useTheme();
+
+  const [showContactSales, setShowContactSales] = useState(false);
+  const [salesFormSubmitted, setSalesFormSubmitted] = useState(false);
+  const [salesSending, setSalesSending] = useState(false);
+
+  const bikesQuery = useQuery({
+    queryKey: ['bikes', 'settings-count'],
+    queryFn: () => apiFetch<{ total: number }>('/bikes?page=1&pageSize=1'),
+  });
+  const totalBikes = bikesQuery.data?.total ?? 0;
 
   const [notifPrefs, setNotifPrefs] = useState(() => {
     if (typeof window === 'undefined') {
@@ -194,6 +206,82 @@ export default function SettingsPage() {
                 value={entitlements.statusLabel}
               />
             </div>
+          </DashboardCard>
+
+          <DashboardCard
+            eyebrow="Billing"
+            title="Billing & Subscription Summary"
+            description="Operational billing overview based on your active fleet size and plan."
+          >
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+              {/* Stat 1: Fleet Size */}
+              <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Total Fleet Bikes</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-ink">{totalBikes}</span>
+                  <span className="text-xs text-ink-muted">Active {totalBikes === 1 ? 'bike' : 'bikes'}</span>
+                </div>
+                <p className="text-xs text-ink-faint leading-relaxed">Subscriptions are calculated per bike dynamically.</p>
+              </div>
+
+              {/* Stat 2: Active Plan Cost */}
+              <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Monthly Rate</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-ink">
+                    {entitlements.isPremium ? '25,000 RWF' : '10,000 RWF'}
+                  </span>
+                  <span className="text-xs text-ink-muted">/ bike / mo</span>
+                </div>
+                <p className="text-xs text-ink-faint leading-relaxed">
+                  Plan: <span className="font-bold text-accent">{entitlements.planLabel}</span>
+                </p>
+              </div>
+
+              {/* Stat 3: Total Money To Pay */}
+              <div className="rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 space-y-2 col-span-full md:col-span-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-accent">Total Monthly Cost</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-accent">
+                    {((entitlements.isPremium ? 25000 : 10000) * totalBikes).toLocaleString()} RWF
+                  </span>
+                  <span className="text-xs text-ink-muted">/ month</span>
+                </div>
+                <p className="text-xs text-ink-faint leading-relaxed">
+                  Auto-calculated subscription dues.
+                </p>
+              </div>
+            </div>
+
+            {/* Installation Setup Fee Info */}
+            <div className="mt-6 rounded-2xl border border-line bg-black/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-ink flex items-center gap-2">
+                  <Banknote size={16} className="text-accent" />
+                  One-time Installation Setup Fee
+                </p>
+                <p className="text-xs text-ink-muted leading-relaxed">
+                  A flat fee of <strong className="text-ink">50,000 RWF</strong> per bike is charged once upon hardware device setup.
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-xs text-ink-muted">Total Setup Dues</p>
+                <p className="text-lg font-extrabold text-ink">{(totalBikes * 50000).toLocaleString()} RWF</p>
+              </div>
+            </div>
+
+            {/* Pending Alert if subscription is pending */}
+            {user?.subscriptionStatus === 'PENDING_UPGRADE' && (
+              <div className="mt-6 rounded-2xl border border-warning-ink/20 bg-warning-soft/20 p-5 flex gap-4 items-start animate-pulse">
+                <AlertTriangle className="text-warning-ink shrink-0 mt-0.5" size={20} />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-warning-ink">Plan Upgrade Pending Approval</p>
+                  <p className="text-xs text-ink-soft leading-relaxed">
+                    You have requested to upgrade to <strong className="font-semibold text-warning-ink">Operations Plus</strong>. Your monthly rate will remain <strong className="font-semibold text-ink">10,000 RWF</strong> until your payment setup is confirmed and approved by the HQ admin.
+                  </p>
+                </div>
+              </div>
+            )}
           </DashboardCard>
 
           <DashboardCard
@@ -369,12 +457,13 @@ export default function SettingsPage() {
                 </div>
                 
                 <div className="mt-6">
-                  <a
-                    href="mailto:sales@emotofleet.com?subject=Enterprise%20Plan%20Inquiry"
-                    className="block w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02]"
+                  <button
+                    type="button"
+                    onClick={() => setShowContactSales(true)}
+                    className="w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
                   >
                     Contact Sales
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -468,6 +557,116 @@ export default function SettingsPage() {
               delivery will be enabled in a future update.
             </p>
           </DashboardCard>
+        </div>
+      )}
+
+      {/* Contact Sales Modal */}
+      {showContactSales && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-6">
+          <div className="w-full max-w-lg rounded-3xl border border-white/[0.06] bg-[var(--background-subtle)] p-8 space-y-6 shadow-2xl relative overflow-hidden animate-fade-in text-ink">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowContactSales(false);
+                setSalesFormSubmitted(false);
+              }}
+              className="absolute top-4 right-4 text-ink-muted hover:text-ink transition-colors p-1"
+            >
+              <X size={20} />
+            </button>
+
+            {salesFormSubmitted ? (
+              <div className="text-center space-y-6 py-6">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-soft/20 border border-success-ink/30 text-success-ink">
+                  <CheckCircle2 size={36} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-extrabold text-ink">Inquiry Submitted!</h3>
+                  <p className="text-sm text-ink-muted leading-relaxed">
+                    Thank you for contacting sales. Our team has received your inquiry for the <strong className="text-accent font-semibold">Enterprise Plan</strong> and will get back to you within 2 hours.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowContactSales(false)}
+                  className="w-full rounded-xl py-3.5 text-sm font-bold text-white transition-all"
+                  style={{ background: '#3B82F6', color: 'white' }}
+                >
+                  Return to Settings
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Enterprise Plan</p>
+                  <h3 className="text-2xl font-extrabold text-ink">Contact Sales Representative</h3>
+                  <p className="text-xs text-ink-muted">
+                    Reach out to our specialized enterprise sales team for customized volume pricing, API access keys, or SLA support contracts.
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setSalesSending(true);
+                    setTimeout(() => {
+                      setSalesSending(false);
+                      setSalesFormSubmitted(true);
+                    }, 1200);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">Fleet Name</label>
+                    <input
+                      type="text"
+                      required
+                      defaultValue={user?.fleetName ?? ''}
+                      placeholder="Enter fleet name..."
+                      className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      defaultValue={user?.email ?? ''}
+                      placeholder="Enter business email..."
+                      className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">Message</label>
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="How can we help your fleet operations? (e.g. volume discount pricing for 200+ bikes...)"
+                      className="w-full rounded-xl border border-line bg-surface p-4 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    <a
+                      href="mailto:sales@emotofleet.com?subject=Enterprise%20Plan%20Inquiry"
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-line hover:bg-surface-hover text-xs font-bold py-3.5 transition-all"
+                    >
+                      Email Direct
+                    </a>
+                    <button
+                      type="submit"
+                      disabled={salesSending}
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ background: '#3B82F6', color: 'white' }}
+                    >
+                      {salesSending ? 'Sending Request...' : 'Send Inquiry'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

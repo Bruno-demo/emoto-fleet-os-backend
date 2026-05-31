@@ -19,7 +19,8 @@ export interface SessionUser {
   fleetId: string;
   fleetName?: string | null;
   fleetPlan?: 'DEMO' | 'PREMIUM';
-  subscriptionStatus?: 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  subscriptionStatus?: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_UPGRADE';
+  upgradeRequested?: boolean;
   role: UserRole;
   email: string | null;
   phone: string | null;
