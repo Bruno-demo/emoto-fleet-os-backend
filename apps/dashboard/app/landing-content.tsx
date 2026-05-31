@@ -220,8 +220,19 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 
 /* ─── Main Component ──────────────────────────────────── */
 
-export default function LandingContent({ hasSession }: { hasSession: boolean }) {
+export default function LandingContent() {
   const [activeTab, setActiveTab] = useState('live-map');
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    const authCookieName = 'emoto_access_token';
+    const hasToken = document.cookie
+      .split('; ')
+      .some((c) => c.startsWith(`${authCookieName}=`));
+    setTimeout(() => {
+      setHasSession(hasToken);
+    }, 0);
+  }, []);
 
   return (
     <div className="dark min-h-screen bg-[#09090b] text-white overflow-x-hidden">
