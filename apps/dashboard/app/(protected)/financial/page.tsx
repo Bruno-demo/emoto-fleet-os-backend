@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Banknote,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Coins,
   CreditCard,
   Download,
@@ -65,6 +67,7 @@ interface FinancialSummary {
 export default function FinancialsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [weekOffset, setWeekOffset] = useState(0);
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
 
@@ -171,10 +174,14 @@ export default function FinancialsPage() {
   const paymentsList = paymentsQuery.data?.data ?? [];
   const summary = summaryQuery.data;
 
-  // Compute current week calendar matrix
+  // Compute current week calendar matrix with offset support
   const weekDays = useMemo(() => {
     const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const current = new Date();
+    
+    // Shift current date based on weekOffset (7 days per offset step)
+    current.setDate(current.getDate() + weekOffset * 7);
+    
     // Monday is 1st day in grid
     const first = current.getDate() - current.getDay() + (current.getDay() === 0 ? -6 : 1);
     
@@ -186,7 +193,19 @@ export default function FinancialsPage() {
         displayDate: next.getDate(),
       };
     });
-  }, []);
+  }, [weekOffset]);
+
+  // Compute week range human-readable label
+  const weekRangeLabel = useMemo(() => {
+    if (weekDays.length === 0) return '';
+    const start = new Date(weekDays[0].dateString);
+    const end = new Date(weekDays[6].dateString);
+    const formatOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const startStr = start.toLocaleDateString(undefined, formatOptions);
+    const endStr = end.toLocaleDateString(undefined, formatOptions);
+    const yearStr = end.getFullYear();
+    return `${startStr} - ${endStr}, ${yearStr}`;
+  }, [weekDays]);
 
   const openCollectForMatrix = (riderId: string, dateString: string) => {
     setFormRiderId(riderId);
@@ -507,6 +526,35 @@ export default function FinancialsPage() {
           <DashboardCard
             eyebrow="Operational Tracker"
             title="Interactive payment matrix"
+            description={`Weekly view for ${weekRangeLabel}`}
+            actions={
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWeekOffset((prev) => prev - 1)}
+                  className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
+                  title="Previous week"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeekOffset(0)}
+                  className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface hover:bg-surface-hover border border-line text-ink-soft hover:text-ink transition-colors cursor-pointer"
+                  title="Current week"
+                >
+                  Current
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeekOffset((prev) => prev + 1)}
+                  className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
+                  title="Next week"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            }
           >
             {ridersQuery.isLoading ? (
               <div className="space-y-2 animate-pulse">
