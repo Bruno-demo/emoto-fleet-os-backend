@@ -302,9 +302,16 @@ function CreateAccountInner() {
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        setOtpError(err.message);
+        if (err.status === 409) {
+          setFieldErrors((prev) => ({ ...prev, email: 'This email is already taken. Please try another or sign in.' }));
+          setError('This email is already taken. Please try another or sign in.');
+        } else {
+          setOtpError(err.message);
+          setError(err.message);
+        }
       } else {
         setOtpError('Failed to send OTP code');
+        setError('Failed to send OTP code');
       }
     } finally {
       setIsSendingOtp(false);
@@ -692,6 +699,8 @@ function CreateAccountInner() {
               setOtpCode('');
               setDevOtp(null);
               setOtpError(null);
+              setFieldErrors((prev) => ({ ...prev, email: undefined }));
+              setError(null);
             }}
             onBlur={handleEmailBlur}
             error={mergedErrors.email}
