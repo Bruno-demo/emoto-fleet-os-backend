@@ -262,7 +262,7 @@ export class FinancialsService {
     const yearStart = new Date(new Date().getFullYear(), 0, 1);
 
     const todayPayments = allPayments.filter(
-      (p) => p.paidAt >= todayStart && p.paidAt <= todayEnd,
+      (p) => p.createdAt >= todayStart && p.createdAt <= todayEnd,
     );
     const monthPayments = allPayments.filter((p) => p.paidAt >= monthStart);
     const yearPayments = allPayments.filter((p) => p.paidAt >= yearStart);
