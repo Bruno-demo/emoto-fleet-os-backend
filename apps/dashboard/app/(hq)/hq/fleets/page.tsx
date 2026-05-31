@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Building2, Search, Filter, MoreHorizontal, User, Bike, Calendar, X } from 'lucide-react';
+import { Building2, Search, Funnel, MoreHorizontal, User, Bike, Calendar, X } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -23,6 +23,9 @@ const fleetsSchema = z.array(
 
 export default function HqFleetsPage() {
   const [search, setSearch] = useState('');
+  const [showFilterControls, setShowFilterControls] = useState(false);
+  const [planFilter, setPlanFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const router = useRouter();
   
   const { data: fleets, isLoading } = useQuery({
@@ -31,6 +34,13 @@ export default function HqFleetsPage() {
   });
 
   const filteredFleets = fleets?.filter((f) => {
+    // 1. Plan Filter
+    if (planFilter && f.plan !== planFilter) return false;
+
+    // 2. Status Filter
+    if (statusFilter && f.subscriptionStatus !== statusFilter) return false;
+
+    // 3. Search Query Filter
     const query = search.trim().toLowerCase();
     if (!query) return true;
 
@@ -79,11 +89,64 @@ export default function HqFleetsPage() {
               </button>
             )}
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-strong text-zinc-400 hover:bg-white/5 hover:text-white transition-all">
-            <Filter size={16} />
+          <button
+            type="button"
+            onClick={() => setShowFilterControls((prev) => !prev)}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all cursor-pointer ${
+              showFilterControls || planFilter || statusFilter
+                ? 'border-accent bg-accent/15 text-accent shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                : 'border-line bg-surface-strong text-zinc-400 hover:bg-white/5 hover:text-white'
+            }`}
+            title="Filter Fleets"
+          >
+            <Funnel size={16} />
           </button>
         </div>
       </div>
+
+      {showFilterControls && (
+        <div className="flex flex-wrap gap-4 items-center bg-white/[0.02] border border-line rounded-[20px] p-5 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Service Plan</label>
+            <select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+              className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-white focus:border-accent focus:outline-none cursor-pointer"
+            >
+              <option value="">All Service Plans</option>
+              <option value="PREMIUM">Operations Plus (Premium)</option>
+              <option value="DEMO">Safety Core (Core)</option>
+            </select>
+          </div>
+          
+          <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Network Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-white focus:border-accent focus:outline-none cursor-pointer"
+            >
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="PENDING">Pending</option>
+            </select>
+          </div>
+
+          {(planFilter || statusFilter) && (
+            <button
+              type="button"
+              onClick={() => {
+                setPlanFilter('');
+                setStatusFilter('');
+              }}
+              className="mt-5 h-10 px-4 rounded-xl border border-line bg-white/5 hover:bg-white/10 text-xs font-semibold text-white transition-all cursor-pointer hover:scale-[1.02]"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
