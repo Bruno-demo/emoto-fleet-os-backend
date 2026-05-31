@@ -99,7 +99,16 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`MQTT client error: ${err.message}`);
     });
 
-    await this.waitForConnect(this.mqttClient);
+    // Connect asynchronously in the background to prevent server bootstrap crashes
+    this.waitForConnect(this.mqttClient)
+      .then(() => {
+        this.logger.log('MQTT client connection verified');
+      })
+      .catch((err) => {
+        this.logger.warn(
+          `MQTT client failed to connect on startup (will auto-reconnect): ${err.message}`,
+        );
+      });
   }
 
   async onModuleDestroy(): Promise<void> {
