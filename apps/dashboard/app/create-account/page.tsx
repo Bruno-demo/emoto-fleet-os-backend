@@ -139,14 +139,14 @@ function CreateAccountInner() {
   const selectedPlan = selectedPlanSlug ? PLAN_DETAILS[selectedPlanSlug] : null;
   const isDemo = flow === 'demo';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
-  const [signupType, setSignupType] = useState<SignupType>(tokenFromUrl ? 'rider' : 'rider');
+  const [signupType, setSignupType] = useState<SignupType>(tokenFromUrl ? 'rider' : planSlugFromUrl ? 'admin' : 'rider');
   const [inviteToken, setInviteToken] = useState(tokenFromUrl ?? '');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('DISPATCHER');
+  const [role, setRole] = useState<UserRole>(planSlugFromUrl ? 'ADMIN' : 'DISPATCHER');
   const [fleetName, setFleetName] = useState('');
   const [bikeRange, setBikeRange] = useState('11-50');
   const [termsAccepted, setTermsAccepted] = useState(false);

@@ -29,6 +29,7 @@ const PLAN_DETAILS: Record<
       'Live map + alerts',
       'Incident workflows',
       'Rider scores',
+      'Remote command controls',
       'Email support',
       '+ 50,000 RWF device setup & install fee',
     ],
@@ -39,7 +40,7 @@ const PLAN_DETAILS: Record<
     period: '/ bike / mo',
     features: [
       'Everything in Core',
-      'Command controls',
+      'Financial management control',
       'Trip analytics',
       'Compliance reports',
       'Priority support',

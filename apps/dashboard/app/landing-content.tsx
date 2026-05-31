@@ -98,6 +98,7 @@ const pricingPlans = [
       'Live map + alerts',
       'Incident workflows',
       'Rider scores',
+      'Remote command controls',
       'Email support',
       '+ 50,000 RWF device setup & install fee',
     ],
@@ -110,7 +111,7 @@ const pricingPlans = [
     description: 'Full command center with trip analytics and compliance dashboards.',
     features: [
       'Everything in Core',
-      'Command controls',
+      'Financial management control',
       'Trip analytics',
       'Compliance reports',
       'Priority support',
