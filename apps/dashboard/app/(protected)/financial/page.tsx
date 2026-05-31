@@ -671,7 +671,8 @@ export default function FinancialsPage() {
                 resetForm();
                 setShowCollectModal(true);
               }}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold py-3 text-sm transition-all shadow-md shadow-[#3B82F6]/15"
+              style={{ backgroundColor: '#3B82F6', color: '#ffffff' }}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold py-3 text-sm transition-all shadow-md shadow-accent/15 hover:opacity-90 hover:brightness-110"
             >
               <Plus size={14} />
               Collect lease payment
@@ -830,7 +831,8 @@ export default function FinancialsPage() {
                 type="button"
                 disabled={recordPaymentMutation.isPending}
                 onClick={handleRecordPaymentSubmit}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#3B82F6] text-white font-semibold px-5 py-2.5 text-sm hover:bg-[#2563EB] disabled:opacity-50 transition"
+                style={{ backgroundColor: '#3B82F6', color: '#ffffff' }}
+                className="inline-flex items-center gap-1.5 rounded-xl font-semibold px-5 py-2.5 text-sm hover:opacity-90 hover:brightness-110 disabled:opacity-50 transition"
               >
                 {recordPaymentMutation.isPending ? 'Saving...' : 'Confirm Collection'}
               </button>
