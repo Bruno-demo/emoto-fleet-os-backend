@@ -373,8 +373,14 @@ export default function HqBillingPage() {
 
       {/* Fleet Detail Modal */}
       {selectedFleet && activeFleetDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6">
-          <div className="w-full max-w-lg rounded-3xl border border-white/[0.08] bg-surface p-8 space-y-6 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-white">
+        <div 
+          onClick={() => setSelectedFleet(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl border border-white/[0.08] bg-surface p-6 sm:p-8 space-y-5 shadow-2xl relative overflow-y-auto max-h-[90vh] md:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200 text-white"
+          >
             {/* Top accent glow */}
             <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl pointer-events-none ${
               activeFleetDetails.plan === 'PREMIUM' ? 'bg-emerald-500/10' : 'bg-blue-500/10'
