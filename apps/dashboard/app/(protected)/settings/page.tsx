@@ -562,8 +562,17 @@ export default function SettingsPage() {
 
       {/* Contact Sales Modal */}
       {showContactSales && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-6">
-          <div className="w-full max-w-lg rounded-3xl border border-white/[0.06] bg-[var(--background-subtle)] p-8 space-y-6 shadow-2xl relative overflow-hidden animate-fade-in text-ink">
+        <div 
+          onClick={() => {
+            setShowContactSales(false);
+            setSalesFormSubmitted(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 sm:p-8 space-y-5 shadow-2xl relative overflow-y-auto max-h-[90vh] md:max-h-[85vh] animate-fade-in text-ink"
+          >
             {/* Close Button */}
             <button
               onClick={() => {
