@@ -567,7 +567,7 @@ export default function SettingsPage() {
             setShowContactSales(false);
             setSalesFormSubmitted(false);
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto"
         >
           <div 
             onClick={(e) => e.stopPropagation()}

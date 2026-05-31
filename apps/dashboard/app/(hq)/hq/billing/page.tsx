@@ -375,7 +375,7 @@ export default function HqBillingPage() {
       {selectedFleet && activeFleetDetails && (
         <div 
           onClick={() => setSelectedFleet(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
