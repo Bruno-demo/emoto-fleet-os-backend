@@ -268,7 +268,7 @@ export default function HqBillingPage() {
               <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (50k RWF)</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (20k RWF)</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Subscription</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
@@ -345,7 +345,7 @@ export default function HqBillingPage() {
                         </span>
                         
                         <p className="text-xs font-semibold text-zinc-500">
-                          ({(fleet._count.bikes * 50000).toLocaleString()} RWF)
+                          ({(fleet._count.bikes * 20000).toLocaleString()} RWF)
                         </p>
                       </div>
                     </td>
@@ -375,7 +375,7 @@ export default function HqBillingPage() {
                         </span>
                         
                         <p className="text-xs font-semibold text-zinc-500">
-                          ({(fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 25000 : 10000)).toLocaleString()} RWF/mo)
+                          ({(fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()} RWF/mo)
                         </p>
                       </div>
                     </td>
@@ -499,7 +499,7 @@ export default function HqBillingPage() {
               <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Monthly Plan Rate</p>
                 <p className="text-2xl font-extrabold text-white">
-                  {activeFleetDetails.plan === 'PREMIUM' ? '25,000 RWF' : '10,000 RWF'}
+                  {activeFleetDetails.plan === 'PREMIUM' ? '10,000 RWF' : '5,000 RWF'}
                 </p>
                 <p className="text-[10px] text-zinc-500">per bike per month</p>
               </div>
@@ -509,21 +509,21 @@ export default function HqBillingPage() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Total Subscription Cost</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-extrabold text-emerald-400">
-                    {(activeFleetDetails._count.bikes * (activeFleetDetails.plan === 'PREMIUM' ? 25000 : 10000)).toLocaleString()} RWF
+                    {(activeFleetDetails._count.bikes * (activeFleetDetails.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()} RWF
                   </span>
                   <span className="text-xs text-zinc-400">/ month</span>
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                  Formula: {activeFleetDetails._count.bikes} bikes &times; {activeFleetDetails.plan === 'PREMIUM' ? '25,000' : '10,000'} RWF / month
+                  Formula: {activeFleetDetails._count.bikes} bikes &times; {activeFleetDetails.plan === 'PREMIUM' ? '10,000' : '5,000'} RWF / month
                 </p>
               </div>
 
               {/* Stat 4: Setup Fee Total */}
               <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1 sm:col-span-2 flex justify-between items-center">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">One-time Setup Fee (50k RWF/bike)</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">One-time Setup Fee (20k RWF/bike)</p>
                   <p className="text-lg font-extrabold text-white">
-                    {(activeFleetDetails._count.bikes * 50000).toLocaleString()} RWF
+                    {(activeFleetDetails._count.bikes * 20000).toLocaleString()} RWF
                   </p>
                 </div>
                 <div>

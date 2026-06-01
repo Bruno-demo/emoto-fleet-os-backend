@@ -22,7 +22,7 @@ const PLAN_DETAILS: Record<
 > = {
   'safety-core': {
     title: 'Safety Core',
-    price: '10,000 RWF',
+    price: '5,000 RWF',
     period: '/ bike / mo',
     features: [
       'Live map + alerts',
@@ -30,12 +30,12 @@ const PLAN_DETAILS: Record<
       'Rider scores',
       'Remote command controls',
       'Email support',
-      '+ 50,000 RWF device setup & install fee',
+      '+ 20,000 RWF device setup & install fee',
     ],
   },
   'operations-plus': {
     title: 'Operations Plus',
-    price: '25,000 RWF',
+    price: '10,000 RWF',
     period: '/ bike / mo',
     features: [
       'Everything in Core',
@@ -43,7 +43,7 @@ const PLAN_DETAILS: Record<
       'Trip analytics',
       'Compliance reports',
       'Priority support',
-      '+ 50,000 RWF device setup & install fee',
+      '+ 20,000 RWF device setup & install fee',
     ],
   },
   enterprise: {
