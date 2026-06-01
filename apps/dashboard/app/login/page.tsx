@@ -67,11 +67,11 @@ export default function LoginPage() {
 
   const nextPath = useMemo(() => {
     if (typeof window === 'undefined') {
-      return '/';
+      return '/overview';
     }
     const requestedPath = new URLSearchParams(window.location.search).get('next');
     if (!requestedPath || !requestedPath.startsWith('/')) {
-      return '/';
+      return '/overview';
     }
     return requestedPath;
   }, []);

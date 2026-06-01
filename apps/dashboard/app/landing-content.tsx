@@ -225,13 +225,18 @@ export default function LandingContent() {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    const authCookieName = 'emoto_access_token';
-    const hasToken = document.cookie
-      .split('; ')
-      .some((c) => c.startsWith(`${authCookieName}=`));
-    setTimeout(() => {
-      setHasSession(hasToken);
-    }, 0);
+    const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+    fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
+      .then((res) => {
+        if (res.ok) {
+          setHasSession(true);
+        } else {
+          setHasSession(false);
+        }
+      })
+      .catch(() => {
+        setHasSession(false);
+      });
   }, []);
 
   return (

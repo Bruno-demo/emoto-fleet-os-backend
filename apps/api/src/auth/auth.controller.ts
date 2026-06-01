@@ -285,12 +285,18 @@ export class AuthController {
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
     );
-    const secure = this.configService.get<boolean>('AUTH_COOKIE_SECURE', false);
+    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+    const secure = isProd
+      ? true
+      : this.configService.get<boolean>('AUTH_COOKIE_SECURE', false);
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
-    const sameSite =
-      configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
+    const sameSite = isProd
+      ? 'none'
+      : configuredSameSite === 'none' && !secure
+        ? 'lax'
+        : configuredSameSite;
     const domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
     const rememberDays = this.configService.get<number>(
       'AUTH_REMEMBER_ME_DAYS',
@@ -302,7 +308,7 @@ export class AuthController {
 
     response.cookie(cookieName, token, {
       httpOnly: true,
-      secure: secure || configuredSameSite === 'none',
+      secure,
       sameSite,
       path: '/',
       domain: domain || undefined,
@@ -317,16 +323,22 @@ export class AuthController {
       'AUTH_COOKIE_NAME',
       'emoto_access_token',
     );
-    const secure = this.configService.get<boolean>('AUTH_COOKIE_SECURE', false);
+    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+    const secure = isProd
+      ? true
+      : this.configService.get<boolean>('AUTH_COOKIE_SECURE', false);
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
-    const sameSite =
-      configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
+    const sameSite = isProd
+      ? 'none'
+      : configuredSameSite === 'none' && !secure
+        ? 'lax'
+        : configuredSameSite;
     const domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
     response.clearCookie(cookieName, {
       httpOnly: true,
-      secure: secure || configuredSameSite === 'none',
+      secure,
       sameSite,
       path: '/',
       domain: domain || undefined,
