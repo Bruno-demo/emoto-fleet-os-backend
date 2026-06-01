@@ -139,6 +139,12 @@ export const envSchema = z
       .number()
       .nonnegative()
       .default(3),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_SECURE: booleanString,
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().default('eMoto Fleet OS <no-reply@emotofleet.com>'),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {

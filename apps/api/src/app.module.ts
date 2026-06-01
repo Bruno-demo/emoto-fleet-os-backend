@@ -25,6 +25,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { TripsModule } from './trips/trips.module';
 import { ZonesModule } from './zones/zones.module';
 import { FinancialsModule } from './financials/financials.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { FinancialsModule } from './financials/financials.module';
     HqModule,
     SubscriptionModule,
     FinancialsModule,
+    MailModule,
   ],
   providers: [
     {

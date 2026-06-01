@@ -29,6 +29,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { RegisterSelfDto } from './dto/register-self.dto';
+import { MailService } from '../mail/mail.service';
 
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_SECONDS = 900; // 15 minutes
@@ -65,6 +66,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
     private readonly auditService: AuditService,
+    private readonly mailService: MailService,
   ) {}
 
   // Authenticates with email/password or phone/password and returns an access token.
@@ -140,6 +142,10 @@ export class AuthService {
 \x1b[35m  OTP:   ${otp}\x1b[0m
 \x1b[33m${border}\x1b[0m
 `);
+
+      if (user.email) {
+        await this.mailService.sendOtpEmail(user.email, otp, 'login');
+      }
 
       const tempToken = `temp_login_session_${randomBytes(24).toString('hex')}`;
       const tempKey = `temp_login_data:${tempToken}`;
@@ -743,6 +749,10 @@ export class AuthService {
     // Cache the user ID with the token mapping in Redis for 1 hour
     await this.redisService.set(`password_reset:${token}`, user.id, 3600);
 
+    if (user.email) {
+      await this.mailService.sendOtpEmail(user.email, token, 'forgot-password');
+    }
+
     return {
       message: 'Reset token generated.',
       token: process.env.NODE_ENV !== 'production' ? token : undefined,
@@ -1003,6 +1013,8 @@ export class AuthService {
 \x1b[35m  OTP:   ${otp}\x1b[0m
 \x1b[33m${border}\x1b[0m
 `);
+
+    await this.mailService.sendOtpEmail(normalizedEmail, otp, dto.reason);
 
     return {
       message: 'OTP sent successfully',
