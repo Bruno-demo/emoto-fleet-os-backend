@@ -49,6 +49,47 @@ export class MailService {
    * General purpose email sending method
    */
   async sendMail(to: string, subject: string, html: string): Promise<boolean> {
+    const host = this.configService.get<string>('SMTP_HOST');
+    const pass = this.configService.get<string>('SMTP_PASS');
+
+    // If using Resend, prefer their HTTPS REST API to completely bypass Railway's outbound SMTP port blockades!
+    if ((host === 'smtp.resend.com' || (!host && pass?.startsWith('re_'))) && pass) {
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${pass}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: this.fromAddress,
+            to: [to],
+            subject,
+            html,
+          }),
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as { id?: string };
+          this.logger.log(
+            `Email sent successfully to ${to} via Resend HTTPS REST API. MessageId: ${data.id ?? 'unknown'}`,
+          );
+          return true;
+        } else {
+          const errorData = await response.text();
+          this.logger.error(
+            `Resend HTTPS REST API returned error status ${response.status}: ${errorData}`,
+          );
+        }
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to send email to ${to} via Resend HTTPS REST API: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+      }
+    }
+
     if (!this.transporter) {
       this.logger.warn(`[Dev Mode Mock Mail] Would send email to: ${to}`);
       this.logger.warn(`[Dev Mode Mock Mail] Subject: ${subject}`);
