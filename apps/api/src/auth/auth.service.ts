@@ -144,7 +144,12 @@ export class AuthService {
 `);
 
       if (user.email) {
-        await this.mailService.sendOtpEmail(user.email, otp, 'login');
+        // Send email asynchronously without blocking the response
+        this.mailService.sendOtpEmail(user.email, otp, 'login').catch((error: unknown) => {
+          this.logger.warn(
+            `Failed to send OTP email: ${error instanceof Error ? error.message : 'unknown'}`,
+          );
+        });
       }
 
       const tempToken = `temp_login_session_${randomBytes(24).toString('hex')}`;
@@ -750,7 +755,12 @@ export class AuthService {
     await this.redisService.set(`password_reset:${token}`, user.id, 3600);
 
     if (user.email) {
-      await this.mailService.sendOtpEmail(user.email, token, 'forgot-password');
+      // Send email asynchronously without blocking the response
+      this.mailService.sendOtpEmail(user.email, token, 'forgot-password').catch((error: unknown) => {
+        this.logger.warn(
+          `Failed to send OTP email: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
+      });
     }
 
     return {
@@ -1014,7 +1024,12 @@ export class AuthService {
 \x1b[33m${border}\x1b[0m
 `);
 
-    await this.mailService.sendOtpEmail(normalizedEmail, otp, dto.reason);
+    // Send email asynchronously without blocking the response
+    this.mailService.sendOtpEmail(normalizedEmail, otp, dto.reason).catch((error: unknown) => {
+      this.logger.warn(
+        `Failed to send OTP email: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    });
 
     return {
       message: 'OTP sent successfully',
