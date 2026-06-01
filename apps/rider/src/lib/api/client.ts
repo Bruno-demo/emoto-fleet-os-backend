@@ -106,9 +106,13 @@ export async function apiFetch<T = unknown>(
       operation: path,
       status: 0,
     });
+    const message = error instanceof Error && error.name === 'AbortError'
+      ? 'Request timed out. Please check your internet connection.'
+      : 'Network connection failed. Please check your internet connection.';
+      
     throw new ApiError(
       0,
-      error instanceof Error ? error.message : 'Network request failed',
+      message,
       error,
     );
   }
@@ -122,7 +126,7 @@ export async function apiFetch<T = unknown>(
     });
     throw new ApiError(
       response.status,
-      extractErrorMessage(body, `Request failed with status ${response.status}`),
+      extractErrorMessage(body, 'Request failed. Please try again.'),
       body,
     );
   }

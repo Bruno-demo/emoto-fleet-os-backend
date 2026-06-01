@@ -8,6 +8,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly url?: string,
     public readonly details?: unknown,
   ) {
     super(message);
@@ -116,10 +117,16 @@ export async function apiFetch<T = unknown>(
         window.location.href = '/forbidden';
       }
 
-      const rawMessage = extractErrorMessage(body, `Request failed with status ${response.status}`);
+      const rawMessage = extractErrorMessage(body, 'Request failed. Please try again.');
+      console.error(`API Error: ${rawMessage}`, {
+        url: resolvedUrl,
+        status: response.status,
+        body,
+      });
       throw new ApiError(
         response.status,
-        `${rawMessage} (URL: ${resolvedUrl})`,
+        rawMessage,
+        resolvedUrl,
         body,
       );
     }
@@ -132,10 +139,16 @@ export async function apiFetch<T = unknown>(
     clearTimeout(timeoutId);
     if (error instanceof ApiError) throw error;
     
-    const message = error instanceof Error && error.name === 'AbortError' 
-      ? `Request timed out (URL: ${resolveApiUrl(path)})` 
-      : `Network connection failed (URL: ${resolveApiUrl(path)})`;
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    const message = isTimeout 
+      ? 'Request timed out. Please check your internet connection.' 
+      : 'Network connection failed. Please check your internet connection.';
+    
+    console.error(`API Fetch Error: ${message}`, {
+      url: resolveApiUrl(path),
+      error,
+    });
       
-    throw new ApiError(0, message, error);
+    throw new ApiError(0, message, resolveApiUrl(path), error);
   }
 }

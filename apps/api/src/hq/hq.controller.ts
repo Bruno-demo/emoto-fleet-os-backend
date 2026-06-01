@@ -476,7 +476,9 @@ export class HqController {
   }
 
   @Put('fleets/:id/toggle-installation-payment')
-  @ApiOperation({ summary: 'Toggle one-time device installation fee payment status' })
+  @ApiOperation({
+    summary: 'Toggle one-time device installation fee payment status',
+  })
   toggleInstallationPayment(@Param('id') id: string) {
     return this.hqService.toggleInstallationPayment(id);
   }

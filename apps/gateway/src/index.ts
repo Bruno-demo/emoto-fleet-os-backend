@@ -274,9 +274,10 @@ proxy.on('proxyRes', (_proxyRes, req, res) => {
   applyCors(req, res);
 });
 
-proxy.on('error', (error, _req, res) => {
+proxy.on('error', (error, req, res) => {
   logger.error({ err: error }, 'proxy_error');
   if (res instanceof http.ServerResponse && !res.headersSent) {
+    applyCors(req, res);
     res.writeHead(502, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Bad gateway' }));
   }
