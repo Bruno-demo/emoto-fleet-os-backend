@@ -15,10 +15,65 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'eMoto Fleet Dashboard',
-  description: 'Fleet dashboard for live telematics operations',
+  title: {
+    default: 'eMoto Fleet OS | Smart Safety & Telematics Command Center',
+    template: '%s | eMoto Fleet OS',
+  },
+  description: 'Real-time safety, tracking, and B2B SaaS operations management for electric motorcycle fleets in Kigali, Rwanda. Automate leasing, protect vehicle assets, and increase rider safety.',
+  keywords: [
+    'e-moto Rwanda',
+    'electric motorcycle Kigali',
+    'motorcycle taxi GPS tracking',
+    'Kigali logistics tracking',
+    'electric bike lease-to-own',
+    'Rwanda IoT telematics',
+    'e-moto fleet management',
+    'vehicle immobilization Kigali',
+    'SinoTrack Kigali configuration',
+    'eMoto Fleet OS',
+  ],
+  authors: [{ name: 'eMoto Team', url: 'https://emotofleet.com' }],
+  creator: 'eMoto',
+  metadataBase: new URL('https://emotofleet.com'),
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://emotofleet.com',
+    title: 'eMoto Fleet OS | Smart Safety & Telematics Command Center',
+    description: 'Real-time safety, tracking, and B2B SaaS operations management for electric motorcycle fleets in Kigali, Rwanda.',
+    siteName: 'eMoto Fleet OS',
+    images: [
+      {
+        url: '/icon.svg',
+        width: 512,
+        height: 512,
+        alt: 'eMoto Fleet OS Command Center',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'eMoto Fleet OS | Smart Safety & Telematics Command Center',
+    description: 'Real-time safety, tracking, and B2B SaaS operations management for electric motorcycle fleets in Kigali, Rwanda.',
+    images: ['/icon.svg'],
   },
 };
 
@@ -28,6 +83,30 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              'name': 'eMoto Fleet OS',
+              'operatingSystem': 'All',
+              'applicationCategory': 'BusinessApplication',
+              'description': 'Real-time safety, telematics, and operations management platform for electric motorcycle fleets in Kigali, Rwanda.',
+              'offers': {
+                '@type': 'Offer',
+                'price': '5000',
+                'priceCurrency': 'RWF',
+                'description': 'Safety Core subscription'
+              },
+              'publisher': {
+                '@type': 'Organization',
+                'name': 'eMoto',
+                'url': 'https://emotofleet.com'
+              }
+            }),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
