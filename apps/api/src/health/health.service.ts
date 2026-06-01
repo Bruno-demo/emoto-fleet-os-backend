@@ -58,8 +58,8 @@ export class HealthService {
       }
     }
 
-    const allUp = Object.values(checks).every((status) => status === 'up');
-    if (allUp) {
+    const criticalUp = checks.db === 'up' && checks.redis === 'up';
+    if (criticalUp) {
       return {
         status: 'ok',
         checks,
