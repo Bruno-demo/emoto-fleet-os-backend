@@ -92,47 +92,49 @@ export async function apiFetch<T = unknown>(
     clearTimeout(timeoutId);
 
     const body = await parseResponseBody(response);
-  if (!response.ok) {
-    // If session is expired or invalid (401), redirect to login page.
-    if (response.status === 401 && typeof window !== 'undefined') {
-      const pathname = window.location.pathname;
-      const isGuestPath = ['/login', '/create-account', '/forgot-password'].some(
-        (p) => pathname === p || pathname.startsWith(`${p}/`),
-      );
-      if (!isGuestPath) {
-        // Clear cookie via server logout endpoint first, then redirect to login with expired flag.
-        try {
-          await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
-        } catch {
-          // Ignore logout errors
+    const resolvedUrl = resolveApiUrl(path);
+    if (!response.ok) {
+      // If session is expired or invalid (401), redirect to login page.
+      if (response.status === 401 && typeof window !== 'undefined') {
+        const pathname = window.location.pathname;
+        const isGuestPath = ['/login', '/create-account', '/forgot-password'].some(
+          (p) => pathname === p || pathname.startsWith(`${p}/`),
+        );
+        if (!isGuestPath) {
+          // Clear cookie via server logout endpoint first, then redirect to login with expired flag.
+          try {
+            await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+          } catch {
+            // Ignore logout errors
+          }
+          window.location.href = `/login?expired=true&next=${encodeURIComponent(pathname)}`;
         }
-        window.location.href = `/login?expired=true&next=${encodeURIComponent(pathname)}`;
       }
+
+      // If access is forbidden (403) on an HQ admin route, redirect to forbidden page.
+      if (response.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/hq')) {
+        window.location.href = '/forbidden';
+      }
+
+      const rawMessage = extractErrorMessage(body, `Request failed with status ${response.status}`);
+      throw new ApiError(
+        response.status,
+        `${rawMessage} (URL: ${resolvedUrl})`,
+        body,
+      );
     }
 
-    // If access is forbidden (403) on an HQ admin route, redirect to forbidden page.
-    if (response.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/hq')) {
-      window.location.href = '/forbidden';
+    if (!options.schema) {
+      return body as T;
     }
-
-    throw new ApiError(
-      response.status,
-      extractErrorMessage(body, `Request failed with status ${response.status}`),
-      body,
-    );
-  }
-
-  if (!options.schema) {
-    return body as T;
-  }
-  return options.schema.parse(body);
+    return options.schema.parse(body);
   } catch (error: unknown) {
     clearTimeout(timeoutId);
     if (error instanceof ApiError) throw error;
     
     const message = error instanceof Error && error.name === 'AbortError' 
-      ? 'Request timed out' 
-      : 'Network connection failed';
+      ? `Request timed out (URL: ${resolveApiUrl(path)})` 
+      : `Network connection failed (URL: ${resolveApiUrl(path)})`;
       
     throw new ApiError(0, message, error);
   }
