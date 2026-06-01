@@ -54,6 +54,8 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
   private readonly mqttDisabled: boolean;
   private mqttClient: MqttClient | null = null;
   private mqttConnected = false;
+  private readonly mqttUser?: string;
+  private readonly mqttPassword?: string;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -72,6 +74,8 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       45,
     );
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
+    this.mqttUser = this.configService.get<string>('MQTT_USER');
+    this.mqttPassword = this.configService.get<string>('MQTT_PASSWORD');
   }
 
   onModuleInit(): void {
@@ -80,10 +84,19 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.mqttClient = mqtt.connect(this.mqttUrl, {
+    const options: mqtt.IClientOptions = {
       reconnectPeriod: 5_000,
       connectTimeout: MQTT_PUBLISH_TIMEOUT_MS,
-    });
+    };
+
+    if (this.mqttUser) {
+      options.username = this.mqttUser;
+    }
+    if (this.mqttPassword) {
+      options.password = this.mqttPassword;
+    }
+
+    this.mqttClient = mqtt.connect(this.mqttUrl, options);
 
     this.mqttClient.on('connect', () => {
       this.mqttConnected = true;

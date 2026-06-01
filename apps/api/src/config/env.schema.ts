@@ -32,6 +32,8 @@ export const envSchema = z
     REDIS_IN_MEMORY: booleanString,
     MQTT_URL: z.string().url(),
     MQTT_DISABLED: booleanString,
+    MQTT_USER: z.string().optional(),
+    MQTT_PASSWORD: z.string().optional(),
     SINOTRACK_ENABLED: booleanStringDefaultTrue,
     SINOTRACK_PORT: z.coerce.number().int().positive().default(5013),
     NOTIFICATION_OUTBOX_INLINE: booleanString,
