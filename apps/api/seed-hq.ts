@@ -24,25 +24,41 @@ async function seedHq() {
     console.log(`Fleet "E-Moto HQ" already exists. ID: ${fleet.id}`);
   }
 
-  const email = 'admin@emoto.com';
-  let user = await prisma.user.findFirst({
-    where: { email },
-  });
+  const admins = [
+    { email: 'admin@emoto.com', password: 'EmotoAdmin123!' },
+    { email: 'bruno@emotofleet.com', password: 'Nadia2005' },
+  ];
 
-  if (!user) {
-    const passwordHash = await bcrypt.hash('EmotoAdmin123!', 10);
-    user = await prisma.user.create({
-      data: {
-        fleetId: fleet.id,
-        role: 'ADMIN',
-        email,
-        passwordHash,
-        status: 'ACTIVE',
-      },
+  for (const admin of admins) {
+    let user = await prisma.user.findFirst({
+      where: { email: admin.email },
     });
-    console.log(`Created HQ user with email: ${email} and password: EmotoAdmin123!`);
-  } else {
-    console.log(`User ${email} already exists.`);
+
+    if (!user) {
+      const passwordHash = await bcrypt.hash(admin.password, 10);
+      user = await prisma.user.create({
+        data: {
+          fleetId: fleet.id,
+          role: 'ADMIN',
+          email: admin.email,
+          passwordHash,
+          status: 'ACTIVE',
+        },
+      });
+      console.log(`Created HQ user with email: ${admin.email} and password: ${admin.password}`);
+    } else {
+      const passwordHash = await bcrypt.hash(admin.password, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          fleetId: fleet.id,
+          role: 'ADMIN',
+          passwordHash,
+          status: 'ACTIVE',
+        },
+      });
+      console.log(`User ${admin.email} updated to HQ Admin with password: ${admin.password}`);
+    }
   }
 
   console.log('Done!');
