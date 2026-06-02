@@ -41,16 +41,16 @@ const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
 const PLAN_DETAILS: Record<string, { title: string; price: string; period: string; description: string; icon: React.ReactNode }> = {
   'safety-core': { 
     title: 'Safety Core', 
-    price: '10,000 RWF', 
+    price: '5,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Essential safety (+ 50,000 RWF setup).',
+    description: 'Essential safety (+ 20,000 RWF setup).',
     icon: <ShieldCheck size={18} />
   },
   'operations-plus': { 
     title: 'Operations Plus', 
-    price: '25,000 RWF', 
+    price: '10,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Advanced fleet ops (+ 50,000 RWF setup).',
+    description: 'Advanced fleet ops (+ 20,000 RWF setup).',
     icon: <Zap size={18} />
   },
   enterprise: { 
