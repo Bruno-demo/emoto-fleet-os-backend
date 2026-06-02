@@ -77,12 +77,22 @@ export class HealthService {
   private async checkMqtt(): Promise<void> {
     const mqtt = await import('mqtt');
     const mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
+    const mqttUser = this.configService.get<string>('MQTT_USER');
+    const mqttPassword = this.configService.get<string>('MQTT_PASSWORD');
 
     await new Promise<void>((resolve, reject) => {
-      const client = mqtt.connect(mqttUrl, {
+      const options: Record<string, any> = {
         connectTimeout: 5_000,
         reconnectPeriod: 0,
-      });
+      };
+      if (mqttUser) {
+        options.username = mqttUser;
+      }
+      if (mqttPassword) {
+        options.password = mqttPassword;
+      }
+
+      const client = mqtt.connect(mqttUrl, options);
       const timeout = setTimeout(() => {
         client.end(true);
         reject(new Error('MQTT connection timed out'));

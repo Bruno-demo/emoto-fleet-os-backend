@@ -54,6 +54,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
   private readonly streamKey: string | null;
   private readonly streamMaxLen: number;
   private readonly streamEnabled: boolean;
+  private readonly mqttUser?: string;
+  private readonly mqttPassword?: string;
   private mqttClient: MqttClient | null = null;
 
   constructor(
@@ -78,6 +80,8 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       'STREAM_ENABLED',
       true,
     );
+    this.mqttUser = this.configService.get<string>('MQTT_USER');
+    this.mqttPassword = this.configService.get<string>('MQTT_PASSWORD');
   }
 
   // Opens MQTT connection and subscribes to ingestion topics.
@@ -91,6 +95,13 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       reconnectPeriod: 3_000,
       connectTimeout: 10_000,
     };
+
+    if (this.mqttUser) {
+      options.username = this.mqttUser;
+    }
+    if (this.mqttPassword) {
+      options.password = this.mqttPassword;
+    }
 
     this.mqttClient = mqtt.connect(this.mqttUrl, options);
 
