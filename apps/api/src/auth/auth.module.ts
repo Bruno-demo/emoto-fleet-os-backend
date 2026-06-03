@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuditModule } from '../audit/audit.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
+import { MailModule } from '../mail/mail.module';
 import { AuthController, MeController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -16,6 +17,7 @@ import { RolesGuard } from './roles.guard';
     PrismaModule,
     RedisModule,
     AuditModule,
+    MailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       // Configures JWT signing with shared app secrets.
