@@ -1647,10 +1647,14 @@ export default function FleetDetailPage() {
                     {selectedOperator.riderProfile?.licencePhoto ? (
                       <div
                         className="rounded-xl border border-line bg-white/5 overflow-hidden max-h-[160px] cursor-zoom-in"
-                        onClick={() => window.open(selectedOperator.riderProfile.licencePhoto || undefined)}
+                        onClick={() => {
+                          if (selectedOperator.riderProfile?.licencePhoto) {
+                            window.open(selectedOperator.riderProfile.licencePhoto);
+                          }
+                        }}
                       >
                         <img
-                          src={selectedOperator.riderProfile.licencePhoto}
+                          src={selectedOperator.riderProfile.licencePhoto || undefined}
                           alt="Licence"
                           className="w-full object-cover max-h-[160px]"
                         />
@@ -1666,10 +1670,14 @@ export default function FleetDetailPage() {
                     {selectedOperator.riderProfile?.identityCardPhoto ? (
                       <div
                         className="rounded-xl border border-line bg-white/5 overflow-hidden max-h-[160px] cursor-zoom-in"
-                        onClick={() => window.open(selectedOperator.riderProfile.identityCardPhoto || undefined)}
+                        onClick={() => {
+                          if (selectedOperator.riderProfile?.identityCardPhoto) {
+                            window.open(selectedOperator.riderProfile.identityCardPhoto);
+                          }
+                        }}
                       >
                         <img
-                          src={selectedOperator.riderProfile.identityCardPhoto}
+                          src={selectedOperator.riderProfile.identityCardPhoto || undefined}
                           alt="Identity Card"
                           className="w-full object-cover max-h-[160px]"
                         />
