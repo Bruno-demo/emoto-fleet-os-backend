@@ -269,7 +269,7 @@ export class AuthService {
   ): Promise<AuthenticatedUser> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');
@@ -336,14 +336,14 @@ export class AuthService {
   async registerPublic(dto: PublicRegisterDto): Promise<AuthenticatedUser> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');
     }
     const publicRegisterEnabled = this.configService.get<boolean>(
       'AUTH_PUBLIC_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!publicRegisterEnabled) {
       throw new ForbiddenException('Public registration is disabled');
@@ -409,7 +409,7 @@ export class AuthService {
   async registerSelfDriver(dto: RegisterSelfDto): Promise<AuthenticatedUser> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');
@@ -488,14 +488,14 @@ export class AuthService {
   async registerFleet(dto: RegisterFleetDto): Promise<AuthenticatedUser> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');
     }
     const publicRegisterEnabled = this.configService.get<boolean>(
       'AUTH_PUBLIC_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!publicRegisterEnabled) {
       throw new ForbiddenException('Public registration is disabled');
@@ -579,7 +579,7 @@ export class AuthService {
   }> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');
@@ -635,7 +635,7 @@ export class AuthService {
   async redeemInvite(dto: RedeemInviteDto): Promise<AuthenticatedUser> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
-      false,
+      true,
     );
     if (!registerEnabled) {
       throw new ForbiddenException('Registration is disabled');

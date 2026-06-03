@@ -106,8 +106,8 @@ export const envSchema = z
       .string()
       .min(32)
       .superRefine(noPlaceholderSecret),
-    AUTH_REGISTER_ENABLED: booleanString,
-    AUTH_PUBLIC_REGISTER_ENABLED: booleanString,
+    AUTH_REGISTER_ENABLED: booleanStringDefaultTrue,
+    AUTH_PUBLIC_REGISTER_ENABLED: booleanStringDefaultTrue,
     AUTH_COOKIE_NAME: z.string().min(3).default('emoto_access_token'),
     AUTH_COOKIE_SECURE: booleanString,
     AUTH_COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
