@@ -32,8 +32,9 @@ export default function ContactPage() {
         body: JSON.stringify({ name, email, category, message }),
       });
       setSubmitted(true);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to submit inquiry. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit inquiry. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
