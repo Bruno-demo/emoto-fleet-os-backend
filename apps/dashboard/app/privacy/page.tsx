@@ -71,8 +71,8 @@ export default function PrivacyPage() {
             <h3 className="text-xs font-bold text-white">Compliance Inquiries</h3>
             <p className="text-[11px] leading-relaxed text-zinc-500 mt-2">
               For any telemetry access audits or questions about our automated data purging processes, please write to our Data Protection Officer at{' '}
-              <a href="mailto:privacy@emoto.rw" className="text-accent hover:underline">
-                privacy@emoto.rw
+              <a href="mailto:privacy@emotofleet.com" className="text-accent hover:underline">
+                privacy@emotofleet.com
               </a>
               .
             </p>

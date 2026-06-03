@@ -69,8 +69,8 @@ export default function TermsPage() {
             <h3 className="text-xs font-bold text-white">Contact Billing & Operations</h3>
             <p className="text-[11px] leading-relaxed text-zinc-500 mt-2">
               For any questions regarding billing disputes, remote lock audits, or custom enterprise SLAs, please contact our contracts desk at{' '}
-              <a href="mailto:billing@emoto.rw" className="text-accent hover:underline">
-                billing@emoto.rw
+              <a href="mailto:billing@emotofleet.com" className="text-accent hover:underline">
+                billing@emotofleet.com
               </a>
               .
             </p>

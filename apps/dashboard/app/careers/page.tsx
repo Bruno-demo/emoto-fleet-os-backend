@@ -97,7 +97,7 @@ export default function CareersPage() {
 
                 <div className="mt-6 pt-4 border-t border-white/[0.04] flex justify-end">
                   <a
-                    href="mailto:careers@emoto.rw"
+                    href="mailto:careers@emotofleet.com"
                     className="inline-flex items-center gap-1.5 text-xs text-white font-semibold transition hover:text-accent group-hover:translate-x-0.5"
                   >
                     Apply for Position <ArrowRight size={12} />
