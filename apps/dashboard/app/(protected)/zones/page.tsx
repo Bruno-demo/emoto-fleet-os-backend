@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
-import { PageShell } from '@/components/layout/page-shell';
+import dynamic from 'next/dynamic';
 import { canManageZones } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
@@ -17,6 +17,18 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineNotice, SelectField, TextAreaField, TextField } from '@/components/ui/form-controls';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+
+const ZoneDrawMap = dynamic(
+  () => import('@/components/zones/zone-draw-map'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-72 w-full rounded-xl border border-line bg-surface-muted flex items-center justify-center text-xs text-ink-soft">
+        Loading drawing canvas...
+      </div>
+    ),
+  },
+);
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +57,13 @@ const defaultPolygon = JSON.stringify(
   2,
 );
 
+const defaultPoints: Array<[number, number]> = [
+  [30.06, -1.95],
+  [30.065, -1.95],
+  [30.065, -1.945],
+  [30.06, -1.945],
+];
+
 export default function ZonesPage() {
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
@@ -55,9 +74,32 @@ export default function ZonesPage() {
   const [speedLimitKph, setSpeedLimitKph] = useState('');
   const [active, setActive] = useState(true);
   const [geojsonPolygon, setGeojsonPolygon] = useState(defaultPolygon);
+  const [points, setPoints] = useState<Array<[number, number]>>(defaultPoints);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Zone | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handlePointsChange = (newPoints: Array<[number, number]>) => {
+    setPoints(newPoints);
+    if (newPoints.length > 0) {
+      // Close the polygon by appending the first point at the end
+      const coordinates = [...newPoints, newPoints[0]];
+      const geojson = {
+        type: 'Polygon',
+        coordinates: [coordinates],
+      };
+      setGeojsonPolygon(JSON.stringify(geojson, null, 2));
+    } else {
+      setGeojsonPolygon('');
+    }
+  };
+
+  const mapCenter = useMemo<[number, number] | null>(() => {
+    if (points.length > 0) {
+      return [points[0][1], points[0][0]];
+    }
+    return null;
+  }, [points]);
 
   const isAdmin = currentUser ? canManageZones(currentUser.role) : false;
 
@@ -94,6 +136,7 @@ export default function ZonesPage() {
     setSpeedLimitKph('');
     setActive(true);
     setGeojsonPolygon(defaultPolygon);
+    setPoints(defaultPoints);
     setFormError(null);
   };
 
@@ -106,6 +149,17 @@ export default function ZonesPage() {
     setActive(zone.active);
     setGeojsonPolygon(JSON.stringify(zone.geojsonPolygon, null, 2));
     setFormError(null);
+
+    // Sync points for map drawing
+    const polygon = zone.geojsonPolygon as Record<string, unknown>;
+    if (polygon && polygon.type === 'Polygon') {
+      const rawCoords = (polygon.coordinates as Array<Array<[number, number]>>)?.[0] || [];
+      // Remove last duplicate element that closes the GeoJSON loop
+      const cleanPoints = rawCoords.slice(0, -1);
+      setPoints(cleanPoints);
+    } else {
+      setPoints([]);
+    }
   };
 
   // Creates or updates a zone record using the GeoJSON fallback editor.
@@ -376,13 +430,45 @@ export default function ZonesPage() {
               Zone is active
             </label>
 
-            <TextAreaField
-              label="GeoJSON polygon"
-              hint="Polygon only"
-              value={geojsonPolygon}
-              onChange={(event) => setGeojsonPolygon(event.target.value)}
-              className="min-h-64 font-mono text-xs"
-            />
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-zinc-400">Map Boundary Editor</label>
+              <div className="text-[11px] text-zinc-500 mb-1 leading-relaxed">
+                Click on the map below to define geofence boundary corners. Connect at least 3 points to form a closed shape.
+              </div>
+              <ZoneDrawMap
+                points={points}
+                onChange={handlePointsChange}
+                center={mapCenter}
+              />
+            </div>
+
+            <details className="group border border-line bg-surface-muted rounded-xl">
+              <summary className="flex items-center justify-between cursor-pointer px-4 py-3 text-xs font-semibold text-zinc-400 select-none">
+                <span>Advanced: Raw GeoJSON Coordinates</span>
+                <span className="text-[10px] text-zinc-500 group-open:hidden">Show</span>
+                <span className="text-[10px] text-zinc-500 hidden group-open:inline">Hide</span>
+              </summary>
+              <div className="px-4 pb-4 border-t border-line/5 pt-3">
+                <TextAreaField
+                  label=""
+                  hint="GeoJSON Polygon string"
+                  value={geojsonPolygon}
+                  onChange={(event) => {
+                    setGeojsonPolygon(event.target.value);
+                    try {
+                      const parsed = JSON.parse(event.target.value);
+                      if (parsed.type === 'Polygon' && Array.isArray(parsed.coordinates?.[0])) {
+                        const rawCoords = parsed.coordinates[0];
+                        setPoints(rawCoords.slice(0, -1));
+                      }
+                    } catch {
+                      // Skip sync if invalid JSON
+                    }
+                  }}
+                  className="min-h-32 font-mono text-xs"
+                />
+              </div>
+            </details>
 
             {formError ? <InlineNotice message={formError} /> : null}
 
