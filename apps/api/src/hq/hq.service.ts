@@ -147,6 +147,11 @@ export class HqService {
             riderProfile: {
               select: {
                 fullName: true,
+                licenceNumber: true,
+                identityNumber: true,
+                passportPhoto: true,
+                licencePhoto: true,
+                identityCardPhoto: true,
               },
             },
           },
@@ -160,6 +165,8 @@ export class HqService {
             serial: true,
             model: true,
             status: true,
+            type: true,
+            imageUrl: true,
             devices: {
               select: {
                 id: true,
@@ -1175,6 +1182,8 @@ export class HqService {
       serial?: string;
       model?: string;
       status?: BikeStatus;
+      type?: string;
+      imageUrl?: string;
     },
   ) {
     const fleet = await this.prisma.fleet.findUnique({
@@ -1192,6 +1201,8 @@ export class HqService {
             serial: dto.serial || null,
             model: dto.model || null,
             status: dto.status ?? 'ACTIVE',
+            type: dto.type || null,
+            imageUrl: dto.imageUrl || null,
           },
         });
 
@@ -1242,6 +1253,8 @@ export class HqService {
       serial?: string;
       model?: string;
       status?: BikeStatus;
+      type?: string;
+      imageUrl?: string;
     },
   ) {
     const bike = await this.prisma.bike.findUnique({ where: { id } });
@@ -1256,6 +1269,9 @@ export class HqService {
           serial: dto.serial !== undefined ? dto.serial || null : undefined,
           model: dto.model !== undefined ? dto.model || null : undefined,
           status: dto.status,
+          type: dto.type !== undefined ? dto.type || null : undefined,
+          imageUrl:
+            dto.imageUrl !== undefined ? dto.imageUrl || null : undefined,
         },
       });
     } catch (error: unknown) {
@@ -1288,6 +1304,11 @@ export class HqService {
       status?: UserStatus;
       password?: string;
       fullName?: string;
+      licenceNumber?: string;
+      identityNumber?: string;
+      passportPhoto?: string;
+      licencePhoto?: string;
+      identityCardPhoto?: string;
     },
   ) {
     const fleet = await this.prisma.fleet.findUnique({
@@ -1331,11 +1352,23 @@ export class HqService {
         },
       });
 
-      if (body.fullName) {
+      if (
+        body.fullName ||
+        body.licenceNumber ||
+        body.identityNumber ||
+        body.passportPhoto ||
+        body.licencePhoto ||
+        body.identityCardPhoto
+      ) {
         await tx.riderProfile.create({
           data: {
             userId: u.id,
-            fullName: body.fullName,
+            fullName: body.fullName || 'Operator',
+            licenceNumber: body.licenceNumber || null,
+            identityNumber: body.identityNumber || null,
+            passportPhoto: body.passportPhoto || null,
+            licencePhoto: body.licencePhoto || null,
+            identityCardPhoto: body.identityCardPhoto || null,
           },
         });
       }
@@ -1358,6 +1391,11 @@ export class HqService {
       role?: UserRole;
       status?: UserStatus;
       fullName?: string;
+      licenceNumber?: string;
+      identityNumber?: string;
+      passportPhoto?: string;
+      licencePhoto?: string;
+      identityCardPhoto?: string;
     },
   ) {
     const user = await this.prisma.user.findUnique({
@@ -1398,15 +1436,47 @@ export class HqService {
         },
       });
 
-      if (body.fullName !== undefined) {
+      const hasProfileUpdate =
+        body.fullName !== undefined ||
+        body.licenceNumber !== undefined ||
+        body.identityNumber !== undefined ||
+        body.passportPhoto !== undefined ||
+        body.licencePhoto !== undefined ||
+        body.identityCardPhoto !== undefined;
+
+      if (hasProfileUpdate) {
+        const updateData: {
+          fullName?: string;
+          licenceNumber?: string | null;
+          identityNumber?: string | null;
+          passportPhoto?: string | null;
+          licencePhoto?: string | null;
+          identityCardPhoto?: string | null;
+        } = {};
+        if (body.fullName !== undefined) updateData.fullName = body.fullName;
+        if (body.licenceNumber !== undefined)
+          updateData.licenceNumber = body.licenceNumber || null;
+        if (body.identityNumber !== undefined)
+          updateData.identityNumber = body.identityNumber || null;
+        if (body.passportPhoto !== undefined)
+          updateData.passportPhoto = body.passportPhoto || null;
+        if (body.licencePhoto !== undefined)
+          updateData.licencePhoto = body.licencePhoto || null;
+        if (body.identityCardPhoto !== undefined)
+          updateData.identityCardPhoto = body.identityCardPhoto || null;
+
         if (user.riderProfile) {
           await tx.riderProfile.update({
             where: { userId: id },
-            data: { fullName: body.fullName },
+            data: updateData,
           });
         } else {
           await tx.riderProfile.create({
-            data: { userId: id, fullName: body.fullName },
+            data: {
+              userId: id,
+              fullName: body.fullName || 'Operator',
+              ...updateData,
+            },
           });
         }
       }

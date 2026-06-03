@@ -30,6 +30,8 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 import { z } from 'zod';
+import { Drawer } from '@/components/ui/drawer';
+import { compressImage } from '@/lib/image';
 
 const fleetDetailSchema = z.object({
   id: z.string(),
@@ -47,7 +49,12 @@ const fleetDetailSchema = z.object({
       status: z.string(),
       riderProfile: z
         .object({
-          fullName: z.string()
+          fullName: z.string(),
+          licenceNumber: z.string().nullable().optional(),
+          identityNumber: z.string().nullable().optional(),
+          passportPhoto: z.string().nullable().optional(),
+          licencePhoto: z.string().nullable().optional(),
+          identityCardPhoto: z.string().nullable().optional()
         })
         .nullable()
         .optional()
@@ -61,6 +68,8 @@ const fleetDetailSchema = z.object({
       serial: z.string().nullable().optional(),
       model: z.string().nullable().optional(),
       status: z.string(),
+      type: z.string().nullable().optional(),
+      imageUrl: z.string().nullable().optional(),
       devices: z
         .array(
           z.object({
@@ -331,6 +340,9 @@ export default function FleetDetailPage() {
   const [bikeSerial, setBikeSerial] = useState('');
   const [bikeModel, setBikeModel] = useState('');
   const [bikeStatus, setBikeStatus] = useState('ACTIVE');
+  const [bikeType, setBikeType] = useState('SPIRO');
+  const [bikeImageUrl, setBikeImageUrl] = useState('');
+  const [isCompresingBike, setIsCompresingBike] = useState(false);
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userEditMode, setUserEditMode] = useState(false);
@@ -341,6 +353,17 @@ export default function FleetDetailPage() {
   const [userRole, setUserRole] = useState('RIDER');
   const [userStatus, setUserStatus] = useState('ACTIVE');
   const [userPassword, setUserPassword] = useState('');
+  const [userLicenceNumber, setUserLicenceNumber] = useState('');
+  const [userIdentityNumber, setUserIdentityNumber] = useState('');
+  const [userPassportPhoto, setUserPassportPhoto] = useState('');
+  const [userLicencePhoto, setUserLicencePhoto] = useState('');
+  const [userIdentityCardPhoto, setUserIdentityCardPhoto] = useState('');
+  const [isCompresingPassport, setIsCompresingPassport] = useState(false);
+  const [isCompresingLicence, setIsCompresingLicence] = useState(false);
+  const [isCompresingIdCard, setIsCompresingIdCard] = useState(false);
+
+  const [selectedOperator, setSelectedOperator] = useState<FleetUser | null>(null);
+  const [isOperatorDrawerOpen, setIsOperatorDrawerOpen] = useState(false);
 
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
   const [deviceBikeId, setDeviceBikeId] = useState<string | null>(null);
@@ -352,6 +375,8 @@ export default function FleetDetailPage() {
     setBikeSerial('');
     setBikeModel('');
     setBikeStatus('ACTIVE');
+    setBikeType('SPIRO');
+    setBikeImageUrl('');
     setSelectedBikeId(null);
   };
 
@@ -362,6 +387,11 @@ export default function FleetDetailPage() {
     setUserRole('RIDER');
     setUserStatus('ACTIVE');
     setUserPassword('');
+    setUserLicenceNumber('');
+    setUserIdentityNumber('');
+    setUserPassportPhoto('');
+    setUserLicencePhoto('');
+    setUserIdentityCardPhoto('');
     setSelectedUserId(null);
   };
 
@@ -378,6 +408,8 @@ export default function FleetDetailPage() {
     setBikeSerial(bike.serial || '');
     setBikeModel(bike.model || '');
     setBikeStatus(bike.status);
+    setBikeType(bike.type || 'SPIRO');
+    setBikeImageUrl(bike.imageUrl || '');
     setBikeEditMode(true);
     setIsBikeModalOpen(true);
   };
@@ -396,6 +428,11 @@ export default function FleetDetailPage() {
     setUserRole(user.role);
     setUserStatus(user.status);
     setUserPassword('');
+    setUserLicenceNumber(user.riderProfile?.licenceNumber || '');
+    setUserIdentityNumber(user.riderProfile?.identityNumber || '');
+    setUserPassportPhoto(user.riderProfile?.passportPhoto || '');
+    setUserLicencePhoto(user.riderProfile?.licencePhoto || '');
+    setUserIdentityCardPhoto(user.riderProfile?.identityCardPhoto || '');
     setUserEditMode(true);
     setIsUserModalOpen(true);
   };
@@ -407,7 +444,9 @@ export default function FleetDetailPage() {
       plate: bikePlate || undefined,
       serial: bikeSerial || undefined,
       model: bikeModel || undefined,
-      status: bikeStatus
+      status: bikeStatus,
+      type: bikeType || undefined,
+      imageUrl: bikeImageUrl || undefined,
     };
 
     if (bikeEditMode && selectedBikeId) {
@@ -424,7 +463,12 @@ export default function FleetDetailPage() {
       phone: userPhone || undefined,
       role: userRole,
       status: userStatus,
-      fullName: userFullName
+      fullName: userFullName,
+      licenceNumber: userLicenceNumber || undefined,
+      identityNumber: userIdentityNumber || undefined,
+      passportPhoto: userPassportPhoto || undefined,
+      licencePhoto: userLicencePhoto || undefined,
+      identityCardPhoto: userIdentityCardPhoto || undefined,
     };
 
     if (userEditMode && selectedUserId) {
@@ -688,9 +732,33 @@ export default function FleetDetailPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {fleet.users.map((user) => (
-                <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
+                <tr
+                  key={user.id}
+                  onClick={() => {
+                    if (user.role === 'RIDER') {
+                      setSelectedOperator(user);
+                      setIsOperatorDrawerOpen(true);
+                    }
+                  }}
+                  className={`hover:bg-white/[0.02] transition-colors ${
+                    user.role === 'RIDER' ? 'cursor-pointer' : ''
+                  }`}
+                >
                   <td className="px-4 py-3 text-sm text-white">
-                    {user.riderProfile?.fullName || 'N/A'}
+                    <div className="flex items-center gap-3">
+                      {user.riderProfile?.passportPhoto ? (
+                        <img
+                          src={user.riderProfile.passportPhoto}
+                          alt={user.riderProfile.fullName ?? 'Operator'}
+                          className="h-9 w-9 rounded-xl object-cover border border-line shrink-0"
+                        />
+                      ) : (
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent text-sm font-bold shrink-0">
+                          {user.riderProfile?.fullName ? user.riderProfile.fullName[0].toUpperCase() : '?'}
+                        </span>
+                      )}
+                      <span className="font-semibold">{user.riderProfile?.fullName || 'N/A'}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-xs">
                     <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-ink-soft">
@@ -715,14 +783,18 @@ export default function FleetDetailPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => openEditUserModal(user)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditUserModal(user);
+                        }}
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 hover:text-white transition-all hover:bg-white/10"
                         title="Edit User"
                       >
                         <Edit size={14} />
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (confirm(`Permanently delete operator "${user.email || user.phone}"?`)) {
                             deleteUserMutation.mutate(user.id);
                           }
@@ -1024,6 +1096,66 @@ export default function FleetDetailPage() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  Bike Type
+                </label>
+                <select
+                  value={bikeType}
+                  onChange={(e) => setBikeType(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white focus:border-accent focus:outline-none"
+                >
+                  <option value="SPIRO">SPIRO</option>
+                  <option value="AMPARSAND">AMPARSAND</option>
+                  <option value="AMAZI">AMAZI</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  Bike Image
+                </label>
+                {bikeImageUrl ? (
+                  <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
+                    <img src={bikeImageUrl} alt="Bike" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setBikeImageUrl('')}
+                      className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/5 p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
+                    <span className="text-xl mb-1">🏍️</span>
+                    <span className="text-[10px] font-semibold text-zinc-400 text-center leading-tight">
+                      {isCompresingBike ? 'Compressing...' : 'Upload Bike Image'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isCompresingBike}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            setIsCompresingBike(true);
+                            const compressed = await compressImage(file);
+                            setBikeImageUrl(compressed);
+                          } catch (err) {
+                            console.error(err);
+                          } finally {
+                            setIsCompresingBike(false);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
               <div className="flex gap-3 mt-6 pt-4 border-t border-line">
                 <button
                   type="button"
@@ -1054,7 +1186,7 @@ export default function FleetDetailPage() {
       {/* ── USER MODAL ── */}
       {isUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface-strong p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface-strong p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-white">
                 {userEditMode ? 'Edit Operator details' : 'Register Operator Account'}
@@ -1158,6 +1290,180 @@ export default function FleetDetailPage() {
                 </div>
               </div>
 
+              {userRole === 'RIDER' && (
+                <div className="space-y-4 pt-4 border-t border-line">
+                  <h4 className="text-xs font-bold text-accent uppercase tracking-wider">
+                    Rider Profile Documents
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                        Licence Number
+                      </label>
+                      <input
+                        type="text"
+                        value={userLicenceNumber}
+                        onChange={(e) => setUserLicenceNumber(e.target.value)}
+                        placeholder="e.g. B12345"
+                        className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                        National ID Number
+                      </label>
+                      <input
+                        type="text"
+                        value={userIdentityNumber}
+                        onChange={(e) => setUserIdentityNumber(e.target.value)}
+                        placeholder="e.g. 1199..."
+                        className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Passport Photo */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 text-center">
+                        Passport
+                      </label>
+                      {userPassportPhoto ? (
+                        <div className="relative group rounded-xl border border-line overflow-hidden h-[80px]">
+                          <img src={userPassportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setUserPassportPhoto('')}
+                            className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/5 p-2 cursor-pointer hover:border-accent/30 transition h-[80px]">
+                          <span className="text-lg">👤</span>
+                          <span className="text-[8px] font-semibold text-zinc-400 text-center leading-tight">
+                            {isCompresingPassport ? 'Comp...' : 'Upload'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={isCompresingPassport}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  setIsCompresingPassport(true);
+                                  const compressed = await compressImage(file);
+                                  setUserPassportPhoto(compressed);
+                                } catch (err) {
+                                  console.error(err);
+                                } finally {
+                                  setIsCompresingPassport(false);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Licence Photo */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 text-center">
+                        Licence Photo
+                      </label>
+                      {userLicencePhoto ? (
+                        <div className="relative group rounded-xl border border-line overflow-hidden h-[80px]">
+                          <img src={userLicencePhoto} alt="Licence" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setUserLicencePhoto('')}
+                            className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/5 p-2 cursor-pointer hover:border-accent/30 transition h-[80px]">
+                          <span className="text-lg">🪪</span>
+                          <span className="text-[8px] font-semibold text-zinc-400 text-center leading-tight">
+                            {isCompresingLicence ? 'Comp...' : 'Upload'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={isCompresingLicence}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  setIsCompresingLicence(true);
+                                  const compressed = await compressImage(file);
+                                  setUserLicencePhoto(compressed);
+                                } catch (err) {
+                                  console.error(err);
+                                } finally {
+                                  setIsCompresingLicence(false);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* ID Card Photo */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 text-center">
+                        National ID
+                      </label>
+                      {userIdentityCardPhoto ? (
+                        <div className="relative group rounded-xl border border-line overflow-hidden h-[80px]">
+                          <img src={userIdentityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setUserIdentityCardPhoto('')}
+                            className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/5 p-2 cursor-pointer hover:border-accent/30 transition h-[80px]">
+                          <span className="text-lg">📇</span>
+                          <span className="text-[8px] font-semibold text-zinc-400 text-center leading-tight">
+                            {isCompresingIdCard ? 'Comp...' : 'Upload'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={isCompresingIdCard}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  setIsCompresingIdCard(true);
+                                  const compressed = await compressImage(file);
+                                  setUserIdentityCardPhoto(compressed);
+                                } catch (err) {
+                                  console.error(err);
+                                } finally {
+                                  setIsCompresingIdCard(false);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3 mt-6 pt-4 border-t border-line">
                 <button
                   type="button"
@@ -1247,6 +1553,139 @@ export default function FleetDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── OPERATOR DETAIL DRAWER ── */}
+      <Drawer
+        open={isOperatorDrawerOpen}
+        title={selectedOperator?.riderProfile?.fullName ?? 'Operator Profile'}
+        description="Operator contact information, role permissions, and onboarding documents."
+        onClose={() => {
+          setIsOperatorDrawerOpen(false);
+          setSelectedOperator(null);
+        }}
+      >
+        {!selectedOperator ? null : (
+          <div className="space-y-6">
+            {/* Passport Photo */}
+            <div className="flex justify-center">
+              {selectedOperator.riderProfile?.passportPhoto ? (
+                <div className="relative rounded-2xl border border-line overflow-hidden w-28 h-28">
+                  <img
+                    src={selectedOperator.riderProfile.passportPhoto}
+                    alt={selectedOperator.riderProfile.fullName ?? 'Passport'}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center rounded-2xl border border-line bg-white/5 w-28 h-28 text-3xl">
+                  👤
+                </div>
+              )}
+            </div>
+
+            {/* Profile Grid */}
+            <section className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Full Name
+                </p>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  {selectedOperator.riderProfile?.fullName ?? '—'}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Role
+                </p>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  {selectedOperator.role}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Phone
+                </p>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  {selectedOperator.phone ?? '—'}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Email
+                </p>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  {selectedOperator.email ?? '—'}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Licence Number
+                </p>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  {selectedOperator.riderProfile?.licenceNumber ?? '—'}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Identity Card Number
+                </p>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  {selectedOperator.riderProfile?.identityNumber ?? '—'}
+                </div>
+              </div>
+            </section>
+
+            {/* Documents Section */}
+            {selectedOperator.role === 'RIDER' && (
+              <div className="space-y-4 pt-4 border-t border-line">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                  Document Attachments
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-zinc-400">Driving Licence</p>
+                    {selectedOperator.riderProfile?.licencePhoto ? (
+                      <div
+                        className="rounded-xl border border-line bg-white/5 overflow-hidden max-h-[160px] cursor-zoom-in"
+                        onClick={() => window.open(selectedOperator.riderProfile.licencePhoto || undefined)}
+                      >
+                        <img
+                          src={selectedOperator.riderProfile.licencePhoto}
+                          alt="Licence"
+                          className="w-full object-cover max-h-[160px]"
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-line bg-white/5 p-4 text-center text-xs text-zinc-600">
+                        No Licence Photo Uploaded
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-zinc-400">Identity Card</p>
+                    {selectedOperator.riderProfile?.identityCardPhoto ? (
+                      <div
+                        className="rounded-xl border border-line bg-white/5 overflow-hidden max-h-[160px] cursor-zoom-in"
+                        onClick={() => window.open(selectedOperator.riderProfile.identityCardPhoto || undefined)}
+                      >
+                        <img
+                          src={selectedOperator.riderProfile.identityCardPhoto}
+                          alt="Identity Card"
+                          className="w-full object-cover max-h-[160px]"
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-line bg-white/5 p-4 text-center text-xs text-zinc-600">
+                        No Identity Card Photo Uploaded
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

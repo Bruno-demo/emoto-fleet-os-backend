@@ -15,7 +15,9 @@ import {
   Lock,
   ArrowLeft,
   Zap,
+  X,
 } from 'lucide-react';
+import { compressImage } from '@/lib/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
@@ -146,6 +148,14 @@ function CreateAccountInner() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [licenceNumber, setLicenceNumber] = useState('');
+  const [identityNumber, setIdentityNumber] = useState('');
+  const [passportPhoto, setPassportPhoto] = useState('');
+  const [licencePhoto, setLicencePhoto] = useState('');
+  const [identityCardPhoto, setIdentityCardPhoto] = useState('');
+  const [isCompresingPassport, setIsCompresingPassport] = useState(false);
+  const [isCompresingLicence, setIsCompresingLicence] = useState(false);
+  const [isCompresingIdCard, setIsCompresingIdCard] = useState(false);
   const [role, setRole] = useState<UserRole>(planSlugFromUrl ? 'ADMIN' : 'DISPATCHER');
   const [fleetName, setFleetName] = useState('');
   const [bikeRange, setBikeRange] = useState('11-50');
@@ -458,6 +468,12 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
+              fullName: fullName.trim(),
+              licenceNumber: licenceNumber.trim() || undefined,
+              identityNumber: identityNumber.trim() || undefined,
+              passportPhoto: passportPhoto || undefined,
+              licencePhoto: licencePhoto || undefined,
+              identityCardPhoto: identityCardPhoto || undefined,
             }),
           },
           { auth: false },
@@ -502,6 +518,11 @@ function CreateAccountInner() {
       setBikeRange('11-50');
       setTermsAccepted(false);
       setRole('DISPATCHER');
+      setLicenceNumber('');
+      setIdentityNumber('');
+      setPassportPhoto('');
+      setLicencePhoto('');
+      setIdentityCardPhoto('');
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {
         setError(requestError.message);
@@ -880,17 +901,172 @@ function CreateAccountInner() {
             </div>
 
             {signupType === 'rider' && (
-              <AuthInput
-                label="Invite code"
-                placeholder="Paste the code from your fleet admin"
-                value={inviteToken}
-                onChange={(event) => setInviteToken(event.target.value)}
-                onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
-                error={mergedErrors.inviteToken}
-                disabled={isFormDisabled || isGateLocked}
-                icon={<UsersRound size={16} />}
-                helper="Ask your fleet admin for an invite code to join their fleet."
-              />
+              <>
+                <AuthInput
+                  label="Invite code"
+                  placeholder="Paste the code from your fleet admin"
+                  value={inviteToken}
+                  onChange={(event) => setInviteToken(event.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
+                  error={mergedErrors.inviteToken}
+                  disabled={isFormDisabled || isGateLocked}
+                  icon={<UsersRound size={16} />}
+                  helper="Ask your fleet admin for an invite code to join their fleet."
+                />
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AuthInput
+                    label="Driving licence number"
+                    placeholder="e.g. DL-12345"
+                    value={licenceNumber}
+                    onChange={(event) => setLicenceNumber(event.target.value)}
+                    disabled={isFormDisabled || isGateLocked}
+                    icon={<User size={16} />}
+                  />
+                  <AuthInput
+                    label="Identity card number"
+                    placeholder="e.g. ID-54321"
+                    value={identityNumber}
+                    onChange={(event) => setIdentityNumber(event.target.value)}
+                    disabled={isFormDisabled || isGateLocked}
+                    icon={<ShieldCheck size={16} />}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3 mt-4">
+                  {/* Passport Photo */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Passport Photo</label>
+                    {passportPhoto ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
+                        <img src={passportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setPassportPhoto('')}
+                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
+                        <span className="text-lg mb-0.5">👤</span>
+                        <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
+                          {isCompresingPassport ? 'Compressing...' : 'Passport Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompresingPassport || isFormDisabled || isGateLocked}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                setIsCompresingPassport(true);
+                                const compressed = await compressImage(file);
+                                setPassportPhoto(compressed);
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsCompresingPassport(false);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Licence Photo */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Licence Photo</label>
+                    {licencePhoto ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
+                        <img src={licencePhoto} alt="Licence" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setLicencePhoto('')}
+                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
+                        <span className="text-lg mb-0.5">💳</span>
+                        <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
+                          {isCompresingLicence ? 'Compressing...' : 'Licence Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompresingLicence || isFormDisabled || isGateLocked}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                setIsCompresingLicence(true);
+                                const compressed = await compressImage(file);
+                                setLicencePhoto(compressed);
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsCompresingLicence(false);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* ID Card Photo */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">National ID Photo</label>
+                    {identityCardPhoto ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
+                        <img src={identityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setIdentityCardPhoto('')}
+                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
+                        <span className="text-lg mb-0.5">🆔</span>
+                        <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
+                          {isCompresingIdCard ? 'Compressing...' : 'ID Card Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompresingIdCard || isFormDisabled || isGateLocked}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                setIsCompresingIdCard(true);
+                                const compressed = await compressImage(file);
+                                setIdentityCardPhoto(compressed);
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsCompresingIdCard(false);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
 
             {signupType === 'admin' && (

@@ -19,4 +19,35 @@ export class RedeemInviteDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @ApiPropertyOptional({ example: 'Alice Rider' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  fullName?: string;
+
+  @ApiPropertyOptional({ example: 'R-1234567' })
+  @IsOptional()
+  @IsString()
+  licenceNumber?: string;
+
+  @ApiPropertyOptional({ example: '1234567890123456' })
+  @IsOptional()
+  @IsString()
+  identityNumber?: string;
+
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
+  @IsOptional()
+  @IsString()
+  passportPhoto?: string;
+
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
+  @IsOptional()
+  @IsString()
+  licencePhoto?: string;
+
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
+  @IsOptional()
+  @IsString()
+  identityCardPhoto?: string;
 }

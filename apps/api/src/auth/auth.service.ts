@@ -704,6 +704,20 @@ export class AuthService {
           select: userSelectForAuth,
         });
 
+        if (invite.role === UserRole.RIDER) {
+          await tx.riderProfile.create({
+            data: {
+              userId: user.id,
+              fullName: dto.fullName || 'New Rider',
+              licenceNumber: dto.licenceNumber || null,
+              identityNumber: dto.identityNumber || null,
+              passportPhoto: dto.passportPhoto || null,
+              licencePhoto: dto.licencePhoto || null,
+              identityCardPhoto: dto.identityCardPhoto || null,
+            },
+          });
+        }
+
         await tx.registrationInvite.update({
           where: { id: invite.id },
           data: {
