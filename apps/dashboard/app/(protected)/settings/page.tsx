@@ -229,7 +229,7 @@ export default function SettingsPage() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Monthly Rate</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-extrabold text-ink">
-                    {entitlements.isPremium ? '25,000 RWF' : '10,000 RWF'}
+                    {entitlements.isPremium ? '10,000 RWF' : '5,000 RWF'}
                   </span>
                   <span className="text-xs text-ink-muted">/ bike / mo</span>
                 </div>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-accent">Total Monthly Cost</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-extrabold text-accent">
-                    {((entitlements.isPremium ? 25000 : 10000) * totalBikes).toLocaleString()} RWF
+                    {((entitlements.isPremium ? 10000 : 5000) * totalBikes).toLocaleString()} RWF
                   </span>
                   <span className="text-xs text-ink-muted">/ month</span>
                 </div>
@@ -261,12 +261,12 @@ export default function SettingsPage() {
                   One-time Installation Setup Fee
                 </p>
                 <p className="text-xs text-ink-muted leading-relaxed">
-                  A flat fee of <strong className="text-ink">50,000 RWF</strong> per bike is charged once upon hardware device setup.
+                  A flat fee of <strong className="text-ink">20,000 RWF</strong> per bike is charged once upon hardware device setup.
                 </p>
               </div>
               <div className="text-left sm:text-right">
                 <p className="text-xs text-ink-muted">Total Setup Dues</p>
-                <p className="text-lg font-extrabold text-ink">{(totalBikes * 50000).toLocaleString()} RWF</p>
+                <p className="text-lg font-extrabold text-ink">{(totalBikes * 20000).toLocaleString()} RWF</p>
               </div>
             </div>
 
@@ -277,7 +277,7 @@ export default function SettingsPage() {
                 <div className="space-y-1">
                   <p className="text-sm font-bold text-warning-ink">Plan Upgrade Pending Approval</p>
                   <p className="text-xs text-ink-soft leading-relaxed">
-                    You have requested to upgrade to <strong className="font-semibold text-warning-ink">Operations Plus</strong>. Your monthly rate will remain <strong className="font-semibold text-ink">10,000 RWF</strong> until your payment setup is confirmed and approved by the HQ admin.
+                    You have requested to upgrade to <strong className="font-semibold text-warning-ink">Operations Plus</strong>. Your monthly rate will remain <strong className="font-semibold text-ink">5,000 RWF</strong> until your payment setup is confirmed and approved by the HQ admin.
                   </p>
                 </div>
               </div>
@@ -311,10 +311,10 @@ export default function SettingsPage() {
                   </div>
                   <div className="mt-4 flex flex-col items-start gap-1">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
+                      <span className="text-2xl font-extrabold text-ink">5,000 RWF</span>
                       <span className="text-xs text-ink-muted">/ bike / month</span>
                     </div>
-                    <span className="text-[10px] font-bold text-success-ink">+ 50,000 RWF device setup & install</span>
+                    <span className="text-[10px] font-bold text-success-ink">+ 20,000 RWF device setup & install</span>
                   </div>
                   <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                     Essential telemetry, safety event detection, and manual incident response tools.
@@ -380,10 +380,10 @@ export default function SettingsPage() {
                   </div>
                   <div className="mt-4 flex flex-col items-start gap-1">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-ink">25,000 RWF</span>
+                      <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
                       <span className="text-xs text-ink-muted">/ bike / month</span>
                     </div>
-                    <span className="text-[10px] font-bold text-accent">+ 50,000 RWF device setup & install</span>
+                    <span className="text-[10px] font-bold text-accent">+ 20,000 RWF device setup & install</span>
                   </div>
                   <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                     Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.

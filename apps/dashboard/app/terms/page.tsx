@@ -13,7 +13,7 @@ export default function TermsPage() {
     {
       icon: <DollarSign size={16} className="text-accent" />,
       title: '1. Subscription Commitments & Fees',
-      content: 'E-Moto offers subscription tiers for fleet operators: Safety Core at 10,000 RWF per bike/month, and Operations Plus at 25,000 RWF per bike/month. Each deployed hardware device requires a one-time device setup & installation fee of 50,000 RWF. Subscriptions are billed monthly and subject to hardware validation limits.',
+      content: 'E-Moto offers subscription tiers for fleet operators: Safety Core at 5,000 RWF per bike/month, and Operations Plus at 10,000 RWF per bike/month. Each deployed hardware device requires a one-time device setup & installation fee of 20,000 RWF. Subscriptions are billed monthly and subject to hardware validation limits.',
     },
     {
       icon: <ShieldAlert size={16} className="text-rose-400" />,
