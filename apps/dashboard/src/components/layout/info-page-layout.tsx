@@ -10,7 +10,7 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
   // Check if user is logged in to toggle Dashboard button in navbar
   const { data: currentUser } = useQuery({
     queryKey: ['auth', 'me'],
-    queryFn: () => apiFetch('/auth/me').catch(() => null),
+    queryFn: () => apiFetch('/me', {}, { auth: false }).catch(() => null),
     retry: false,
   });
 

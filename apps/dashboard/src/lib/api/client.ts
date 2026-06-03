@@ -96,7 +96,7 @@ export async function apiFetch<T = unknown>(
     const resolvedUrl = resolveApiUrl(path);
     if (!response.ok) {
       // If session is expired or invalid (401), redirect to login page.
-      if (response.status === 401 && typeof window !== 'undefined') {
+      if (response.status === 401 && typeof window !== 'undefined' && options.auth !== false) {
         const pathname = window.location.pathname;
         const isGuestPath = ['/login', '/create-account', '/forgot-password'].some(
           (p) => pathname === p || pathname.startsWith(`${p}/`),
