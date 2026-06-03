@@ -51,7 +51,7 @@ export default function RegistrationSuccessPage() {
               <Phone size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-ink">+250 788 000 000</p>
+              <p className="text-sm font-bold text-ink">+250 798 600 430</p>
               <p className="text-xs text-ink-muted text-nowrap">Call or WhatsApp our Ops Lead</p>
             </div>
           </div>

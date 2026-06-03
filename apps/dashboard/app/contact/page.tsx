@@ -165,7 +165,7 @@ export default function ContactPage() {
                   </span>
                   <div>
                     <h4 className="text-xs font-bold text-white">Telephone Support</h4>
-                    <p className="text-xs text-zinc-500 mt-1">+250 788 345 678</p>
+                    <p className="text-xs text-zinc-500 mt-1">+250 798 600 430</p>
                   </div>
                 </div>
               </div>
