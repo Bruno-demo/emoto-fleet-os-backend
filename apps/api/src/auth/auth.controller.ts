@@ -26,6 +26,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { RegisterSelfDto } from './dto/register-self.dto';
+import { ContactInquiryDto } from './dto/contact-inquiry.dto';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -273,6 +274,20 @@ export class AuthController {
     @Body() dto: RedeemInviteDto,
   ): Promise<AuthenticatedUser> {
     return this.authService.redeemInvite(dto);
+  }
+
+  @Post('contact')
+  @Public()
+  @Throttle({
+    default: { limit: 5, ttl: 60_000 },
+  })
+  @ApiOperation({
+    summary: 'Submit contact inquiry form',
+  })
+  async submitContactInquiry(
+    @Body() dto: ContactInquiryDto,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.authService.sendContactInquiry(dto);
   }
 
   // Sets the httpOnly auth cookie used by browser clients.

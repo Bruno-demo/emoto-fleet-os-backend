@@ -10,6 +10,7 @@ import {
   CheckCircle,
   HelpCircle,
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -17,11 +18,25 @@ export default function ContactPage() {
   const [category, setCategory] = useState('general');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) return;
-    setSubmitted(true);
+    setLoading(true);
+    setError(null);
+    try {
+      await apiFetch('/auth/contact', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, category, message }),
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to submit inquiry. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -122,12 +137,23 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {error && (
+                  <p className="text-xs text-red-500 font-medium bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                    {error}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl font-bold text-xs md:text-sm py-3 transition hover:opacity-90 active:scale-[0.99]"
+                  disabled={loading}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl font-bold text-xs md:text-sm py-3 transition hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
                   style={{ background: 'white', color: 'black' }}
                 >
-                  <Send size={14} /> Send Message
+                  {loading ? 'Sending...' : (
+                    <>
+                      <Send size={14} /> Send Message
+                    </>
+                  )}
                 </button>
               </form>
             )}
@@ -155,7 +181,7 @@ export default function ContactPage() {
                   </span>
                   <div>
                     <h4 className="text-xs font-bold text-white">Email Address</h4>
-                    <p className="text-xs text-zinc-500 mt-1">support@emoto.rw</p>
+                    <p className="text-xs text-zinc-500 mt-1">bruno@emotofleet.com</p>
                   </div>
                 </div>
 

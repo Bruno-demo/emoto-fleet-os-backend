@@ -152,6 +152,9 @@ function isAuthBypassPath(pathname: string): boolean {
   if (pathname.startsWith('/auth/verify-otp')) {
     return true;
   }
+  if (pathname.startsWith('/auth/contact')) {
+    return true;
+  }
   if (pathname.startsWith('/auth/forgot-password')) {
     return true;
   }

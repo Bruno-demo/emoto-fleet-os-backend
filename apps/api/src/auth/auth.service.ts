@@ -29,6 +29,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { RegisterSelfDto } from './dto/register-self.dto';
+import { ContactInquiryDto } from './dto/contact-inquiry.dto';
 import { MailService } from '../mail/mail.service';
 
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -1154,5 +1155,64 @@ export class AuthService {
       phone: user.phone,
       status: user.status,
     };
+  }
+
+  // Sends an email notification to bruno@emotofleet.com when a contact form is submitted.
+  async sendContactInquiry(dto: ContactInquiryDto): Promise<{ success: boolean; message: string }> {
+    this.logger.log(`Received contact inquiry from ${dto.name} (${dto.email}) about category ${dto.category}`);
+
+    const escapedName = this.escapeHtml(dto.name);
+    const escapedEmail = this.escapeHtml(dto.email);
+    const escapedCategory = this.escapeHtml(dto.category);
+    const escapedMessage = this.escapeHtml(dto.message);
+
+    const recipient = 'bruno@emotofleet.com';
+    const subject = `eMoto Contact Inquiry: ${escapedCategory} - from ${escapedName}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #2e7d32; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; margin-top: 0;">New Fleet OS Inquiry</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 100px;">Name:</td>
+            <td style="padding: 8px 0;">${escapedName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Email:</td>
+            <td style="padding: 8px 0;"><a href="mailto:${escapedEmail}">${escapedEmail}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Category:</td>
+            <td style="padding: 8px 0; text-transform: capitalize;">${escapedCategory}</td>
+          </tr>
+        </table>
+        <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 4px; border-left: 4px solid #2e7d32;">
+          <h4 style="margin-top: 0; margin-bottom: 8px; color: #333;">Message:</h4>
+          <p style="margin: 0; white-space: pre-wrap; color: #555; line-height: 1.5;">${escapedMessage}</p>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #999; margin: 0; text-align: center;">This inquiry was submitted via the contact form on emotofleet.com.</p>
+      </div>
+    `;
+
+    const success = await this.mailService.sendMail(recipient, subject, html);
+
+    if (!success) {
+      throw new BadRequestException('Failed to send email notification');
+    }
+
+    return {
+      success: true,
+      message: 'Inquiry submitted and email notification sent successfully',
+    };
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }
