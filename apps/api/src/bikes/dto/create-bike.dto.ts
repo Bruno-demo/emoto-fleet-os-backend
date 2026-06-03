@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BikeStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength, IsIn } from 'class-validator';
 
 export class CreateBikeDto {
   @ApiProperty({ example: 'Bike-010' })
@@ -30,4 +30,18 @@ export class CreateBikeDto {
   @IsOptional()
   @IsEnum(BikeStatus)
   status?: BikeStatus;
+
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'SPIRO',
+    enum: ['SPIRO', 'AMPARSAND', 'AMAZI'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['SPIRO', 'AMPARSAND', 'AMAZI'])
+  type?: string;
 }

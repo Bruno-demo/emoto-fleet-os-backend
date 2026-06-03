@@ -10,6 +10,11 @@ export interface RiderSummary {
   status: UserStatus;
   fullName: string | null;
   activeAssignments: AssignmentSummary[];
+  licenceNumber?: string | null;
+  identityNumber?: string | null;
+  passportPhoto?: string | null;
+  licencePhoto?: string | null;
+  identityCardPhoto?: string | null;
 }
 
 export interface AssignmentSummary {
@@ -37,6 +42,7 @@ export interface PoiSummary {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  supportedBikeTypes?: string[];
 }
 
 export interface NearbyPoiSummary extends PoiSummary {

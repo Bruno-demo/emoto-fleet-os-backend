@@ -8,6 +8,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsArray,
 } from 'class-validator';
 
 export class CreatePoiDto {
@@ -54,4 +55,10 @@ export class CreatePoiDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @ApiPropertyOptional({ example: ['SPIRO', 'AMPARSAND'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  supportedBikeTypes?: string[];
 }

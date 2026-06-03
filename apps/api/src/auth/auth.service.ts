@@ -1158,8 +1158,12 @@ export class AuthService {
   }
 
   // Sends an email notification to bruno@emotofleet.com when a contact form is submitted.
-  async sendContactInquiry(dto: ContactInquiryDto): Promise<{ success: boolean; message: string }> {
-    this.logger.log(`Received contact inquiry from ${dto.name} (${dto.email}) about category ${dto.category}`);
+  async sendContactInquiry(
+    dto: ContactInquiryDto,
+  ): Promise<{ success: boolean; message: string }> {
+    this.logger.log(
+      `Received contact inquiry from ${dto.name} (${dto.email}) about category ${dto.category}`,
+    );
 
     const escapedName = this.escapeHtml(dto.name);
     const escapedEmail = this.escapeHtml(dto.email);

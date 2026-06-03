@@ -38,6 +38,8 @@ export interface Bike {
   createdAt: string;
   updatedAt: string;
   insurerUserId?: string | null;
+  imageUrl?: string | null;
+  type?: string | null;
   insurer?: {
     id: string;
     email: string | null;
@@ -256,6 +258,11 @@ export interface Rider {
   email: string | null;
   status: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
   fullName: string | null;
+  licenceNumber?: string | null;
+  identityNumber?: string | null;
+  passportPhoto?: string | null;
+  licencePhoto?: string | null;
+  identityCardPhoto?: string | null;
   activeAssignments: Array<{
     id: string;
     bikeId: string;

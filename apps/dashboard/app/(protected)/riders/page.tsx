@@ -28,6 +28,8 @@ import { buildQueryString } from '@/lib/api/query-string';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type { Assignment, PaginatedResponse, Rider } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
+import { compressImage } from '@/lib/image';
+import { Drawer } from '@/components/ui/drawer';
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +47,16 @@ export default function RidersPage() {
   const [newEmail, setNewEmail] = useState('');
   const [newFullName, setNewFullName] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newLicenceNumber, setNewLicenceNumber] = useState('');
+  const [newIdentityNumber, setNewIdentityNumber] = useState('');
+  const [newPassportPhoto, setNewPassportPhoto] = useState('');
+  const [newLicencePhoto, setNewLicencePhoto] = useState('');
+  const [newIdentityCardPhoto, setNewIdentityCardPhoto] = useState('');
+  const [isCompresingPassport, setIsCompresingPassport] = useState(false);
+  const [isCompresingLicence, setIsCompresingLicence] = useState(false);
+  const [isCompresingIdentity, setIsCompresingIdentity] = useState(false);
+
+  const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
 
 
   // Invite creation state
@@ -151,6 +163,11 @@ export default function RidersPage() {
           email: newEmail || undefined,
           fullName: newFullName || undefined,
           password: newPassword || undefined,
+          licenceNumber: newLicenceNumber || undefined,
+          identityNumber: newIdentityNumber || undefined,
+          passportPhoto: newPassportPhoto || undefined,
+          licencePhoto: newLicencePhoto || undefined,
+          identityCardPhoto: newIdentityCardPhoto || undefined,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
@@ -159,6 +176,11 @@ export default function RidersPage() {
       setNewEmail('');
       setNewFullName('');
       setNewPassword('');
+      setNewLicenceNumber('');
+      setNewIdentityNumber('');
+      setNewPassportPhoto('');
+      setNewLicencePhoto('');
+      setNewIdentityCardPhoto('');
     } catch (error) {
       if (error instanceof ApiError) {
         setCreateError(error.message);
@@ -176,9 +198,17 @@ export default function RidersPage() {
         header: 'Rider',
         render: (rider) => (
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent text-sm font-bold">
-              {rider.fullName ? rider.fullName[0].toUpperCase() : '?'}
-            </span>
+            {rider.passportPhoto ? (
+              <img
+                src={rider.passportPhoto}
+                alt={rider.fullName ?? 'Rider'}
+                className="h-9 w-9 rounded-xl object-cover border border-line"
+              />
+            ) : (
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent text-sm font-bold">
+                {rider.fullName ? rider.fullName[0].toUpperCase() : '?'}
+              </span>
+            )}
             <div>
               <p className="font-semibold text-ink">
                 {rider.fullName ?? `Rider ${rider.id.slice(0, 8)}`}
@@ -361,48 +391,204 @@ export default function RidersPage() {
             </div>
 
             {formMode === 'direct' ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-ink">
-                  Full name
-                  <input
-                    type="text"
-                    value={newFullName}
-                    onChange={(e) => setNewFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-ink">
-                  Phone
-                  <input
-                    type="tel"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="+254..."
-                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-ink">
-                  Email
-                  <input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="rider@fleet.co"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-ink">
-                  Password
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 8 characters"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
-                  />
-                </label>
-              </div>
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-ink">
+                    Full name
+                    <input
+                      type="text"
+                      value={newFullName}
+                      onChange={(e) => setNewFullName(e.target.value)}
+                      placeholder="John Doe"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Phone
+                    <input
+                      type="tel"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      placeholder="+254..."
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Email
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="rider@fleet.co"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Password
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Driving Licence Number
+                    <input
+                      type="text"
+                      value={newLicenceNumber}
+                      onChange={(e) => setNewLicenceNumber(e.target.value)}
+                      placeholder="e.g. DL-12345"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Identity Card Number
+                    <input
+                      type="text"
+                      value={newIdentityNumber}
+                      onChange={(e) => setNewIdentityNumber(e.target.value)}
+                      placeholder="e.g. ID-54321"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3 mt-4">
+                  {/* Passport Photo upload */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">Passport Photo</label>
+                    {newPassportPhoto ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
+                        <img src={newPassportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setNewPassportPhoto('')}
+                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-hover p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
+                        <span className="text-xl mb-1">👤</span>
+                        <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
+                          {isCompresingPassport ? 'Compresing...' : 'Upload Passport Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompresingPassport}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                setIsCompresingPassport(true);
+                                const compressed = await compressImage(file);
+                                setNewPassportPhoto(compressed);
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsCompresingPassport(false);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Licence Photo upload */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">Licence Photo</label>
+                    {newLicencePhoto ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
+                        <img src={newLicencePhoto} alt="Licence" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setNewLicencePhoto('')}
+                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-hover p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
+                        <span className="text-xl mb-1">💳</span>
+                        <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
+                          {isCompresingLicence ? 'Compresing...' : 'Upload Licence Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompresingLicence}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                setIsCompresingLicence(true);
+                                const compressed = await compressImage(file);
+                                setNewLicencePhoto(compressed);
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsCompresingLicence(false);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Identity Card Photo upload */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">ID Card Photo</label>
+                    {newIdentityCardPhoto ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
+                        <img src={newIdentityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setNewIdentityCardPhoto('')}
+                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-hover p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
+                        <span className="text-xl mb-1">📇</span>
+                        <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
+                          {isCompresingIdentity ? 'Compresing...' : 'Upload ID Card Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompresingIdentity}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                setIsCompresingIdentity(true);
+                                const compressed = await compressImage(file);
+                                setNewIdentityCardPhoto(compressed);
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setIsCompresingIdentity(false);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </>
             ) : (
               <div className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -553,6 +739,7 @@ export default function RidersPage() {
             columns={columns}
             keyExtractor={(rider) => rider.id}
             loading={ridersQuery.isLoading}
+            onRowClick={setSelectedRider}
             emptyState={
               <EmptyState
                 icon={<Users size={18} />}
@@ -569,6 +756,101 @@ export default function RidersPage() {
           onPageChange={setPage}
         />
       </DashboardCard>
+
+      <Drawer
+        open={!!selectedRider}
+        title={selectedRider?.fullName ?? 'Rider Profile'}
+        description="Rider contact information, active bike assignment, and onboarding documents."
+        onClose={() => setSelectedRider(null)}
+      >
+        {!selectedRider ? null : (
+          <div className="space-y-6">
+            {/* Passport Photo */}
+            <div className="flex justify-center">
+              {selectedRider.passportPhoto ? (
+                <div className="relative rounded-2xl border border-line overflow-hidden w-28 h-28">
+                  <img src={selectedRider.passportPhoto} alt={selectedRider.fullName ?? 'Passport'} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center rounded-2xl border border-line bg-surface-muted w-28 h-28 text-3xl">
+                  👤
+                </div>
+              )}
+            </div>
+
+            {/* Profile Grid */}
+            <section className="grid gap-3 sm:grid-cols-2">
+              <KeyMetric label="Full Name" value={<span>{selectedRider.fullName ?? '—'}</span>} />
+              <KeyMetric label="Status" value={
+                <Badge
+                  label={formatEnumLabel(selectedRider.status)}
+                  tone={
+                    selectedRider.status === 'ACTIVE'
+                      ? 'success'
+                      : selectedRider.status === 'SUSPENDED'
+                        ? 'danger'
+                        : 'neutral'
+                  }
+                />
+              } />
+              <KeyMetric label="Phone" value={<span>{selectedRider.phone ?? '—'}</span>} />
+              <KeyMetric label="Email" value={<span>{selectedRider.email ?? '—'}</span>} />
+              <KeyMetric label="Licence Number" value={<span>{selectedRider.licenceNumber ?? '—'}</span>} />
+              <KeyMetric label="Identity Card Number" value={<span>{selectedRider.identityNumber ?? '—'}</span>} />
+              <KeyMetric
+                label="Assigned Bike"
+                value={
+                  <span>
+                    {selectedRider.activeAssignments?.[0]?.bikeLabel ?? 'Unassigned'}
+                  </span>
+                }
+              />
+            </section>
+
+            {/* Documents Section */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Document Attachments</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-ink-muted">Driving Licence</p>
+                  {selectedRider.licencePhoto ? (
+                    <div className="rounded-xl border border-line bg-surface-muted overflow-hidden max-h-[160px] cursor-zoom-in" onClick={() => window.open(selectedRider.licencePhoto || undefined)}>
+                      <img src={selectedRider.licencePhoto} alt="Licence" className="w-full object-cover max-h-[160px]" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-line bg-surface-muted p-4 text-center text-xs text-ink-faint">
+                      No Licence Photo Uploaded
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-ink-muted">Identity Card</p>
+                  {selectedRider.identityCardPhoto ? (
+                    <div className="rounded-xl border border-line bg-surface-muted overflow-hidden max-h-[160px] cursor-zoom-in" onClick={() => window.open(selectedRider.identityCardPhoto || undefined)}>
+                      <img src={selectedRider.identityCardPhoto} alt="Identity Card" className="w-full object-cover max-h-[160px]" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-line bg-surface-muted p-4 text-center text-xs text-ink-faint">
+                      No Identity Card Photo Uploaded
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
+    </div>
+  );
+}
+
+function KeyMetric({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+        {label}
+      </p>
+      <div className="mt-2 text-sm font-semibold text-ink">{value}</div>
     </div>
   );
 }

@@ -53,7 +53,10 @@ export class MailService {
     const pass = this.configService.get<string>('SMTP_PASS');
 
     // If using Resend, prefer their HTTPS REST API to completely bypass Railway's outbound SMTP port blockades!
-    if ((host === 'smtp.resend.com' || (!host && pass?.startsWith('re_'))) && pass) {
+    if (
+      (host === 'smtp.resend.com' || (!host && pass?.startsWith('re_'))) &&
+      pass
+    ) {
       try {
         const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',

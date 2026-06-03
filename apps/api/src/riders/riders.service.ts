@@ -72,6 +72,11 @@ interface RiderIdentity {
   status: UserStatus;
   riderProfile: {
     fullName: string;
+    licenceNumber: string | null;
+    identityNumber: string | null;
+    passportPhoto: string | null;
+    licencePhoto: string | null;
+    identityCardPhoto: string | null;
   } | null;
   bikeAssignments: Array<{
     id: string;
@@ -208,6 +213,11 @@ export class RidersService {
           data: {
             userId: createdUser.id,
             fullName: dto.fullName,
+            licenceNumber: dto.licenceNumber,
+            identityNumber: dto.identityNumber,
+            passportPhoto: dto.passportPhoto,
+            licencePhoto: dto.licencePhoto,
+            identityCardPhoto: dto.identityCardPhoto,
           },
         });
 
@@ -403,6 +413,7 @@ export class RidersService {
         lng: dto.lng,
         address: dto.address ?? null,
         active: dto.active ?? true,
+        supportedBikeTypes: dto.supportedBikeTypes ?? [],
       },
     });
 
@@ -474,6 +485,7 @@ export class RidersService {
         lng: dto.lng,
         address: dto.address,
         active: dto.active,
+        supportedBikeTypes: dto.supportedBikeTypes,
       },
     });
 
@@ -1258,6 +1270,11 @@ export class RidersService {
         riderProfile: {
           select: {
             fullName: true,
+            licenceNumber: true,
+            identityNumber: true,
+            passportPhoto: true,
+            licencePhoto: true,
+            identityCardPhoto: true,
           },
         },
         bikeAssignments: {
@@ -1308,6 +1325,11 @@ export class RidersService {
         riderProfile: {
           select: {
             fullName: true,
+            licenceNumber: true,
+            identityNumber: true,
+            passportPhoto: true,
+            licencePhoto: true,
+            identityCardPhoto: true,
           },
         },
         bikeAssignments: {
@@ -1392,6 +1414,11 @@ export class RidersService {
       activeAssignments: rider.bikeAssignments.map((assignment) =>
         this.toAssignmentSummary(assignment),
       ),
+      licenceNumber: rider.riderProfile?.licenceNumber ?? null,
+      identityNumber: rider.riderProfile?.identityNumber ?? null,
+      passportPhoto: rider.riderProfile?.passportPhoto ?? null,
+      licencePhoto: rider.riderProfile?.licencePhoto ?? null,
+      identityCardPhoto: rider.riderProfile?.identityCardPhoto ?? null,
     };
   }
 
@@ -1442,6 +1469,7 @@ export class RidersService {
       active: poi.active,
       createdAt: poi.createdAt.toISOString(),
       updatedAt: poi.updatedAt.toISOString(),
+      supportedBikeTypes: poi.supportedBikeTypes,
     };
   }
 

@@ -45,6 +45,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { InlineNotice, TextField } from '@/components/ui/form-controls';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { DrawerSkeleton } from '@/components/ui/skeleton';
+import { compressImage } from '@/lib/image';
 
 const PAGE_SIZE = 20;
 
@@ -62,7 +63,7 @@ export default function BikesPage() {
   const [isSendingCommand, setIsSendingCommand] = useState(false);
   const [commandIntent, setCommandIntent] = useState<CommandIntent | null>(null);
   const [showCreateBike, setShowCreateBike] = useState(false);
-  const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '' });
+  const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO' });
   const [isCreatingBike, setIsCreatingBike] = useState(false);
   const [createBikeError, setCreateBikeError] = useState<string | null>(null);
   const [showAssignRider, setShowAssignRider] = useState(false);
@@ -91,11 +92,13 @@ export default function BikesPage() {
           plate: createBikeForm.plate.trim() || undefined,
           serial: createBikeForm.serial.trim() || undefined,
           model: createBikeForm.model.trim() || undefined,
+          imageUrl: createBikeForm.imageUrl || undefined,
+          type: createBikeForm.type || undefined,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['bikes'] });
       setShowCreateBike(false);
-      setCreateBikeForm({ label: '', plate: '', serial: '', model: '' });
+      setCreateBikeForm({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO' });
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setCreateBikeError(error.message);
@@ -586,8 +589,14 @@ export default function BikesPage() {
           />
         ) : (
           <div className="space-y-5">
+            {activeBike.imageUrl && (
+              <div className="rounded-[24px] border border-line bg-surface-muted overflow-hidden max-h-[160px] flex items-center justify-center">
+                <img src={activeBike.imageUrl} alt={activeBike.label} className="w-full object-cover max-h-[160px]" />
+              </div>
+            )}
             <section className="grid gap-3 sm:grid-cols-2">
               <KeyMetric label="Bike status" value={<BikeStatusBadge status={activeBike.status} />} />
+              <KeyMetric label="Bike type" value={<span>{activeBike.type ?? '—'}</span>} />
               <KeyMetric
                 label="Security state"
                 value={
@@ -925,6 +934,57 @@ export default function BikesPage() {
                   onChange={(e) => setCreateBikeForm(f => ({ ...f, model: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Type *</label>
+                  <select
+                    value={createBikeForm.type}
+                    onChange={(e) => setCreateBikeForm(f => ({ ...f, type: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
+                  >
+                    <option value="SPIRO">SPIRO</option>
+                    <option value="AMPARSAND">AMPARSAND</option>
+                    <option value="AMAZI">AMAZI</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Image</label>
+                  <div className="flex flex-col gap-2">
+                    {createBikeForm.imageUrl ? (
+                      <div className="relative group rounded-xl border border-line overflow-hidden max-h-[80px]">
+                        <img src={createBikeForm.imageUrl} alt="Preview" className="w-full object-cover max-h-[80px]" />
+                        <button
+                          type="button"
+                          onClick={() => setCreateBikeForm(f => ({ ...f, imageUrl: '' }))}
+                          className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-2 cursor-pointer hover:border-accent/40 transition max-h-[80px]">
+                        <span className="text-xs font-semibold text-accent">Upload Image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const compressed = await compressImage(file);
+                                setCreateBikeForm(f => ({ ...f, imageUrl: compressed }));
+                              } catch (err) {
+                                console.error('Image compression failed', err);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
               </div>
               {createBikeError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{createBikeError}</p>}
               <div className="flex gap-3 pt-2">

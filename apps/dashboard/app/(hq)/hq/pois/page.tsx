@@ -19,6 +19,7 @@ const poiSchema = z.object({
   active: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  supportedBikeTypes: z.array(z.string()).default([]),
 });
 
 const poisResponseSchema = z.object({
@@ -59,6 +60,7 @@ export default function HqPoisPage() {
   const [formAddress, setFormAddress] = useState('');
   const [formActive, setFormActive] = useState(true);
   const [formGlobal, setFormGlobal] = useState(true);
+  const [formSupportedBikeTypes, setFormSupportedBikeTypes] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Build query string
@@ -134,6 +136,7 @@ export default function HqPoisPage() {
     setFormAddress('');
     setFormActive(true);
     setFormGlobal(true);
+    setFormSupportedBikeTypes([]);
     setFormError(null);
   };
 
@@ -152,6 +155,7 @@ export default function HqPoisPage() {
     setFormAddress(poi.address ?? '');
     setFormActive(poi.active);
     setFormGlobal(poi.fleetId === null);
+    setFormSupportedBikeTypes(poi.supportedBikeTypes || []);
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -185,6 +189,7 @@ export default function HqPoisPage() {
       address: formAddress.trim() || null,
       active: formActive,
       global: formGlobal,
+      supportedBikeTypes: formSupportedBikeTypes,
     };
 
     if (editPoiId) {
@@ -354,9 +359,16 @@ export default function HqPoisPage() {
                         </span>
                         <div>
                           <p className="font-semibold text-white">{poi.name}</p>
-                          <span className={`inline-flex items-center mt-1 rounded-md border px-2 py-0.5 text-[9px] font-bold ${typeColor(poi.type)}`}>
-                            {poi.type}
-                          </span>
+                          <div className="flex flex-wrap gap-1.5 items-center mt-1">
+                            <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold ${typeColor(poi.type)}`}>
+                              {poi.type}
+                            </span>
+                            {poi.supportedBikeTypes?.map((bt) => (
+                              <span key={bt} className="inline-flex items-center rounded bg-white/5 border border-white/10 px-1.5 py-0.5 text-[8px] font-bold text-zinc-400">
+                                {bt}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -524,6 +536,29 @@ export default function HqPoisPage() {
                   onChange={(e) => setFormAddress(e.target.value)}
                   className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Supported Bike Models</label>
+                <div className="flex gap-4">
+                  {['SPIRO', 'AMPARSAND', 'AMAZI'].map((type) => (
+                    <label key={type} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formSupportedBikeTypes.includes(type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormSupportedBikeTypes([...formSupportedBikeTypes, type]);
+                          } else {
+                            setFormSupportedBikeTypes(formSupportedBikeTypes.filter((t) => t !== type));
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-line bg-surface-strong text-accent focus:ring-accent"
+                      />
+                      <span className="text-xs font-bold text-white">{type}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-2 flex flex-col gap-3">

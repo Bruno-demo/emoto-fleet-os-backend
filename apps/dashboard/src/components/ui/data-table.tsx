@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   loading?: boolean;
   emptyState?: ReactNode;
   className?: string;
+  onRowClick?: (row: T) => void;
 }
 
 // Standardizes table spacing, loading, and empty state behavior across pages.
@@ -27,6 +28,7 @@ export function DataTable<T>({
   loading = false,
   emptyState,
   className,
+  onRowClick,
 }: DataTableProps<T>) {
   if (loading) {
     return <TableRowsSkeleton rows={5} columns={columns.length} />;
@@ -59,7 +61,14 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {data.map((row) => (
-            <tr key={keyExtractor(row)} className="group rounded-[18px] bg-surface-muted hover:bg-surface-hover transition-colors">
+            <tr
+              key={keyExtractor(row)}
+              onClick={() => onRowClick?.(row)}
+              className={cx(
+                'group rounded-[18px] bg-surface-muted hover:bg-surface-hover transition-colors',
+                onRowClick ? 'cursor-pointer' : '',
+              )}
+            >
               {columns.map((column) => (
                 <td
                   key={`${keyExtractor(row)}-${column.header}`}

@@ -103,6 +103,8 @@ export class BikesService {
           serial: dto.serial,
           model: dto.model,
           status: dto.status ?? 'ACTIVE',
+          imageUrl: dto.imageUrl,
+          type: dto.type,
         },
       });
     } catch (error: unknown) {
@@ -170,6 +172,8 @@ export class BikesService {
           serial: dto.serial,
           model: dto.model,
           status: dto.status,
+          imageUrl: dto.imageUrl,
+          type: dto.type,
           ...(dto.insurerUserId !== undefined
             ? { insurerUserId: dto.insurerUserId }
             : {}),

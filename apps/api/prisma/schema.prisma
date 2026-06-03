@@ -280,6 +280,8 @@ model Bike {
   model         String?
   insurerUserId String?          @db.Uuid
   status        BikeStatus       @default(ACTIVE)
+  imageUrl      String?
+  type          String?
   createdAt     DateTime         @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime         @updatedAt @db.Timestamptz(6)
   fleet         Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
@@ -372,10 +374,15 @@ model Event {
 }
 
 model RiderProfile {
-  userId    String   @id @db.Uuid
-  fullName  String
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String   @id @db.Uuid
+  fullName          String
+  licenceNumber     String?
+  identityNumber    String?
+  passportPhoto     String?
+  licencePhoto      String?
+  identityCardPhoto String?
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model BikeAssignment {
@@ -406,9 +413,10 @@ model Poi {
   lat       Decimal  @db.Decimal(9, 6)
   lng       Decimal  @db.Decimal(9, 6)
   address   String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  active             Boolean  @default(true)
+  supportedBikeTypes String[] @default([])
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
   fleet     Fleet?   @relation(fields: [fleetId], references: [id], onDelete: SetNull)
 
   @@index([type])
