@@ -7,7 +7,16 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { DeviceStatus } from '@prisma/client';
 import * as net from 'net';
-import { TelemetryPayload } from '../mqtt/mqtt-validation.util';
+import * as mqtt from 'mqtt';
+import { timingSafeEqual } from 'crypto';
+import {
+  TelemetryPayload,
+  computePayloadSignature,
+  commandDownlinkPayloadSchema,
+  verifyPayloadSignature,
+  assertTimestampDrift,
+  assertNonceNotReplayed,
+} from '../mqtt/mqtt-validation.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { MetricsService } from '../metrics/metrics.service';
@@ -15,6 +24,10 @@ import { LiveBikeState } from './ingestion.types';
 import { LiveStateService } from './live-state.service';
 import { RulesEngineService } from './rules-engine.service';
 import { TripBuilderService } from './trip-builder.service';
+import {
+  decryptDeviceSecret,
+  hashDeviceSecret,
+} from '../crypto/device-secret.crypto';
 
 interface DeviceForIngestion {
   id: string;
@@ -22,6 +35,12 @@ interface DeviceForIngestion {
   bikeId: string | null;
   deviceUid: string;
   status: DeviceStatus;
+  secretHash: string;
+  secretEncrypted: string | null;
+}
+
+interface SinoTrackSocket extends net.Socket {
+  deviceUid?: string;
 }
 
 @Injectable()
@@ -34,6 +53,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   private readonly streamMaxLen: number;
   private readonly streamEnabled: boolean;
   private readonly activeSockets = new Set<net.Socket>();
+  private readonly activeConnections = new Map<
+    string,
+    { socket: net.Socket; imei: string }
+  >();
+  private mqttClient: mqtt.MqttClient | null = null;
+  private readonly deviceSecretMasterKey: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -52,6 +77,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     this.streamEnabled = this.configService.get<boolean>(
       'STREAM_ENABLED',
       true,
+    );
+    this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
+      'DEVICE_SECRET_MASTER_KEY',
     );
   }
 
@@ -82,6 +110,56 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         `SinoTrack ST-901 TCP Ingestion Adapter listening on 0.0.0.0:${this.port}`,
       );
     });
+
+    // Initialize MQTT command subscriber
+    const mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
+    const mqttUser = this.configService.get<string>('MQTT_USER');
+    const mqttPassword = this.configService.get<string>('MQTT_PASSWORD');
+    const mqttDisabled = this.configService.get<boolean>(
+      'MQTT_DISABLED',
+      false,
+    );
+
+    if (!mqttDisabled) {
+      const options: mqtt.IClientOptions = {
+        reconnectPeriod: 3_000,
+        connectTimeout: 10_000,
+      };
+      if (mqttUser) {
+        options.username = mqttUser;
+      }
+      if (mqttPassword) {
+        options.password = mqttPassword;
+      }
+
+      this.mqttClient = mqtt.connect(mqttUrl, options);
+
+      this.mqttClient.on('connect', () => {
+        this.mqttClient?.subscribe(
+          'v1/devices/+/command',
+          { qos: 1 },
+          (err) => {
+            if (err) {
+              this.logger.error(
+                `SinoTrack MQTT command subscription failed: ${err.message}`,
+              );
+            } else {
+              this.logger.log(
+                'SinoTrack MQTT adapter subscribed to command topics',
+              );
+            }
+          },
+        );
+      });
+
+      this.mqttClient.on('message', (topic: string, payload: Buffer) => {
+        void this.handleMqttCommand(topic, payload.toString('utf8'));
+      });
+
+      this.mqttClient.on('error', (err) => {
+        this.logger.warn(`SinoTrack MQTT client error: ${err.message}`);
+      });
+    }
   }
 
   onModuleDestroy(): void {
@@ -90,6 +168,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       socket.destroy();
     }
     this.activeSockets.clear();
+    this.activeConnections.clear();
+
+    if (this.mqttClient) {
+      this.mqttClient.end(true);
+      this.mqttClient = null;
+    }
 
     if (this.tcpServer) {
       this.tcpServer.close(() => {
@@ -132,7 +216,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       while ((boundaryIndex = buffer.indexOf('#')) !== -1) {
         const rawPacket = buffer.substring(0, boundaryIndex + 1);
         buffer = buffer.substring(boundaryIndex + 1);
-        void this.processRawPacket(rawPacket);
+        void this.processRawPacket(rawPacket, socket);
       }
     });
 
@@ -145,10 +229,17 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     socket.on('close', () => {
       this.logger.debug(`SinoTrack TCP connection closed for ${remoteAddress}`);
       this.activeSockets.delete(socket);
+      const dUid = (socket as SinoTrackSocket).deviceUid;
+      if (dUid) {
+        this.activeConnections.delete(dUid);
+      }
     });
   }
 
-  private async processRawPacket(rawPacket: string): Promise<void> {
+  private async processRawPacket(
+    rawPacket: string,
+    socket: net.Socket,
+  ): Promise<void> {
     const trimmed = rawPacket.trim();
     if (!trimmed.startsWith('*HQ')) {
       this.logger.warn(
@@ -184,6 +275,10 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         );
         return;
       }
+
+      // Bind socket to deviceUid for connection mapping
+      this.activeConnections.set(device.deviceUid, { socket, imei });
+      (socket as SinoTrackSocket).deviceUid = device.deviceUid;
 
       if (command === 'V1') {
         await this.processTelemetryPacket(device, parts);
@@ -433,6 +528,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         bikeId: true,
         deviceUid: true,
         status: true,
+        secretHash: true,
+        secretEncrypted: true,
       },
     });
   }
@@ -475,5 +572,164 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         }`,
       );
     }
+  }
+
+  private async handleMqttCommand(
+    topic: string,
+    rawPayload: string,
+  ): Promise<void> {
+    const topicParts = topic.split('/');
+    if (topicParts.length < 4) return;
+    const deviceUid = topicParts[2];
+
+    const connection = this.activeConnections.get(deviceUid);
+    if (!connection) {
+      // Not connected to this specific TCP server node instance
+      return;
+    }
+
+    try {
+      // Load device secret first to be able to verify signature
+      const device = await this.prismaService.device.findUnique({
+        where: { deviceUid },
+        select: {
+          id: true,
+          fleetId: true,
+          bikeId: true,
+          deviceUid: true,
+          secretHash: true,
+          secretEncrypted: true,
+        },
+      });
+
+      if (!device) {
+        throw new Error('Device not found for command verification');
+      }
+
+      const deviceSecret = this.decryptAndValidateSecret(device);
+
+      // Parse and validate MQTT JSON payload structure
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(rawPayload);
+      } catch {
+        throw new Error('Invalid JSON format in command payload');
+      }
+
+      const parsedPayload = commandDownlinkPayloadSchema.safeParse(parsedJson);
+      if (!parsedPayload.success) {
+        throw new Error(
+          `Command validation failed: ${parsedPayload.error.message}`,
+        );
+      }
+
+      const command = parsedPayload.data;
+
+      // Validate cryptographic HMAC signature using device-specific secret
+      const isSignatureValid = verifyPayloadSignature(
+        deviceSecret,
+        command as Record<string, unknown> & { sig: string },
+      );
+      if (!isSignatureValid) {
+        throw new Error('HMAC signature mismatch on command');
+      }
+
+      // Check for timestamp drift (max 5 minutes)
+      assertTimestampDrift(command.ts);
+
+      // Defend against replay attacks using Redis nonce check
+      await assertNonceNotReplayed(this.redisService, deviceUid, command.nonce);
+
+      this.logger.log(
+        `Received and validated outbound MQTT command ${command.type} for SinoTrack deviceUid=${deviceUid}`,
+      );
+
+      let sinotrackCmd = '';
+      if (command.type === 'LOCK') {
+        sinotrackCmd = '9400000'; // Cut off fuel/ignition
+      } else if (command.type === 'UNLOCK') {
+        sinotrackCmd = '9410000'; // Restore fuel/ignition
+      } else {
+        this.logger.warn(
+          `SinoTrack adapter does not support command type ${command.type as string}`,
+        );
+        return;
+      }
+
+      const packet = `*HQ,${connection.imei},${sinotrackCmd}#`;
+      connection.socket.write(packet, 'ascii', () => {
+        this.logger.log(
+          `Successfully dispatched raw TCP packet to SinoTrack device imei=${connection.imei}: ${packet}`,
+        );
+      });
+
+      const ackTopic = `v1/devices/${deviceUid}/command-ack`;
+      const ackPayload = {
+        commandId: command.commandId,
+        status: 'ACKED',
+        ts: new Date().toISOString(),
+        nonce: `ack-${command.commandId}-${Date.now()}`,
+      };
+
+      const sig = computePayloadSignature(deviceSecret, ackPayload);
+      const signedPayload = {
+        ...ackPayload,
+        sig,
+      };
+
+      if (this.mqttClient) {
+        this.mqttClient.publish(
+          ackTopic,
+          JSON.stringify(signedPayload),
+          { qos: 1 },
+          (err) => {
+            if (err) {
+              this.logger.error(
+                `Failed to publish command-ack to MQTT: ${err.message}`,
+              );
+            } else {
+              this.logger.log(
+                `Published signed command-ack for commandId=${command.commandId} back to MQTT`,
+              );
+            }
+          },
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'unknown error';
+      this.logger.error(
+        `Failed to execute and ack MQTT command for SinoTrack: ${msg}`,
+      );
+    }
+  }
+
+  private decryptAndValidateSecret(device: {
+    secretEncrypted: string | null;
+    secretHash: string;
+  }): string {
+    if (!device.secretEncrypted) {
+      throw new Error('Device has no encrypted secret');
+    }
+
+    const decrypted = decryptDeviceSecret(
+      device.secretEncrypted,
+      this.deviceSecretMasterKey,
+    );
+    const computedHash = hashDeviceSecret(decrypted);
+    if (!this.timingSafeHexEqual(computedHash, device.secretHash)) {
+      throw new Error('Device secret hash mismatch');
+    }
+
+    return decrypted;
+  }
+
+  private timingSafeHexEqual(leftHex: string, rightHex: string): boolean {
+    const left = Buffer.from(leftHex, 'hex');
+    const right = Buffer.from(rightHex, 'hex');
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    return timingSafeEqual(left, right);
   }
 }
