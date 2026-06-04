@@ -45,14 +45,14 @@ const PLAN_DETAILS: Record<string, { title: string; price: string; period: strin
     title: 'Safety Core', 
     price: '5,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Essential safety (+ 20,000 RWF setup).',
+    description: 'Essential safety (+ 30,000 RWF setup).',
     icon: <ShieldCheck size={18} />
   },
   'operations-plus': { 
     title: 'Operations Plus', 
     price: '10,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Advanced fleet ops (+ 20,000 RWF setup).',
+    description: 'Advanced fleet ops (+ 30,000 RWF setup).',
     icon: <Zap size={18} />
   },
   enterprise: { 

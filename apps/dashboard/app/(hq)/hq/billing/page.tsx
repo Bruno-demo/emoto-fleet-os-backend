@@ -268,7 +268,7 @@ export default function HqBillingPage() {
               <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (20k RWF)</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (30k RWF)</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Subscription</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
@@ -345,7 +345,7 @@ export default function HqBillingPage() {
                         </span>
                         
                         <p className="text-xs font-semibold text-zinc-500">
-                          ({(fleet._count.bikes * 20000).toLocaleString()} RWF)
+                          ({(fleet._count.bikes * 30000).toLocaleString()} RWF)
                         </p>
                       </div>
                     </td>
@@ -521,9 +521,9 @@ export default function HqBillingPage() {
               {/* Stat 4: Setup Fee Total */}
               <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1 sm:col-span-2 flex justify-between items-center">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">One-time Setup Fee (20k RWF/bike)</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">One-time Setup Fee (30k RWF/bike)</p>
                   <p className="text-lg font-extrabold text-white">
-                    {(activeFleetDetails._count.bikes * 20000).toLocaleString()} RWF
+                    {(activeFleetDetails._count.bikes * 30000).toLocaleString()} RWF
                   </p>
                 </div>
                 <div>
