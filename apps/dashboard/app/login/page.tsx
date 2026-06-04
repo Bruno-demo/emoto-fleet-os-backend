@@ -46,6 +46,7 @@ export default function LoginPage() {
   const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [isRiderBlocked, setIsRiderBlocked] = useState(false);
   const loginPresentation = getLoginPresentation();
 
   // OTP login flow state
@@ -62,6 +63,9 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('expired') === 'true') {
       setIsExpired(true);
+    }
+    if (params.get('error') === 'rider') {
+      setIsRiderBlocked(true);
     }
   }, []);
 
@@ -130,6 +134,12 @@ export default function LoginPage() {
         return;
       }
 
+      if ('user' in response && response.user.role === 'RIDER') {
+        await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+        setError('You are a rider. Please access through the mobile app.');
+        return;
+      }
+
       if ('user' in response && response.user.status === 'PENDING_SETUP') {
         await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
         setError('Your hardware installation is still pending.');
@@ -177,6 +187,12 @@ export default function LoginPage() {
           otp: otpCode.trim(),
         }),
       }, { auth: false });
+
+      if (response.user.role === 'RIDER') {
+        await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
+        setOtpError('You are a rider. Please access through the mobile app.');
+        return;
+      }
 
       if (response.user.status === 'PENDING_SETUP') {
         await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
@@ -375,6 +391,12 @@ export default function LoginPage() {
             <AuthNotice
               message="Your session has expired. Please log in again to continue."
               tone="warning"
+            />
+          ) : null}
+          {isRiderBlocked ? (
+            <AuthNotice
+              message="You are a rider. Please access through the mobile app."
+              tone="error"
             />
           ) : null}
           {error ? <AuthNotice message={error} tone="error" /> : null}

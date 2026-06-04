@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { clearAuthToken } from '@/lib/auth/session';
+import { apiFetch } from '@/lib/api/client';
 
 // Redirects already-authenticated users away from login and signup pages.
 export function RedirectIfAuthenticated({ children }: { children: React.ReactNode }) {
@@ -19,7 +21,13 @@ export function RedirectIfAuthenticated({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (user) {
-      router.replace('/live');
+      if (user.role === 'RIDER') {
+        clearAuthToken();
+        apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+        router.replace('/login?error=rider');
+      } else {
+        router.replace('/live');
+      }
     }
   }, [user, router]);
 

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { clearAuthToken } from '@/lib/auth/session';
+import { apiFetch } from '@/lib/api/client';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -32,6 +33,13 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }, [isLoading]);
 
   useEffect(() => {
+    if (data?.role === 'RIDER') {
+      clearAuthToken();
+      apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+      router.replace('/login?error=rider');
+      return;
+    }
+
     if (data?.status === 'PENDING_SETUP') {
       clearAuthToken();
       router.replace('/registration-success');
@@ -42,7 +50,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       clearAuthToken();
       router.replace(`/login?expired=true&next=${encodeURIComponent(nextPath)}`);
     }
-  }, [isError, data?.status, nextPath, router]);
+  }, [isError, data?.status, data?.role, nextPath, router]);
 
   if (!hasWindow || (isLoading && !isError)) {
     return (
