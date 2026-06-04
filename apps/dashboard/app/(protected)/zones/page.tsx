@@ -33,11 +33,11 @@ const ZoneDrawMap = dynamic(
 const PAGE_SIZE = 20;
 
 const zoneFormSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().min(2, 'Zone name must be at least 2 characters'),
   type: z.enum(['SLOW', 'NO_GO', 'PARK']),
   speedLimitKph: z.number().nullable(),
   active: z.boolean(),
-  geojsonPolygon: z.string().min(2),
+  geojsonPolygon: z.string().min(2, 'Please draw a valid boundary on the map or provide a valid coordinates string'),
 });
 
 const defaultPolygon = JSON.stringify(
@@ -170,7 +170,7 @@ export default function ZonesPage() {
     const maybeSpeedLimit =
       speedLimitKph.trim().length === 0 ? null : Number(speedLimitKph.trim());
     if (maybeSpeedLimit !== null && Number.isNaN(maybeSpeedLimit)) {
-      setFormError('speedLimitKph must be a valid number');
+      setFormError('Speed limit must be a valid number');
       return;
     }
 
@@ -195,7 +195,7 @@ export default function ZonesPage() {
     }
 
     if (parsedForm.data.type === 'SLOW' && (!maybeSpeedLimit || maybeSpeedLimit <= 0)) {
-      setFormError('SLOW zones require a positive speedLimitKph');
+      setFormError('Slow-speed zones require a positive speed limit.');
       return;
     }
 
