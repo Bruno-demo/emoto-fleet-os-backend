@@ -17,6 +17,9 @@ import {
   Users,
   Wallet,
   X,
+  Check,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -106,6 +109,25 @@ export default function FinancialsPage() {
   const [formStatus, setFormStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE'>('PAID');
   const [formReference, setFormReference] = useState('');
   const [formNotes, setFormNotes] = useState('');
+
+  const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+
+  // Fetch Selected Rider's payments history for arrears calculation in modal
+  const riderPaymentsQuery = useQuery({
+    queryKey: ['payments', 'rider', formRiderId],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<PaymentRecord>>(
+        `/financials${buildQueryString({ riderId: formRiderId, page: 1, pageSize: 100 })}`,
+      ),
+    enabled: !!formRiderId && showCollectModal,
+  });
+
+  const riderArrears = useMemo(() => {
+    if (!riderPaymentsQuery.data) return 0;
+    return riderPaymentsQuery.data.data
+      .filter((p) => p.status === 'UNPAID' || p.status === 'OVERDUE')
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [riderPaymentsQuery.data]);
 
   // 1. Fetch Riders (for dropdown and matrix)
   const ridersQuery = useQuery({
@@ -382,6 +404,18 @@ export default function FinancialsPage() {
     return { linePath: path, areaPath: closedPath, points: coords };
   }, [summary]);
 
+  const hoveredPoint = useMemo(() => {
+    if (activePointIndex === null || !summary || !svgChartPath || typeof svgChartPath !== 'object') return null;
+    const pt = svgChartPath.points[activePointIndex];
+    const earn = summary.dailyEarnings[activePointIndex];
+    return {
+      x: pt.x,
+      y: pt.y,
+      date: new Date(earn.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+      amount: earn.amount,
+    };
+  }, [activePointIndex, summary, svgChartPath]);
+
   return (
     <div className="space-y-6">
       {/* Date selector header */}
@@ -469,7 +503,21 @@ export default function FinancialsPage() {
               <div className="h-[120px] w-full bg-surface-hover rounded-xl animate-pulse" />
             ) : summary && summary.dailyEarnings.length > 0 ? (
               <div className="space-y-3">
-                <div className="relative h-[120px] w-full overflow-hidden">
+                <div className="relative h-[120px] w-full overflow-visible mt-6">
+                  {/* Tooltip Overlay */}
+                  {hoveredPoint && (
+                    <div
+                      className="absolute z-10 -translate-x-1/2 -translate-y-full pointer-events-none rounded-xl border border-line bg-surface p-2.5 shadow-xl text-[10px] space-y-0.5 leading-none transition-all duration-150 text-ink animate-scale-in"
+                      style={{
+                        left: `${(hoveredPoint.x / 680) * 100}%`,
+                        top: `${(hoveredPoint.y / 110) * 120 - 12}px`,
+                      }}
+                    >
+                      <p className="font-semibold text-ink-muted">{hoveredPoint.date}</p>
+                      <p className="font-mono font-bold text-accent text-xs">{hoveredPoint.amount.toLocaleString()} RWF</p>
+                    </div>
+                  )}
+
                   <svg viewBox="0 0 680 110" className="w-full h-full overflow-visible" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
@@ -492,18 +540,42 @@ export default function FinancialsPage() {
                         strokeLinejoin="round"
                       />
                     )}
+                    {/* Hover guide line */}
+                    {activePointIndex !== null && typeof svgChartPath === 'object' && (
+                      <line
+                        x1={svgChartPath.points[activePointIndex].x}
+                        y1={0}
+                        x2={svgChartPath.points[activePointIndex].x}
+                        y2={110}
+                        stroke="rgba(59, 130, 246, 0.4)"
+                        strokeWidth="1.5"
+                        strokeDasharray="4 3"
+                      />
+                    )}
                     {/* Dots */}
                     {typeof svgChartPath === 'object' &&
                       svgChartPath.points.map((p, i) => (
-                        <circle
-                          key={i}
-                          cx={p.x}
-                          cy={p.y}
-                          r="3.5"
-                          fill="#1E293B"
-                          stroke="#3B82F6"
-                          strokeWidth="2"
-                        />
+                        <g key={i}>
+                          <circle
+                            cx={p.x}
+                            cy={p.y}
+                            r={activePointIndex === i ? 5.5 : 3.5}
+                            fill={activePointIndex === i ? "#3B82F6" : "#1E293B"}
+                            stroke="#3B82F6"
+                            strokeWidth="2"
+                            className="transition-all duration-150"
+                          />
+                          {/* Invisible hover trigger zone (wider radius) */}
+                          <circle
+                            cx={p.x}
+                            cy={p.y}
+                            r="20"
+                            fill="transparent"
+                            className="cursor-pointer"
+                            onMouseEnter={() => setActivePointIndex(i)}
+                            onMouseLeave={() => setActivePointIndex(null)}
+                          />
+                        </g>
                       ))}
                   </svg>
                 </div>
@@ -601,11 +673,11 @@ export default function FinancialsPage() {
                                 type="button"
                                 onClick={() => openCollectForMatrix(rider.id, day.dateString)}
                                 className={cx(
-                                  'h-6 w-6 rounded-md text-[10px] font-bold transition-all border outline-none',
-                                  status === 'paid' && 'bg-success-soft/30 border-success-ink/20 text-success-ink hover:bg-success-soft/50',
-                                  status === 'partial' && 'bg-warning-soft/30 border-warning-ink/20 text-warning-ink hover:bg-warning-soft/50',
-                                  status === 'overdue' && 'bg-danger-soft/30 border-danger-ink/20 text-danger-ink hover:bg-danger-soft/50',
-                                  status === 'unpaid' && 'bg-surface-muted border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
+                                  'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
+                                  status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
+                                  status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
+                                  status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
+                                  status === 'unpaid' && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
                                 )}
                                 title={
                                   status === 'unpaid'
@@ -613,10 +685,10 @@ export default function FinancialsPage() {
                                     : `Status: ${status.toUpperCase()} (Click to log new)`
                                 }
                               >
-                                {status === 'paid' && '✓'}
-                                {status === 'partial' && 'P'}
-                                {status === 'overdue' && '!'}
-                                {status === 'unpaid' && '+'}
+                                {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
+                                {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
+                                {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
+                                {status === 'unpaid' && <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />}
                               </button>
                             </td>
                           );
@@ -809,6 +881,24 @@ export default function FinancialsPage() {
                 ))}
               </SelectField>
 
+              {formRiderId && (
+                <div className="space-y-1">
+                  {riderPaymentsQuery.isLoading ? (
+                    <p className="text-[10px] text-ink-muted animate-pulse">Calculating outstanding arrears...</p>
+                  ) : (
+                    <div className={cx(
+                      "p-3 rounded-xl border text-xs flex justify-between items-center transition-all",
+                      riderArrears > 0 ? "bg-danger-soft/10 border-danger-ink/20 text-danger-ink" : "bg-success-soft/10 border-success-ink/20 text-success-ink"
+                    )}>
+                      <span className="font-semibold">Outstanding Arrears:</span>
+                      <span className="font-mono font-bold text-sm">
+                        {riderArrears.toLocaleString()} RWF
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <TextField
                   label="Lease Rate Collected (RWF)"
@@ -833,7 +923,7 @@ export default function FinancialsPage() {
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormMethod(e.target.value as 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER')}
                 >
                   <option value="CASH">Cash</option>
-                  <option value="MOBILE_MONEY">Mobile Money (M-Pesa)</option>
+                  <option value="MOBILE_MONEY">Mobile Money (MTN MoMo / Airtel)</option>
                   <option value="BANK_TRANSFER">Bank Transfer</option>
                   <option value="OTHER">Other</option>
                 </SelectField>
