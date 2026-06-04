@@ -117,7 +117,10 @@ export async function apiFetch<T = unknown>(
         window.location.href = '/forbidden';
       }
 
-      const rawMessage = extractErrorMessage(body, 'Request failed. Please try again.');
+      let rawMessage = extractErrorMessage(body, 'Request failed. Please try again.');
+      if (response.status === 413) {
+        rawMessage = 'The request payload or uploaded image is too large. Maximum size allowed is 1MB. Please upload a smaller file.';
+      }
       console.error(`API Error: ${rawMessage}`, {
         url: resolvedUrl,
         status: response.status,
