@@ -1014,7 +1014,7 @@ export default function FleetDetailPage() {
       {/* ── BIKE MODAL ── */}
       {isBikeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface-strong p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface-strong p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-white">
                 {bikeEditMode ? 'Edit Bike Details' : 'Register New Bike'}
