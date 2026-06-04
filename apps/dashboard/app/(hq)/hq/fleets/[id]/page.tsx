@@ -229,6 +229,11 @@ export default function FleetDetailPage() {
       status: string;
       password?: string;
       fullName: string;
+      passportPhoto?: string;
+      licenceNumber?: string;
+      identityNumber?: string;
+      licencePhoto?: string;
+      identityCardPhoto?: string;
     }) =>
       apiFetch(`/hq/fleets/${id}/users`, {
         method: 'POST',
@@ -253,6 +258,11 @@ export default function FleetDetailPage() {
       role: string;
       status: string;
       fullName: string;
+      passportPhoto?: string;
+      licenceNumber?: string;
+      identityNumber?: string;
+      licencePhoto?: string;
+      identityCardPhoto?: string;
     }) =>
       apiFetch(`/hq/users/${userId}`, {
         method: 'PUT',
@@ -1290,10 +1300,62 @@ export default function FleetDetailPage() {
                 </div>
               </div>
 
+              {/* Profile Image — available for ALL roles */}
+              <div className="space-y-2 pt-4 border-t border-line">
+                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">
+                  Profile Image
+                </h4>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    Photo
+                  </label>
+                  {userPassportPhoto ? (
+                    <div className="relative group rounded-xl border border-line overflow-hidden h-[100px] w-[100px]">
+                      <img src={userPassportPhoto} alt="Profile" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setUserPassportPhoto('')}
+                        className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/5 p-3 cursor-pointer hover:border-accent/30 transition h-[100px] w-[100px]">
+                      <span className="text-2xl">👤</span>
+                      <span className="text-[9px] font-semibold text-zinc-400 text-center leading-tight mt-1">
+                        {isCompresingPassport ? 'Compressing...' : 'Upload Photo'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isCompresingPassport}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              setIsCompresingPassport(true);
+                              const compressed = await compressImage(file);
+                              setUserPassportPhoto(compressed);
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              setIsCompresingPassport(false);
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Rider-specific documents */}
               {userRole === 'RIDER' && (
                 <div className="space-y-4 pt-4 border-t border-line">
                   <h4 className="text-xs font-bold text-accent uppercase tracking-wider">
-                    Rider Profile Documents
+                    Rider Documents
                   </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1322,53 +1384,7 @@ export default function FleetDetailPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Passport Photo */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 text-center">
-                        Passport
-                      </label>
-                      {userPassportPhoto ? (
-                        <div className="relative group rounded-xl border border-line overflow-hidden h-[80px]">
-                          <img src={userPassportPhoto} alt="Passport" className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => setUserPassportPhoto('')}
-                            className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
-                          >
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/5 p-2 cursor-pointer hover:border-accent/30 transition h-[80px]">
-                          <span className="text-lg">👤</span>
-                          <span className="text-[8px] font-semibold text-zinc-400 text-center leading-tight">
-                            {isCompresingPassport ? 'Comp...' : 'Upload'}
-                          </span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={isCompresingPassport}
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                try {
-                                  setIsCompresingPassport(true);
-                                  const compressed = await compressImage(file);
-                                  setUserPassportPhoto(compressed);
-                                } catch (err) {
-                                  console.error(err);
-                                } finally {
-                                  setIsCompresingPassport(false);
-                                }
-                              }
-                            }}
-                          />
-                        </label>
-                      )}
-                    </div>
-
+                  <div className="grid grid-cols-2 gap-2">
                     {/* Licence Photo */}
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 text-center">

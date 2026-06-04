@@ -216,6 +216,11 @@ export class HqController {
       status?: any;
       password?: string;
       fullName?: string;
+      passportPhoto?: string;
+      licenceNumber?: string;
+      identityNumber?: string;
+      licencePhoto?: string;
+      identityCardPhoto?: string;
     },
   ) {
     return this.hqService.createUserForFleet(fleetId, body);
@@ -232,6 +237,11 @@ export class HqController {
       role?: any;
       status?: any;
       fullName?: string;
+      passportPhoto?: string;
+      licenceNumber?: string;
+      identityNumber?: string;
+      licencePhoto?: string;
+      identityCardPhoto?: string;
     },
   ) {
     return this.hqService.updateUserHq(id, body);
