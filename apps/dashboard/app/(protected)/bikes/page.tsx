@@ -120,6 +120,7 @@ export default function BikesPage() {
   };
 
   const handleEditBike = async () => {
+    if (!selectedBikeId || selectedBikeId === 'null') return;
     if (!editBikeForm.label.trim()) {
       setEditBikeError('Label is required');
       return;
@@ -153,7 +154,7 @@ export default function BikesPage() {
   };
 
   const handleDeleteBike = async () => {
-    if (!selectedBikeId) return;
+    if (!selectedBikeId || selectedBikeId === 'null') return;
     setDeleteBikeError(null);
     setIsDeletingBike(true);
     try {
@@ -214,7 +215,7 @@ export default function BikesPage() {
   );
 
   const handleAssignRider = async () => {
-    if (!selectedBikeId || !assignRiderId) return;
+    if (!selectedBikeId || selectedBikeId === 'null' || !assignRiderId) return;
     setAssignRiderError(null);
     setIsAssigningRider(true);
     try {
@@ -234,7 +235,7 @@ export default function BikesPage() {
   };
 
   const handleAssignInsurer = async () => {
-    if (!selectedBikeId) return;
+    if (!selectedBikeId || selectedBikeId === 'null') return;
     setAssignInsurerError(null);
     setIsAssigningInsurer(true);
     try {
@@ -366,7 +367,7 @@ export default function BikesPage() {
 
   // Sends a lock or unlock command and mirrors the first status in the websocket cache.
   const requestCommand = async (action: CommandIntent) => {
-    if (!selectedBikeId) {
+    if (!selectedBikeId || selectedBikeId === 'null') {
       return;
     }
 
