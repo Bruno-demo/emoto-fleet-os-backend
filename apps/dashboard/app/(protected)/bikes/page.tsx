@@ -256,7 +256,7 @@ export default function BikesPage() {
 
   useEffect(() => {
     const bikeId = searchParams.get('bikeId');
-    if (bikeId) {
+    if (bikeId && bikeId !== 'null') {
       setSelectedBikeId(bikeId);
     }
   }, [searchParams]);
@@ -322,7 +322,7 @@ export default function BikesPage() {
   const selectedBikeDetailQuery = useQuery({
     queryKey: ['bikes', selectedBikeId, 'detail'],
     queryFn: () => apiFetch<FleetBike>(`/bikes/${selectedBikeId}`),
-    enabled: !!selectedBikeId && !selectedBike,
+    enabled: !!selectedBikeId && selectedBikeId !== 'null' && !selectedBike,
   });
 
   const activeBike = selectedBike ?? selectedBikeDetailQuery.data ?? null;
@@ -331,7 +331,7 @@ export default function BikesPage() {
     queryKey: ['bikes', selectedBikeId, 'trips'],
     queryFn: () =>
       apiFetch<PaginatedResponse<BikeTrip>>(`/bikes/${selectedBikeId}/trips?page=1&pageSize=10`),
-    enabled: !!selectedBikeId,
+    enabled: !!selectedBikeId && selectedBikeId !== 'null',
   });
 
   const bikeEventsQuery = useQuery({
@@ -344,7 +344,7 @@ export default function BikesPage() {
           pageSize: 10,
         })}`,
       ),
-    enabled: !!selectedBikeId,
+    enabled: !!selectedBikeId && selectedBikeId !== 'null',
   });
 
   const bikeCommandStatuses = useMemo(

@@ -964,7 +964,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
         ) : !members?.length ? (
           <p className="py-8 text-center text-sm text-ink-muted">No team members found.</p>
         ) : (
-          <div className="divide-y divide-line rounded-xl border border-line overflow-hidden">
+          <div className="divide-y divide-line rounded-xl border border-line overflow-hidden max-h-[300px] overflow-y-auto dashboard-scrollbar">
             {members.map((member) => {
               const isCurrentUser = member.id === currentUser.id;
               return (
