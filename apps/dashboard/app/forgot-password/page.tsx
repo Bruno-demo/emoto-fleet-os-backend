@@ -2,6 +2,7 @@
 
 import { HelpCircle, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   AuthButton,
@@ -17,6 +18,7 @@ const resetEndpoint = process.env.NEXT_PUBLIC_PASSWORD_RESET_ENDPOINT || '/auth/
 
 // Provides a lightweight password reset landing page for fleets using admin-managed resets.
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<'warning' | 'success' | 'error'>('warning');
@@ -46,9 +48,13 @@ export default function ForgotPasswordPage() {
         { auth: false },
       );
       setNoticeTone('success');
-      setNotice('Request sent. Check your email or phone for next steps.');
+      setNotice('Request sent. Check your email or phone for next steps. Redirecting to reset page...');
       if (response && response.token) {
         setGeneratedToken(response.token);
+      } else {
+        setTimeout(() => {
+          router.push(`/reset-password?identifier=${encodeURIComponent(identifier.trim())}`);
+        }, 2000);
       }
       setIdentifier('');
     } catch (requestError: unknown) {
