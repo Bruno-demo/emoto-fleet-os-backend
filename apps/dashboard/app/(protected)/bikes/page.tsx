@@ -998,7 +998,7 @@ export default function BikesPage() {
 
       {/* Create Bike Modal */}
       {showCreateBike && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateBike(false)}>
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateBike(false)}>
           <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setShowCreateBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
               <X size={18} />
@@ -1121,7 +1121,7 @@ export default function BikesPage() {
 
       {/* Edit Bike Modal */}
       {showEditBike && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowEditBike(false)}>
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowEditBike(false)}>
           <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setShowEditBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
               <X size={18} />
