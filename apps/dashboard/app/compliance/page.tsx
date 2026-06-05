@@ -1,15 +1,27 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   ShieldCheck,
   Scale,
   MapPin,
   Activity,
-  FileText,
   HeartHandshake,
-  Sparkles,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Regulatory Compliance & Legal Standards | eMoto Fleet OS',
+  description: 'Review our municipal safety bounds, hospital zone speed limits, insurer-scoped telemetry audits, and GDPR-aligned data protection frameworks in Kigali, Rwanda.',
+  keywords: [
+    'e-moto compliance',
+    'Kigali geofence speed limits',
+    'GDPR telemetry data protection',
+    'insurance audits motorcycle',
+    'municipal mobility policy',
+  ],
+  alternates: {
+    canonical: '/compliance',
+  },
+};
 
 export default function CompliancePage() {
   const sections = [

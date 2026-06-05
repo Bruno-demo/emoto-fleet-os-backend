@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   ShieldCheck,
@@ -9,6 +8,21 @@ import {
   Terminal,
   Activity,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Security Architecture & IoT Hardening | eMoto Fleet OS',
+  description: 'How we enforce signed telemetry streams, TLS 1.3 cipher suites, isolated TimescaleDB schemas, role-based commands, and immutable system audit ledgers.',
+  keywords: [
+    'IoT security architecture',
+    'signed MQTT packets',
+    'TimescaleDB isolation schema',
+    'OTA relay commands logs',
+    'cybersecurity Kigali e-mobility',
+  ],
+  alternates: {
+    canonical: '/security',
+  },
+};
 
 export default function SecurityPage() {
   const standards = [

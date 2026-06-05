@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Scale,
@@ -7,6 +6,21 @@ import {
   DollarSign,
   ShieldAlert,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | Subscription Conditions',
+  description: 'Review active subscriptions, device setup fees (30,000 RWF), operator over-the-air locking liabilities, and strict anti-tampering rules for SinoTrack trackers.',
+  keywords: [
+    'e-moto terms of service',
+    'Safety Core subscription fees',
+    'remote lock liability',
+    'SinoTrack anti-tamper policy',
+    'Kigali fleet operator terms',
+  ],
+  alternates: {
+    canonical: '/terms',
+  },
+};
 
 export default function TermsPage() {
   const provisions = [

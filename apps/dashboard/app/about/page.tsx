@@ -1,16 +1,28 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Globe,
   Trees,
   Shield,
   Zap,
-  ArrowRight,
   TrendingUp,
   Activity,
 } from 'lucide-react';
-import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'About Us | eMoto Fleet OS',
+  description: "Learn about the mission, vision, and team behind eMoto Fleet OS. We are decarbonizing East Africa's transit with hardware-agnostic telemetry and automated safety command systems in Kigali, Rwanda.",
+  keywords: [
+    'e-moto safety',
+    'Kigali clean energy',
+    'electric motorcycle mission',
+    'eMoto team Rwanda',
+    'mobility infrastructure Kigali',
+  ],
+  alternates: {
+    canonical: '/about',
+  },
+};
 
 export default function AboutPage() {
   const values = [

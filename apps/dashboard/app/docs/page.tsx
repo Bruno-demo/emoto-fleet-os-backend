@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   BookOpen,
@@ -15,6 +14,21 @@ import {
   Layers,
   CheckCircle,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Documentation & Developer API Reference | eMoto Fleet OS',
+  description: 'Read our comprehensive developer manuals: SinoTrack ST-901 SMS programming, MQTT TLS ingest specs, OAuth2 client auth, REST endpoints, and daily collections ledger guide.',
+  keywords: [
+    'SinoTrack ST-901 SMS configuration',
+    'MQTT broker broker.emotofleet.com',
+    'eMoto API reference',
+    'TLS 1.3 telemetry cipher suites',
+    'lease billing ledger API',
+  ],
+  alternates: {
+    canonical: '/docs',
+  },
+};
 
 export default function DocsPage() {
   const categories = [

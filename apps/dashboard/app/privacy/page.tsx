@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   FileText,
@@ -7,6 +6,21 @@ import {
   EyeOff,
   Scale,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | Telemetry Data Safety',
+  description: 'Understand how we protect rider privacy: cryptographic data minimization, off-shift telemetry shutdown, scoped partner APIs, and rider right-to-deletion.',
+  keywords: [
+    'e-moto privacy policy',
+    'GPS data minimization',
+    'rider location privacy',
+    'telemetry data storage laws',
+    'Kigali data safety compliance',
+  ],
+  alternates: {
+    canonical: '/privacy',
+  },
+};
 
 export default function PrivacyPage() {
   const sections = [

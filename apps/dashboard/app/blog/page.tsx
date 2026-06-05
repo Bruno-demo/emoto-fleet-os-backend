@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Calendar,
@@ -8,7 +7,21 @@ import {
   Newspaper,
   Tag,
 } from 'lucide-react';
-import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'E-Moto Fleet Journal | Tech & Safety Insights',
+  description: 'Explore deep-dives into IoT telemetry, battery swap station protocols, driver coaching strategies, and carbon credit certifications from our engineering and ops teams in Kigali.',
+  keywords: [
+    'e-moto blog',
+    'MQTT telemetry Kigali',
+    'GPS tracker calibration',
+    'rider coaching safety scorecard',
+    'decarbonizing Kigali',
+  ],
+  alternates: {
+    canonical: '/blog',
+  },
+};
 
 export default function BlogPage() {
   const posts = [

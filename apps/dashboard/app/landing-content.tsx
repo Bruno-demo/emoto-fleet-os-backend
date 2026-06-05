@@ -30,6 +30,8 @@ import {
   Sparkles,
   Users2,
   Zap,
+  Menu,
+  X,
 } from 'lucide-react';
 
 /* ─── Data ────────────────────────────────────────────── */
@@ -223,6 +225,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 export default function LandingContent() {
   const [activeTab, setActiveTab] = useState('live-map');
   const [hasSession, setHasSession] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
@@ -277,7 +280,60 @@ export default function LandingContent() {
               </>
             )}
           </div>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.02] text-zinc-400 hover:text-white md:hidden"
+            aria-label="Toggle Menu"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </nav>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div className="border-t border-white/[0.06] bg-[#09090b] px-6 py-6 md:hidden space-y-6 animate-in slide-in-from-top-4 duration-200">
+            <div className="flex flex-col gap-4 text-sm font-medium" style={{color:'rgb(161,161,170)'}}>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Features</a>
+              <a href="#showcase" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Platform</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Pricing</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">FAQ</a>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.06]">
+              {hasSession ? (
+                <Link
+                  href="/overview"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
+                  style={{background:'white', color:'black'}}
+                >
+                  Dashboard <ArrowRight size={14} />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition hover:text-white border border-white/[0.08]"
+                    style={{color:'rgb(161,161,170)'}}
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/create-account"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
+                    style={{background:'white', color:'black'}}
+                  >
+                    Get started <ArrowRight size={14} />
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── Hero ── */}

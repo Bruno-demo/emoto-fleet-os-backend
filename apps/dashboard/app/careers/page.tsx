@@ -1,14 +1,26 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Briefcase,
   MapPin,
-  Clock,
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Careers | Join the Future of Electric Mobility',
+  description: "Join our Kigali tech lab in Kiyovu to build the software engine for East Africa's clean energy transition. View open roles for IoT engineers, React Native developers, and fleet coordinators.",
+  keywords: [
+    'e-moto careers',
+    'Kigali developer jobs',
+    'IoT engineer vacancies Rwanda',
+    'React Native jobs Kigali',
+    'mobility tech careers',
+  ],
+  alternates: {
+    canonical: '/careers',
+  },
+};
 
 export default function CareersPage() {
   const jobs = [
@@ -59,7 +71,7 @@ export default function CareersPage() {
         <div className="space-y-6">
           <div className="border-b border-white/[0.06] pb-4 text-left">
             <h2 className="text-lg font-bold text-white">Active Openings</h2>
-            <p className="text-xs text-zinc-500 mt-1">Join our Kiyovu tech lab and co-author the next era of e-mobility.</p>
+            <p className="text-xs text-zinc-500 mt-1">Join our Kigali tech lab and co-author the next era of e-mobility.</p>
           </div>
 
           <div className="space-y-4">

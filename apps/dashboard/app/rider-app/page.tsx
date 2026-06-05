@@ -1,6 +1,4 @@
-'use client';
-
-import Link from 'next/link';
+import type { Metadata } from 'next';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Smartphone,
@@ -9,11 +7,23 @@ import {
   ShieldCheck,
   BatteryCharging,
   Gauge,
-  ArrowRight,
   Sparkles,
-  MapPin,
-  Flame,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Rider Companion App | BLE Keys & Safety Coaching',
+  description: 'Empower drivers with the eMoto Rider app. Includes real-time safety coaching, battery swap station locator, digital Bluetooth key locks, and one-tap emergency SOS dispatch.',
+  keywords: [
+    'e-moto rider app',
+    'Bluetooth motorcycle lock',
+    'Kigali battery swap tracker',
+    'safe driver coefficient rating',
+    'mobile GPS tracker app',
+  ],
+  alternates: {
+    canonical: '/rider-app',
+  },
+};
 
 export default function RiderAppPage() {
   const features = [
@@ -56,7 +66,7 @@ export default function RiderAppPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-accent/[0.05] blur-[120px] rounded-full pointer-events-none" />
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
-          <Sparkles size={12} className="text-accent animate-pulse-soft" />
+          <Sparkles size={12} className="text-accent" />
           Rider Companion Experience
         </span>
 
