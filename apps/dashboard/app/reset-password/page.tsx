@@ -79,10 +79,18 @@ function ResetPasswordForm() {
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {
         setNoticeTone('error');
-        setNotice(requestError.message);
+        if (requestError.status === 400) {
+          setNotice(requestError.message || 'Reset token is invalid or has expired. Please request a new one.');
+        } else if (requestError.status === 429) {
+          setNotice('Too many attempts. Please wait a minute and try again.');
+        } else if (requestError.status >= 500) {
+          setNotice('Server error. Please try again later or contact support.');
+        } else {
+          setNotice(requestError.message || 'Unable to reset password right now.');
+        }
       } else {
         setNoticeTone('error');
-        setNotice('Unable to reset password right now');
+        setNotice('Network error. Please check your connection and try again.');
       }
     } finally {
       setIsSubmitting(false);
