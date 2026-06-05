@@ -288,7 +288,12 @@ export type AuditActionType =
   | 'SOS_TRIGGERED'
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
-  | 'ACCOUNT_LOCKED';
+  | 'ACCOUNT_LOCKED'
+  | 'BIKE_CREATED'
+  | 'BIKE_UPDATED'
+  | 'BIKE_DELETED'
+  | 'USER_ROLE_CHANGED'
+  | 'USER_INVITED';
 
 export interface AuditLogEntry {
   id: string;

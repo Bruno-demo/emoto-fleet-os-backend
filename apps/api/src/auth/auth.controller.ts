@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -219,6 +220,17 @@ export class AuthController {
       userId,
       body.role as UserRole,
     );
+  }
+
+  @Delete('fleet-users/:id')
+  @ApiBearerAuth()
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete or disable a fleet user' })
+  async deleteFleetUser(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('id') userId: string,
+  ) {
+    return this.authService.deleteFleetUser(actor, userId);
   }
 
   @Post('register-fleet')

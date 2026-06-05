@@ -95,7 +95,7 @@ export class BikesService {
     user: AuthenticatedUser,
   ): Promise<Bike> {
     try {
-      return await this.prismaService.bike.create({
+      const bike = await this.prismaService.bike.create({
         data: {
           fleetId: user.fleetId,
           label: dto.label,
@@ -107,6 +107,23 @@ export class BikesService {
           type: dto.type,
         },
       });
+
+      await this.auditService.createAuditLog({
+        fleetId: user.fleetId,
+        actorUserId: user.id,
+        actionType: AuditActionType.BIKE_CREATED,
+        targetType: 'BIKE',
+        targetId: bike.id,
+        metaJson: {
+          label: bike.label,
+          plate: bike.plate ?? null,
+          serial: bike.serial ?? null,
+          model: bike.model ?? null,
+          type: bike.type ?? null,
+        },
+      });
+
+      return bike;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -164,7 +181,7 @@ export class BikesService {
     }
 
     try {
-      return await this.prismaService.bike.update({
+      const updated = await this.prismaService.bike.update({
         where: { id },
         data: {
           label: dto.label,
@@ -193,6 +210,36 @@ export class BikesService {
           },
         },
       });
+
+      await this.auditService.createAuditLog({
+        fleetId: user.fleetId,
+        actorUserId: user.id,
+        actionType: AuditActionType.BIKE_UPDATED,
+        targetType: 'BIKE',
+        targetId: updated.id,
+        metaJson: {
+          before: {
+            label: bike.label,
+            plate: bike.plate,
+            serial: bike.serial,
+            model: bike.model,
+            status: bike.status,
+            type: bike.type,
+            insurerUserId: bike.insurerUserId,
+          },
+          after: {
+            label: updated.label,
+            plate: updated.plate,
+            serial: updated.serial,
+            model: updated.model,
+            status: updated.status,
+            type: updated.type,
+            insurerUserId: updated.insurerUserId,
+          },
+        },
+      });
+
+      return updated;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -212,6 +259,19 @@ export class BikesService {
     const bike = await this.loadBikeOrThrow(id);
     this.assertFleetAccess(bike.fleetId, user);
     await this.prismaService.bike.delete({ where: { id } });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.BIKE_DELETED,
+      targetType: 'BIKE',
+      targetId: bike.id,
+      metaJson: {
+        label: bike.label,
+        plate: bike.plate,
+        serial: bike.serial,
+      },
+    });
   }
 
   // Audits lock/unlock control actions before lock integration is implemented.

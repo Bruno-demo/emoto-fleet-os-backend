@@ -66,6 +66,15 @@ export default function BikesPage() {
   const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO' });
   const [isCreatingBike, setIsCreatingBike] = useState(false);
   const [createBikeError, setCreateBikeError] = useState<string | null>(null);
+
+  const [showEditBike, setShowEditBike] = useState(false);
+  const [editBikeForm, setEditBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', status: 'ACTIVE' });
+  const [isUpdatingBike, setIsUpdatingBike] = useState(false);
+  const [editBikeError, setEditBikeError] = useState<string | null>(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingBike, setIsDeletingBike] = useState(false);
+  const [deleteBikeError, setDeleteBikeError] = useState<string | null>(null);
   const [showAssignRider, setShowAssignRider] = useState(false);
   const [assignRiderId, setAssignRiderId] = useState('');
   const [isAssigningRider, setIsAssigningRider] = useState(false);
@@ -107,6 +116,61 @@ export default function BikesPage() {
       }
     } finally {
       setIsCreatingBike(false);
+    }
+  };
+
+  const handleEditBike = async () => {
+    if (!editBikeForm.label.trim()) {
+      setEditBikeError('Label is required');
+      return;
+    }
+    setEditBikeError(null);
+    setIsUpdatingBike(true);
+    try {
+      await apiFetch<FleetBike>(`/bikes/${selectedBikeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          label: editBikeForm.label.trim(),
+          plate: editBikeForm.plate.trim() || null,
+          serial: editBikeForm.serial.trim() || null,
+          model: editBikeForm.model.trim() || null,
+          imageUrl: editBikeForm.imageUrl || null,
+          type: editBikeForm.type || null,
+          status: editBikeForm.status,
+        }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['bikes'] });
+      setShowEditBike(false);
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setEditBikeError(error.message);
+      } else {
+        setEditBikeError('Failed to update bike');
+      }
+    } finally {
+      setIsUpdatingBike(false);
+    }
+  };
+
+  const handleDeleteBike = async () => {
+    if (!selectedBikeId) return;
+    setDeleteBikeError(null);
+    setIsDeletingBike(true);
+    try {
+      await apiFetch(`/bikes/${selectedBikeId}`, {
+        method: 'DELETE',
+      });
+      await queryClient.invalidateQueries({ queryKey: ['bikes'] });
+      setShowDeleteConfirm(false);
+      setSelectedBikeId(null);
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setDeleteBikeError(error.message);
+      } else {
+        setDeleteBikeError('Failed to delete bike');
+      }
+    } finally {
+      setIsDeletingBike(false);
     }
   };
 
@@ -767,6 +831,43 @@ export default function BikesPage() {
               </DashboardCard>
             )}
 
+            {/* Bike Management Actions */}
+            {canCreateBikes && (
+              <DashboardCard eyebrow="Management" title="Bike settings" description="Edit bike properties or remove this bike from the fleet registry.">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditBikeForm({
+                        label: activeBike.label,
+                        plate: activeBike.plate || '',
+                        serial: activeBike.serial || '',
+                        model: activeBike.model || '',
+                        imageUrl: activeBike.imageUrl || '',
+                        type: activeBike.type || 'SPIRO',
+                        status: activeBike.status || 'ACTIVE',
+                      });
+                      setEditBikeError(null);
+                      setShowEditBike(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                  >
+                    Edit Bike Info
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteBikeError(null);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-danger-ink/30 bg-danger-soft/10 px-4 py-3 text-sm font-semibold text-danger-ink transition hover:bg-danger-soft/20"
+                  >
+                    Delete Bike
+                  </button>
+                </div>
+              </DashboardCard>
+            )}
+
             <DashboardCard
               eyebrow="Remote Control"
               title="Command actions"
@@ -881,6 +982,17 @@ export default function BikesPage() {
             void requestCommand(commandIntent);
           }
         }}
+      />
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title="Delete Bike"
+        description={`Are you sure you want to permanently delete ${activeBike?.label ?? 'this bike'}? This action cannot be undone.`}
+        confirmLabel={isDeletingBike ? 'Deleting...' : 'Delete Bike'}
+        tone="danger"
+        isSubmitting={isDeletingBike}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteBike}
       />
 
       {/* Create Bike Modal */}
@@ -999,6 +1111,141 @@ export default function BikesPage() {
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
                   {isCreatingBike ? 'Creating...' : 'Create Bike'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Bike Modal */}
+      {showEditBike && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowEditBike(false)}>
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowEditBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
+              <X size={18} />
+            </button>
+            <h2 className="text-lg font-bold text-ink">Edit Bike Info</h2>
+            <p className="mt-1 text-sm text-ink-muted">Modify bike details and status in the registry.</p>
+            <div className="mt-5 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Label *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bike-001"
+                  value={editBikeForm.label}
+                  onChange={(e) => setEditBikeForm(f => ({ ...f, label: e.target.value }))}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Plate</label>
+                  <input
+                    type="text"
+                    placeholder="RAB123C"
+                    value={editBikeForm.plate}
+                    onChange={(e) => setEditBikeForm(f => ({ ...f, plate: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Serial</label>
+                  <input
+                    type="text"
+                    placeholder="SER-000001"
+                    value={editBikeForm.serial}
+                    onChange={(e) => setEditBikeForm(f => ({ ...f, serial: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Model</label>
+                <input
+                  type="text"
+                  placeholder="eMoto-X2"
+                  value={editBikeForm.model}
+                  onChange={(e) => setEditBikeForm(f => ({ ...f, model: e.target.value }))}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Type *</label>
+                  <select
+                    value={editBikeForm.type}
+                    onChange={(e) => setEditBikeForm(f => ({ ...f, type: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
+                  >
+                    <option value="SPIRO">SPIRO</option>
+                    <option value="AMPARSAND">AMPARSAND</option>
+                    <option value="AMAZI">AMAZI</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Status *</label>
+                  <select
+                    value={editBikeForm.status}
+                    onChange={(e) => setEditBikeForm(f => ({ ...f, status: e.target.value }))}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="MAINTENANCE">MAINTENANCE</option>
+                    <option value="RETIRED">RETIRED</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Image</label>
+                <div className="flex flex-col gap-2">
+                  {editBikeForm.imageUrl ? (
+                    <div className="relative group rounded-xl border border-line overflow-hidden max-h-[80px]">
+                      <img src={editBikeForm.imageUrl} alt="Preview" className="w-full object-cover max-h-[80px]" />
+                      <button
+                        type="button"
+                        onClick={() => setEditBikeForm(f => ({ ...f, imageUrl: '' }))}
+                        className="absolute top-1 right-1 rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-2 cursor-pointer hover:border-accent/40 transition max-h-[80px]">
+                      <span className="text-xs font-semibold text-accent">Upload Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const compressed = await compressImage(file);
+                              setEditBikeForm(f => ({ ...f, imageUrl: compressed }));
+                            } catch (err) {
+                              console.error('Image compression failed', err);
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+              {editBikeError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{editBikeError}</p>}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowEditBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditBike}
+                  disabled={isUpdatingBike}
+                  className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  style={{ background: '#3B82F6', color: 'white' }}
+                >
+                  {isUpdatingBike ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>

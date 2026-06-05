@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuditActionType, Prisma, UserRole } from '@prisma/client';
+import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
@@ -621,6 +621,19 @@ export class AuthService {
       },
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_INVITED,
+      targetType: 'REGISTRATION_INVITE',
+      targetId: createdInvite.id,
+      metaJson: {
+        role: createdInvite.role,
+        email: createdInvite.email,
+        phone: createdInvite.phone,
+      },
+    });
+
     return {
       inviteId: createdInvite.id,
       token,
@@ -886,7 +899,101 @@ export class AuthService {
       },
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: updated.id,
+      metaJson: {
+        email: updated.email,
+        phone: updated.phone,
+        oldRole: targetUser.role,
+        newRole: updated.role,
+      },
+    });
+
     return updated;
+  }
+
+  // Deletes or deactivates a fleet user.
+  async deleteFleetUser(actor: AuthenticatedUser, userId: string) {
+    const targetUser = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      include: {
+        riderProfile: true,
+      },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (targetUser.fleetId !== actor.fleetId) {
+      throw new ForbiddenException('Cannot modify users outside your fleet');
+    }
+
+    if (targetUser.id === actor.id) {
+      throw new ForbiddenException('Cannot delete yourself');
+    }
+
+    if (targetUser.role === UserRole.OWNER && actor.role !== UserRole.OWNER) {
+      throw new ForbiddenException('Only owners can modify owner accounts');
+    }
+
+    try {
+      // First clean up active assignments and profile
+      await this.prismaService.bikeAssignment.updateMany({
+        where: { riderUserId: userId, active: true },
+        data: { active: false, unassignedAt: new Date() },
+      });
+
+      await this.prismaService.user.delete({ where: { id: userId } });
+
+      await this.auditService.createAuditLog({
+        fleetId: actor.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.USER_ROLE_CHANGED,
+        targetType: 'USER',
+        targetId: userId,
+        metaJson: {
+          email: targetUser.email,
+          phone: targetUser.phone,
+          action: 'DELETED',
+        },
+      });
+
+      return { success: true, action: 'DELETED' };
+    } catch (error) {
+      // Fallback to disabling the user
+      const updated = await this.prismaService.user.update({
+        where: { id: userId },
+        data: { status: UserStatus.DISABLED },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      await this.auditService.createAuditLog({
+        fleetId: actor.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.USER_ROLE_CHANGED,
+        targetType: 'USER',
+        targetId: userId,
+        metaJson: {
+          email: targetUser.email,
+          phone: targetUser.phone,
+          action: 'DISABLED',
+        },
+      });
+
+      return { success: true, action: 'DISABLED', user: updated };
+    }
   }
 
   // Returns the current authenticated user profile.

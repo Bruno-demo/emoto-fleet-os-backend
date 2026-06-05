@@ -18,6 +18,9 @@ import {
   ChevronDown,
   X,
   Banknote,
+  Trash,
+  Copy,
+  Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
@@ -819,6 +822,20 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
   const [roleError, setRoleError] = useState<string | null>(null);
 
+  // Invite states
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', phone: '', role: 'RIDER' });
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Delete states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const { data: members, isLoading } = useQuery({
     queryKey: ['fleet-users'],
     queryFn: () => apiFetch<FleetUser[]>('/auth/fleet-users'),
@@ -844,9 +861,96 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
     }
   };
 
+  const handleInviteMember = async () => {
+    if (!inviteForm.email.trim() && !inviteForm.phone.trim()) {
+      setInviteError('Either Email or Phone number is required');
+      return;
+    }
+    setInviteError(null);
+    setIsInviting(true);
+    setGeneratedInviteLink(null);
+    setCopiedLink(false);
+    try {
+      const res = await apiFetch<{ token: string }>('/auth/invites', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: inviteForm.email.trim() || undefined,
+          phone: inviteForm.phone.trim() || undefined,
+          role: inviteForm.role,
+        }),
+      });
+      const link = `${window.location.origin}/register?token=${res.token}`;
+      setGeneratedInviteLink(link);
+      await queryClient.invalidateQueries({ queryKey: ['fleet-users'] });
+      setInviteForm({ email: '', phone: '', role: 'RIDER' });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setInviteError(error.message);
+      } else {
+        setInviteError('Failed to invite member');
+      }
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!deletingUserId) return;
+    setDeleteError(null);
+    setIsDeleting(true);
+    try {
+      await apiFetch(`/auth/fleet-users/${deletingUserId}`, {
+        method: 'DELETE',
+      });
+      await queryClient.invalidateQueries({ queryKey: ['fleet-users'] });
+      setShowDeleteConfirm(false);
+      setDeletingUserId(null);
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setDeleteError(error.message);
+      } else {
+        setDeleteError('Failed to remove member');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard', err);
+    }
+  };
+
+  const deletingUser = members?.find(m => m.id === deletingUserId);
+
   return (
     <div className="space-y-5 animate-fade-in">
-      <DashboardCard eyebrow="Organization" title="Team members" description="Manage users in your fleet. Change roles to control access levels.">
+      <DashboardCard
+        eyebrow="Organization"
+        title="Team members"
+        description="Manage users in your fleet. Change roles to control access levels."
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setInviteForm({ email: '', phone: '', role: 'RIDER' });
+              setInviteError(null);
+              setGeneratedInviteLink(null);
+              setShowInviteModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white transition hover:brightness-110 shadow-sm"
+            style={{ background: '#3B82F6', color: 'white' }}
+          >
+            <UserPlus size={14} />
+            Invite Member
+          </button>
+        }
+      >
         {roleError && (
           <p className="mb-4 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{roleError}</p>
         )}
@@ -879,25 +983,39 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                       </p>
                     </div>
                   </div>
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex items-center gap-2">
                     {isCurrentUser ? (
                       <span className="inline-flex rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
                         {formatEnumLabel(member.role)}
                       </span>
                     ) : (
-                      <div className="relative">
-                        <select
-                          value={member.role}
-                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                          disabled={changingRoleFor === member.id}
-                          className="appearance-none rounded-xl border border-line bg-surface px-3 py-1.5 pr-8 text-xs font-semibold text-ink outline-none transition focus:border-accent disabled:opacity-50 cursor-pointer"
+                      <>
+                        <div className="relative">
+                          <select
+                            value={member.role}
+                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                            disabled={changingRoleFor === member.id}
+                            className="appearance-none rounded-xl border border-line bg-surface px-3 py-1.5 pr-8 text-xs font-semibold text-ink outline-none transition focus:border-accent disabled:opacity-50 cursor-pointer"
+                          >
+                            {ROLE_OPTIONS.map(role => (
+                              <option key={role} value={role}>{formatEnumLabel(role)}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeletingUserId(member.id);
+                            setDeleteError(null);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="rounded-xl border border-danger-ink/20 p-2 text-danger-ink hover:bg-danger-soft/20 hover:border-danger-ink/40 transition-colors"
+                          aria-label="Remove member"
                         >
-                          {ROLE_OPTIONS.map(role => (
-                            <option key={role} value={role}>{formatEnumLabel(role)}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
-                      </div>
+                          <Trash size={14} />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -910,6 +1028,135 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
           {members?.length ?? 0} members in this fleet. Use role assignments to control feature access.
         </p>
       </DashboardCard>
+
+      {/* Invite Member Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)}>
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl text-ink" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowInviteModal(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
+              <X size={18} />
+            </button>
+
+            {generatedInviteLink ? (
+              <div className="space-y-4 pt-2">
+                <h2 className="text-lg font-bold text-ink">Invitation Link Generated</h2>
+                <p className="text-sm text-ink-muted leading-relaxed">
+                  Send this one-time link to the invitee to allow them to register in your fleet.
+                </p>
+                <div className="flex gap-2 items-center rounded-xl border border-line bg-surface-muted p-3">
+                  <input
+                    type="text"
+                    readOnly
+                    value={generatedInviteLink}
+                    className="flex-1 bg-transparent text-xs text-ink-soft select-all outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(generatedInviteLink)}
+                    className="shrink-0 p-2 rounded-lg bg-surface border border-line text-ink hover:bg-surface-hover hover:text-accent transition"
+                  >
+                    {copiedLink ? <Check size={14} className="text-success-ink" /> : <Copy size={14} />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                  className="w-full mt-2 rounded-xl bg-surface-muted border border-line px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold text-ink">Invite New Member</h2>
+                <p className="mt-1 text-sm text-ink-muted">Generate a secure invite link to register a new user.</p>
+                <div className="mt-5 space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="e.g. member@emoto.com"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm(f => ({ ...f, email: e.target.value }))}
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +250788000000"
+                      value={inviteForm.phone}
+                      onChange={(e) => setInviteForm(f => ({ ...f, phone: e.target.value }))}
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Member Role</label>
+                    <select
+                      value={inviteForm.role}
+                      onChange={(e) => setInviteForm(f => ({ ...f, role: e.target.value }))}
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
+                    >
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="DISPATCHER">DISPATCHER</option>
+                      <option value="TECH">TECH</option>
+                      <option value="RIDER">RIDER</option>
+                    </select>
+                  </div>
+                  {inviteError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{inviteError}</p>}
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleInviteMember}
+                      disabled={isInviting}
+                      className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                      style={{ background: '#3B82F6', color: 'white' }}
+                    >
+                      {isInviting ? 'Inviting...' : 'Send Invite'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="relative mx-4 w-full max-sm rounded-[24px] border border-line bg-surface p-6 shadow-xl text-ink" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-ink">Remove Team Member</h2>
+            <p className="mt-2 text-sm text-ink-muted leading-relaxed">
+              Are you sure you want to remove <strong className="font-semibold text-ink">{deletingUser?.email ?? deletingUser?.phone ?? 'this member'}</strong>?
+              They will lose immediate dashboard access.
+            </p>
+            {deleteError && <p className="mt-3 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{deleteError}</p>}
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteMember}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl bg-danger-ink text-white px-4 py-3 text-sm font-bold hover:brightness-110 transition disabled:opacity-60"
+                style={{ background: '#EF4444', color: 'white' }}
+              >
+                {isDeleting ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

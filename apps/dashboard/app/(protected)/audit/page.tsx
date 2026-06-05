@@ -14,6 +14,9 @@ import {
   Siren,
   UserPlus,
   Users,
+  Bike,
+  Plus,
+  Trash,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DashboardCard } from '@/components/ui/dashboard-card';
@@ -42,6 +45,11 @@ const ACTION_ICON: Partial<Record<AuditActionType, React.ReactNode>> = {
   LOCK_ACTION_REQUESTED: <Lock size={13} />,
   DEVICE_SECRET_ROTATED: <Shield size={13} />,
   PARTNER_TOKEN_ISSUED: <Key size={13} />,
+  BIKE_CREATED: <Plus size={13} />,
+  BIKE_UPDATED: <Bike size={13} />,
+  BIKE_DELETED: <Trash size={13} />,
+  USER_ROLE_CHANGED: <Shield size={13} />,
+  USER_INVITED: <UserPlus size={13} />,
 };
 
 const ACTION_TONE: Partial<Record<AuditActionType, 'danger' | 'warning' | 'success' | 'neutral'>> = {
@@ -51,6 +59,11 @@ const ACTION_TONE: Partial<Record<AuditActionType, 'danger' | 'warning' | 'succe
   LOGIN_SUCCESS: 'success',
   RIDER_CREATED: 'success',
   ZONE_DELETED: 'warning',
+  BIKE_CREATED: 'success',
+  BIKE_UPDATED: 'neutral',
+  BIKE_DELETED: 'danger',
+  USER_ROLE_CHANGED: 'warning',
+  USER_INVITED: 'success',
 };
 
 const ACTION_TYPE_OPTIONS: AuditActionType[] = [
@@ -71,6 +84,11 @@ const ACTION_TYPE_OPTIONS: AuditActionType[] = [
   'PARTNER_API_ACCESS',
   'PARTNER_WEBHOOK_REGISTERED',
   'PARTNER_WEBHOOK_DELIVERY',
+  'BIKE_CREATED',
+  'BIKE_UPDATED',
+  'BIKE_DELETED',
+  'USER_ROLE_CHANGED',
+  'USER_INVITED',
 ];
 
 export default function AuditLogPage() {
