@@ -132,9 +132,9 @@ export default function BikesPage() {
         method: 'PATCH',
         body: JSON.stringify({
           label: editBikeForm.label.trim(),
-          plate: editBikeForm.plate.trim() || null,
-          serial: editBikeForm.serial.trim() || null,
-          model: editBikeForm.model.trim() || null,
+          plate: (editBikeForm.plate || '').trim() || null,
+          serial: (editBikeForm.serial || '').trim() || null,
+          model: (editBikeForm.model || '').trim() || null,
           imageUrl: editBikeForm.imageUrl || null,
           type: editBikeForm.type || null,
           status: editBikeForm.status,
