@@ -964,7 +964,7 @@ export class AuthService {
       });
 
       return { success: true, action: 'DELETED' };
-    } catch (error) {
+    } catch {
       // Fallback to disabling the user
       const updated = await this.prismaService.user.update({
         where: { id: userId },
