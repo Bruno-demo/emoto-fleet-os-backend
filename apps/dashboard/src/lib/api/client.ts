@@ -84,7 +84,15 @@ export async function apiFetch<T = unknown>(
   const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout to allow for cloud cold starts
 
   try {
-    const response = await fetch(resolveApiUrl(path), {
+    const resolvedUrl = resolveApiUrl(path);
+    console.log(`[apiFetch] Request details:`, {
+      path,
+      API_BASE_URL,
+      resolvedUrl,
+      method: init.method || 'GET'
+    });
+
+    const response = await fetch(resolvedUrl, {
       ...init,
       headers,
       credentials: 'include',
@@ -93,7 +101,6 @@ export async function apiFetch<T = unknown>(
     clearTimeout(timeoutId);
 
     const body = await parseResponseBody(response);
-    const resolvedUrl = resolveApiUrl(path);
     if (!response.ok) {
       // If session is expired or invalid (401), redirect to login page.
       if (response.status === 401 && typeof window !== 'undefined' && options.auth !== false) {
@@ -125,6 +132,11 @@ export async function apiFetch<T = unknown>(
         url: resolvedUrl,
         status: response.status,
         body,
+        diagnostic: {
+          path,
+          API_BASE_URL,
+          resolvedUrl,
+        }
       });
       throw new ApiError(
         response.status,
