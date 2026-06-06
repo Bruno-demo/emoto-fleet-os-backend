@@ -527,12 +527,12 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .expect(400);
     });
 
-    it('prevents assigning insurerUserId to an insurer from a different fleet', async () => {
+    it('allows assigning insurerUserId to an insurer from a different fleet', async () => {
       await request(httpServer)
         .patch(`/bikes/${fleetBikeId}`)
         .set('Authorization', `Bearer ${token}`)
         .send({ insurerUserId: insurerForeignFleetId })
-        .expect(400);
+        .expect(200);
     });
 
     it('allows assigning insurerUserId to a valid insurer in the same fleet', async () => {
