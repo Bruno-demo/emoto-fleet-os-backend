@@ -20,7 +20,7 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { data: user } = useCurrentUser();
   const entitlements = getSubscriptionEntitlements(user);
-  const canViewIncidents = canUseFeature(user, 'incidents');
+  const canViewIncidents = user?.role !== 'INSURER' && canUseFeature(user, 'incidents');
 
   const incidentsStatsQuery = useQuery({
     queryKey: ['incidents', 'stats', 'shell'],

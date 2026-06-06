@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { AuditActionType, DeviceStatus, Prisma } from '@prisma/client';
+import { AuditActionType, DeviceStatus, Prisma, UserRole } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -38,6 +38,7 @@ interface DeviceWithBike {
   bike: {
     id: string;
     label: string;
+    insurerUserId?: string | null;
   } | null;
 }
 
@@ -79,7 +80,13 @@ export class DevicesService {
     query: PaginationQueryDto,
   ): Promise<PaginatedResponse<PublicDevice>> {
     const pagination = getPaginationParams(query);
-    const where: Prisma.DeviceWhereInput = { fleetId: user.fleetId };
+    const where: Prisma.DeviceWhereInput = {};
+
+    if (user.role === UserRole.INSURER) {
+      where.bike = { insurerUserId: user.id };
+    } else {
+      where.fleetId = user.fleetId;
+    }
 
     const [devices, total] = await Promise.all([
       this.prismaService.device.findMany({
@@ -89,6 +96,7 @@ export class DevicesService {
             select: {
               id: true,
               label: true,
+              insurerUserId: true,
             },
           },
         },
@@ -113,7 +121,13 @@ export class DevicesService {
     user: AuthenticatedUser,
   ): Promise<PublicDevice> {
     const device = await this.loadDeviceOrThrow(id);
-    this.assertFleetAccess(device.fleetId, user);
+    if (user.role === UserRole.INSURER) {
+      if (!device.bike || device.bike.insurerUserId !== user.id) {
+        throw new ForbiddenException('Access to this device is denied');
+      }
+    } else {
+      this.assertFleetAccess(device.fleetId, user);
+    }
     return this.toPublicDevice(device);
   }
 
@@ -281,6 +295,7 @@ export class DevicesService {
           select: {
             id: true,
             label: true,
+            insurerUserId: true,
           },
         },
       },

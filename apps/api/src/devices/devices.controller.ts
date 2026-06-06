@@ -33,6 +33,7 @@ export class DevicesController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.RIDER,
+    UserRole.INSURER,
   )
   @ApiOperation({ summary: 'List devices in caller fleet' })
   async listDevices(
@@ -61,6 +62,7 @@ export class DevicesController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.RIDER,
+    UserRole.INSURER,
   )
   @ApiOperation({
     summary: 'Get device by id with fleet isolation enforcement',
