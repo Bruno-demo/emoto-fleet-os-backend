@@ -21,6 +21,7 @@ export class TripsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @ApiOperation({ summary: 'List trips for a bike in caller fleet' })
@@ -54,6 +55,7 @@ export class TripsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @ApiOperation({ summary: 'Get one trip by id' })

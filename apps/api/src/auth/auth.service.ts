@@ -857,6 +857,28 @@ export class AuthService {
     return users;
   }
 
+  // Lists all insurer users in the system.
+  async listAllInsurers() {
+    const users = await this.prismaService.user.findMany({
+      where: { role: UserRole.INSURER },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        riderProfile: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return users;
+  }
+
   // Changes a fleet user's role (restricted to same fleet, owner/admin only).
   async changeFleetUserRole(
     actor: AuthenticatedUser,

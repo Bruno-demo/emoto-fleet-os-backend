@@ -204,8 +204,8 @@ export default function BikesPage() {
   });
 
   const insurersQuery = useQuery({
-    queryKey: ['fleet-users', 'insurers'],
-    queryFn: () => apiFetch<Array<{ id: string; email: string | null; phone: string | null; role: string; riderProfile?: { fullName: string } | null }>>('/auth/fleet-users'),
+    queryKey: ['all-insurers'],
+    queryFn: () => apiFetch<Array<{ id: string; email: string | null; phone: string | null; role: string; riderProfile?: { fullName: string } | null }>>('/auth/insurers'),
     enabled: !!currentUser && canProvisionDevices(currentUser.role),
   });
 

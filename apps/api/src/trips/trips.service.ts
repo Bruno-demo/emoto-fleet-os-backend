@@ -132,18 +132,29 @@ export class TripsService {
       select: {
         id: true,
         fleetId: true,
+        insurerUserId: true,
       },
     });
 
     if (!bike) {
       throw new NotFoundException('Bike not found');
     }
-    this.assertFleetAccess(bike.fleetId, user);
+
+    if (user.role === 'INSURER') {
+      if (bike.insurerUserId !== user.id) {
+        throw new ForbiddenException('Access to this bike is denied');
+      }
+    } else {
+      this.assertFleetAccess(bike.fleetId, user);
+    }
 
     const where: Prisma.TripWhereInput = {
-      fleetId: user.fleetId,
       bikeId: bike.id,
     };
+
+    if (user.role !== 'INSURER') {
+      where.fleetId = user.fleetId;
+    }
 
     if (query.from || query.to) {
       where.startTs = {};
@@ -247,7 +258,18 @@ export class TripsService {
     if (!trip) {
       throw new NotFoundException('Trip not found');
     }
-    this.assertFleetAccess(trip.fleetId, user);
+
+    if (user.role === 'INSURER') {
+      const bike = await this.prismaService.bike.findUnique({
+        where: { id: trip.bikeId },
+        select: { insurerUserId: true },
+      });
+      if (bike?.insurerUserId !== user.id) {
+        throw new ForbiddenException('Access to this trip is denied');
+      }
+    } else {
+      this.assertFleetAccess(trip.fleetId, user);
+    }
 
     return this.toFleetTrip(trip);
   }

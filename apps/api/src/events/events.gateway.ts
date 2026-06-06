@@ -17,6 +17,7 @@ import { AuthService } from '../auth/auth.service';
 import { IncidentBroadcastPayload } from '../incidents/incidents.types';
 import { LiveBikeState } from '../ingestion/ingestion.types';
 import { FleetEvent } from './events.types';
+import { PrismaService } from '../prisma/prisma.service';
 
 const BIKE_STATE_EMIT_THROTTLE_MS = 1_000;
 
@@ -71,6 +72,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly prismaService: PrismaService,
   ) {}
 
   // Installs handshake middleware that authenticates websocket JWT tokens.
@@ -88,30 +90,54 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   // Tracks inbound client connections for observability.
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     const user = this.getSocketUser(client);
     if (!user) {
       client.disconnect(true);
       return;
     }
 
-    void client.join(this.roomForFleet(user.fleetId));
+    if (user.role === 'INSURER') {
+      const bikes = await this.prismaService.bike.findMany({
+        where: { insurerUserId: user.id },
+        select: { fleetId: true },
+      });
+      const uniqueFleetIds = Array.from(new Set(bikes.map((b) => b.fleetId)));
+      for (const fleetId of uniqueFleetIds) {
+        void client.join(this.roomForFleet(fleetId));
+      }
+    } else {
+      void client.join(this.roomForFleet(user.fleetId));
+    }
     this.logger.debug(`WS client connected: ${client.id}`);
   }
 
   // Confirms client subscription to the authenticated fleet live stream room.
   @SubscribeMessage('subscribe_live')
-  handleSubscribeLive(@ConnectedSocket() client: Socket): {
+  async handleSubscribeLive(@ConnectedSocket() client: Socket): Promise<{
     subscribed: boolean;
-    fleetId: string;
-  } {
+    fleetId?: string;
+    fleetIds?: string[];
+  }> {
     const user = this.getSocketUser(client);
     if (!user) {
       throw new WsException('Unauthorized');
     }
 
-    void client.join(this.roomForFleet(user.fleetId));
-    return { subscribed: true, fleetId: user.fleetId };
+    if (user.role === 'INSURER') {
+      const bikes = await this.prismaService.bike.findMany({
+        where: { insurerUserId: user.id },
+        select: { fleetId: true },
+      });
+      const uniqueFleetIds = Array.from(new Set(bikes.map((b) => b.fleetId)));
+      for (const fleetId of uniqueFleetIds) {
+        void client.join(this.roomForFleet(fleetId));
+      }
+      return { subscribed: true, fleetIds: uniqueFleetIds };
+    } else {
+      void client.join(this.roomForFleet(user.fleetId));
+      return { subscribed: true, fleetId: user.fleetId };
+    }
   }
 
   // Emits live bike-state updates to the fleet room with per-bike throttling.

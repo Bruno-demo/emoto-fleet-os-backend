@@ -51,10 +51,12 @@ export class BikesService {
     query: PaginationQueryDto,
   ): Promise<PaginatedResponse<LoadedBike>> {
     const pagination = getPaginationParams(query);
-    const where: Prisma.BikeWhereInput = { fleetId: user.fleetId };
+    const where: Prisma.BikeWhereInput = {};
 
     if (user.role === UserRole.INSURER) {
       where.insurerUserId = user.id;
+    } else {
+      where.fleetId = user.fleetId;
     }
 
     const [bikes, total] = await Promise.all([
@@ -145,10 +147,12 @@ export class BikesService {
   ): Promise<LoadedBike> {
     const bike = await this.loadBikeOrThrow(id);
 
-    this.assertFleetAccess(bike.fleetId, user);
-
-    if (user.role === UserRole.INSURER && bike.insurerUserId !== user.id) {
-      throw new ForbiddenException('Access to this bike is denied');
+    if (user.role === UserRole.INSURER) {
+      if (bike.insurerUserId !== user.id) {
+        throw new ForbiddenException('Access to this bike is denied');
+      }
+    } else {
+      this.assertFleetAccess(bike.fleetId, user);
     }
 
     return bike;
@@ -172,11 +176,6 @@ export class BikesService {
       }
       if (insurerUser.role !== UserRole.INSURER) {
         throw new BadRequestException('User is not an insurer');
-      }
-      if (insurerUser.fleetId !== bike.fleetId) {
-        throw new BadRequestException(
-          'Insurer must belong to the same fleet as the bike',
-        );
       }
     }
 

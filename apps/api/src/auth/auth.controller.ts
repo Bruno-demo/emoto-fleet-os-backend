@@ -206,6 +206,14 @@ export class AuthController {
     return this.authService.listFleetUsers(actor);
   }
 
+  @Get('insurers')
+  @ApiBearerAuth()
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'List all insurer users in the system' })
+  async listAllInsurers() {
+    return this.authService.listAllInsurers();
+  }
+
   @Put('fleet-users/:id/role')
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN)

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeTripEventCounts } from '../trips/trip-scoring.util';
@@ -35,23 +36,37 @@ export class ReportsService {
     let insurerBikeFilter: { bikeId?: { in: string[] } } = {};
     if (user.role === 'INSURER') {
       const insuredBikes = await this.prismaService.bike.findMany({
-        where: { insurerUserId: user.id, fleetId: user.fleetId },
+        where: { insurerUserId: user.id },
         select: { id: true },
       });
       const bikeIds = insuredBikes.map((b) => b.id);
       insurerBikeFilter = { bikeId: { in: bikeIds } };
     }
 
+    const tripWhere: Prisma.TripWhereInput = {
+      startTs: {
+        gte: from,
+        lte: to,
+      },
+      ...insurerBikeFilter,
+    };
+
+    const eventWhere: Prisma.EventWhereInput = {
+      ts: {
+        gte: from,
+        lte: to,
+      },
+      ...insurerBikeFilter,
+    };
+
+    if (user.role !== 'INSURER') {
+      tripWhere.fleetId = user.fleetId;
+      eventWhere.fleetId = user.fleetId;
+    }
+
     const [trips, groupedEvents] = await Promise.all([
       this.prismaService.trip.findMany({
-        where: {
-          fleetId: user.fleetId,
-          startTs: {
-            gte: from,
-            lte: to,
-          },
-          ...insurerBikeFilter,
-        },
+        where: tripWhere,
         select: {
           id: true,
           bikeId: true,
@@ -61,14 +76,7 @@ export class ReportsService {
       }),
       this.prismaService.event.groupBy({
         by: ['type', 'bikeId'],
-        where: {
-          fleetId: user.fleetId,
-          ts: {
-            gte: from,
-            lte: to,
-          },
-          ...insurerBikeFilter,
-        },
+        where: eventWhere,
         _count: {
           _all: true,
         },
