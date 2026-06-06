@@ -869,38 +869,40 @@ export default function BikesPage() {
               </DashboardCard>
             )}
 
-            <DashboardCard
-              eyebrow="Remote Control"
-              title="Command actions"
-              description="Send a lock or unlock request to the assigned device. Use the command history below to confirm acknowledgements."
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  disabled={!canSendCommands || isSendingCommand}
-                  onClick={() => setCommandIntent('LOCK')}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{ background: '#EF4444', color: 'white' }}
-                >
-                  <Lock size={16} />
-                  Lock bike
-                </button>
-                <button
-                  type="button"
-                  disabled={!canSendCommands || isSendingCommand}
-                  onClick={() => setCommandIntent('UNLOCK')}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Unlock size={16} />
-                  Unlock bike
-                </button>
-              </div>
+            {currentUser?.role !== 'INSURER' && (
+              <DashboardCard
+                eyebrow="Remote Control"
+                title="Command actions"
+                description="Send a lock or unlock request to the assigned device. Use the command history below to confirm acknowledgements."
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={!canSendCommands || isSendingCommand}
+                    onClick={() => setCommandIntent('LOCK')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ background: '#EF4444', color: 'white' }}
+                  >
+                    <Lock size={16} />
+                    Lock bike
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canSendCommands || isSendingCommand}
+                    onClick={() => setCommandIntent('UNLOCK')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Unlock size={16} />
+                    Unlock bike
+                  </button>
+                </div>
 
-              {!canUseFeature(currentUser, 'commands') ? (
-                <InlineNotice message="Remote lock and unlock controls are available on Operations Plus." />
-              ) : null}
-              {commandError ? <InlineNotice message={commandError} /> : null}
-            </DashboardCard>
+                {!canUseFeature(currentUser, 'commands') ? (
+                  <InlineNotice message="Remote lock and unlock controls are available on Operations Plus." />
+                ) : null}
+                {commandError ? <InlineNotice message={commandError} /> : null}
+              </DashboardCard>
+            )}
 
             <section className="flex flex-col gap-4">
               <DetailPanel

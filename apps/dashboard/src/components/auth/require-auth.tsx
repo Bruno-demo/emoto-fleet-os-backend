@@ -46,11 +46,26 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (data?.role === 'INSURER') {
+      const isOverview = pathname === '/' || pathname === '/overview' || pathname.startsWith('/overview/');
+      const isAllowed = pathname.startsWith('/bikes') || pathname.startsWith('/reports') || pathname === '/forbidden';
+
+      if (isOverview) {
+        router.replace('/bikes');
+        return;
+      }
+
+      if (!isAllowed) {
+        router.replace('/forbidden');
+        return;
+      }
+    }
+
     if (isError) {
       clearAuthToken();
       router.replace(`/login?expired=true&next=${encodeURIComponent(nextPath)}`);
     }
-  }, [isError, data?.status, data?.role, nextPath, router]);
+  }, [isError, data?.status, data?.role, nextPath, pathname, router]);
 
   if (!hasWindow || (isLoading && !isError)) {
     return (

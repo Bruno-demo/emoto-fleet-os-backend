@@ -7,10 +7,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { clearAuthToken } from '@/lib/auth/session';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 export default function ForbiddenPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
 
   const handleLogout = async () => {
     disconnectFleetSocket();
@@ -35,13 +37,14 @@ export default function ForbiddenPage() {
       </h1>
 
       <p className="mt-4 max-w-md text-base leading-7 text-ink-muted">
-        You don&apos;t have the required permissions to access the HQ command center. 
-        This area is reserved for super-administrators only.
+        {user?.role === 'INSURER'
+          ? "You don't have the required permissions to access this page. This area is restricted based on your role."
+          : "You don't have the required permissions to access the HQ command center. This area is reserved for super-administrators only."}
       </p>
 
       <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
         <Link
-          href="/live"
+          href={user?.role === 'INSURER' ? '/bikes' : '/live'}
           className="inline-flex items-center gap-2 rounded-[16px] bg-accent px-6 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong active:scale-95"
           style={{ background: '#3B82F6', color: 'white' }}
         >

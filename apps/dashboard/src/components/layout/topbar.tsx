@@ -26,7 +26,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const canViewIncidents = canUseFeature(user, 'incidents');
+  const canViewIncidents = user?.role !== 'INSURER' && canUseFeature(user, 'incidents');
 
   const incidentsQuery = useQuery({
     queryKey: ['incidents', 'topbar-open'],
@@ -147,77 +147,81 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
           <ConnectionIndicator />
 
           {/* Notifications bell */}
-          <div ref={notifRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setNotifOpen(!notifOpen)}
-              className="relative rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover transition-all"
-              aria-label="Notifications"
-            >
-              <Bell size={16} />
-              {openCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-white animate-pulse-soft">
-                  {openCount > 9 ? '9+' : openCount}
-                </span>
-              )}
-            </button>
+          {user?.role !== 'INSURER' && (
+            <div ref={notifRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setNotifOpen(!notifOpen)}
+                className="relative rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover transition-all"
+                aria-label="Notifications"
+              >
+                <Bell size={16} />
+                {openCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-ink px-1 text-[9px] font-bold text-white animate-pulse-soft">
+                    {openCount > 9 ? '9+' : openCount}
+                  </span>
+                )}
+              </button>
 
-            {/* Notification dropdown */}
-            {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-line bg-overlay-bg backdrop-blur-2xl shadow-2xl animate-scale-in overflow-hidden">
-                <div className="flex items-center justify-between border-b border-line px-4 py-3">
-                  <p className="text-sm font-bold text-ink">Open incidents</p>
-                  <Badge label={`${openCount}`} tone="danger" />
-                </div>
-                <div className="dashboard-scrollbar max-h-72 overflow-y-auto">
-                  {openIncidents.length === 0 ? (
-                    <div className="px-4 py-8 text-center">
-                      <p className="text-sm text-ink-muted">No open incidents</p>
-                    </div>
-                  ) : (
-                    openIncidents.map((inc) => (
-                      <a
-                        key={inc.id}
-                        href="/incidents"
-                        className="flex items-start gap-3 border-b border-line-faint px-4 py-3 hover:bg-surface-hover transition-colors"
-                        onClick={() => setNotifOpen(false)}
-                      >
-                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-danger-soft text-danger-ink">
-                          <Siren size={13} />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-ink">
-                            Incident &middot; {inc.status}
-                          </p>
-                          <p className="mt-0.5 text-xs text-ink-muted">
-                            {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}
-                          </p>
-                        </div>
-                      </a>
-                    ))
+              {/* Notification dropdown */}
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-line bg-overlay-bg backdrop-blur-2xl shadow-2xl animate-scale-in overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                    <p className="text-sm font-bold text-ink">Open incidents</p>
+                    <Badge label={`${openCount}`} tone="danger" />
+                  </div>
+                  <div className="dashboard-scrollbar max-h-72 overflow-y-auto">
+                    {openIncidents.length === 0 ? (
+                      <div className="px-4 py-8 text-center">
+                        <p className="text-sm text-ink-muted">No open incidents</p>
+                      </div>
+                    ) : (
+                      openIncidents.map((inc) => (
+                        <a
+                          key={inc.id}
+                          href="/incidents"
+                          className="flex items-start gap-3 border-b border-line-faint px-4 py-3 hover:bg-surface-hover transition-colors"
+                          onClick={() => setNotifOpen(false)}
+                        >
+                          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-danger-soft text-danger-ink">
+                            <Siren size={13} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-ink">
+                              Incident &middot; {inc.status}
+                            </p>
+                            <p className="mt-0.5 text-xs text-ink-muted">
+                              {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}
+                            </p>
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
+                  {openCount > 5 && (
+                    <a
+                      href="/incidents"
+                      className="flex items-center justify-center border-t border-line px-4 py-2.5 text-xs font-semibold text-accent hover:bg-surface-hover"
+                      onClick={() => setNotifOpen(false)}
+                    >
+                      View all incidents &rarr;
+                    </a>
                   )}
                 </div>
-                {openCount > 5 && (
-                  <a
-                    href="/incidents"
-                    className="flex items-center justify-center border-t border-line px-4 py-2.5 text-xs font-semibold text-accent hover:bg-surface-hover"
-                    onClick={() => setNotifOpen(false)}
-                  >
-                    View all incidents &rarr;
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Open incidents chip */}
-          <div className="hidden xl:block">
-            <Badge
-              label={`${openCount} open`}
-              icon={<Siren size={12} />}
-              tone={openCount > 0 ? 'danger' : 'neutral'}
-            />
-          </div>
+          {user?.role !== 'INSURER' && (
+            <div className="hidden xl:block">
+              <Badge
+                label={`${openCount} open`}
+                icon={<Siren size={12} />}
+                tone={openCount > 0 ? 'danger' : 'neutral'}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -417,23 +421,30 @@ async function globalSearch(
   const q = query.toLowerCase();
   const results: SearchResult[] = [];
 
+  const showBikes = canUseFeature(user, 'bikes');
+  const showRiders = user?.role !== 'INSURER' && canUseFeature(user, 'riders');
+  const showEvents = user?.role !== 'INSURER' && canUseFeature(user, 'events');
+  const showIncidents = user?.role !== 'INSURER' && canUseFeature(user, 'incidents');
+  const showZones = user?.role !== 'INSURER' && canUseFeature(user, 'zones');
+  const showDevices = user?.role !== 'INSURER' && canUseFeature(user, 'devices');
+
   const [bikes, riders, events, incidents, zones, devices] = await Promise.allSettled([
-    canUseFeature(user, 'bikes')
+    showBikes
       ? apiFetch<PaginatedResponse<{ id: string; label: string; plate: string | null; status: string }>>('/bikes?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
-    canUseFeature(user, 'riders')
+    showRiders
       ? apiFetch<PaginatedResponse<{ id: string; fullName: string | null; email: string | null; phone: string | null; status: string }>>('/riders?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
-    canUseFeature(user, 'events')
+    showEvents
       ? apiFetch<PaginatedResponse<{ id: string; type: string; severity: string; bikeId: string | null; ts: string }>>('/events?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
-    canUseFeature(user, 'incidents')
+    showIncidents
       ? apiFetch<PaginatedResponse<Incident>>('/incidents?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
-    canUseFeature(user, 'zones')
+    showZones
       ? apiFetch<PaginatedResponse<{ id: string; name: string; type: string; active: boolean }>>('/zones?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
-    canUseFeature(user, 'devices')
+    showDevices
       ? apiFetch<PaginatedResponse<{ id: string; deviceUid: string; imei: string | null; status: string; bike: { id: string; label: string } | null }>>('/devices?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
   ]);
