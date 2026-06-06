@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Event, EventSeverity, Prisma } from '@prisma/client';
+import { Event, EventSeverity, Prisma, UserRole } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import {
   PaginatedResponse,
@@ -49,9 +49,22 @@ export class EventsService {
     user: AuthenticatedUser,
     query: ListEventsDto,
   ): Promise<PaginatedResponse<FleetEvent>> {
-    const where: Prisma.EventWhereInput = {
-      fleetId: user.fleetId,
-    };
+    const where: Prisma.EventWhereInput = {};
+
+    if (user.role === UserRole.INSURER) {
+      if (query.bikeId) {
+        const bike = await this.prismaService.bike.findUnique({
+          where: { id: query.bikeId },
+          select: { insurerUserId: true },
+        });
+        if (!bike || bike.insurerUserId !== user.id) {
+          throw new ForbiddenException('Access to this bike is denied');
+        }
+      }
+      where.bike = { insurerUserId: user.id };
+    } else {
+      where.fleetId = user.fleetId;
+    }
 
     if (query.type) {
       where.type = query.type;

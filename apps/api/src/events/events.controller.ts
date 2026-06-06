@@ -22,6 +22,7 @@ export class EventsController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.RIDER,
+    UserRole.INSURER,
   )
   @ApiOperation({ summary: 'List fleet events with optional filters' })
   async listEvents(
