@@ -8,15 +8,16 @@ import {
   Search, 
   Building2, 
   Clock, 
-  ShieldCheck, 
   Sparkles, 
-  ArrowRight,
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { Drawer } from '@/components/ui/drawer';
+import { DashboardCard } from '@/components/ui/dashboard-card';
+import { cx, formatEnumLabel } from '@/lib/ui';
 
 const billingFleetSchema = z.array(
   z.object({
@@ -48,7 +49,10 @@ export default function HqBillingPage() {
     queryFn: () => apiFetch('/hq/billing', {}, { schema: billingFleetSchema }),
   });
 
-  const activeFleetDetails = fleets?.find(f => f.id === selectedFleet?.id) ?? selectedFleet;
+  const activeFleetDetails = useMemo(() => 
+    fleets?.find(f => f.id === selectedFleet?.id) ?? selectedFleet,
+    [fleets, selectedFleet]
+  );
 
   const toggleInstallationPaidMutation = useMutation({
     mutationFn: (fleetId: string) => 
@@ -87,36 +91,38 @@ export default function HqBillingPage() {
   const unpaidSubCount = fleets?.filter(f => f.subscriptionStatus !== 'ACTIVE').length ?? 0;
 
   // Filter fleets
-  const filteredFleets = fleets?.filter((fleet) => {
-    // Search match
-    if (search.trim()) {
-      const query = search.toLowerCase().trim();
-      const matchName = fleet.name.toLowerCase().includes(query);
-      const matchId = fleet.id.toLowerCase().includes(query);
-      if (!matchName && !matchId) return false;
-    }
+  const filteredFleets = useMemo(() => {
+    return fleets?.filter((fleet) => {
+      // Search match
+      if (search.trim()) {
+        const query = search.toLowerCase().trim();
+        const matchName = fleet.name.toLowerCase().includes(query);
+        const matchId = fleet.id.toLowerCase().includes(query);
+        if (!matchName && !matchId) return false;
+      }
 
-    // Category filter
-    switch (filterType) {
-      case 'PENDING_UPGRADE':
-        return fleet.upgradeRequested;
-      case 'UNPAID_SETUP':
-        return !fleet.installationPaid;
-      case 'PAID_SETUP':
-        return fleet.installationPaid;
-      case 'PREMIUM':
-        return fleet.plan === 'PREMIUM';
-      case 'CORE':
-        return fleet.plan === 'DEMO';
-      case 'SUB_ACTIVE':
-        return fleet.subscriptionStatus === 'ACTIVE';
-      case 'SUB_UNPAID':
-        return fleet.subscriptionStatus !== 'ACTIVE';
-      case 'ALL':
-      default:
-        return true;
-    }
-  });
+      // Category filter
+      switch (filterType) {
+        case 'PENDING_UPGRADE':
+          return fleet.upgradeRequested;
+        case 'UNPAID_SETUP':
+          return !fleet.installationPaid;
+        case 'PAID_SETUP':
+          return fleet.installationPaid;
+        case 'PREMIUM':
+          return fleet.plan === 'PREMIUM';
+        case 'CORE':
+          return fleet.plan === 'DEMO';
+        case 'SUB_ACTIVE':
+          return fleet.subscriptionStatus === 'ACTIVE';
+        case 'SUB_UNPAID':
+          return fleet.subscriptionStatus !== 'ACTIVE';
+        case 'ALL':
+        default:
+          return true;
+      }
+    });
+  }, [fleets, search, filterType]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -154,7 +160,7 @@ export default function HqBillingPage() {
         <div className="rounded-3xl border border-white/[0.06] bg-surface-strong/50 p-6 relative overflow-hidden group hover:border-white/10 transition-all duration-300">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none group-hover:bg-white/[0.07] transition-all" />
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-400 border border-white/[0.08]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-450 border border-white/[0.08]">
               <Building2 size={22} />
             </div>
             <div>
@@ -207,90 +213,112 @@ export default function HqBillingPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-line pb-2">
-        <button
-          onClick={() => setFilterType('ALL')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'ALL' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          All Profiles ({totalCount})
-        </button>
-        <button
-          onClick={() => setFilterType('PENDING_UPGRADE')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${filterType === 'PENDING_UPGRADE' ? 'bg-blue-500/15 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.15)] border border-blue-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Upgrade Requests ({pendingUpgradeCount})
-          {pendingUpgradeCount > 0 && <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />}
-        </button>
-        <button
-          onClick={() => setFilterType('UNPAID_SETUP')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'UNPAID_SETUP' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Setup Unpaid ({outstandingSetupCount})
-        </button>
-        <button
-          onClick={() => setFilterType('PAID_SETUP')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'PAID_SETUP' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Setup Paid ({totalCount - outstandingSetupCount})
-        </button>
-        <button
-          onClick={() => setFilterType('SUB_ACTIVE')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'SUB_ACTIVE' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Subscription Active ({activeSubCount})
-        </button>
-        <button
-          onClick={() => setFilterType('SUB_UNPAID')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'SUB_UNPAID' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Subscription Unpaid ({unpaidSubCount})
-        </button>
-        <button
-          onClick={() => setFilterType('PREMIUM')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'PREMIUM' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Operations Plus ({premiumCount})
-        </button>
-        <button
-          onClick={() => setFilterType('CORE')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${filterType === 'CORE' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          Safety Core ({totalCount - premiumCount})
-        </button>
-      </div>
+      <DashboardCard
+        eyebrow="Billing"
+        title="Fleet Billing Ledger"
+        description="Monitor installation setups, billing tiers, and monthly subscription statuses."
+      >
+        {/* Filter Tabs */}
+        <div className="flex flex-wrap gap-2 pb-4 mb-4 border-b border-line">
+          <button
+            onClick={() => setFilterType('ALL')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border",
+              filterType === 'ALL' 
+                ? 'bg-white/10 text-white border-white/15' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            All Profiles ({totalCount})
+          </button>
+          <button
+            onClick={() => setFilterType('PENDING_UPGRADE')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 border",
+              filterType === 'PENDING_UPGRADE' 
+                ? 'bg-blue-500/15 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.15)] border-blue-500/30' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            Upgrade Requests ({pendingUpgradeCount})
+            {pendingUpgradeCount > 0 && <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />}
+          </button>
+          <button
+            onClick={() => setFilterType('UNPAID_SETUP')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border",
+              filterType === 'UNPAID_SETUP' 
+                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            Setup Unpaid ({outstandingSetupCount})
+          </button>
+          <button
+            onClick={() => setFilterType('PAID_SETUP')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border",
+              filterType === 'PAID_SETUP' 
+                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            Setup Paid ({totalCount - outstandingSetupCount})
+          </button>
+          <button
+            onClick={() => setFilterType('SUB_ACTIVE')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border",
+              filterType === 'SUB_ACTIVE' 
+                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            Subscription Active ({activeSubCount})
+          </button>
+          <button
+            onClick={() => setFilterType('SUB_UNPAID')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border",
+              filterType === 'SUB_UNPAID' 
+                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            Subscription Unpaid ({unpaidSubCount})
+          </button>
+        </div>
 
-      {/* Registry Table */}
-      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Registry Table */}
+        <div className="overflow-x-auto rounded-2xl border border-line bg-surface-muted/30">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-line bg-white/[0.02]">
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (30k RWF)</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Subscription</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
+              <tr className="border-b border-line bg-white/[0.01]">
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (30k RWF)</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Sub</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-line">
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={6} className="px-8 py-8">
+                    <td colSpan={6} className="px-6 py-8">
                       <div className="h-4 w-full rounded bg-white/5" />
                     </td>
                   </tr>
                 ))
               ) : filteredFleets?.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-24 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white/5 text-zinc-500">
-                      <AlertCircle size={32} />
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
+                      <AlertCircle size={24} />
                     </div>
-                    <p className="mt-6 text-base font-bold text-white">No Profiles Found</p>
-                    <p className="mt-2 text-sm text-zinc-500">No fleets match your query or selected filters.</p>
+                    <p className="mt-4 text-sm font-bold text-white">No Profiles Found</p>
+                    <p className="mt-1 text-xs text-zinc-500">No fleets match your query or filters.</p>
                   </td>
                 </tr>
               ) : (
@@ -298,34 +326,35 @@ export default function HqBillingPage() {
                   <tr key={fleet.id} className="group transition-colors hover:bg-white/[0.01]">
                     {/* Fleet Identity */}
                     <td 
-                      className="px-8 py-6 cursor-pointer"
+                      className="px-6 py-5 cursor-pointer"
                       onClick={() => setSelectedFleet(fleet)}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 group-hover:text-white group-hover:border-white/20 transition-all">
-                          <Building2 size={18} />
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 group-hover:text-white group-hover:border-white/20 transition-all">
+                          <Building2 size={16} />
                         </div>
                         <div>
                           <p className="text-sm font-bold text-white leading-tight group-hover:text-accent transition-colors">{fleet.name}</p>
-                          <p className="mt-1 text-[10px] text-zinc-500 font-mono tracking-tight">{fleet.id}</p>
+                          <p className="mt-0.5 text-[10px] text-zinc-500 font-mono tracking-tight">{fleet.id}</p>
                         </div>
                       </div>
                     </td>
 
-                    {/* Service Tier & Upgrades */}
-                    <td className="px-8 py-6">
-                      <div className="flex flex-col gap-2 items-start">
-                        <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
+                    {/* Service Tier */}
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className={cx(
+                          "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                           fleet.plan === 'PREMIUM' 
                             ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
-                            : 'border-line bg-white/5 text-ink-soft'
-                        }`}>
+                            : 'border-line bg-white/5 text-zinc-450'
+                        )}>
                           {fleet.plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core'}
                         </span>
                         
                         {fleet.upgradeRequested && (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-400 animate-pulse">
-                            <Clock size={12} />
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400 animate-pulse">
+                            <Clock size={10} />
                             Upgrade Requested
                           </span>
                         )}
@@ -333,47 +362,47 @@ export default function HqBillingPage() {
                     </td>
 
                     {/* Setup Fee Status */}
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2.5">
+                        <span className={cx(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
                           fleet.installationPaid 
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        }`}>
-                          <div className={`h-1 w-1 rounded-full ${fleet.installationPaid ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        )}>
+                          <div className={cx("h-1 w-1 rounded-full", fleet.installationPaid ? 'bg-emerald-400' : 'bg-amber-400')} />
                           {fleet.installationPaid ? 'Paid' : 'Unpaid'}
                         </span>
-                        
                         <p className="text-xs font-semibold text-zinc-500">
                           ({(fleet._count.bikes * 30000).toLocaleString()} RWF)
                         </p>
                       </div>
                     </td>
 
-                    {/* Monthly Subscription Status */}
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    {/* Monthly Sub */}
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2.5">
+                        <span className={cx(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
                           fleet.subscriptionStatus === 'ACTIVE' 
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                             : fleet.subscriptionStatus === 'PAST_DUE'
-                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse'
-                            : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
-                        }`}>
-                          <div className={`h-1 w-1 rounded-full ${
+                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'
+                            : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                        )}>
+                          <div className={cx("h-1 w-1 rounded-full", 
                             fleet.subscriptionStatus === 'ACTIVE' 
                               ? 'bg-emerald-400' 
                               : fleet.subscriptionStatus === 'PAST_DUE'
                               ? 'bg-rose-400'
                               : 'bg-zinc-400'
-                          }`} />
+                          )} />
                           {fleet.subscriptionStatus === 'ACTIVE' 
                             ? 'Paid' 
                             : fleet.subscriptionStatus === 'PAST_DUE'
                             ? 'Past Due'
                             : 'Canceled'}
                         </span>
-                        
                         <p className="text-xs font-semibold text-zinc-500">
                           ({(fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()} RWF/mo)
                         </p>
@@ -381,62 +410,63 @@ export default function HqBillingPage() {
                     </td>
 
                     {/* Utilization */}
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4 text-xs font-medium text-zinc-450">
-                        <div className="flex items-center gap-1.5">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3 text-xs font-medium text-zinc-550">
+                        <div className="flex items-center gap-1">
                           <span className="text-zinc-600">Users:</span>
-                          <span className="font-bold text-white">{fleet._count.users}</span>
+                          <span className="font-bold text-zinc-300">{fleet._count.users}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           <span className="text-zinc-600">Bikes:</span>
-                          <span className="font-bold text-white">{fleet._count.bikes}</span>
+                          <span className="font-bold text-zinc-300">{fleet._count.bikes}</span>
                         </div>
                       </div>
                     </td>
 
                     {/* Actions */}
-                    <td className="px-8 py-6 text-right space-x-2">
-                      {/* Toggle Setup Payment */}
+                    <td className="px-6 py-5 text-right space-x-1">
                       <button
                         onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
                         disabled={toggleInstallationPaidMutation.isPending}
-                        className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer ${
+                        className={cx(
+                          "inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
                           fleet.installationPaid 
-                            ? 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-line' 
-                            : 'bg-amber-500/10 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30'
-                        }`}
+                            ? 'bg-white/5 text-zinc-400 border-line hover:text-white' 
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        )}
+                        title={fleet.installationPaid ? 'Mark Setup Fee Unpaid' : 'Mark Setup Fee Paid'}
                       >
-                        <Banknote size={14} />
-                        {fleet.installationPaid ? 'Mark Unpaid' : 'Mark Paid'}
+                        <Banknote size={13} />
+                        {fleet.installationPaid ? 'Unpay Setup' : 'Pay Setup'}
                       </button>
 
-                      {/* Toggle Monthly Subscription Status */}
                       <button
                         onClick={() => updateSubscriptionStatusMutation.mutate({
                           fleetId: fleet.id,
                           status: fleet.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE'
                         })}
                         disabled={updateSubscriptionStatusMutation.isPending}
-                        className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer ${
+                        className={cx(
+                          "inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
                           fleet.subscriptionStatus === 'ACTIVE'
-                            ? 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-line'
-                            : 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30'
-                        }`}
+                            ? 'bg-white/5 text-zinc-400 border-line hover:text-white'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        )}
+                        title={fleet.subscriptionStatus === 'ACTIVE' ? 'Mark Overdue' : 'Mark Paid'}
                       >
-                        <Clock size={14} />
-                        {fleet.subscriptionStatus === 'ACTIVE' ? 'Mark Overdue' : 'Mark Paid'}
+                        <Clock size={13} />
+                        {fleet.subscriptionStatus === 'ACTIVE' ? 'Unpay Sub' : 'Pay Sub'}
                       </button>
 
-                      {/* Approve Plan Upgrade */}
                       {fleet.upgradeRequested && (
                         <button
                           onClick={() => approveUpgradeMutation.mutate(fleet.id)}
                           disabled={approveUpgradeMutation.isPending}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]"
-                          style={{ background: '#3B82F6', color: 'white' }}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(59,130,246,0.2)]"
+                          style={{ background: '#3B82F6' }}
                         >
-                          <Check size={14} strokeWidth={2.5} />
-                          Approve Premium
+                          <Check size={13} />
+                          Approve
                         </button>
                       )}
                     </td>
@@ -446,202 +476,159 @@ export default function HqBillingPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </DashboardCard>
 
-      {/* Fleet Detail Modal */}
-      {selectedFleet && activeFleetDetails && (
-        <div 
-          onClick={() => setSelectedFleet(null)}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-3xl border border-white/[0.08] bg-surface p-6 sm:p-8 space-y-5 shadow-2xl relative overflow-y-auto max-h-[90vh] md:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200 text-white"
-          >
-            {/* Top accent glow */}
-            <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl pointer-events-none ${
-              activeFleetDetails.plan === 'PREMIUM' ? 'bg-emerald-500/10' : 'bg-blue-500/10'
-            }`} />
-
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedFleet(null)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors p-1"
-            >
-              <X size={20} />
-            </button>
-
-            {/* Header */}
-            <div className="space-y-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                activeFleetDetails.plan === 'PREMIUM' 
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
-                  : 'border-line bg-white/5 text-zinc-400'
-              }`}>
-                {activeFleetDetails.plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core'}
-              </span>
-              <h3 className="text-2xl font-extrabold text-white">{activeFleetDetails.name}</h3>
-              <p className="text-xs font-mono text-zinc-500 tracking-tight">{activeFleetDetails.id}</p>
-            </div>
-
-            <div className="h-px w-full bg-white/5" />
-
-            {/* Billing Stats Grid */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Stat 1: Bikes Count */}
-              <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Fleet Active Bikes</p>
-                <p className="text-2xl font-extrabold text-white">{activeFleetDetails._count.bikes}</p>
-                <p className="text-[10px] text-zinc-500">Subject to per-bike plan dues</p>
+      {/* Fleet Detail Drawer */}
+      <Drawer
+        open={!!selectedFleet}
+        title={activeFleetDetails?.name ?? 'Fleet Billing Profile'}
+        description={activeFleetDetails ? `Organization ID: ${activeFleetDetails.id}` : ''}
+        onClose={() => setSelectedFleet(null)}
+      >
+        {activeFleetDetails && (
+          <div className="space-y-6">
+            {/* Plan Tier Highlight */}
+            <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-400">Service Plan</span>
+                <span className={cx(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border",
+                  activeFleetDetails.plan === 'PREMIUM' 
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
+                    : 'border-line bg-white/5 text-zinc-455'
+                )}>
+                  {activeFleetDetails.plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core'}
+                </span>
               </div>
-
-              {/* Stat 2: Monthly Rate */}
-              <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Monthly Plan Rate</p>
-                <p className="text-2xl font-extrabold text-white">
-                  {activeFleetDetails.plan === 'PREMIUM' ? '10,000 RWF' : '5,000 RWF'}
-                </p>
-                <p className="text-[10px] text-zinc-500">per bike per month</p>
-              </div>
-
-              {/* Stat 3: Total Sub Cost */}
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.02] p-5 space-y-1 sm:col-span-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Total Subscription Cost</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-emerald-400">
-                    {(activeFleetDetails._count.bikes * (activeFleetDetails.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()} RWF
-                  </span>
-                  <span className="text-xs text-zinc-400">/ month</span>
+              
+              <div className="grid gap-3 grid-cols-2">
+                <div className="rounded-xl border border-line bg-background p-3 text-center">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Users Count</p>
+                  <p className="text-lg font-extrabold text-white mt-0.5">{activeFleetDetails._count.users}</p>
                 </div>
-                <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                  Formula: {activeFleetDetails._count.bikes} bikes &times; {activeFleetDetails.plan === 'PREMIUM' ? '10,000' : '5,000'} RWF / month
-                </p>
-              </div>
-
-              {/* Stat 4: Setup Fee Total */}
-              <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1 sm:col-span-2 flex justify-between items-center">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">One-time Setup Fee (30k RWF/bike)</p>
-                  <p className="text-lg font-extrabold text-white">
-                    {(activeFleetDetails._count.bikes * 30000).toLocaleString()} RWF
-                  </p>
-                </div>
-                <div>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                    activeFleetDetails.installationPaid 
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  }`}>
-                    {activeFleetDetails.installationPaid ? 'Paid' : 'Unpaid'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Stat 5: Monthly Subscription Status */}
-              <div className="rounded-2xl border border-line bg-white/[0.02] p-4 space-y-1 sm:col-span-2 flex justify-between items-center">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Subscription Status</p>
-                  <p className="text-lg font-extrabold text-white">
-                    {activeFleetDetails.subscriptionStatus === 'ACTIVE' 
-                      ? 'Active & Paid' 
-                      : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
-                      ? 'Overdue / Past Due'
-                      : 'Canceled / Suspended'}
-                  </p>
-                </div>
-                <div>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                    activeFleetDetails.subscriptionStatus === 'ACTIVE' 
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                      : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
-                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse'
-                      : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
-                  }`}>
-                    {activeFleetDetails.subscriptionStatus === 'ACTIVE' 
-                      ? 'Paid' 
-                      : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
-                      ? 'Past Due'
-                      : 'Canceled'}
-                  </span>
+                <div className="rounded-xl border border-line bg-background p-3 text-center">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Bikes Count</p>
+                  <p className="text-lg font-extrabold text-white mt-0.5">{activeFleetDetails._count.bikes}</p>
                 </div>
               </div>
             </div>
 
-            {/* Upgrade pending alerts */}
+            {/* Setup Fee Details */}
+            <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">One-time Setup Fee (30k RWF/bike)</p>
+                <span className={cx(
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
+                  activeFleetDetails.installationPaid 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                )}>
+                  {activeFleetDetails.installationPaid ? 'Paid' : 'Unpaid'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5 pt-1">
+                <span className="text-3xl font-extrabold text-white">
+                  {(activeFleetDetails._count.bikes * 30000).toLocaleString()}
+                </span>
+                <span className="text-xs text-zinc-400 font-semibold">RWF</span>
+              </div>
+            </div>
+
+            {/* Monthly Subscription Cost */}
+            <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Monthly Subscription</p>
+                <span className={cx(
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
+                  activeFleetDetails.subscriptionStatus === 'ACTIVE' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                    : 'bg-zinc-500/10 text-zinc-400 border-zinc-550'
+                )}>
+                  {activeFleetDetails.subscriptionStatus === 'ACTIVE' 
+                    ? 'Paid' 
+                    : activeFleetDetails.subscriptionStatus === 'PAST_DUE'
+                    ? 'Past Due'
+                    : 'Canceled'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5 pt-1">
+                <span className="text-3xl font-extrabold text-white">
+                  {(activeFleetDetails._count.bikes * (activeFleetDetails.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()}
+                </span>
+                <span className="text-xs text-zinc-400 font-semibold font-mono">RWF / month</span>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed pt-1 border-t border-white/5">
+                Formula: {activeFleetDetails._count.bikes} bikes × {activeFleetDetails.plan === 'PREMIUM' ? '10,000' : '5,000'} RWF/mo
+              </p>
+            </div>
+
+            {/* Upgrade Requested Notification */}
             {activeFleetDetails.upgradeRequested && (
               <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4 flex gap-3 items-start animate-pulse">
                 <Clock className="text-blue-400 shrink-0 mt-0.5" size={16} />
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-blue-400">Premium Upgrade Pending Approval</p>
+                  <p className="text-xs font-bold text-blue-400">Premium Upgrade Pending</p>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    This fleet has requested to upgrade to <strong className="text-white font-semibold">Operations Plus</strong> tier (25k RWF/bike). Awaiting admin confirmation of billing terms.
+                    This fleet requested an upgrade to <strong className="text-white font-semibold">Operations Plus</strong> (10k RWF/bike).
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="h-px w-full bg-white/5" />
-
-            {/* Quick Actions inside Modal */}
-            <div className="space-y-3 pt-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Admin Controls</p>
+            {/* Quick Actions */}
+            <div className="space-y-3 pt-4 border-t border-line">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Billing Actions</p>
               
-              <div className="flex gap-3">
-                {/* Approve Upgrade Action */}
+              <div className="flex flex-col gap-2">
                 {activeFleetDetails.upgradeRequested && (
                   <button
                     onClick={() => approveUpgradeMutation.mutate(activeFleetDetails.id)}
                     disabled={approveUpgradeMutation.isPending}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]"
-                    style={{ background: '#3B82F6', color: 'white' }}
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                    style={{ background: '#3B82F6' }}
                   >
                     <Check size={14} strokeWidth={2.5} />
-                    Approve Premium
+                    Approve Premium Upgrade
                   </button>
                 )}
 
-                {/* Setup Fee payment status toggle */}
                 <button
                   onClick={() => toggleInstallationPaidMutation.mutate(activeFleetDetails.id)}
                   disabled={toggleInstallationPaidMutation.isPending}
-                  className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer ${
+                  className={cx(
+                    "w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
                     activeFleetDetails.installationPaid 
-                      ? 'bg-white/5 text-zinc-450 hover:bg-white/10 hover:text-white border border-line' 
-                      : 'bg-amber-500/10 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30'
-                  }`}
+                      ? 'bg-white/5 text-zinc-450 border-line hover:text-white' 
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  )}
                 >
                   <Banknote size={14} />
-                  {activeFleetDetails.installationPaid ? 'Mark Setup Unpaid' : 'Mark Setup Paid'}
+                  {activeFleetDetails.installationPaid ? 'Mark Setup Fee Unpaid' : 'Mark Setup Fee Paid'}
                 </button>
 
-                {/* Subscription Status toggle */}
                 <button
                   onClick={() => updateSubscriptionStatusMutation.mutate({
                     fleetId: activeFleetDetails.id,
                     status: activeFleetDetails.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE'
                   })}
                   disabled={updateSubscriptionStatusMutation.isPending}
-                  className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 cursor-pointer ${
+                  className={cx(
+                    "w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
                     activeFleetDetails.subscriptionStatus === 'ACTIVE' 
-                      ? 'bg-white/5 text-zinc-450 hover:bg-white/10 hover:text-white border border-line' 
-                      : 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30'
-                  }`}
+                      ? 'bg-white/5 text-zinc-450 border-line hover:text-white' 
+                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  )}
                 >
                   <Clock size={14} />
-                  {activeFleetDetails.subscriptionStatus === 'ACTIVE' ? 'Mark Sub Past Due' : 'Mark Sub Paid'}
+                  {activeFleetDetails.subscriptionStatus === 'ACTIVE' ? 'Mark Subscription Overdue' : 'Mark Subscription Paid'}
                 </button>
               </div>
-
-              <button
-                onClick={() => setSelectedFleet(null)}
-                className="w-full text-center rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 py-3 text-xs font-bold transition-colors cursor-pointer"
-              >
-                Close Profile
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
     </div>
   );
 }
