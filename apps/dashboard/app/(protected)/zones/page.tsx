@@ -304,7 +304,7 @@ export default function ZonesPage() {
             <button
               type="button"
               onClick={() => setDeleteTarget(zone)}
-              className="rounded-[var(--radius-control)] border border-danger-ink/20 bg-danger-soft px-4 py-2.5 text-sm font-semibold text-danger-ink transition hover:brightness-95"
+              className="rounded-[var(--radius-control)] bg-danger-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-danger-strong"
             >
               Delete
             </button>
