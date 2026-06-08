@@ -289,193 +289,214 @@ export default function HqBillingPage() {
           </button>
         </div>
 
-        {/* Registry Table */}
-        <div className="overflow-x-auto rounded-2xl border border-line bg-surface-muted/30">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-line bg-white/[0.01]">
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Setup Fee (30k RWF)</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Monthly Sub</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={6} className="px-6 py-8">
-                      <div className="h-4 w-full rounded bg-white/5" />
-                    </td>
-                  </tr>
-                ))
-              ) : filteredFleets?.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
-                      <AlertCircle size={24} />
-                    </div>
-                    <p className="mt-4 text-sm font-bold text-white">No Profiles Found</p>
-                    <p className="mt-1 text-xs text-zinc-500">No fleets match your query or filters.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredFleets?.map((fleet) => (
-                  <tr key={fleet.id} className="group transition-colors hover:bg-white/[0.01]">
-                    {/* Fleet Identity */}
-                    <td 
-                      className="px-6 py-5 cursor-pointer"
+        {/* Fleet Billing Cards */}
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="animate-pulse rounded-2xl border border-line bg-surface-muted/30 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-xl bg-white/5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-24 rounded bg-white/5" />
+                    <div className="h-3 w-16 rounded bg-white/5" />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="h-12 w-full rounded-xl bg-white/5" />
+                  <div className="h-8 w-full rounded-xl bg-white/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredFleets?.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-line bg-surface-muted/30 py-20">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
+              <AlertCircle size={24} />
+            </div>
+            <p className="mt-4 text-sm font-bold text-white">No Profiles Found</p>
+            <p className="mt-1 text-xs text-zinc-500">No fleets match your query or filters.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredFleets?.map((fleet) => {
+              const setupAmount = fleet._count.bikes * 30000;
+              const monthlyAmount = fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 10000 : 5000);
+              const hasUpgrade = fleet.upgradeRequested;
+
+              return (
+                <div
+                  key={fleet.id}
+                  className={cx(
+                    "group relative rounded-2xl border p-5 transition-all duration-200 hover:translate-y-[-1px]",
+                    hasUpgrade
+                      ? "border-blue-500/25 bg-blue-500/[0.03] shadow-[0_0_25px_rgba(59,130,246,0.06)]"
+                      : "border-line bg-surface-muted/30 hover:border-white/10"
+                  )}
+                >
+                  {/* Header: Name + Tier */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div
+                      className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                       onClick={() => setSelectedFleet(fleet)}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 group-hover:text-white group-hover:border-white/20 transition-all">
-                          <Building2 size={16} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white leading-tight group-hover:text-accent transition-colors">{fleet.name}</p>
-                          <p className="mt-0.5 text-[10px] text-zinc-500 font-mono tracking-tight">{fleet.id}</p>
-                        </div>
+                      <div className={cx(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all",
+                        hasUpgrade
+                          ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                          : "border-line bg-white/5 text-zinc-400 group-hover:text-white group-hover:border-white/20"
+                      )}>
+                        <Building2 size={18} />
                       </div>
-                    </td>
-
-                    {/* Service Tier */}
-                    <td className="px-6 py-5">
-                      <div className="flex flex-col gap-1.5 items-start">
-                        <span className={cx(
-                          "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                          fleet.plan === 'PREMIUM' 
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
-                            : 'border-line bg-white/5 text-zinc-450'
-                        )}>
-                          {fleet.plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core'}
-                        </span>
-                        
-                        {fleet.upgradeRequested && (
-                          <span className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400 animate-pulse">
-                            <Clock size={10} />
-                            Upgrade Requested
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white leading-tight truncate group-hover:text-accent transition-colors">
+                          {fleet.name}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={cx(
+                            "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                            fleet.plan === 'PREMIUM'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-white/5 text-zinc-500'
+                          )}>
+                            {fleet.plan === 'PREMIUM' ? 'Plus' : 'Core'}
                           </span>
-                        )}
+                          <span className="text-[10px] text-zinc-600">
+                            {fleet._count.users}u · {fleet._count.bikes}b
+                          </span>
+                        </div>
                       </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Setup Fee Status */}
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2.5">
+                  {/* Upgrade Banner */}
+                  {hasUpgrade && (
+                    <div className="mb-4 flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2">
+                      <Sparkles size={13} className="text-blue-400 shrink-0" />
+                      <span className="text-[11px] font-bold text-blue-400 flex-1">Upgrade to Operations Plus requested</span>
+                      <button
+                        onClick={() => approveUpgradeMutation.mutate(fleet.id)}
+                        disabled={approveUpgradeMutation.isPending}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer"
+                        style={{ background: '#3B82F6' }}
+                      >
+                        <Check size={11} strokeWidth={3} />
+                        Approve
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Financial Status Row */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {/* Setup Fee */}
+                    <div className={cx(
+                      "rounded-xl border p-3",
+                      fleet.installationPaid
+                        ? "border-emerald-500/10 bg-emerald-500/[0.03]"
+                        : "border-amber-500/15 bg-amber-500/[0.04]"
+                    )}>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">Setup Fee</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-extrabold text-white">
+                          {setupAmount > 0 ? `${(setupAmount / 1000).toFixed(0)}k` : '0'}
+                        </span>
                         <span className={cx(
-                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
-                          fleet.installationPaid 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                          fleet.installationPaid
+                            ? 'text-emerald-400'
+                            : 'text-amber-400'
                         )}>
                           <div className={cx("h-1 w-1 rounded-full", fleet.installationPaid ? 'bg-emerald-400' : 'bg-amber-400')} />
-                          {fleet.installationPaid ? 'Paid' : 'Unpaid'}
+                          {fleet.installationPaid ? 'Paid' : 'Due'}
                         </span>
-                        <p className="text-xs font-semibold text-zinc-500">
-                          ({(fleet._count.bikes * 30000).toLocaleString()} RWF)
-                        </p>
                       </div>
-                    </td>
+                    </div>
 
                     {/* Monthly Sub */}
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2.5">
+                    <div className={cx(
+                      "rounded-xl border p-3",
+                      fleet.subscriptionStatus === 'ACTIVE'
+                        ? "border-emerald-500/10 bg-emerald-500/[0.03]"
+                        : fleet.subscriptionStatus === 'PAST_DUE'
+                        ? "border-rose-500/15 bg-rose-500/[0.04]"
+                        : "border-line bg-white/[0.02]"
+                    )}>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">Monthly</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-extrabold text-white">
+                          {monthlyAmount > 0 ? `${(monthlyAmount / 1000).toFixed(0)}k` : '0'}
+                          <span className="text-[9px] text-zinc-500 font-medium ml-0.5">/mo</span>
+                        </span>
                         <span className={cx(
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
-                          fleet.subscriptionStatus === 'ACTIVE' 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                          fleet.subscriptionStatus === 'ACTIVE'
+                            ? 'text-emerald-400'
                             : fleet.subscriptionStatus === 'PAST_DUE'
-                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'
-                            : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                            ? 'text-rose-400'
+                            : 'text-zinc-500'
                         )}>
-                          <div className={cx("h-1 w-1 rounded-full", 
-                            fleet.subscriptionStatus === 'ACTIVE' 
-                              ? 'bg-emerald-400' 
+                          <div className={cx("h-1 w-1 rounded-full",
+                            fleet.subscriptionStatus === 'ACTIVE'
+                              ? 'bg-emerald-400'
                               : fleet.subscriptionStatus === 'PAST_DUE'
                               ? 'bg-rose-400'
-                              : 'bg-zinc-400'
+                              : 'bg-zinc-500'
                           )} />
-                          {fleet.subscriptionStatus === 'ACTIVE' 
-                            ? 'Paid' 
+                          {fleet.subscriptionStatus === 'ACTIVE'
+                            ? 'Active'
                             : fleet.subscriptionStatus === 'PAST_DUE'
-                            ? 'Past Due'
-                            : 'Canceled'}
+                            ? 'Overdue'
+                            : 'Off'}
                         </span>
-                        <p className="text-xs font-semibold text-zinc-500">
-                          ({(fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()} RWF/mo)
-                        </p>
                       </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Utilization */}
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3 text-xs font-medium text-zinc-550">
-                        <div className="flex items-center gap-1">
-                          <span className="text-zinc-600">Users:</span>
-                          <span className="font-bold text-zinc-300">{fleet._count.users}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-zinc-600">Bikes:</span>
-                          <span className="font-bold text-zinc-300">{fleet._count.bikes}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-6 py-5 text-right space-x-1">
-                      <button
-                        onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
-                        disabled={toggleInstallationPaidMutation.isPending}
-                        className={cx(
-                          "inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
-                          fleet.installationPaid 
-                            ? 'bg-white/5 text-zinc-400 border-line hover:text-white' 
-                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                        )}
-                        title={fleet.installationPaid ? 'Mark Setup Fee Unpaid' : 'Mark Setup Fee Paid'}
-                      >
-                        <Banknote size={13} />
-                        {fleet.installationPaid ? 'Unpay Setup' : 'Pay Setup'}
-                      </button>
-
-                      <button
-                        onClick={() => updateSubscriptionStatusMutation.mutate({
-                          fleetId: fleet.id,
-                          status: fleet.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE'
-                        })}
-                        disabled={updateSubscriptionStatusMutation.isPending}
-                        className={cx(
-                          "inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
-                          fleet.subscriptionStatus === 'ACTIVE'
-                            ? 'bg-white/5 text-zinc-400 border-line hover:text-white'
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        )}
-                        title={fleet.subscriptionStatus === 'ACTIVE' ? 'Mark Overdue' : 'Mark Paid'}
-                      >
-                        <Clock size={13} />
-                        {fleet.subscriptionStatus === 'ACTIVE' ? 'Unpay Sub' : 'Pay Sub'}
-                      </button>
-
-                      {fleet.upgradeRequested && (
-                        <button
-                          onClick={() => approveUpgradeMutation.mutate(fleet.id)}
-                          disabled={approveUpgradeMutation.isPending}
-                          className="inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(59,130,246,0.2)]"
-                          style={{ background: '#3B82F6' }}
-                        >
-                          <Check size={13} />
-                          Approve
-                        </button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1.5 pt-3 border-t border-white/[0.04]">
+                    <button
+                      onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
+                      disabled={toggleInstallationPaidMutation.isPending}
+                      className={cx(
+                        "flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-bold transition-all border cursor-pointer active:scale-95 disabled:opacity-50",
+                        fleet.installationPaid
+                          ? 'bg-white/[0.03] text-zinc-500 border-white/[0.04] hover:text-zinc-300 hover:bg-white/[0.06]'
+                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/15'
                       )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    >
+                      <Banknote size={12} />
+                      {fleet.installationPaid ? 'Undo Setup' : 'Pay Setup'}
+                    </button>
+
+                    <button
+                      onClick={() => updateSubscriptionStatusMutation.mutate({
+                        fleetId: fleet.id,
+                        status: fleet.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE'
+                      })}
+                      disabled={updateSubscriptionStatusMutation.isPending}
+                      className={cx(
+                        "flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-bold transition-all border cursor-pointer active:scale-95 disabled:opacity-50",
+                        fleet.subscriptionStatus === 'ACTIVE'
+                          ? 'bg-white/[0.03] text-zinc-500 border-white/[0.04] hover:text-zinc-300 hover:bg-white/[0.06]'
+                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15'
+                      )}
+                    >
+                      <Clock size={12} />
+                      {fleet.subscriptionStatus === 'ACTIVE' ? 'Mark Due' : 'Pay Sub'}
+                    </button>
+
+                    <button
+                      onClick={() => setSelectedFleet(fleet)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.04] bg-white/[0.03] text-zinc-500 transition-all hover:bg-white/[0.06] hover:text-white cursor-pointer active:scale-95"
+                      title="View Details"
+                    >
+                      <Sparkles size={12} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </DashboardCard>
 
       {/* Fleet Detail Drawer */}
