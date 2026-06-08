@@ -86,6 +86,12 @@ export class HqController {
     return this.hqService.softDeleteFleet(id);
   }
 
+  @Delete('fleets/:id/permanent')
+  @ApiOperation({ summary: 'Permanently delete a fleet and all its data (HQ admin)' })
+  deleteFleetPermanently(@Param('id') id: string) {
+    return this.hqService.permanentDeleteFleet(id);
+  }
+
   @Put('bikes/:id/status')
   @ApiOperation({ summary: 'Change bike status' })
   updateBikeStatus(

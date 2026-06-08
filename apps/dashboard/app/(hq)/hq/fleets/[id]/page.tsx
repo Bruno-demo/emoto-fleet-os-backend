@@ -157,6 +157,14 @@ export default function FleetDetailPage() {
     }
   });
 
+  const permanentDeleteMutation = useMutation({
+    mutationFn: () => apiFetch(`/hq/fleets/${id}/permanent`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq'] });
+      router.push('/hq/fleets');
+    }
+  });
+
   // ── Bike Mutations ──────────────────────────────────────────────────
 
   const bikeStatusMutation = useMutation({
@@ -669,13 +677,27 @@ export default function FleetDetailPage() {
             </p>
             <select
               value={fleet.subscriptionStatus}
-              onChange={(e) => subMutation.mutate(e.target.value)}
-              disabled={subMutation.isPending}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'PERMANENT_DELETE') {
+                  if (
+                    confirm(
+                      `Permanently delete fleet "${fleet.name}"? This action CANNOT be undone and will delete all users, bikes, devices, and historical data associated with it.`
+                    )
+                  ) {
+                    permanentDeleteMutation.mutate();
+                  }
+                } else {
+                  subMutation.mutate(val);
+                }
+              }}
+              disabled={subMutation.isPending || permanentDeleteMutation.isPending}
               className="w-full rounded-xl border border-line bg-surface-strong px-3 py-2.5 text-xs font-bold text-ink-soft focus:border-accent focus:outline-none cursor-pointer"
             >
               <option value="ACTIVE">ACTIVE</option>
               <option value="PAST_DUE">PAST_DUE</option>
               <option value="CANCELED">CANCELED</option>
+              <option value="PERMANENT_DELETE" className="text-rose-400 bg-rose-950/20">PERMANENT_DELETE</option>
             </select>
           </div>
 

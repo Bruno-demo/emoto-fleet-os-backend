@@ -259,6 +259,22 @@ export class HqService {
     };
   }
 
+  async permanentDeleteFleet(fleetId: string) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    await this.prisma.fleet.delete({
+      where: { id: fleetId },
+    });
+
+    return {
+      success: true,
+      message: `Fleet "${fleet.name}" has been permanently deleted.`,
+    };
+  }
+
   async updateBikeStatus(bikeId: string, status: string) {
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');

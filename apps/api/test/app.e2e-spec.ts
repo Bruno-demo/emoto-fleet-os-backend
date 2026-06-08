@@ -627,7 +627,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         })
         .expect(201);
 
-      const user = regRes.body as { id: string };
+      const user = regRes.body as { id: string; fleetId: string };
       expect(user.id).toBeDefined();
 
       // 4. Verify RiderProfile was created
@@ -636,6 +636,39 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       });
       expect(profile).toBeDefined();
       expect(profile?.fullName).toBe('E2E Admin Full Name');
+
+      // 5. Temporarily elevate the new user to HQ Admin by changing their fleet name to 'E-Moto HQ' in the DB
+      await prisma.fleet.update({
+        where: { id: user.fleetId },
+        data: { name: 'E-Moto HQ' },
+      });
+
+      const loginRes = await request(httpServer)
+        .post('/auth/login')
+        .send({
+          email,
+          password: 'ChangeMe123!',
+        })
+        .expect(200);
+
+      const hqToken = (loginRes.body as { accessToken: string }).accessToken;
+
+      // 6. Permanently delete the fleet (HQ admin override)
+      await request(httpServer)
+        .delete(`/hq/fleets/${user.fleetId}/permanent`)
+        .set('Authorization', `Bearer ${hqToken}`)
+        .expect(200);
+
+      // 7. Verify the fleet and cascaded user are completely deleted
+      const checkFleet = await prisma.fleet.findUnique({
+        where: { id: user.fleetId },
+      });
+      expect(checkFleet).toBeNull();
+
+      const checkUser = await prisma.user.findUnique({
+        where: { id: user.id },
+      });
+      expect(checkUser).toBeNull();
     });
 
     it('creates a RiderProfile with fullName during register (admin-mode user creation)', async () => {
