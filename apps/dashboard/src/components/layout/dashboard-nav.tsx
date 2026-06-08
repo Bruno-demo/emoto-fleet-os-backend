@@ -113,7 +113,7 @@ export function DashboardNav({
 
   const isLinkVisible = (link: NavLink) => {
     if (user?.role === 'INSURER') {
-      const allowedPaths = ['/bikes', '/reports'];
+      const allowedPaths = ['/overview', '/bikes', '/reports', '/settings'];
       return allowedPaths.includes(link.href);
     }
     if (link.requiresAdmin && user && !canManageZones(user.role)) return false;
@@ -154,7 +154,7 @@ export function DashboardNav({
       >
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-line px-4">
-          <Link href={user?.role === 'INSURER' ? '/bikes' : '/overview'} onClick={onClose} className="flex items-center gap-3 group">
+          <Link href="/overview" onClick={onClose} className="flex items-center gap-3 group">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
               <Command size={18} />
             </span>

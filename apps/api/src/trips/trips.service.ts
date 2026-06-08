@@ -45,9 +45,13 @@ export class TripsService {
     user: AuthenticatedUser,
     query: ListTripsDto,
   ): Promise<PaginatedResponse<FleetTrip>> {
-    const where: Prisma.TripWhereInput = {
-      fleetId: user.fleetId,
-    };
+    const where: Prisma.TripWhereInput = {};
+
+    if (user.role === 'INSURER') {
+      where.bike = { insurerName: user.insurerName };
+    } else {
+      where.fleetId = user.fleetId;
+    }
 
     if (query.from || query.to) {
       where.startTs = {};
@@ -132,7 +136,7 @@ export class TripsService {
       select: {
         id: true,
         fleetId: true,
-        insurerUserId: true,
+        insurerName: true,
       },
     });
 
@@ -141,7 +145,7 @@ export class TripsService {
     }
 
     if (user.role === 'INSURER') {
-      if (bike.insurerUserId !== user.id) {
+      if (bike.insurerName !== user.insurerName) {
         throw new ForbiddenException('Access to this bike is denied');
       }
     } else {
@@ -262,9 +266,9 @@ export class TripsService {
     if (user.role === 'INSURER') {
       const bike = await this.prismaService.bike.findUnique({
         where: { id: trip.bikeId },
-        select: { insurerUserId: true },
+        select: { insurerName: true },
       });
-      if (bike?.insurerUserId !== user.id) {
+      if (bike?.insurerName !== user.insurerName) {
         throw new ForbiddenException('Access to this trip is denied');
       }
     } else {

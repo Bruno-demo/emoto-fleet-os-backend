@@ -193,9 +193,15 @@ export class IncidentsService {
     user: AuthenticatedUser,
     query: ListIncidentsDto,
   ): Promise<PaginatedResponse<FleetIncident>> {
-    const where: Prisma.IncidentWhereInput = {
-      fleetId: user.fleetId,
-    };
+    const where: Prisma.IncidentWhereInput = {};
+
+    if (user.fleetPlan === 'INSURANCE') {
+      where.bike = {
+        insurerName: user.insurerName,
+      };
+    } else {
+      where.fleetId = user.fleetId;
+    }
 
     if (query.status) {
       where.status = query.status;
@@ -232,19 +238,28 @@ export class IncidentsService {
 
   // Gets the exact counts of incidents grouped by status for the caller fleet.
   async getIncidentStatsForUser(user: AuthenticatedUser) {
-    const fleetId = user.fleetId;
+    const where: Prisma.IncidentWhereInput = {};
+
+    if (user.fleetPlan === 'INSURANCE') {
+      where.bike = {
+        insurerName: user.insurerName,
+      };
+    } else {
+      where.fleetId = user.fleetId;
+    }
+
     const [open, acknowledged, resolved, falseAlarm] = await Promise.all([
       this.prismaService.incident.count({
-        where: { fleetId, status: IncidentStatus.OPEN },
+        where: { ...where, status: IncidentStatus.OPEN },
       }),
       this.prismaService.incident.count({
-        where: { fleetId, status: IncidentStatus.ACKNOWLEDGED },
+        where: { ...where, status: IncidentStatus.ACKNOWLEDGED },
       }),
       this.prismaService.incident.count({
-        where: { fleetId, status: IncidentStatus.RESOLVED },
+        where: { ...where, status: IncidentStatus.RESOLVED },
       }),
       this.prismaService.incident.count({
-        where: { fleetId, status: IncidentStatus.FALSE_ALARM },
+        where: { ...where, status: IncidentStatus.FALSE_ALARM },
       }),
     ]);
     return { open, acknowledged, resolved, falseAlarm };
@@ -256,7 +271,7 @@ export class IncidentsService {
     id: string,
   ): Promise<FleetIncident> {
     const incident = await this.loadIncidentOrThrow(id);
-    this.assertFleetAccess(incident.fleetId, user);
+    await this.assertIncidentAccess(incident, user);
     return this.toFleetIncident(incident);
   }
 
@@ -274,6 +289,9 @@ export class IncidentsService {
     id: string,
     dto: IncidentStatusActionDto,
   ): Promise<FleetIncident> {
+    if (user.fleetPlan === 'INSURANCE') {
+      throw new ForbiddenException('Insurers have read-only access to incidents');
+    }
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);
 
@@ -296,6 +314,9 @@ export class IncidentsService {
     id: string,
     dto: IncidentStatusActionDto,
   ): Promise<FleetIncident> {
+    if (user.fleetPlan === 'INSURANCE') {
+      throw new ForbiddenException('Insurers have read-only access to incidents');
+    }
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);
 
@@ -318,6 +339,9 @@ export class IncidentsService {
     id: string,
     dto: IncidentStatusActionDto,
   ): Promise<FleetIncident> {
+    if (user.fleetPlan === 'INSURANCE') {
+      throw new ForbiddenException('Insurers have read-only access to incidents');
+    }
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);
 
@@ -370,6 +394,26 @@ export class IncidentsService {
     }
 
     return incident;
+  }
+
+  // Validates incident visibility for insurers and normal fleets.
+  private async assertIncidentAccess(
+    incident: Incident,
+    user: AuthenticatedUser,
+  ): Promise<void> {
+    if (user.fleetPlan === 'INSURANCE') {
+      if (!incident.bikeId) {
+        throw new ForbiddenException('Access to this incident is denied');
+      }
+      const bike = await this.prismaService.bike.findUnique({
+        where: { id: incident.bikeId },
+      });
+      if (!bike || bike.insurerName !== user.insurerName) {
+        throw new ForbiddenException('Access to this incident is denied');
+      }
+    } else {
+      this.assertFleetAccess(incident.fleetId, user);
+    }
   }
 
   // Validates fleet boundaries for incident operations.

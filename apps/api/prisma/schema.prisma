@@ -16,6 +16,7 @@ enum FleetType {
 enum FleetPlan {
   DEMO
   PREMIUM
+  INSURANCE
 }
 
 enum FleetSubscriptionStatus {
@@ -203,6 +204,7 @@ model Fleet {
   name              String
   type              FleetType
   plan              FleetPlan            @default(DEMO)
+  insurerName       String?
   subscriptionStatus FleetSubscriptionStatus @default(ACTIVE)
   installationPaid  Boolean                 @default(false)
   upgradeRequested  Boolean                 @default(false)
@@ -246,7 +248,6 @@ model User {
   riderProfile          RiderProfile?
   bikeAssignments       BikeAssignment[] @relation("BikeAssignmentRider")
   usedInvites           RegistrationInvite[] @relation("InviteUsedBy")
-  insuredBikes          Bike[]               @relation("BikeInsurer")
   payments              RiderPayment[]
 
   @@unique([fleetId, email])
@@ -283,14 +284,13 @@ model Bike {
   plate         String?
   serial        String?
   model         String?
-  insurerUserId String?          @db.Uuid
+  insurerName   String?
   status        BikeStatus       @default(ACTIVE)
   imageUrl      String?
   type          String?
   createdAt     DateTime         @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime         @updatedAt @db.Timestamptz(6)
   fleet         Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  insurer       User?            @relation("BikeInsurer", fields: [insurerUserId], references: [id], onDelete: SetNull)
   devices       Device[]
   events        Event[]
   trips         Trip[]
@@ -303,7 +303,7 @@ model Bike {
   @@unique([serial])
   @@index([fleetId])
   @@index([fleetId, status])
-  @@index([insurerUserId])
+  @@index([insurerName])
 }
 
 model Device {

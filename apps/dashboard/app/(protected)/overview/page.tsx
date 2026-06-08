@@ -12,6 +12,7 @@ import {
   Calendar,
   Clock,
   Gauge,
+  Settings,
   ShieldAlert,
   Siren,
   TrendingUp,
@@ -25,6 +26,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type { Incident, PaginatedResponse, WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo } from '@/lib/ui';
 
@@ -40,6 +42,7 @@ function getDefaultRange() {
 
 export default function OverviewPage() {
   const [dateRange, setDateRange] = useState(getDefaultRange);
+  const { data: user } = useCurrentUser();
 
   const weeklyReportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
@@ -94,16 +97,16 @@ export default function OverviewPage() {
         ) : (
           <>
             <MetricCard
-              title="Weekly Trips"
+              title={user?.role === 'INSURER' ? 'Insured Trips' : 'Weekly Trips'}
               value={report ? String(report.tripCount) : '--'}
-              hint="Trips in the current 7-day window"
+              hint={user?.role === 'INSURER' ? 'Trips by covered bikes' : 'Trips in the current 7-day window'}
               icon={<Bike size={18} />}
               tone="info"
             />
             <MetricCard
-              title="Fleet Score"
+              title={user?.role === 'INSURER' ? 'Covered Score' : 'Fleet Score'}
               value={report ? report.avgScore.toFixed(1) : '--'}
-              hint="Avg driving score across completed trips"
+              hint={user?.role === 'INSURER' ? 'Avg driving score of covered bikes' : 'Avg driving score across completed trips'}
               icon={<TrendingUp size={18} />}
               tone={
                 report
@@ -116,14 +119,14 @@ export default function OverviewPage() {
               }
             />
             <MetricCard
-              title="Open Incidents"
+              title={user?.role === 'INSURER' ? 'Open Covered Incidents' : 'Open Incidents'}
               value={String(openIncidents)}
               hint="Awaiting acknowledgement or resolution"
               icon={<ShieldAlert size={18} />}
               tone={openIncidents > 0 ? 'danger' : 'neutral'}
             />
             <MetricCard
-              title="Total Events"
+              title={user?.role === 'INSURER' ? 'Covered Events' : 'Total Events'}
               value={String(totalEvents)}
               hint={`${report?.eventCounts.CRASH ?? 0} crashes · ${report?.eventCounts.HARSH_BRAKE ?? 0} brakes`}
               icon={<Zap size={18} />}
@@ -136,19 +139,19 @@ export default function OverviewPage() {
       {/* Fleet health bar */}
       <section className="grid gap-4 sm:grid-cols-3">
         <FleetStatCard
-          label="Active Bikes"
+          label={user?.role === 'INSURER' ? 'Insured Bikes' : 'Active Bikes'}
           value={totalBikes}
           icon={<Bike size={16} />}
           loading={bikesQuery.isLoading}
         />
         <FleetStatCard
-          label="Risk Events"
+          label={user?.role === 'INSURER' ? 'Covered Risk Events' : 'Risk Events'}
           value={totalEvents}
           icon={<AlertTriangle size={16} />}
           loading={weeklyReportQuery.isLoading}
         />
         <FleetStatCard
-          label="Incidents"
+          label={user?.role === 'INSURER' ? 'Covered Incidents' : 'Incidents'}
           value={openIncidents}
           icon={<Siren size={16} />}
           loading={incidentsQuery.isLoading}
@@ -164,12 +167,14 @@ export default function OverviewPage() {
             eyebrow="Risk profile"
             title="Event breakdown"
             actions={
-              <Link
-                href="/events"
-                className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-              >
-                View all <ArrowRight size={12} />
-              </Link>
+              user?.role === 'INSURER' ? null : (
+                <Link
+                  href="/events"
+                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  View all <ArrowRight size={12} />
+                </Link>
+              )
             }
           >
             {weeklyReportQuery.isLoading ? (
@@ -241,12 +246,14 @@ export default function OverviewPage() {
             eyebrow="Activity"
             title="Recent incidents"
             actions={
-              <Link
-                href="/incidents"
-                className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-              >
-                Incident desk <ArrowRight size={12} />
-              </Link>
+              user?.role === 'INSURER' ? null : (
+                <Link
+                  href="/incidents"
+                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  Incident desk <ArrowRight size={12} />
+                </Link>
+              )
             }
           >
             {recentIncidentsQuery.isLoading ? (
@@ -314,13 +321,13 @@ export default function OverviewPage() {
         <div className="space-y-5">
           <DashboardCard
             eyebrow="Watchlist"
-            title="Risky bikes"
+            title={user?.role === 'INSURER' ? 'Insured Risky Bikes' : 'Risky bikes'}
             actions={
               <Link
                 href="/bikes"
                 className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
               >
-                Fleet <ArrowRight size={12} />
+                {user?.role === 'INSURER' ? 'Bikes' : 'Fleet'} <ArrowRight size={12} />
               </Link>
             }
           >
@@ -338,14 +345,16 @@ export default function OverviewPage() {
 
           <DashboardCard
             eyebrow="Watchlist"
-            title="Risky riders"
+            title={user?.role === 'INSURER' ? 'Insured Risky Riders' : 'Risky riders'}
             actions={
-              <Link
-                href="/riders"
-                className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-              >
-                Riders <ArrowRight size={12} />
-              </Link>
+              user?.role === 'INSURER' ? null : (
+                <Link
+                  href="/riders"
+                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  Riders <ArrowRight size={12} />
+                </Link>
+              )
             }
           >
             <WatchlistSection
@@ -363,10 +372,20 @@ export default function OverviewPage() {
           {/* Quick actions */}
           <DashboardCard eyebrow="Quick actions" title="Shortcuts">
             <div className="grid grid-cols-2 gap-2">
-              <QuickAction href="/live" icon={<Gauge size={16} />} label="Live Map" />
-              <QuickAction href="/incidents" icon={<Siren size={16} />} label="Incidents" />
-              <QuickAction href="/bikes" icon={<Bike size={16} />} label="Fleet" />
-              <QuickAction href="/reports" icon={<Activity size={16} />} label="Reports" />
+              {user?.role === 'INSURER' ? (
+                <>
+                  <QuickAction href="/bikes" icon={<Bike size={16} />} label="Bikes" />
+                  <QuickAction href="/reports" icon={<Activity size={16} />} label="Reports" />
+                  <QuickAction href="/settings" icon={<Settings size={16} />} label="API Credentials" />
+                </>
+              ) : (
+                <>
+                  <QuickAction href="/live" icon={<Gauge size={16} />} label="Live Map" />
+                  <QuickAction href="/incidents" icon={<Siren size={16} />} label="Incidents" />
+                  <QuickAction href="/bikes" icon={<Bike size={16} />} label="Fleet" />
+                  <QuickAction href="/reports" icon={<Activity size={16} />} label="Reports" />
+                </>
+              )}
             </div>
           </DashboardCard>
         </div>

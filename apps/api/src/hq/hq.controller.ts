@@ -87,7 +87,9 @@ export class HqController {
   }
 
   @Delete('fleets/:id/permanent')
-  @ApiOperation({ summary: 'Permanently delete a fleet and all its data (HQ admin)' })
+  @ApiOperation({
+    summary: 'Permanently delete a fleet and all its data (HQ admin)',
+  })
   deleteFleetPermanently(@Param('id') id: string) {
     return this.hqService.permanentDeleteFleet(id);
   }
@@ -182,7 +184,10 @@ export class HqController {
   }
 
   @Get('bikes/pending')
-  @ApiOperation({ summary: 'List all bikes pending hardware installation (no device assigned)' })
+  @ApiOperation({
+    summary:
+      'List all bikes pending hardware installation (no device assigned)',
+  })
   getPendingBikes() {
     return this.hqService.getPendingBikes();
   }

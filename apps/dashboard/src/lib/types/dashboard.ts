@@ -18,7 +18,7 @@ export interface SessionUser {
   id: string;
   fleetId: string;
   fleetName?: string | null;
-  fleetPlan?: 'DEMO' | 'PREMIUM';
+  fleetPlan?: 'DEMO' | 'PREMIUM' | 'INSURANCE';
   subscriptionStatus?: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_UPGRADE';
   upgradeRequested?: boolean;
   role: UserRole;
@@ -38,6 +38,7 @@ export interface Bike {
   createdAt: string;
   updatedAt: string;
   insurerUserId?: string | null;
+  insurerName?: string | null;
   imageUrl?: string | null;
   type?: string | null;
   insurer?: {

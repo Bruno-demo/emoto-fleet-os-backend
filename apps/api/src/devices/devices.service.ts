@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { AuditActionType, DeviceStatus, Prisma, UserRole } from '@prisma/client';
+import {
+  AuditActionType,
+  DeviceStatus,
+  Prisma,
+  UserRole,
+} from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -38,7 +43,7 @@ interface DeviceWithBike {
   bike: {
     id: string;
     label: string;
-    insurerUserId?: string | null;
+    insurerName?: string | null;
   } | null;
 }
 
@@ -83,7 +88,7 @@ export class DevicesService {
     const where: Prisma.DeviceWhereInput = {};
 
     if (user.role === UserRole.INSURER) {
-      where.bike = { insurerUserId: user.id };
+      where.bike = { insurerName: user.insurerName };
     } else {
       where.fleetId = user.fleetId;
     }
@@ -96,7 +101,7 @@ export class DevicesService {
             select: {
               id: true,
               label: true,
-              insurerUserId: true,
+              insurerName: true,
             },
           },
         },
@@ -122,7 +127,7 @@ export class DevicesService {
   ): Promise<PublicDevice> {
     const device = await this.loadDeviceOrThrow(id);
     if (user.role === UserRole.INSURER) {
-      if (!device.bike || device.bike.insurerUserId !== user.id) {
+      if (!device.bike || device.bike.insurerName !== user.insurerName) {
         throw new ForbiddenException('Access to this device is denied');
       }
     } else {
@@ -295,7 +300,7 @@ export class DevicesService {
           select: {
             id: true,
             label: true,
-            insurerUserId: true,
+            insurerName: true,
           },
         },
       },

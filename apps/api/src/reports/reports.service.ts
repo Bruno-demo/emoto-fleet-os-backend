@@ -33,14 +33,11 @@ export class ReportsService {
       ? new Date(fromStr)
       : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    let insurerBikeFilter: { bikeId?: { in: string[] } } = {};
-    if (user.role === 'INSURER') {
-      const insuredBikes = await this.prismaService.bike.findMany({
-        where: { insurerUserId: user.id },
-        select: { id: true },
-      });
-      const bikeIds = insuredBikes.map((b) => b.id);
-      insurerBikeFilter = { bikeId: { in: bikeIds } };
+    let insurerBikeFilter: Prisma.BikeWhereInput | undefined = undefined;
+    if (user.role === 'INSURER' && user.insurerName) {
+      insurerBikeFilter = {
+        insurerName: user.insurerName,
+      };
     }
 
     const tripWhere: Prisma.TripWhereInput = {
@@ -48,7 +45,7 @@ export class ReportsService {
         gte: from,
         lte: to,
       },
-      ...insurerBikeFilter,
+      ...(insurerBikeFilter ? { bike: insurerBikeFilter } : {}),
     };
 
     const eventWhere: Prisma.EventWhereInput = {
@@ -56,7 +53,7 @@ export class ReportsService {
         gte: from,
         lte: to,
       },
-      ...insurerBikeFilter,
+      ...(insurerBikeFilter ? { bike: insurerBikeFilter } : {}),
     };
 
     if (user.role !== 'INSURER') {

@@ -23,6 +23,7 @@ export interface AuthenticatedUser {
   email: string | null;
   phone: string | null;
   status: UserStatus;
+  insurerName?: string | null;
 }
 
 export interface AuthenticatedRequest extends Request {

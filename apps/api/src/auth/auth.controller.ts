@@ -310,6 +310,20 @@ export class AuthController {
     return this.authService.sendContactInquiry(dto);
   }
 
+  @Get('partner-keys')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get partner API keys for insurer fleets' })
+  async getPartnerKeys(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.getPartnerKeys(user);
+  }
+
+  @Post('partner-keys/rotate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rotate and regenerate partner API client secret' })
+  async rotatePartnerKeys(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.rotatePartnerKeys(user);
+  }
+
   // Sets the httpOnly auth cookie used by browser clients.
   private setAuthCookie(
     response: Response,

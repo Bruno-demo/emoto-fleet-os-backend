@@ -1,11 +1,10 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditActionType, Bike, Prisma, UserRole } from '@prisma/client';
+import { AuditActionType, Bike, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -20,22 +19,7 @@ import { CreateBikeDto } from './dto/create-bike.dto';
 import { LockActionDto } from './dto/lock-action.dto';
 import { UpdateBikeDto } from './dto/update-bike.dto';
 
-export type LoadedBike = Prisma.BikeGetPayload<{
-  include: {
-    insurer: {
-      select: {
-        id: true;
-        email: true;
-        phone: true;
-        riderProfile: {
-          select: {
-            fullName: true;
-          };
-        };
-      };
-    };
-  };
-}>;
+export type LoadedBike = Bike;
 
 @Injectable()
 export class BikesService {
@@ -53,8 +37,8 @@ export class BikesService {
     const pagination = getPaginationParams(query);
     const where: Prisma.BikeWhereInput = {};
 
-    if (user.role === UserRole.INSURER) {
-      where.insurerUserId = user.id;
+    if (user.fleetPlan === 'INSURANCE') {
+      where.insurerName = user.insurerName;
     } else {
       where.fleetId = user.fleetId;
     }
@@ -62,20 +46,6 @@ export class BikesService {
     const [bikes, total] = await Promise.all([
       this.prismaService.bike.findMany({
         where,
-        include: {
-          insurer: {
-            select: {
-              id: true,
-              email: true,
-              phone: true,
-              riderProfile: {
-                select: {
-                  fullName: true,
-                },
-              },
-            },
-          },
-        },
         orderBy: { createdAt: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
@@ -107,6 +77,7 @@ export class BikesService {
           status: dto.status ?? 'ACTIVE',
           imageUrl: dto.imageUrl,
           type: dto.type,
+          insurerName: dto.insurerName,
         },
       });
 
@@ -122,6 +93,7 @@ export class BikesService {
           serial: bike.serial ?? null,
           model: bike.model ?? null,
           type: bike.type ?? null,
+          insurerName: bike.insurerName ?? null,
         },
       });
 
@@ -147,8 +119,8 @@ export class BikesService {
   ): Promise<LoadedBike> {
     const bike = await this.loadBikeOrThrow(id);
 
-    if (user.role === UserRole.INSURER) {
-      if (bike.insurerUserId !== user.id) {
+    if (user.fleetPlan === 'INSURANCE') {
+      if (bike.insurerName !== user.insurerName) {
         throw new ForbiddenException('Access to this bike is denied');
       }
     } else {
@@ -167,18 +139,6 @@ export class BikesService {
     const bike = await this.loadBikeOrThrow(id);
     this.assertFleetAccess(bike.fleetId, user);
 
-    if (dto.insurerUserId) {
-      const insurerUser = await this.prismaService.user.findUnique({
-        where: { id: dto.insurerUserId },
-      });
-      if (!insurerUser) {
-        throw new NotFoundException('Insurer not found');
-      }
-      if (insurerUser.role !== UserRole.INSURER) {
-        throw new BadRequestException('User is not an insurer');
-      }
-    }
-
     try {
       const updated = await this.prismaService.bike.update({
         where: { id },
@@ -190,23 +150,9 @@ export class BikesService {
           status: dto.status,
           imageUrl: dto.imageUrl,
           type: dto.type,
-          ...(dto.insurerUserId !== undefined
-            ? { insurerUserId: dto.insurerUserId }
+          ...(dto.insurerName !== undefined
+            ? { insurerName: dto.insurerName }
             : {}),
-        },
-        include: {
-          insurer: {
-            select: {
-              id: true,
-              email: true,
-              phone: true,
-              riderProfile: {
-                select: {
-                  fullName: true,
-                },
-              },
-            },
-          },
         },
       });
 
@@ -224,7 +170,7 @@ export class BikesService {
             model: bike.model,
             status: bike.status,
             type: bike.type,
-            insurerUserId: bike.insurerUserId,
+            insurerName: bike.insurerName,
           },
           after: {
             label: updated.label,
@@ -233,7 +179,7 @@ export class BikesService {
             model: updated.model,
             status: updated.status,
             type: updated.type,
-            insurerUserId: updated.insurerUserId,
+            insurerName: updated.insurerName,
           },
         },
       });
@@ -314,20 +260,6 @@ export class BikesService {
   private async loadBikeOrThrow(id: string): Promise<LoadedBike> {
     const bike = await this.prismaService.bike.findUnique({
       where: { id },
-      include: {
-        insurer: {
-          select: {
-            id: true,
-            email: true,
-            phone: true,
-            riderProfile: {
-              select: {
-                fullName: true,
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!bike) {

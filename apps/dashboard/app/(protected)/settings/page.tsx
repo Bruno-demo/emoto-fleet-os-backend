@@ -32,7 +32,7 @@ import { ApiError, apiFetch } from '@/lib/api/client';
 import { getSubscriptionEntitlements } from '@/lib/subscription';
 import { cx, formatEnumLabel } from '@/lib/ui';
 
-type SettingsTab = 'profile' | 'fleet' | 'team' | 'security' | 'notifications';
+type SettingsTab = 'profile' | 'fleet' | 'team' | 'security' | 'notifications' | 'apiCredentials';
 
 const ALL_TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode; adminOnly?: boolean }> = [
   { id: 'profile', label: 'Profile', icon: <User size={15} /> },
@@ -40,6 +40,7 @@ const ALL_TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode; a
   { id: 'team', label: 'Team', icon: <Users size={15} />, adminOnly: true },
   { id: 'security', label: 'Security', icon: <Shield size={15} /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell size={15} /> },
+  { id: 'apiCredentials', label: 'API Credentials', icon: <Key size={15} />, adminOnly: true },
 ];
 
 const DEFAULT_NOTIF_PREFS = {
@@ -50,6 +51,7 @@ const DEFAULT_NOTIF_PREFS = {
 
 export default function SettingsPage() {
   const { data: user } = useCurrentUser();
+  const queryClient = useQueryClient();
   const entitlements = getSubscriptionEntitlements(user);
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const { setTheme, resolvedTheme } = useTheme();
@@ -57,6 +59,42 @@ export default function SettingsPage() {
   const [showContactSales, setShowContactSales] = useState(false);
   const [salesFormSubmitted, setSalesFormSubmitted] = useState(false);
   const [salesSending, setSalesSending] = useState(false);
+
+  // API Credentials states
+  const partnerKeysQuery = useQuery({
+    queryKey: ['partner-keys'],
+    queryFn: () => apiFetch<{ clientId: string; scopes: string[] }>('/auth/partner-keys'),
+    enabled: !!user && user.fleetPlan === 'INSURANCE',
+  });
+  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null);
+  const [isRotatingKeys, setIsRotatingKeys] = useState(false);
+  const [rotateKeysError, setRotateKeysError] = useState<string | null>(null);
+  const [copiedClientId, setCopiedClientId] = useState(false);
+  const [copiedClientSecret, setCopiedClientSecret] = useState(false);
+
+  const handleRotateKeys = async () => {
+    if (!confirm('Are you sure you want to rotate your partner API keys? Any existing integrations using the old secret will break immediately.')) {
+      return;
+    }
+    setIsRotatingKeys(true);
+    setRotateKeysError(null);
+    setRotatedSecret(null);
+    try {
+      const res = await apiFetch<{ clientSecret: string }>('/auth/partner-keys/rotate', {
+        method: 'POST',
+      });
+      setRotatedSecret(res.clientSecret);
+      await queryClient.invalidateQueries({ queryKey: ['partner-keys'] });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setRotateKeysError(error.message);
+      } else {
+        setRotateKeysError('Failed to rotate API credentials');
+      }
+    } finally {
+      setIsRotatingKeys(false);
+    }
+  };
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'settings-count'],
@@ -111,7 +149,10 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Tab navigation */}
       <div className="flex overflow-x-auto dashboard-scrollbar gap-1 rounded-2xl border border-line bg-surface-muted p-1 whitespace-nowrap">
-        {ALL_TABS.filter(tab => !tab.adminOnly || (user && (user.role === 'ADMIN' || user.role === 'OWNER'))).map((tab) => (
+        {ALL_TABS
+          .filter(tab => !tab.adminOnly || (user && (user.role === 'ADMIN' || user.role === 'OWNER')))
+          .filter(tab => tab.id !== 'apiCredentials' || (user && user.fleetPlan === 'INSURANCE'))
+          .map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -679,6 +720,115 @@ export default function SettingsPage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* API Credentials */}
+      {activeTab === 'apiCredentials' && user && user.fleetPlan === 'INSURANCE' && (
+        <div className="space-y-5 animate-fade-in">
+          <DashboardCard
+            eyebrow="Integration"
+            title="Partner API Credentials"
+            description="Use these credentials to access the E-Moto Fleet OS Partner API. Scopes are read-only and restricted to bikes covered under your insurance policy."
+          >
+            {rotateKeysError && (
+              <p className="mb-4 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{rotateKeysError}</p>
+            )}
+
+            {partnerKeysQuery.isLoading ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-16 w-full rounded-xl bg-surface-muted" />
+                <div className="h-16 w-full rounded-xl bg-surface-muted" />
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="rounded-xl border border-line bg-surface-muted px-4 py-3 relative">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
+                    Client ID
+                  </p>
+                  <div className="flex items-center justify-between gap-3 mt-1.5">
+                    <p className="text-sm font-mono text-ink-muted select-all">
+                      {partnerKeysQuery.data?.clientId ?? '—'}
+                    </p>
+                    {partnerKeysQuery.data?.clientId && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(partnerKeysQuery.data.clientId);
+                          setCopiedClientId(true);
+                          setTimeout(() => setCopiedClientId(false), 2000);
+                        }}
+                        className="p-1 rounded bg-surface border border-line text-ink hover:text-accent hover:bg-surface-hover transition-colors"
+                      >
+                        {copiedClientId ? <Check size={14} className="text-success-ink" /> : <Copy size={14} />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {rotatedSecret ? (
+                  <div className="rounded-xl border border-warning-ink/30 bg-warning-soft/10 px-4 py-3 relative animate-scale-in">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-warning-ink">
+                      New Client Secret (Copy now, it won&apos;t be shown again!)
+                    </p>
+                    <div className="flex items-center justify-between gap-3 mt-1.5">
+                      <p className="text-sm font-mono text-ink select-all break-all">
+                        {rotatedSecret}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(rotatedSecret);
+                          setCopiedClientSecret(true);
+                          setTimeout(() => setCopiedClientSecret(false), 2000);
+                        }}
+                        className="p-1 rounded bg-surface border border-line text-ink hover:text-accent hover:bg-surface-hover transition-colors"
+                      >
+                        {copiedClientSecret ? <Check size={14} className="text-success-ink" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-line bg-surface-muted px-4 py-3 relative">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
+                      Client Secret
+                    </p>
+                    <p className="mt-1.5 text-sm font-mono text-ink-soft italic">
+                      •••••••••••••••••••••••••••••••• (Hidden for security)
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
+                    Assigned API Scopes
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {(partnerKeysQuery.data?.scopes ?? ['insurer:read', 'webhooks:write']).map((scope) => (
+                      <span
+                        key={scope}
+                        className="inline-flex rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent"
+                      >
+                        {scope}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isRotatingKeys}
+                    onClick={handleRotateKeys}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+                    style={{ background: '#EF4444', color: 'white' }}
+                  >
+                    {isRotatingKeys ? 'Generating...' : 'Rotate API Credentials'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </DashboardCard>
         </div>
       )}
     </div>

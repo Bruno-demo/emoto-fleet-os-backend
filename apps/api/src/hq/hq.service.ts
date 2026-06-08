@@ -980,27 +980,59 @@ export class HqService {
           role: true,
           status: true,
           createdAt: true,
-          fleet: { select: { id: true, name: true } },
+          fleet: { select: { id: true, name: true, insurerName: true } },
           riderProfile: { select: { fullName: true } },
-          insuredBikes: {
-            select: {
-              id: true,
-              label: true,
-              plate: true,
-              status: true,
-            },
-          },
-          _count: { select: { insuredBikes: true } },
         },
       }),
       this.prisma.user.count({ where }),
     ]);
 
+    const insurerNames = data
+      .map((u) => u.fleet?.insurerName)
+      .filter((name): name is string => !!name);
+
+    const bikes = insurerNames.length
+      ? await this.prisma.bike.findMany({
+          where: {
+            insurerName: { in: insurerNames },
+          },
+          select: {
+            id: true,
+            label: true,
+            plate: true,
+            status: true,
+            insurerName: true,
+          },
+        })
+      : [];
+
+    const bikesMap = new Map<string, typeof bikes>();
+    for (const b of bikes) {
+      if (b.insurerName) {
+        const list = bikesMap.get(b.insurerName) ?? [];
+        list.push(b);
+        bikesMap.set(b.insurerName, list);
+      }
+    }
+
     const mappedData = data.map((insurer) => {
-      const { insuredBikes, ...rest } = insurer;
+      const insurerName = insurer.fleet?.insurerName;
+      const assignedBikes = insurerName
+        ? (bikesMap.get(insurerName) ?? [])
+        : [];
       return {
-        ...rest,
-        assignedBikes: insuredBikes,
+        id: insurer.id,
+        email: insurer.email,
+        phone: insurer.phone,
+        role: insurer.role,
+        status: insurer.status,
+        createdAt: insurer.createdAt,
+        fleet: insurer.fleet,
+        riderProfile: insurer.riderProfile,
+        assignedBikes,
+        _count: {
+          assignedBikes: assignedBikes.length,
+        },
       };
     });
 
@@ -1024,17 +1056,8 @@ export class HqService {
         status: true,
         createdAt: true,
         fleetId: true,
-        fleet: { select: { id: true, name: true } },
+        fleet: { select: { id: true, name: true, insurerName: true } },
         riderProfile: { select: { fullName: true } },
-        insuredBikes: {
-          select: {
-            id: true,
-            label: true,
-            plate: true,
-            status: true,
-            fleet: { select: { name: true } },
-          },
-        },
       },
     });
 
@@ -1042,7 +1065,32 @@ export class HqService {
     if (insurer.role !== 'INSURER')
       throw new BadRequestException('User is not an insurer');
 
-    return insurer;
+    const insurerName = insurer.fleet?.insurerName;
+    const insuredBikes = insurerName
+      ? await this.prisma.bike.findMany({
+          where: { insurerName },
+          select: {
+            id: true,
+            label: true,
+            plate: true,
+            status: true,
+            fleet: { select: { name: true } },
+          },
+        })
+      : [];
+
+    return {
+      id: insurer.id,
+      email: insurer.email,
+      phone: insurer.phone,
+      role: insurer.role,
+      status: insurer.status,
+      createdAt: insurer.createdAt,
+      fleetId: insurer.fleetId,
+      fleet: insurer.fleet,
+      riderProfile: insurer.riderProfile,
+      insuredBikes,
+    };
   }
 
   async createInsurer(body: {
@@ -1060,6 +1108,15 @@ export class HqService {
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
     const user = await this.prisma.$transaction(async (tx) => {
+      // Ensure the fleet is updated to have the INSURANCE plan and insurerName
+      await tx.fleet.update({
+        where: { id: body.fleetId },
+        data: {
+          plan: 'INSURANCE',
+          insurerName: body.fullName,
+        },
+      });
+
       const u = await tx.user.create({
         data: {
           email: body.email,
@@ -1122,6 +1179,7 @@ export class HqService {
   async assignBikeToInsurer(insurerId: string, bikeId: string) {
     const insurer = await this.prisma.user.findUnique({
       where: { id: insurerId },
+      include: { fleet: true },
     });
     if (!insurer) throw new NotFoundException('Insurer not found');
     if (insurer.role !== 'INSURER')
@@ -1130,13 +1188,9 @@ export class HqService {
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
-    if (bike.fleetId !== insurer.fleetId) {
-      throw new BadRequestException("Bike must belong to the insurer's fleet");
-    }
-
     return this.prisma.bike.update({
       where: { id: bikeId },
-      data: { insurerUserId: insurerId },
+      data: { insurerName: insurer.fleet?.insurerName },
       include: {
         fleet: { select: { id: true, name: true } },
       },
@@ -1144,16 +1198,22 @@ export class HqService {
   }
 
   async unassignBikeFromInsurer(insurerId: string, bikeId: string) {
+    const insurer = await this.prisma.user.findUnique({
+      where: { id: insurerId },
+      include: { fleet: true },
+    });
+    if (!insurer) throw new NotFoundException('Insurer not found');
+
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
-    if (bike.insurerUserId !== insurerId) {
+    if (bike.insurerName !== insurer.fleet?.insurerName) {
       throw new BadRequestException('Bike is not assigned to this insurer');
     }
 
     await this.prisma.bike.update({
       where: { id: bikeId },
-      data: { insurerUserId: null },
+      data: { insurerName: null },
     });
 
     return { success: true };

@@ -99,7 +99,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
 
     if (user.role === 'INSURER') {
       const bikes = await this.prismaService.bike.findMany({
-        where: { insurerUserId: user.id },
+        where: { insurerName: user.insurerName },
         select: { fleetId: true },
       });
       const uniqueFleetIds = Array.from(new Set(bikes.map((b) => b.fleetId)));
@@ -126,7 +126,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
 
     if (user.role === 'INSURER') {
       const bikes = await this.prismaService.bike.findMany({
-        where: { insurerUserId: user.id },
+        where: { insurerName: user.insurerName },
         select: { fleetId: true },
       });
       const uniqueFleetIds = Array.from(new Set(bikes.map((b) => b.fleetId)));

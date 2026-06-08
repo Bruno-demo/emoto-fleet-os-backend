@@ -49,6 +49,7 @@ const userSelectForAuth = {
       plan: true,
       subscriptionStatus: true,
       upgradeRequested: true,
+      insurerName: true,
     },
   },
 } satisfies Prisma.UserSelect;
@@ -537,8 +538,9 @@ export class AuthService {
         const fleet = await tx.fleet.create({
           data: {
             name: dto.fleetName,
-            type: 'DELIVERY',
+            type: dto.plan === 'INSURANCE' ? 'PERSONAL' : 'DELIVERY',
             plan: dto.plan ?? 'DEMO',
+            insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',
           },
         });
@@ -546,7 +548,7 @@ export class AuthService {
         const user = await tx.user.create({
           data: {
             fleetId: fleet.id,
-            role: UserRole.ADMIN,
+            role: dto.plan === 'INSURANCE' ? UserRole.INSURER : UserRole.ADMIN,
             email: normalizedEmail,
             phone: dto.phone,
             passwordHash,
@@ -560,6 +562,41 @@ export class AuthService {
             data: {
               userId: user.id,
               fullName: dto.fullName,
+            },
+          });
+        }
+
+        if (dto.plan === 'INSURANCE') {
+          // Synchronize creation with a matching Partner record using the same UUID
+          await tx.partner.create({
+            data: {
+              id: user.id,
+              name: dto.insurerName ?? dto.fleetName,
+              status: 'ACTIVE',
+            },
+          });
+
+          // Grant fleet access to their own fleet
+          await tx.partnerFleetAccess.create({
+            data: {
+              partnerId: user.id,
+              fleetId: fleet.id,
+              active: true,
+            },
+          });
+
+          // Provision a default API client credential
+          const clientId = `client_${user.id.slice(0, 8)}`;
+          const clientSecret = randomBytes(16).toString('hex');
+          const clientSecretHash = await bcrypt.hash(clientSecret, 10);
+
+          await tx.partnerClient.create({
+            data: {
+              partnerId: user.id,
+              clientId,
+              clientSecretHash,
+              scopes: 'insurer:read webhooks:write',
+              status: 'ACTIVE',
             },
           });
         }
@@ -1319,6 +1356,7 @@ export class AuthService {
       email: user.email,
       phone: user.phone,
       status: user.status,
+      insurerName: user.fleet.insurerName,
     };
   }
 
@@ -1373,6 +1411,46 @@ export class AuthService {
     return {
       success: true,
       message: 'Inquiry submitted and email notification sent successfully',
+    };
+  }
+
+  async getPartnerKeys(user: AuthenticatedUser) {
+    if (user.fleetPlan !== 'INSURANCE') {
+      throw new ForbiddenException(
+        'Only insurance fleets can retrieve API keys',
+      );
+    }
+    const client = await this.prismaService.partnerClient.findFirst({
+      where: { partnerId: user.id },
+      select: { clientId: true },
+    });
+    if (!client) {
+      throw new NotFoundException('Partner client keys not found');
+    }
+    return { clientId: client.clientId };
+  }
+
+  async rotatePartnerKeys(user: AuthenticatedUser) {
+    if (user.fleetPlan !== 'INSURANCE') {
+      throw new ForbiddenException('Only insurance fleets can rotate API keys');
+    }
+    const client = await this.prismaService.partnerClient.findFirst({
+      where: { partnerId: user.id },
+    });
+    if (!client) {
+      throw new NotFoundException('Partner client keys not found');
+    }
+    const clientSecret = randomBytes(16).toString('hex');
+    const clientSecretHash = await bcrypt.hash(clientSecret, 10);
+
+    await this.prismaService.partnerClient.update({
+      where: { id: client.id },
+      data: { clientSecretHash },
+    });
+
+    return {
+      clientId: client.clientId,
+      clientSecret,
     };
   }
 

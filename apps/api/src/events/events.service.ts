@@ -55,13 +55,13 @@ export class EventsService {
       if (query.bikeId) {
         const bike = await this.prismaService.bike.findUnique({
           where: { id: query.bikeId },
-          select: { insurerUserId: true },
+          select: { insurerName: true },
         });
-        if (!bike || bike.insurerUserId !== user.id) {
+        if (!bike || bike.insurerName !== user.insurerName) {
           throw new ForbiddenException('Access to this bike is denied');
         }
       }
-      where.bike = { insurerUserId: user.id };
+      where.bike = { insurerName: user.insurerName };
     } else {
       where.fleetId = user.fleetId;
     }

@@ -182,6 +182,16 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
       });
       unassignedBikeId = unassignedBike.id;
 
+      // Seed insurer fleet under INSURANCE plan
+      const insurerFleet = await prisma.fleet.create({
+        data: {
+          name: `Radiant Insurance ${runId.slice(0, 6)}`,
+          type: 'COOP',
+          plan: 'INSURANCE',
+          insurerName: 'Radiant',
+        },
+      });
+
       // Seed insurer user record with role INSURER matching partner ID
       const insurerUser = await prisma.user.create({
         data: {
@@ -189,7 +199,7 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
           passwordHash: await bcrypt.hash('secret123', 10),
           role: 'INSURER',
           status: 'ACTIVE',
-          fleetId: allowedFleetId,
+          fleetId: insurerFleet.id,
         },
       });
       insurerUserId = insurerUser.id;
@@ -228,7 +238,7 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
       // Assign the first bike (allowedBikeId) to this insurer
       await prisma.bike.update({
         where: { id: allowedBikeId },
-        data: { insurerUserId },
+        data: { insurerName: 'Radiant' },
       });
 
       // Create trip for assigned bike (allowedBikeId)

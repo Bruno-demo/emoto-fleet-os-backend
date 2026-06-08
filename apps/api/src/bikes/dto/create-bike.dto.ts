@@ -44,4 +44,9 @@ export class CreateBikeDto {
   @IsString()
   @IsIn(['SPIRO', 'AMPARSAND', 'AMAZI'])
   type?: string;
+
+  @ApiPropertyOptional({ example: 'Radiant', nullable: true })
+  @IsOptional()
+  @IsString()
+  insurerName?: string | null;
 }
