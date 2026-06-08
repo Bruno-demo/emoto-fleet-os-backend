@@ -767,4 +767,50 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       expect(profile?.fullName).toBe('E2E Invite User Full Name');
     });
   });
+
+  describe('HQ Pending Setups and count (e2e)', () => {
+    let originalFleetName = 'Demo Fleet';
+
+    beforeAll(async () => {
+      // Elevate the seeded fleet to 'E-Moto HQ' to pass HqGuard checks
+      await prisma.fleet.update({
+        where: { id: fleetId },
+        data: { name: 'E-Moto HQ' },
+      });
+    });
+
+    afterAll(async () => {
+      // Revert the fleet name back to original
+      await prisma.fleet.update({
+        where: { id: fleetId },
+        data: { name: originalFleetName },
+      });
+    });
+
+    it('returns the correct pending setups count', async () => {
+      const res = await request(httpServer)
+        .get('/hq/pending-setups/count')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body).toHaveProperty('pendingUsers');
+      expect(res.body).toHaveProperty('pendingBikes');
+      expect(typeof res.body.pendingUsers).toBe('number');
+      expect(typeof res.body.pendingBikes).toBe('number');
+    });
+
+    it('returns the list of pending bikes', async () => {
+      const res = await request(httpServer)
+        .get('/hq/bikes/pending')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      if (res.body.length > 0) {
+        expect(res.body[0]).toHaveProperty('id');
+        expect(res.body[0]).toHaveProperty('label');
+        expect(res.body[0]).toHaveProperty('fleet');
+      }
+    });
+  });
 });

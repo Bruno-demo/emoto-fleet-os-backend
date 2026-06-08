@@ -31,6 +31,11 @@ const statsSchema = z.object({
   unassignedDevices: z.number().optional(),
 });
 
+const pendingCountSchema = z.object({
+  pendingUsers: z.number(),
+  pendingBikes: z.number(),
+});
+
 const healthSchema = z.array(z.object({
   label: z.string(),
   status: z.string(),
@@ -49,6 +54,11 @@ export default function HqOverviewPage() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['hq', 'stats'],
     queryFn: () => apiFetch('/hq/stats', {}, { schema: statsSchema }),
+  });
+
+  const { data: pendingCount } = useQuery({
+    queryKey: ['hq', 'pending-count'],
+    queryFn: () => apiFetch('/hq/pending-setups/count', {}, { schema: pendingCountSchema }),
   });
 
   const { data: health, isLoading: healthLoading } = useQuery({
@@ -97,10 +107,10 @@ export default function HqOverviewPage() {
         />
         <MetricCard
           title="Pending Provisioning"
-          value={statsLoading ? '-' : stats?.totalPendingSetups.toLocaleString()}
+          value={statsLoading ? '-' : ((pendingCount?.pendingUsers ?? 0) + (pendingCount?.pendingBikes ?? 0)).toLocaleString()}
           icon={<UserPlus size={20} />}
-          trend="Action required"
-          alert={stats && stats.totalPendingSetups > 0}
+          trend={pendingCount ? `${pendingCount.pendingUsers} users · ${pendingCount.pendingBikes} bikes` : 'Action required'}
+          alert={!!pendingCount && (pendingCount.pendingUsers + pendingCount.pendingBikes) > 0}
           onClick={() => router.push('/hq/pending-setups')}
         />
         <MetricCard

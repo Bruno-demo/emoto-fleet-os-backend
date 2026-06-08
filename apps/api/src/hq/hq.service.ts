@@ -362,6 +362,30 @@ export class HqService {
     });
   }
 
+  async getPendingBikes() {
+    return this.prisma.bike.findMany({
+      where: {
+        devices: {
+          none: {},
+        },
+      },
+      include: {
+        fleet: {
+          select: { name: true, plan: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getPendingSetupsCount() {
+    const [pendingUsers, pendingBikes] = await Promise.all([
+      this.prisma.user.count({ where: { status: 'PENDING_SETUP' } }),
+      this.prisma.bike.count({ where: { devices: { none: {} } } }),
+    ]);
+    return { pendingUsers, pendingBikes };
+  }
+
   async activateUser(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');

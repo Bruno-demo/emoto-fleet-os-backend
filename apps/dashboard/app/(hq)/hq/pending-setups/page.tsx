@@ -1,9 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Check, X, AlertCircle, Phone, Mail, Clock, ShieldCheck, MapPin } from 'lucide-react';
+import { UserPlus, Check, X, AlertCircle, Phone, Mail, Clock, ShieldCheck, MapPin, Bike, Cpu, ArrowRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
+
+type Tab = 'operators' | 'bikes';
 
 const pendingUserSchema = z.array(
   z.object({
@@ -18,12 +22,35 @@ const pendingUserSchema = z.array(
   })
 );
 
-export default function PendingSetupsPage() {
-  const queryClient = useQueryClient();
+const pendingBikeSchema = z.array(
+  z.object({
+    id: z.string(),
+    label: z.string().nullable(),
+    plate: z.string().nullable(),
+    serial: z.string().nullable(),
+    model: z.string().nullable(),
+    status: z.string(),
+    createdAt: z.string(),
+    fleet: z.object({
+      name: z.string(),
+      plan: z.string(),
+    }),
+  })
+);
 
-  const { data: users, isLoading } = useQuery({
+export default function PendingSetupsPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('operators');
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ['hq', 'pending-users'],
     queryFn: () => apiFetch('/hq/users/pending', {}, { schema: pendingUserSchema }),
+  });
+
+  const { data: bikes, isLoading: bikesLoading } = useQuery({
+    queryKey: ['hq', 'pending-bikes'],
+    queryFn: () => apiFetch('/hq/bikes/pending', {}, { schema: pendingBikeSchema }),
   });
 
   const activateMutation = useMutation({
@@ -31,8 +58,11 @@ export default function PendingSetupsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'pending-users'] });
       queryClient.invalidateQueries({ queryKey: ['hq', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['hq', 'pending-count'] });
     },
   });
+
+  const totalPending = (users?.length ?? 0) + (bikes?.length ?? 0);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -45,102 +75,250 @@ export default function PendingSetupsPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-line bg-amber-500/10 px-4 py-1.5 text-xs font-bold text-amber-400">
             <Clock size={14} />
-            {users?.length ?? 0} Pending Setups
+            {totalPending} Pending Setups
           </div>
         </div>
       </div>
 
-      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-line bg-white/[0.02]">
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Contact endpoints</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Queue time</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Verification</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-8 py-8">
-                      <div className="h-4 w-full rounded bg-white/5" />
-                    </td>
-                  </tr>
-                ))
-              ) : users?.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-8 py-24 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
-                      <ShieldCheck size={32} />
-                    </div>
-                    <p className="mt-6 text-base font-bold text-white">All Hardware Verified</p>
-                    <p className="mt-2 text-sm text-zinc-500">Every fleet is currently active and commissioned.</p>
-                  </td>
-                </tr>
-              ) : (
-                users?.map((user) => (
-                  <tr key={user.id} className="group transition-colors hover:bg-white/[0.01]">
-                    <td className="px-8 py-7">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400">
-                          <MapPin size={18} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white leading-tight">{user.fleet.name}</p>
-                          <p className="mt-1 text-[10px] text-zinc-500">Pending hardware sync</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-7">
-                      <div className="space-y-1.5">
-                        {user.email && (
-                          <div className="flex items-center gap-2 text-ink-soft">
-                            <Mail size={12} className="text-zinc-600" />
-                            <span className="text-xs font-medium">{user.email}</span>
-                          </div>
-                        )}
-                        {user.phone && (
-                          <div className="flex items-center gap-2 text-ink-soft">
-                            <Phone size={12} className="text-zinc-600" />
-                            <span className="text-xs font-medium">{user.phone}</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-8 py-7">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft uppercase tracking-wider">
-                        {user.fleet.plan === 'PREMIUM' ? 'Operations Plus' : user.fleet.plan === 'DEMO' ? 'Safety Core' : user.fleet.plan}
-                      </span>
-                    </td>
-                    <td className="px-8 py-7">
-                      <div className="flex items-center gap-2 text-zinc-500">
-                        <Clock size={14} />
-                        <span className="text-xs font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-7 text-right">
-                      <button
-                        onClick={() => activateMutation.mutate(user.id)}
-                        disabled={activateMutation.isPending}
-                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                        style={{ background: '#10B981', color: '#070B14' }}
-                      >
-                        <Check size={14} strokeWidth={3} />
-                        Activate Account
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveTab('operators')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+            activeTab === 'operators'
+              ? 'bg-white/10 text-white shadow-sm border border-white/10'
+              : 'text-zinc-500 hover:text-zinc-300 border border-transparent hover:border-white/5'
+          }`}
+        >
+          <UserPlus size={14} />
+          Pending Operators
+          {(users?.length ?? 0) > 0 && (
+            <span className={`ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-extrabold ${
+              activeTab === 'operators' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-zinc-500'
+            }`}>
+              {users?.length ?? 0}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('bikes')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+            activeTab === 'bikes'
+              ? 'bg-white/10 text-white shadow-sm border border-white/10'
+              : 'text-zinc-500 hover:text-zinc-300 border border-transparent hover:border-white/5'
+          }`}
+        >
+          <Bike size={14} />
+          Unassigned Bikes
+          {(bikes?.length ?? 0) > 0 && (
+            <span className={`ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-extrabold ${
+              activeTab === 'bikes' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-zinc-500'
+            }`}>
+              {bikes?.length ?? 0}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* Operators Tab */}
+      {activeTab === 'operators' && (
+        <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm animate-in fade-in duration-300">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-line bg-white/[0.02]">
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Contact endpoints</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Tier</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Queue time</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Verification</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {usersLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td colSpan={5} className="px-8 py-8">
+                        <div className="h-4 w-full rounded bg-white/5" />
+                      </td>
+                    </tr>
+                  ))
+                ) : users?.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-24 text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
+                        <ShieldCheck size={32} />
+                      </div>
+                      <p className="mt-6 text-base font-bold text-white">All Operators Verified</p>
+                      <p className="mt-2 text-sm text-zinc-500">Every fleet operator is currently active and commissioned.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  users?.map((user) => (
+                    <tr key={user.id} className="group transition-colors hover:bg-white/[0.01]">
+                      <td className="px-8 py-7">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400">
+                            <MapPin size={18} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-white leading-tight">{user.fleet.name}</p>
+                            <p className="mt-1 text-[10px] text-zinc-500">Pending hardware sync</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-7">
+                        <div className="space-y-1.5">
+                          {user.email && (
+                            <div className="flex items-center gap-2 text-ink-soft">
+                              <Mail size={12} className="text-zinc-600" />
+                              <span className="text-xs font-medium">{user.email}</span>
+                            </div>
+                          )}
+                          {user.phone && (
+                            <div className="flex items-center gap-2 text-ink-soft">
+                              <Phone size={12} className="text-zinc-600" />
+                              <span className="text-xs font-medium">{user.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-8 py-7">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft uppercase tracking-wider">
+                          {user.fleet.plan === 'PREMIUM' ? 'Operations Plus' : user.fleet.plan === 'DEMO' ? 'Safety Core' : user.fleet.plan}
+                        </span>
+                      </td>
+                      <td className="px-8 py-7">
+                        <div className="flex items-center gap-2 text-zinc-500">
+                          <Clock size={14} />
+                          <span className="text-xs font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-7 text-right">
+                        <button
+                          onClick={() => activateMutation.mutate(user.id)}
+                          disabled={activateMutation.isPending}
+                          className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                          style={{ background: '#10B981', color: '#070B14' }}
+                        >
+                          <Check size={14} strokeWidth={3} />
+                          Activate Account
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Bikes Tab */}
+      {activeTab === 'bikes' && (
+        <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm animate-in fade-in duration-300">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-line bg-white/[0.02]">
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Bike</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Plate / Serial</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Status</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Created</th>
+                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {bikesLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td colSpan={6} className="px-8 py-8">
+                        <div className="h-4 w-full rounded bg-white/5" />
+                      </td>
+                    </tr>
+                  ))
+                ) : bikes?.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-8 py-24 text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400">
+                        <Cpu size={32} />
+                      </div>
+                      <p className="mt-6 text-base font-bold text-white">All Bikes Assigned</p>
+                      <p className="mt-2 text-sm text-zinc-500">Every bike has a tracking device installed.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  bikes?.map((bike) => (
+                    <tr key={bike.id} className="group transition-colors hover:bg-white/[0.01]">
+                      <td className="px-8 py-7">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
+                            <Bike size={18} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-white leading-tight">{bike.label || 'Unnamed'}</p>
+                            <p className="mt-1 text-[10px] text-zinc-500">{bike.model || 'No model'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-7">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={12} className="text-zinc-600" />
+                          <span className="text-xs font-bold text-zinc-300">{bike.fleet.name}</span>
+                        </div>
+                        <span className="mt-1 inline-flex text-[10px] font-medium text-zinc-600">
+                          {bike.fleet.plan === 'PREMIUM' ? 'Operations Plus' : bike.fleet.plan === 'DEMO' ? 'Safety Core' : bike.fleet.plan}
+                        </span>
+                      </td>
+                      <td className="px-8 py-7">
+                        <div className="space-y-1">
+                          {bike.plate && (
+                            <p className="text-xs font-medium text-zinc-300">{bike.plate}</p>
+                          )}
+                          {bike.serial && (
+                            <p className="text-[10px] text-zinc-500 font-mono">{bike.serial}</p>
+                          )}
+                          {!bike.plate && !bike.serial && (
+                            <p className="text-[10px] text-zinc-600 italic">Not specified</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-8 py-7">
+                        <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
+                          bike.status === 'ACTIVE'
+                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                            : bike.status === 'MAINTENANCE'
+                            ? 'border-amber-500/20 bg-amber-500/10 text-amber-400'
+                            : 'border-line bg-white/5 text-zinc-500'
+                        }`}>
+                          {bike.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-7">
+                        <div className="flex items-center gap-2 text-zinc-500">
+                          <Clock size={14} />
+                          <span className="text-xs font-medium">{new Date(bike.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-7 text-right">
+                        <button
+                          onClick={() => router.push('/hq/devices')}
+                          className="inline-flex items-center gap-2 rounded-xl border border-line bg-white/5 px-4 py-2 text-xs font-bold text-zinc-300 transition-all hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95"
+                        >
+                          <Cpu size={14} />
+                          Assign Device
+                          <ArrowRight size={12} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

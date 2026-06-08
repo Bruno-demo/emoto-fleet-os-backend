@@ -181,6 +181,18 @@ export class HqController {
     return this.hqService.getPendingUsers();
   }
 
+  @Get('bikes/pending')
+  @ApiOperation({ summary: 'List all bikes pending hardware installation (no device assigned)' })
+  getPendingBikes() {
+    return this.hqService.getPendingBikes();
+  }
+
+  @Get('pending-setups/count')
+  @ApiOperation({ summary: 'Get count of pending users and bikes' })
+  getPendingSetupsCount() {
+    return this.hqService.getPendingSetupsCount();
+  }
+
   @Post('users/:id/activate')
   @ApiOperation({ summary: 'Activate a user pending setup' })
   activateUser(@Param('id') id: string) {
