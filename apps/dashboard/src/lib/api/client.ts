@@ -85,12 +85,14 @@ export async function apiFetch<T = unknown>(
 
   try {
     const resolvedUrl = resolveApiUrl(path);
-    console.log(`[apiFetch] Request details:`, {
-      path,
-      API_BASE_URL,
-      resolvedUrl,
-      method: init.method || 'GET'
-    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[apiFetch] Request details:`, {
+        path,
+        API_BASE_URL,
+        resolvedUrl,
+        method: init.method || 'GET'
+      });
+    }
 
     const response = await fetch(resolvedUrl, {
       ...init,
