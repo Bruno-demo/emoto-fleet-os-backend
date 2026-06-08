@@ -764,10 +764,14 @@ export default function FleetDetailPage() {
                         />
                       ) : (
                         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent text-sm font-bold shrink-0">
-                          {user.riderProfile?.fullName ? user.riderProfile.fullName[0].toUpperCase() : '?'}
+                          {user.riderProfile?.fullName
+                            ? user.riderProfile.fullName[0].toUpperCase()
+                            : (user.email || user.phone || '?')[0].toUpperCase()}
                         </span>
                       )}
-                      <span className="font-semibold">{user.riderProfile?.fullName || 'N/A'}</span>
+                      <span className="font-semibold">
+                        {user.riderProfile?.fullName || user.email || user.phone || 'N/A'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs">
