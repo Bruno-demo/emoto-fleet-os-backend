@@ -18,7 +18,7 @@
     "dev": "concurrently -k -n api,dashboard -c green,cyan \"npm run dev:api\" \"npm run dev:dashboard\"",
     "build": "npm run build -w apps/api && npm run build -w apps/gateway && npm run build -w apps/stream-processor && npm run build -w apps/dashboard && npm run build -w apps/rider",
     "lint": "npm run lint -w apps/api && npm run lint -w apps/dashboard && npm run lint -w apps/rider",
-    "test:e2e": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, NODE_ENV: 'test', REDIS_IN_MEMORY: 'true', NOTIFICATION_OUTBOX_INLINE: 'true', MQTT_DISABLED: 'true' }; const result = spawnSync('npm', ['run', 'test:e2e', '-w', 'apps/api', '--', '--runInBand', '--testTimeout=30000'], { stdio: 'inherit', env, shell: true }); process.exit(result.status ?? 1);\"",
+    "test:e2e": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, NODE_ENV: 'test', REDIS_IN_MEMORY: 'true', NOTIFICATION_OUTBOX_INLINE: 'true', MQTT_DISABLED: 'true', AUTH_REGISTER_ENABLED: 'true', AUTH_PUBLIC_REGISTER_ENABLED: 'true' }; const result = spawnSync('npm', ['run', 'test:e2e', '-w', 'apps/api', '--', '--runInBand', '--testTimeout=30000'], { stdio: 'inherit', env, shell: true }); process.exit(result.status ?? 1);\"",
     "format": "npm run format -w apps/api",
     "db:generate": "npm run db:generate -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
