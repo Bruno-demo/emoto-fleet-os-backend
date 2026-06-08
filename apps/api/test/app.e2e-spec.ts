@@ -793,10 +793,11 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body).toHaveProperty('pendingUsers');
-      expect(res.body).toHaveProperty('pendingBikes');
-      expect(typeof res.body.pendingUsers).toBe('number');
-      expect(typeof res.body.pendingBikes).toBe('number');
+      const body = res.body as { pendingUsers: number; pendingBikes: number };
+      expect(body).toHaveProperty('pendingUsers');
+      expect(body).toHaveProperty('pendingBikes');
+      expect(typeof body.pendingUsers).toBe('number');
+      expect(typeof body.pendingBikes).toBe('number');
     });
 
     it('returns the list of pending bikes', async () => {
@@ -805,11 +806,12 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      if (res.body.length > 0) {
-        expect(res.body[0]).toHaveProperty('id');
-        expect(res.body[0]).toHaveProperty('label');
-        expect(res.body[0]).toHaveProperty('fleet');
+      const body = res.body as Array<{ id: string; label: string; fleet: unknown }>;
+      expect(Array.isArray(body)).toBe(true);
+      if (body.length > 0) {
+        expect(body[0]).toHaveProperty('id');
+        expect(body[0]).toHaveProperty('label');
+        expect(body[0]).toHaveProperty('fleet');
       }
     });
   });
