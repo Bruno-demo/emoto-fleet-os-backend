@@ -593,4 +593,145 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       expect(body.data).toBeDefined();
     });
   });
+
+  describe('User Registration with fullName (e2e)', () => {
+    it('creates a RiderProfile with fullName during registerFleet (admin signup)', async () => {
+      const email = `admin.register.test.${runId}@demo.emoto`;
+
+      // 1. Send OTP
+      const otpRes = await request(httpServer)
+        .post('/auth/send-otp')
+        .send({ email, reason: 'register' })
+        .expect(200);
+
+      const otp = (otpRes.body as { otp: string }).otp;
+      expect(otp).toBeDefined();
+
+      // 2. Verify OTP
+      await request(httpServer)
+        .post('/auth/verify-otp')
+        .send({ email, reason: 'register', otp })
+        .expect(200);
+
+      // 3. Register Fleet
+      const regRes = await request(httpServer)
+        .post('/auth/register-fleet')
+        .send({
+          fleetName: 'E2E Registration Fleet',
+          bikeRange: 80,
+          email,
+          phone: `+25081${runId.slice(0, 7)}`,
+          password: 'ChangeMe123!',
+          plan: 'DEMO',
+          fullName: 'E2E Admin Full Name',
+        })
+        .expect(201);
+
+      const user = regRes.body as { id: string };
+      expect(user.id).toBeDefined();
+
+      // 4. Verify RiderProfile was created
+      const profile = await prisma.riderProfile.findUnique({
+        where: { userId: user.id },
+      });
+      expect(profile).toBeDefined();
+      expect(profile?.fullName).toBe('E2E Admin Full Name');
+    });
+
+    it('creates a RiderProfile with fullName during register (admin-mode user creation)', async () => {
+      const email = `dispatcher.register.test.${runId}@demo.emoto`;
+
+      // 1. Send OTP
+      const otpRes = await request(httpServer)
+        .post('/auth/send-otp')
+        .send({ email, reason: 'register' })
+        .expect(200);
+
+      const otp = (otpRes.body as { otp: string }).otp;
+      expect(otp).toBeDefined();
+
+      // 2. Verify OTP
+      await request(httpServer)
+        .post('/auth/verify-otp')
+        .send({ email, reason: 'register', otp })
+        .expect(200);
+
+      // 3. Register User (admin mode)
+      const regRes = await request(httpServer)
+        .post('/auth/register')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          email,
+          phone: `+25082${runId.slice(0, 7)}`,
+          password: 'ChangeMe123!',
+          role: 'DISPATCHER',
+          fullName: 'E2E Dispatcher Full Name',
+        })
+        .expect(201);
+
+      const user = regRes.body as { id: string };
+      expect(user.id).toBeDefined();
+
+      // 4. Verify RiderProfile was created
+      const profile = await prisma.riderProfile.findUnique({
+        where: { userId: user.id },
+      });
+      expect(profile).toBeDefined();
+      expect(profile?.fullName).toBe('E2E Dispatcher Full Name');
+    });
+
+    it('creates a RiderProfile with fullName during register-invite (invite redemption)', async () => {
+      const email = `invite.register.test.${runId}@demo.emoto`;
+
+      // 1. Create Invite
+      const inviteRes = await request(httpServer)
+        .post('/auth/invites')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          role: 'DISPATCHER',
+          email,
+        })
+        .expect(201);
+
+      const inviteToken = (inviteRes.body as { token: string }).token;
+      expect(inviteToken).toBeDefined();
+
+      // 2. Send OTP
+      const otpRes = await request(httpServer)
+        .post('/auth/send-otp')
+        .send({ email, reason: 'register' })
+        .expect(200);
+
+      const otp = (otpRes.body as { otp: string }).otp;
+      expect(otp).toBeDefined();
+
+      // 3. Verify OTP
+      await request(httpServer)
+        .post('/auth/verify-otp')
+        .send({ email, reason: 'register', otp })
+        .expect(200);
+
+      // 4. Redeem Invite
+      const regRes = await request(httpServer)
+        .post('/auth/register-invite')
+        .send({
+          token: inviteToken,
+          email,
+          phone: `+25083${runId.slice(0, 7)}`,
+          password: 'ChangeMe123!',
+          fullName: 'E2E Invite User Full Name',
+        })
+        .expect(201);
+
+      const user = regRes.body as { id: string };
+      expect(user.id).toBeDefined();
+
+      // 5. Verify RiderProfile was created
+      const profile = await prisma.riderProfile.findUnique({
+        where: { userId: user.id },
+      });
+      expect(profile).toBeDefined();
+      expect(profile?.fullName).toBe('E2E Invite User Full Name');
+    });
+  });
 });

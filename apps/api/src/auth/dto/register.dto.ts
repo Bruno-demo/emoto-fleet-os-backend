@@ -28,4 +28,10 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @ApiPropertyOptional({ example: 'Jane Doe' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  fullName?: string;
 }

@@ -300,18 +300,31 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(dto.password);
     try {
-      const createdUser = await this.prismaService.user.create({
-        data: {
-          fleetId: actor.fleetId,
-          role: canAssignAnyRole
-            ? (dto.role ?? UserRole.DISPATCHER)
-            : UserRole.RIDER,
-          email: normalizedEmail,
-          phone: dto.phone,
-          passwordHash,
-          status: 'ACTIVE',
-        },
-        select: userSelectForAuth,
+      const createdUser = await this.prismaService.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            fleetId: actor.fleetId,
+            role: canAssignAnyRole
+              ? (dto.role ?? UserRole.DISPATCHER)
+              : UserRole.RIDER,
+            email: normalizedEmail,
+            phone: dto.phone,
+            passwordHash,
+            status: 'ACTIVE',
+          },
+          select: userSelectForAuth,
+        });
+
+        if (dto.fullName) {
+          await tx.riderProfile.create({
+            data: {
+              userId: user.id,
+              fullName: dto.fullName,
+            },
+          });
+        }
+
+        return user;
       });
 
       if (normalizedEmail) {
@@ -542,6 +555,15 @@ export class AuthService {
           select: userSelectForAuth,
         });
 
+        if (dto.fullName) {
+          await tx.riderProfile.create({
+            data: {
+              userId: user.id,
+              fullName: dto.fullName,
+            },
+          });
+        }
+
         return user as AuthUserRecord;
       });
 
@@ -717,7 +739,7 @@ export class AuthService {
           select: userSelectForAuth,
         });
 
-        if (invite.role === UserRole.RIDER) {
+        if (dto.fullName || invite.role === UserRole.RIDER) {
           await tx.riderProfile.create({
             data: {
               userId: user.id,

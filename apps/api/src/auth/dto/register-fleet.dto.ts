@@ -41,4 +41,10 @@ export class RegisterFleetDto {
   @ApiProperty({ enum: ['DEMO', 'PREMIUM'] })
   @IsIn(['DEMO', 'PREMIUM'])
   plan!: 'DEMO' | 'PREMIUM';
+
+  @ApiPropertyOptional({ example: 'John Doe' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  fullName?: string;
 }

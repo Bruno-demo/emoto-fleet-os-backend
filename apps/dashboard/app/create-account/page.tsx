@@ -453,6 +453,7 @@ function CreateAccountInner() {
               phone: parsed.data.phone,
               password: parsed.data.password,
               plan: selectedPlanSlug === 'safety-core' ? 'DEMO' : 'PREMIUM',
+              fullName: fullName.trim() || undefined,
             }),
           },
           { auth: false },
@@ -486,7 +487,7 @@ function CreateAccountInner() {
             phone: parsed.data.phone,
             password: parsed.data.password,
             role: parsed.data.role,
-            ...(enableFullNameCapture ? { fullName: fullName.trim() } : {}),
+            fullName: fullName.trim() || undefined,
           }),
         });
       }
