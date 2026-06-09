@@ -16,7 +16,7 @@ export type DashboardFeature =
   | 'evidence'
   | 'financial';
 
-export type SubscriptionTier = 'core' | 'premium';
+export type SubscriptionTier = 'core' | 'premium' | 'insurance';
 
 export interface SubscriptionEntitlements {
   tier: SubscriptionTier;
@@ -65,6 +65,27 @@ export function getSubscriptionEntitlements(
   const plan = user?.fleetPlan ?? 'DEMO';
   const status = user?.subscriptionStatus ?? 'ACTIVE';
   const isActive = status === 'ACTIVE';
+
+  if (plan === 'INSURANCE') {
+    return {
+      tier: 'insurance',
+      planLabel: 'Insurance Partner Plan',
+      statusLabel: formatSubscriptionStatus(status),
+      isActive,
+      isPremium: true,
+      allowedFeatures: new Set([
+        'overview',
+        'live',
+        'incidents',
+        'events',
+        'bikes',
+        'settings',
+        'reports',
+        'evidence',
+      ]),
+    };
+  }
+
   const isPremium = plan === 'PREMIUM' && isActive;
   const tier: SubscriptionTier = isPremium ? 'premium' : 'core';
   const allowedFeatures = !isActive
