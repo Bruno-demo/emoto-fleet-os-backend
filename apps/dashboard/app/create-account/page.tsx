@@ -171,6 +171,7 @@ function CreateAccountInner() {
   const [fleetName, setFleetName] = useState('');
   const [bikeRange, setBikeRange] = useState('11-50');
   const [insurerName, setInsurerName] = useState('');
+  const [customInsurerName, setCustomInsurerName] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -415,21 +416,38 @@ function CreateAccountInner() {
       }
     }
 
+    let finalFleetName = fleetName.trim();
+    let finalInsurerName = selectedPlanSlug === 'insurance' ? insurerName : undefined;
+
     // Admin public signup requires fleet name and plan
     if (isPublicMode && signupType === 'admin') {
-      if (fleetName.trim().length < 2) {
-        setError('Fleet name is required');
-        return;
-      }
-      if (!selectedPlan && !isDemo) {
-        setError('Please select a pricing plan to continue');
-        // Scroll to the top to see the banner
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-      if (selectedPlanSlug === 'insurance' && !insurerName) {
-        setError('Please select your insurance company');
-        return;
+      if (selectedPlanSlug === 'insurance') {
+        if (!insurerName) {
+          setError('Please select your insurance company');
+          return;
+        }
+        if (insurerName === 'Other') {
+          if (!customInsurerName.trim()) {
+            setError('Please enter your insurance company name');
+            return;
+          }
+          finalInsurerName = customInsurerName.trim();
+          finalFleetName = customInsurerName.trim();
+        } else {
+          finalInsurerName = insurerName;
+          finalFleetName = insurerName;
+        }
+      } else {
+        if (fleetName.trim().length < 2) {
+          setError('Fleet name is required');
+          return;
+        }
+        if (!selectedPlan && !isDemo) {
+          setError('Please select a pricing plan to continue');
+          // Scroll to the top to see the banner
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
       }
     }
 
@@ -463,13 +481,13 @@ function CreateAccountInner() {
           {
             method: 'POST',
             body: JSON.stringify({
-              fleetName: fleetName.trim(),
+              fleetName: finalFleetName,
               bikeRange,
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
               plan: selectedPlanSlug === 'safety-core' ? 'DEMO' : selectedPlanSlug === 'insurance' ? 'INSURANCE' : 'PREMIUM',
-              insurerName: selectedPlanSlug === 'insurance' ? insurerName : undefined,
+              insurerName: finalInsurerName,
               fullName: fullName.trim() || undefined,
             }),
           },
@@ -536,6 +554,8 @@ function CreateAccountInner() {
       setPassword('');
       setConfirmPassword('');
       setFleetName('');
+      setInsurerName('');
+      setCustomInsurerName('');
       setBikeRange('11-50');
       setTermsAccepted(false);
       setRole('DISPATCHER');
@@ -1108,41 +1128,57 @@ function CreateAccountInner() {
 
             {signupType === 'admin' && (
               <div className="space-y-3">
-                <AuthInput
-                  label={selectedPlanSlug === 'insurance' ? "Insurance company name" : "Fleet name"}
-                  placeholder={selectedPlanSlug === 'insurance' ? "e.g. Sanlam Insurance" : "e.g. Kigali Express Fleet"}
-                  value={fleetName}
-                  onChange={(event) => setFleetName(event.target.value)}
-                  disabled={isFormDisabled || isGateLocked}
-                  icon={<Building2 size={16} />}
-                />
                 {selectedPlanSlug === 'insurance' ? (
-                  <AuthSelect
-                    label="Insurance Company"
-                    value={insurerName}
-                    onChange={(event) => setInsurerName(event.target.value)}
-                    disabled={isFormDisabled || isGateLocked}
-                  >
-                    <option value="">Select insurance provider...</option>
-                    {RWANDA_INSURERS.map((ins) => (
-                      <option key={ins} value={ins}>
-                        {ins}
-                      </option>
-                    ))}
-                  </AuthSelect>
+                  <>
+                    <AuthSelect
+                      label="Insurance Company"
+                      value={insurerName}
+                      onChange={(event) => setInsurerName(event.target.value)}
+                      disabled={isFormDisabled || isGateLocked}
+                    >
+                      <option value="">Select insurance provider...</option>
+                      {RWANDA_INSURERS.map((ins) => (
+                        <option key={ins} value={ins}>
+                          {ins}
+                        </option>
+                      ))}
+                      <option value="Other">Other</option>
+                    </AuthSelect>
+
+                    {insurerName === 'Other' && (
+                      <AuthInput
+                        label="Insurance company name"
+                        placeholder="e.g. Sanlam Insurance"
+                        value={customInsurerName}
+                        onChange={(event) => setCustomInsurerName(event.target.value)}
+                        disabled={isFormDisabled || isGateLocked}
+                        icon={<Building2 size={16} />}
+                      />
+                    )}
+                  </>
                 ) : (
-                  <AuthSelect
-                    label="Fleet size"
-                    value={bikeRange}
-                    onChange={(event) => setBikeRange(event.target.value)}
-                    disabled={isFormDisabled || isGateLocked}
-                  >
-                    {BIKE_RANGE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </AuthSelect>
+                  <>
+                    <AuthInput
+                      label="Fleet name"
+                      placeholder="e.g. Kigali Express Fleet"
+                      value={fleetName}
+                      onChange={(event) => setFleetName(event.target.value)}
+                      disabled={isFormDisabled || isGateLocked}
+                      icon={<Building2 size={16} />}
+                    />
+                    <AuthSelect
+                      label="Fleet size"
+                      value={bikeRange}
+                      onChange={(event) => setBikeRange(event.target.value)}
+                      disabled={isFormDisabled || isGateLocked}
+                    >
+                      {BIKE_RANGE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </AuthSelect>
+                  </>
                 )}
               </div>
             )}
