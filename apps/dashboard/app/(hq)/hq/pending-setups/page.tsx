@@ -163,7 +163,9 @@ export default function PendingSetupsPage() {
                           </div>
                           <div>
                             <p className="text-sm font-bold text-white leading-tight">{user.fleet.name}</p>
-                            <p className="mt-1 text-[10px] text-zinc-500">Pending hardware sync</p>
+                            <p className="mt-1 text-[10px] text-zinc-500">
+                              {user.fleet.plan === 'INSURANCE' ? 'Pending payment' : 'Pending hardware sync'}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -185,7 +187,7 @@ export default function PendingSetupsPage() {
                       </td>
                       <td className="px-8 py-7">
                         <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft uppercase tracking-wider">
-                          {user.fleet.plan === 'PREMIUM' ? 'Operations Plus' : user.fleet.plan === 'DEMO' ? 'Safety Core' : user.fleet.plan}
+                          {user.fleet.plan === 'PREMIUM' ? 'Operations Plus' : user.fleet.plan === 'DEMO' ? 'Safety Core' : user.fleet.plan === 'INSURANCE' ? 'Insurance' : user.fleet.plan}
                         </span>
                       </td>
                       <td className="px-8 py-7">

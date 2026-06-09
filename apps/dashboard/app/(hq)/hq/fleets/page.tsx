@@ -34,6 +34,10 @@ export default function HqFleetsPage() {
   });
 
   const filteredFleets = fleets?.filter((f) => {
+    // Exclude insurance-plan fleets from the fleet registry
+    // (insurer accounts are managed separately in /hq/insurers)
+    if (f.plan === 'INSURANCE') return false;
+
     // 1. Plan Filter
     if (planFilter && f.plan !== planFilter) return false;
 

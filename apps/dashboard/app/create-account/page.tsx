@@ -523,7 +523,10 @@ function CreateAccountInner() {
           setTimeout(() => router.push('/login?next=/live'), 1500);
         }
       } else if (isPublicMode) {
-        setTimeout(() => router.push('/registration-success'), 1500);
+        const successUrl = selectedPlanSlug === 'insurance'
+          ? '/registration-success?type=insurance'
+          : '/registration-success';
+        setTimeout(() => router.push(successUrl), 1500);
       }
 
       setInviteToken('');

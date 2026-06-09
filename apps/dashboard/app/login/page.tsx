@@ -142,7 +142,12 @@ export default function LoginPage() {
 
       if ('user' in response && response.user.status === 'PENDING_SETUP') {
         await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
-        setError('Your hardware installation is still pending.');
+        const isInsurer = 'user' in response && response.user.role === 'INSURER';
+        setError(
+          isInsurer
+            ? 'Your subscription payment is still pending. Our team will contact you shortly.'
+            : 'Your hardware installation is still pending.'
+        );
         return;
       }
 
@@ -196,7 +201,12 @@ export default function LoginPage() {
 
       if (response.user.status === 'PENDING_SETUP') {
         await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
-        setOtpError('Your hardware installation is still pending.');
+        const isInsurer = response.user.role === 'INSURER';
+        setOtpError(
+          isInsurer
+            ? 'Your subscription payment is still pending. Our team will contact you shortly.'
+            : 'Your hardware installation is still pending.'
+        );
         return;
       }
 

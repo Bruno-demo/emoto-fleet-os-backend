@@ -42,7 +42,10 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
     if (data?.status === 'PENDING_SETUP') {
       clearAuthToken();
-      router.replace('/registration-success');
+      const successUrl = data?.role === 'INSURER'
+        ? '/registration-success?type=insurance'
+        : '/registration-success';
+      router.replace(successUrl);
       return;
     }
 
