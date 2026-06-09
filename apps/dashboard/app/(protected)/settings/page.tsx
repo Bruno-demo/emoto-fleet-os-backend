@@ -333,184 +333,220 @@ export default function SettingsPage() {
             title="Compare Plans"
             description="View and compare the different service levels available for E-Moto Fleet OS."
           >
-            <div className="grid gap-6 md:grid-cols-3">
-              {/* Safety Core Card */}
-              <div
-                className={cx(
-                  'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
-                  !entitlements.isPremium && entitlements.isActive
-                    ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
-                    : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
-                )}
-              >
-                {!entitlements.isPremium && entitlements.isActive && (
-                  <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+            {user?.fleetPlan === 'INSURANCE' ? (
+              <div className="grid gap-6 md:grid-cols-1 max-w-xl">
+                {/* Insurance Active Card */}
+                <div className="rounded-[20px] border border-accent bg-accent/[0.05] p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ring-1 ring-accent">
+                  <div className="absolute top-0 right-0 bg-accent text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
                     Active Plan
                   </div>
-                )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={16} className={!entitlements.isPremium && entitlements.isActive ? "text-success-ink" : "text-ink-muted"} />
-                    <p className="text-sm font-bold text-ink">Safety Core</p>
-                  </div>
-                  <div className="mt-4 flex flex-col items-start gap-1">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-ink">5,000 RWF</span>
-                      <span className="text-xs text-ink-muted">/ bike / month</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Shield size={16} className="text-accent" />
+                      <p className="text-sm font-bold text-ink">Insurance Partner Plan</p>
                     </div>
-                    <span className="text-[10px] font-bold text-success-ink">+ 30,000 RWF device setup & install</span>
+                    <div className="mt-4 flex flex-col items-start gap-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-extrabold text-ink">Active Partnership</span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                      Dedicated portal for insurance providers. Provides read-only access to insured fleet telemetry, crash evidence validation, and partner API integration keys.
+                    </p>
+                    
+                    <div className="h-px w-full bg-line my-4" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft">
+                      {['Insured Fleet Telemetry Portal', 'Partner API & Access Token Keys', 'Dedicated Insurance SLA & Support', 'Automated Crash Evidence Packs', 'Weekly Risk Summary Analytics'].map((f) => (
+                        <li key={f} className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-accent shrink-0" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                    Essential telemetry, safety event detection, and manual incident response tools.
-                  </p>
-                  
-                  <div className="h-px w-full bg-line my-4" />
-                  
-                  <ul className="space-y-2.5 text-xs text-ink-soft">
-                    {['Overview Dashboard', 'Live Map Tracking', 'Incident Escalation', 'Risk Events Feed', 'Bikes & Riders Directory', 'Fleet Configuration'].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
-                        <CheckCircle2 size={12} className="text-success-ink shrink-0" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                    {['Device provisioning', 'Policy geofencing', 'Remote commands', 'Audit logs'].map((f) => (
-                      <li key={f} className="flex items-center gap-2 opacity-50">
-                        <Lock size={10} className="text-ink-faint shrink-0" />
-                        <span className="line-through">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="mt-6">
-                  {!entitlements.isPremium && entitlements.isActive ? (
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
-                    >
-                      Active Plan
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted py-2 text-xs font-semibold"
-                    >
-                      Included in higher tier
-                    </button>
-                  )}
                 </div>
               </div>
-
-              {/* Operations Plus Card */}
-              <div
-                className={cx(
-                  'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
-                  entitlements.isPremium && entitlements.isActive
-                    ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
-                    : 'border-accent/25 bg-accent/5 hover:bg-accent/[0.08] hover:border-accent'
-                )}
-              >
-                {entitlements.isPremium && entitlements.isActive && (
-                  <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-                    Active Plan
-                  </div>
-                )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-accent" />
-                    <p className="text-sm font-bold text-ink">Operations Plus</p>
-                  </div>
-                  <div className="mt-4 flex flex-col items-start gap-1">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
-                      <span className="text-xs text-ink-muted">/ bike / month</span>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Safety Core Card */}
+                <div
+                  className={cx(
+                    'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
+                    !entitlements.isPremium && entitlements.isActive
+                      ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
+                      : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
+                  )}
+                >
+                  {!entitlements.isPremium && entitlements.isActive && (
+                    <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                      Active Plan
                     </div>
-                    <span className="text-[10px] font-bold text-accent">+ 30,000 RWF device setup & install</span>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className={!entitlements.isPremium && entitlements.isActive ? "text-success-ink" : "text-ink-muted"} />
+                      <p className="text-sm font-bold text-ink">Safety Core</p>
+                    </div>
+                    <div className="mt-4 flex flex-col items-start gap-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-extrabold text-ink">5,000 RWF</span>
+                        <span className="text-xs text-ink-muted">/ bike / month</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-success-ink">+ 30,000 RWF device setup & install</span>
+                    </div>
+                    <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                      Essential telemetry, safety event detection, and manual incident response tools.
+                    </p>
+                    
+                    <div className="h-px w-full bg-line my-4" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft">
+                      {['Overview Dashboard', 'Live Map Tracking', 'Incident Escalation', 'Risk Events Feed', 'Bikes & Riders Directory', 'Fleet Configuration'].map((f) => (
+                        <li key={f} className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-success-ink shrink-0" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                      {['Device provisioning', 'Policy geofencing', 'Remote commands', 'Audit logs'].map((f) => (
+                        <li key={f} className="flex items-center gap-2 opacity-50">
+                          <Lock size={10} className="text-ink-faint shrink-0" />
+                          <span className="line-through">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                    Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.
-                  </p>
                   
-                  <div className="h-px w-full bg-line my-4" />
-                  
-                  <ul className="space-y-2.5 text-xs text-ink-soft">
-                    <li className="flex items-center gap-2 text-accent font-semibold">
-                      <CheckCircle2 size={12} className="text-accent shrink-0" />
-                      <span>Everything in Safety Core</span>
-                    </li>
-                    {['Device Provisioning (SIMs/Hardware)', 'Policy Geofencing (Speed/Parking)', 'Trip Analytics & Reports', 'Immutable Compliance Audit Logs', 'Remote Commands (Lock/Unlock/Sound)', 'Incident Evidence Packs'].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
+                  <div className="mt-6">
+                    {!entitlements.isPremium && entitlements.isActive ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
+                      >
+                        Active Plan
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted py-2 text-xs font-semibold"
+                      >
+                        Included in higher tier
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Operations Plus Card */}
+                <div
+                  className={cx(
+                    'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
+                    entitlements.isPremium && entitlements.isActive
+                      ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
+                      : 'border-accent/25 bg-accent/5 hover:bg-accent/[0.08] hover:border-accent'
+                  )}
+                >
+                  {entitlements.isPremium && entitlements.isActive && (
+                    <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                      Active Plan
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-accent" />
+                      <p className="text-sm font-bold text-ink">Operations Plus</p>
+                    </div>
+                    <div className="mt-4 flex flex-col items-start gap-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
+                        <span className="text-xs text-ink-muted">/ bike / month</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-accent">+ 30,000 RWF device setup & install</span>
+                    </div>
+                    <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                      Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.
+                    </p>
+                    
+                    <div className="h-px w-full bg-line my-4" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft">
+                      <li className="flex items-center gap-2 text-accent font-semibold">
                         <CheckCircle2 size={12} className="text-accent shrink-0" />
-                        <span>{f}</span>
+                        <span>Everything in Safety Core</span>
                       </li>
-                    ))}
-                  </ul>
+                      {['Device Provisioning (SIMs/Hardware)', 'Policy Geofencing (Speed/Parking)', 'Trip Analytics & Reports', 'Immutable Compliance Audit Logs', 'Remote Commands (Lock/Unlock/Sound)', 'Incident Evidence Packs'].map((f) => (
+                        <li key={f} className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-accent shrink-0" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="mt-6">
+                    {entitlements.isPremium && entitlements.isActive ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
+                      >
+                        Active Plan
+                      </button>
+                    ) : (
+                      <Link
+                        href="/checkout?plan=operations-plus"
+                        className="block w-full text-center rounded-xl bg-accent hover:brightness-110 text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
+                      >
+                        Upgrade Plan
+                      </Link>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="mt-6">
-                  {entitlements.isPremium && entitlements.isActive ? (
+
+                {/* Enterprise Fleet Card */}
+                <div className="rounded-[20px] border border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-ink-muted" />
+                      <p className="text-sm font-bold text-ink">Enterprise Fleet</p>
+                    </div>
+                    <div className="mt-4 flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold text-ink">Custom</span>
+                      <span className="text-xs text-ink-muted">for &gt;50 bikes</span>
+                    </div>
+                    <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                      Custom quotes, dedicated support, and volume discounts for fleet operators with more than 50 bikes.
+                    </p>
+                    
+                    <div className="h-px w-full bg-line my-4" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft">
+                      <li className="flex items-center gap-2 font-semibold">
+                        <CheckCircle2 size={12} className="text-ink-muted shrink-0" />
+                        <span>Everything in Operations Plus</span>
+                      </li>
+                      {['Volume Discounts for Large Fleets', 'Dedicated Customer Support Manager', '99.9% Uptime Guarantee SLA', 'Custom Integrations & Development', 'Priority Hardware Provisioning'].map((f) => (
+                        <li key={f} className="flex items-center gap-2">
+                          <CheckCircle2 size={12} className="text-success-ink shrink-0" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="mt-6">
                     <button
                       type="button"
-                      disabled
-                      className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
+                      onClick={() => setShowContactSales(true)}
+                      className="w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
                     >
-                      Active Plan
+                      Request Quote
                     </button>
-                  ) : (
-                    <Link
-                      href="/checkout?plan=operations-plus"
-                      className="block w-full text-center rounded-xl bg-accent hover:brightness-110 text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
-                    >
-                      Upgrade Plan
-                    </Link>
-                  )}
+                  </div>
                 </div>
               </div>
-
-              {/* Enterprise Card */}
-              <div className="rounded-[20px] border border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-ink-muted" />
-                    <p className="text-sm font-bold text-ink">Enterprise</p>
-                  </div>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-ink">Custom</span>
-                    <span className="text-xs text-ink-muted">pricing</span>
-                  </div>
-                  <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                    Custom scale telemetry ingestion, developer API gateway keys, and dedicated enterprise SLA support.
-                  </p>
-                  
-                  <div className="h-px w-full bg-line my-4" />
-                  
-                  <ul className="space-y-2.5 text-xs text-ink-soft">
-                    <li className="flex items-center gap-2 font-semibold">
-                      <CheckCircle2 size={12} className="text-ink-muted shrink-0" />
-                      <span>Everything in Operations Plus</span>
-                    </li>
-                    {['Partner API & Access Token Keys', 'Dedicated Customer Support Manager', '99.9% Uptime Guarantee SLA', 'Custom Telemetry Connectors & Feeds', 'Volume Discounts for Large Fleets'].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
-                        <CheckCircle2 size={12} className="text-success-ink shrink-0" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowContactSales(true)}
-                    className="w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
-                  >
-                    Contact Sales
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
           </DashboardCard>
         </div>
       )}

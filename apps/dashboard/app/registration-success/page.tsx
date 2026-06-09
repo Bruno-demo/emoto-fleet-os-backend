@@ -74,15 +74,15 @@ function RegistrationSuccessContent() {
 
         <div className="mt-8">
           <AuthPanelHeader
-            eyebrow="Registration Complete"
+            eyebrow={isInsurance ? 'Partnership Registered' : 'Registration Complete'}
             title={
               isInsurance
-                ? 'Next: Subscription Setup'
+                ? 'Next: Partnership Discussions'
                 : 'Next: Hardware Setup'
             }
             description={
               isInsurance
-                ? 'Our partnerships team will contact you shortly to discuss monthly subscription fees and complete your onboarding. You will be able to log in once your payment is confirmed.'
+                ? 'Thank you for your interest in partnering with us. Our team will contact you shortly to discuss monthly subscription fees and complete your onboarding.'
                 : 'Our team will contact you ASAP to install the IoT device on your bike and link it to your dashboard. You will be able to log in once the hardware installation is complete.'
             }
           />

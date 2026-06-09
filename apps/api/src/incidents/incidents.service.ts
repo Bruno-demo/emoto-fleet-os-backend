@@ -290,7 +290,9 @@ export class IncidentsService {
     dto: IncidentStatusActionDto,
   ): Promise<FleetIncident> {
     if (user.fleetPlan === 'INSURANCE') {
-      throw new ForbiddenException('Insurers have read-only access to incidents');
+      throw new ForbiddenException(
+        'Insurers have read-only access to incidents',
+      );
     }
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);
@@ -315,7 +317,9 @@ export class IncidentsService {
     dto: IncidentStatusActionDto,
   ): Promise<FleetIncident> {
     if (user.fleetPlan === 'INSURANCE') {
-      throw new ForbiddenException('Insurers have read-only access to incidents');
+      throw new ForbiddenException(
+        'Insurers have read-only access to incidents',
+      );
     }
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);
@@ -340,7 +344,9 @@ export class IncidentsService {
     dto: IncidentStatusActionDto,
   ): Promise<FleetIncident> {
     if (user.fleetPlan === 'INSURANCE') {
-      throw new ForbiddenException('Insurers have read-only access to incidents');
+      throw new ForbiddenException(
+        'Insurers have read-only access to incidents',
+      );
     }
     const incident = await this.loadIncidentOrThrow(id);
     this.assertFleetAccess(incident.fleetId, user);

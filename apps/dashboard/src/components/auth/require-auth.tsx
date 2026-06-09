@@ -50,13 +50,16 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
 
     if (data?.role === 'INSURER') {
-      const isOverview = pathname === '/' || pathname === '/overview' || pathname.startsWith('/overview/');
-      const isAllowed = pathname.startsWith('/bikes') || pathname.startsWith('/reports') || pathname === '/forbidden';
-
-      if (isOverview) {
-        router.replace('/bikes');
-        return;
-      }
+      const isAllowed =
+        pathname === '/' ||
+        pathname === '/overview' || pathname.startsWith('/overview/') ||
+        pathname.startsWith('/bikes') ||
+        pathname.startsWith('/events') ||
+        pathname.startsWith('/incidents') ||
+        pathname.startsWith('/trips') ||
+        pathname.startsWith('/reports') ||
+        pathname.startsWith('/settings') ||
+        pathname === '/forbidden';
 
       if (!isAllowed) {
         router.replace('/forbidden');

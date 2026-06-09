@@ -370,45 +370,47 @@ export default function IncidentsPage() {
               <KeyMetric label="Last updated" value={<span>{formatTimeAgo(selectedIncident.updatedAt)}</span>} />
             </section>
 
-            <DashboardCard eyebrow="Actions" title="Primary workflow" description="Use notes for handoff context, then move the incident to its next operational state.">
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-ink">
-                  Notes
-                  <textarea
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    placeholder="Optional resolution context, handoff details, or false-alarm reasoning."
-                    className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
-                  />
-                </label>
+            {currentUser?.role !== 'INSURER' && (
+              <DashboardCard eyebrow="Actions" title="Primary workflow" description="Use notes for handoff context, then move the incident to its next operational state.">
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-ink">
+                    Notes
+                    <textarea
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      placeholder="Optional resolution context, handoff details, or false-alarm reasoning."
+                      className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
+                    />
+                  </label>
 
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <ActionCard
-                    label="Acknowledge"
-                    description="Claim the incident and remove it from the unowned queue."
-                    disabled={selectedIncident.status !== 'OPEN' || isSubmittingAction}
-                    tone="info"
-                    onClick={() => setPendingAction('acknowledge')}
-                  />
-                  <ActionCard
-                    label="Resolve"
-                    description="Close the incident after the response workflow is complete."
-                    disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
-                    tone="success"
-                    onClick={() => setPendingAction('resolve')}
-                  />
-                  <ActionCard
-                    label="False Alarm"
-                    description="Close the incident as non-actionable without marking it resolved."
-                    disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
-                    tone="warning"
-                    onClick={() => setPendingAction('false-alarm')}
-                  />
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <ActionCard
+                      label="Acknowledge"
+                      description="Claim the incident and remove it from the unowned queue."
+                      disabled={selectedIncident.status !== 'OPEN' || isSubmittingAction}
+                      tone="info"
+                      onClick={() => setPendingAction('acknowledge')}
+                    />
+                    <ActionCard
+                      label="Resolve"
+                      description="Close the incident after the response workflow is complete."
+                      disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
+                      tone="success"
+                      onClick={() => setPendingAction('resolve')}
+                    />
+                    <ActionCard
+                      label="False Alarm"
+                      description="Close the incident as non-actionable without marking it resolved."
+                      disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
+                      tone="warning"
+                      onClick={() => setPendingAction('false-alarm')}
+                    />
+                  </div>
+
+                  {actionError ? <InlineNotice message={actionError} /> : null}
                 </div>
-
-                {actionError ? <InlineNotice message={actionError} /> : null}
-              </div>
-            </DashboardCard>
+              </DashboardCard>
+            )}
 
             <DashboardCard eyebrow="Evidence Pack" title="Crash artifacts" description="Generate a fresh evidence pack when the incident needs an exportable summary and telemetry window.">
               <div className="space-y-4">

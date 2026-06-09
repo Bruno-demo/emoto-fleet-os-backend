@@ -32,6 +32,7 @@ export class IncidentsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @ApiOperation({
@@ -50,6 +51,7 @@ export class IncidentsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @ApiOperation({ summary: 'Get incident stats for the caller fleet' })
@@ -63,6 +65,7 @@ export class IncidentsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @ApiOperation({ summary: 'Get one incident by id' })
@@ -79,6 +82,7 @@ export class IncidentsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @RequireSubscriptionFeature('evidence')

@@ -601,6 +601,149 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     });
   });
 
+  describe('INSURER read-only trips and incidents permissions (e2e)', () => {
+    let testTripId = '';
+    let testIncidentId = '';
+    let testEvidencePackId = '';
+
+    beforeAll(async () => {
+      // Create a device for assignedBikeId
+      const device = await prisma.device.create({
+        data: {
+          fleetId,
+          bikeId: assignedBikeId,
+          deviceUid: `DEV-INSURER-E2E-${runId}`,
+          status: 'ACTIVE',
+          secretHash: 'seeded-hash-insurer-test',
+        },
+      });
+
+      // Create a trip for assignedBikeId
+      const trip = await prisma.trip.create({
+        data: {
+          fleetId,
+          bikeId: assignedBikeId,
+          startTs: new Date(),
+          distanceKm: 12.34,
+          durationSec: 1200,
+          score: 88.5,
+        },
+      });
+      testTripId = trip.id;
+
+      // Create event for the crash incident
+      const event = await prisma.event.create({
+        data: {
+          fleetId,
+          bikeId: assignedBikeId,
+          deviceId: device.id,
+          ts: new Date(),
+          type: 'CRASH',
+          severity: 'CRITICAL',
+          metaJson: { source: 'insurer-e2e-test' },
+        },
+      });
+
+      // Create incident
+      const incident = await prisma.incident.create({
+        data: {
+          fleetId,
+          bikeId: assignedBikeId,
+          deviceId: device.id,
+          eventId: event.id,
+          status: 'OPEN',
+        },
+      });
+      testIncidentId = incident.id;
+
+      // Create evidence pack
+      const evidencePack = await prisma.evidencePack.create({
+        data: {
+          incidentId: incident.id,
+          s3KeyJson: `evidence/${fleetId}/${incident.id}/summary.json`,
+          s3KeyCsv: `evidence/${fleetId}/${incident.id}/telemetry-window.csv`,
+        },
+      });
+      testEvidencePackId = evidencePack.id;
+    });
+
+    afterAll(async () => {
+      await prisma.evidencePack.deleteMany({
+        where: { incidentId: testIncidentId },
+      });
+      await prisma.incident.deleteMany({ where: { id: testIncidentId } });
+      await prisma.event.deleteMany({ where: { bikeId: assignedBikeId } });
+      await prisma.trip.deleteMany({ where: { id: testTripId } });
+      await prisma.device.deleteMany({ where: { bikeId: assignedBikeId } });
+    });
+
+    it('allows INSURER to fetch trips list and retrieve trip details for covered bikes', async () => {
+      const listRes = await request(httpServer)
+        .get('/trips')
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const listBody = listRes.body as { data: Array<{ id: string }> };
+      const tripIds = listBody.data.map((t) => t.id);
+      expect(tripIds).toContain(testTripId);
+
+      const detailRes = await request(httpServer)
+        .get(`/trips/${testTripId}`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const detailBody = detailRes.body as { id: string };
+      expect(detailBody.id).toBe(testTripId);
+    });
+
+    it('allows INSURER to fetch incidents list, retrieve incident details, and retrieve evidence packs', async () => {
+      const listRes = await request(httpServer)
+        .get('/incidents')
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const listBody = listRes.body as { data: Array<{ id: string }> };
+      const incidentIds = listBody.data.map((inc) => inc.id);
+      expect(incidentIds).toContain(testIncidentId);
+
+      const detailRes = await request(httpServer)
+        .get(`/incidents/${testIncidentId}`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const detailBody = detailRes.body as { id: string };
+      expect(detailBody.id).toBe(testIncidentId);
+
+      const evidenceRes = await request(httpServer)
+        .get(`/incidents/${testIncidentId}/evidence-pack`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const evidenceBody = evidenceRes.body as { evidencePackId: string };
+      expect(evidenceBody.evidencePackId).toBe(testEvidencePackId);
+    });
+
+    it('blocks INSURER from mutating incidents (acknowledge, resolve, false-alarm)', async () => {
+      await request(httpServer)
+        .post(`/incidents/${testIncidentId}/acknowledge`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .send({ notes: 'Acknowledge attempt' })
+        .expect(403);
+
+      await request(httpServer)
+        .post(`/incidents/${testIncidentId}/resolve`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .send({ notes: 'Resolve attempt' })
+        .expect(403);
+
+      await request(httpServer)
+        .post(`/incidents/${testIncidentId}/false-alarm`)
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .send({ notes: 'False alarm attempt' })
+        .expect(403);
+    });
+  });
+
   describe('User Registration with fullName (e2e)', () => {
     it('creates a RiderProfile with fullName during registerFleet (admin signup)', async () => {
       const email = `admin.register.test.${runId}@demo.emoto`;

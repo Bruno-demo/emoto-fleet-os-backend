@@ -82,7 +82,7 @@ const faqs = [
   { q: 'Do I need special hardware to use Fleet OS?', a: 'Fleet OS works with standard IoT devices and GPS trackers commonly used in electric motorcycle fleets. We support MQTT-based telemetry from most device manufacturers and can help with device provisioning.' },
   { q: 'What databases and infrastructure does Fleet OS use?', a: 'Fleet OS runs on PostgreSQL with TimescaleDB for time-series telemetry data, Redis for real-time caching, and MQTT for device communication. The platform is containerized with Docker for easy deployment.' },
   { q: 'Can I integrate Fleet OS with my existing systems?', a: 'Yes. Fleet OS provides a comprehensive REST API and webhook system for integration with insurance platforms, regulatory systems, and third-party analytics tools. Partner API tokens provide scoped data access.' },
-  { q: 'How does pricing work?', a: 'Fleet OS offers transparent per-bike pricing with three tiers: Safety Core (5,000 RWF/bike/month plus 30,000 RWF setup & installation) for essentials, Operations Plus (10,000 RWF/bike/month plus 30,000 RWF setup & installation) for full features, and Insurance for insurance companies with dedicated support and partner API.' },
+  { q: 'How does pricing work?', a: 'We support two subscription tiers for fleets: Safety Core (5,000 RWF/bike/month) and Operations Plus (10,000 RWF/bike/month). For insurance companies, we offer a dedicated Insurance plan with partner API access and custom pricing. Fleet accounts cannot subscribe or shift to the Insurance plan, and Insurance accounts cannot shift to fleet plans.' },
   { q: 'Is Fleet OS open source?', a: 'Fleet OS is a commercial platform with enterprise-grade security and support. We offer a demo environment for evaluation and can provide custom trials for qualified fleet operators.' },
   { q: 'What kind of support do you offer?', a: 'Safety Core includes email support. Operations Plus includes priority support with faster response times. Insurance plans include dedicated support, custom SLA, and onboarding assistance.' },
   { q: 'How do I request a feature or report a bug?', a: 'You can reach our team through the dashboard support channel, email, or through your dedicated account manager on Insurance plans. We actively incorporate operator feedback into our roadmap.' },
@@ -126,8 +126,8 @@ const pricingPlans = [
     title: 'Insurance',
     price: 'Custom',
     period: '',
-    description: 'Dedicated infrastructure, partner API, and SLA coverage.',
-    features: ['Everything in Plus', 'Partner API', 'Dedicated support', 'Insurance SLA', 'Custom integrations'],
+    description: 'For insurance companies only. Fleet operators cannot subscribe to or shift to this plan.',
+    features: ['Access to covered fleet telemetry', 'Partner API credentials', 'Dedicated insurance support', 'Automated claims verification', 'Custom integrations'],
   },
 ];
 

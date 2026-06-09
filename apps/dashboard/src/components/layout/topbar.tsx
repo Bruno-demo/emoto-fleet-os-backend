@@ -26,7 +26,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const canViewIncidents = user?.role !== 'INSURER' && canUseFeature(user, 'incidents');
+  const canViewIncidents = canUseFeature(user, 'incidents');
 
   const incidentsQuery = useQuery({
     queryKey: ['incidents', 'topbar-open'],
@@ -423,8 +423,8 @@ async function globalSearch(
 
   const showBikes = canUseFeature(user, 'bikes');
   const showRiders = user?.role !== 'INSURER' && canUseFeature(user, 'riders');
-  const showEvents = user?.role !== 'INSURER' && canUseFeature(user, 'events');
-  const showIncidents = user?.role !== 'INSURER' && canUseFeature(user, 'incidents');
+  const showEvents = canUseFeature(user, 'events');
+  const showIncidents = canUseFeature(user, 'incidents');
   const showZones = user?.role !== 'INSURER' && canUseFeature(user, 'zones');
   const showDevices = user?.role !== 'INSURER' && canUseFeature(user, 'devices');
 

@@ -28,7 +28,15 @@ export class EvidenceService {
     incidentId: string,
   ): Promise<IncidentEvidencePackResponse> {
     const incident = await this.loadIncidentBundleOrThrow(incidentId);
-    if (incident.fleetId !== user.fleetId) {
+    if (user.role === 'INSURER') {
+      if (
+        !incident.bikeId ||
+        !incident.bike ||
+        incident.bike.insurerName !== user.insurerName
+      ) {
+        throw new ForbiddenException('Access to this evidence pack is denied');
+      }
+    } else if (incident.fleetId !== user.fleetId) {
       throw new ForbiddenException('Fleet access violation');
     }
 

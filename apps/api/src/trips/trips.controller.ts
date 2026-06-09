@@ -39,6 +39,7 @@ export class TripsController {
     UserRole.ADMIN,
     UserRole.DISPATCHER,
     UserRole.TECH,
+    UserRole.INSURER,
     UserRole.RIDER,
   )
   @ApiOperation({ summary: 'List all historical trips inside caller fleet' })

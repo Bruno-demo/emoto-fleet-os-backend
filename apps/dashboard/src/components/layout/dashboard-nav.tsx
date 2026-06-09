@@ -113,7 +113,7 @@ export function DashboardNav({
 
   const isLinkVisible = (link: NavLink) => {
     if (user?.role === 'INSURER') {
-      const allowedPaths = ['/overview', '/bikes', '/reports', '/settings'];
+      const allowedPaths = ['/overview', '/bikes', '/events', '/incidents', '/trips', '/reports', '/settings'];
       return allowedPaths.includes(link.href);
     }
     if (link.requiresAdmin && user && !canManageZones(user.role)) return false;

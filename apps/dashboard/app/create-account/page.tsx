@@ -70,7 +70,7 @@ const PLAN_DETAILS: Record<string, { title: string; price: string; period: strin
     title: 'Insurance', 
     price: 'Custom', 
     period: '', 
-    description: 'Custom solutions for large fleets.',
+    description: 'For insurance companies only.',
     icon: <Building2 size={18} />
   },
 };
@@ -635,54 +635,70 @@ function CreateAccountInner() {
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted px-1">
             Choose your fleet plan
           </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {Object.entries(PLAN_DETAILS).map(([slug, plan]) => {
-              const isSelected = selectedPlanSlug === slug;
-              return (
-                <button
-                  key={slug}
-                  type="button"
-                  onClick={() => setSelectedPlanSlug(slug)}
-                  className={cx(
-                    'group relative flex flex-col items-start rounded-[20px] border p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]',
-                    isSelected 
-                      ? 'border-accent bg-accent/[0.07] ring-1 ring-accent' 
-                      : 'border-line bg-surface hover:border-line-hover'
-                  )}
-                >
-                  <div className={cx(
-                    'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-                    isSelected ? 'bg-accent/20 text-accent' : 'bg-surface-muted text-ink-soft group-hover:text-ink'
-                  )}>
-                    {plan.icon}
-                  </div>
-                  
-                  <div className="mt-3">
-                    <p className={cx(
-                      'text-sm font-bold',
-                      isSelected ? 'text-ink' : 'text-ink-muted'
-                    )}>
-                      {plan.title}
-                    </p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
-                      {plan.description}
-                    </p>
-                  </div>
+          {selectedPlanSlug === 'insurance' ? (
+            <div className="rounded-[20px] border border-accent bg-accent/[0.05] p-5 flex gap-4 items-start ring-1 ring-accent">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-accent animate-in fade-in duration-200">
+                <Building2 size={20} />
+              </span>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-ink">Insurance Partner Plan</p>
+                <p className="text-xs text-ink-muted leading-relaxed">
+                  This plan is dedicated to insurance companies only. Fleet operators cannot subscribe or shift to this plan.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Object.entries(PLAN_DETAILS)
+                .filter(([slug]) => slug !== 'insurance')
+                .map(([slug, plan]) => {
+                  const isSelected = selectedPlanSlug === slug;
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      onClick={() => setSelectedPlanSlug(slug)}
+                      className={cx(
+                        'group relative flex flex-col items-start rounded-[20px] border p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]',
+                        isSelected 
+                          ? 'border-accent bg-accent/[0.07] ring-1 ring-accent' 
+                          : 'border-line bg-surface hover:border-line-hover'
+                      )}
+                    >
+                      <div className={cx(
+                        'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                        isSelected ? 'bg-accent/20 text-accent' : 'bg-surface-muted text-ink-soft group-hover:text-ink'
+                      )}>
+                        {plan.icon}
+                      </div>
+                      
+                      <div className="mt-3">
+                        <p className={cx(
+                          'text-sm font-bold',
+                          isSelected ? 'text-ink' : 'text-ink-muted'
+                        )}>
+                          {plan.title}
+                        </p>
+                        <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
+                          {plan.description}
+                        </p>
+                      </div>
 
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-sm font-extrabold text-ink">{plan.price}</span>
-                    <span className="text-[10px] text-ink-muted">{plan.period}</span>
-                  </div>
+                      <div className="mt-4 flex items-baseline gap-1">
+                        <span className="text-sm font-extrabold text-ink">{plan.price}</span>
+                        <span className="text-[10px] text-ink-muted">{plan.period}</span>
+                      </div>
 
-                  {isSelected && (
-                    <div className="absolute top-3 right-3 text-accent">
-                      <BadgeCheck size={16} />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                      {isSelected && (
+                        <div className="absolute top-3 right-3 text-accent">
+                          <BadgeCheck size={16} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
 
