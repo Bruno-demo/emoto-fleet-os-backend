@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { ShieldCheck, Search, Plus, ChevronDown, ChevronRight, Bike, Unlink, X } from 'lucide-react';
+import { ShieldCheck, Search, Plus, ChevronDown, ChevronRight, Bike, X } from 'lucide-react';
 import { useState, Fragment } from 'react';
 
 const insurersResponseSchema = z.object({
@@ -36,18 +36,7 @@ const fleetsListSchema = z.array(
   z.object({ id: z.string(), name: z.string() })
 );
 
-const fleetDetailSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  bikes: z.array(
-    z.object({
-      id: z.string(),
-      label: z.string(),
-      plate: z.string().nullable(),
-      status: z.string(),
-    })
-  ),
-});
+
 
 export default function HqInsurersPage() {
   const queryClient = useQueryClient();
@@ -66,11 +55,7 @@ export default function HqInsurersPage() {
   });
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Assign bike modal
-  const [assignInsurerId, setAssignInsurerId] = useState<string | null>(null);
-  const [assignFleetId, setAssignFleetId] = useState<string | null>(null);
-  const [assignBikeId, setAssignBikeId] = useState('');
-  const [assignError, setAssignError] = useState<string | null>(null);
+
 
   const queryParams = new URLSearchParams();
   queryParams.set('page', String(page));
@@ -88,13 +73,6 @@ export default function HqInsurersPage() {
       const r = res as { data?: Array<{ id: string; name: string }> };
       return (r.data ?? r) as Array<{ id: string; name: string }>;
     }),
-  });
-
-  // Fetch bikes for selected fleet when assigning
-  const { data: fleetDetail } = useQuery({
-    queryKey: ['hq', 'fleet', assignFleetId],
-    queryFn: () => apiFetch(`/hq/fleets/${assignFleetId}`, {}, { schema: fleetDetailSchema }),
-    enabled: !!assignFleetId,
   });
 
   const createMutation = useMutation({
@@ -116,36 +94,6 @@ export default function HqInsurersPage() {
     },
   });
 
-  const assignBikeMutation = useMutation({
-    mutationFn: ({ insurerId, bikeId }: { insurerId: string; bikeId: string }) =>
-      apiFetch(`/hq/insurers/${insurerId}/assign-bike`, {
-        method: 'POST',
-        body: JSON.stringify({ bikeId }),
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hq', 'insurers'] });
-      setAssignInsurerId(null);
-      setAssignFleetId(null);
-      setAssignBikeId('');
-      setAssignError(null);
-    },
-    onError: (err: unknown) => {
-      const error = err as { message?: string };
-      setAssignError(error?.message ?? 'Failed to assign bike');
-    },
-  });
-
-  const unassignBikeMutation = useMutation({
-    mutationFn: ({ insurerId, bikeId }: { insurerId: string; bikeId: string }) =>
-      apiFetch(`/hq/insurers/${insurerId}/bikes/${bikeId}`, {
-        method: 'DELETE',
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hq', 'insurers'] });
-    },
-  });
-
   const statusColor = (s: string) => {
     if (s === 'ACTIVE') return 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20';
     if (s === 'SUSPENDED') return 'bg-amber-400/15 text-amber-400 border-amber-400/20';
@@ -158,7 +106,7 @@ export default function HqInsurersPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-white">Insurers</h1>
-          <p className="mt-1 text-zinc-400">Manage insurance partners and their assigned bike coverage.</p>
+          <p className="mt-1 text-zinc-400">Manage insurance partners and their covered bikes.</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-zinc-500">
@@ -198,23 +146,22 @@ export default function HqInsurersPage() {
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Name / Email</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Phone</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Assigned Bikes</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Covered Bikes</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Status</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={7} className="px-6 py-6">
+                    <td colSpan={6} className="px-6 py-6">
                       <div className="h-4 w-full rounded bg-white/5" />
                     </td>
                   </tr>
                 ))
               ) : data?.data.length === 0 ? (
                 <tr key="empty">
-                  <td colSpan={7} className="px-6 py-16 text-center">
+                  <td colSpan={6} className="px-6 py-16 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
                       <ShieldCheck size={20} />
                     </div>
@@ -255,37 +202,22 @@ export default function HqInsurersPage() {
                             {insurer.status}
                           </span>
                         </td>
-                        <td className="px-6 py-5 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAssignInsurerId(insurer.id);
-                              setAssignFleetId(insurer.fleet.id);
-                              setAssignBikeId('');
-                              setAssignError(null);
-                            }}
-                            className="flex h-8 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 text-[11px] font-bold text-accent hover:bg-accent/20 transition-all"
-                          >
-                            <Bike size={12} />
-                            Assign Bike
-                          </button>
-                        </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${insurer.id}-detail`}>
-                          <td colSpan={7} className="bg-white/[0.01] px-6 py-4">
+                          <td colSpan={6} className="bg-white/[0.01] px-6 py-4">
                             <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
                               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
-                                Assigned Bikes ({bikes.length})
+                                Covered Bikes ({bikes.length})
                               </p>
                               {bikes.length === 0 ? (
-                                <p className="text-xs text-zinc-600">No bikes assigned to this insurer yet.</p>
+                                <p className="text-xs text-zinc-600">No bikes under coverage for this insurer yet.</p>
                               ) : (
                                 <div className="space-y-2">
                                   {bikes.map((bike) => (
                                     <div
                                       key={bike.id}
-                                      className="flex items-center justify-between rounded-xl border border-line bg-white/[0.02] px-4 py-3"
+                                      className="flex items-center rounded-xl border border-line bg-white/[0.02] px-4 py-3"
                                     >
                                       <div className="flex items-center gap-3">
                                         <Bike size={14} className="text-cyan-400" />
@@ -294,18 +226,6 @@ export default function HqInsurersPage() {
                                           <p className="text-[11px] text-zinc-500">{bike.plate ?? 'No plate'} · {bike.status}</p>
                                         </div>
                                       </div>
-                                      <button
-                                        onClick={() => {
-                                          if (confirm(`Unassign bike "${bike.label}" from this insurer?`)) {
-                                            unassignBikeMutation.mutate({ insurerId: insurer.id, bikeId: bike.id });
-                                          }
-                                        }}
-                                        disabled={unassignBikeMutation.isPending}
-                                        className="flex h-7 items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 text-[11px] font-bold text-amber-400 hover:bg-amber-400/10 transition-all disabled:opacity-50"
-                                      >
-                                        <Unlink size={11} />
-                                        Unassign
-                                      </button>
                                     </div>
                                   ))}
                                 </div>
@@ -453,70 +373,7 @@ export default function HqInsurersPage() {
         </div>
       )}
 
-      {/* Assign Bike Modal */}
-      {assignInsurerId && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setAssignInsurerId(null); setAssignFleetId(null); }} />
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative w-full max-w-md rounded-2xl border border-line bg-[#09090b] p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => { setAssignInsurerId(null); setAssignFleetId(null); }}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-500 hover:text-white transition-colors"
-              aria-label="Close"
-            >
-              <X size={16} />
-            </button>
-            <h2 className="text-lg font-bold text-white">Assign Bike to Insurer</h2>
-            <p className="mt-1 text-sm text-zinc-400">Select a bike from the insurer&apos;s fleet.</p>
-            <div className="mt-5 space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Select Bike</label>
-                <select
-                  value={assignBikeId}
-                  onChange={(e) => setAssignBikeId(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white outline-none transition focus:border-accent cursor-pointer"
-                >
-                  <option value="">— Select a bike —</option>
-                  {(fleetDetail?.bikes ?? []).map((bike) => (
-                    <option key={bike.id} value={bike.id}>
-                      {bike.label}{bike.plate ? ` (${bike.plate})` : ''} — {bike.status}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {assignError && (
-                <p className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">{assignError}</p>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setAssignInsurerId(null); setAssignFleetId(null); }}
-                  className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (assignInsurerId && assignBikeId) {
-                      assignBikeMutation.mutate({ insurerId: assignInsurerId, bikeId: assignBikeId });
-                    }
-                  }}
-                  disabled={assignBikeMutation.isPending || !assignBikeId}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
-                >
-                  {assignBikeMutation.isPending ? 'Assigning…' : 'Assign Bike'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
