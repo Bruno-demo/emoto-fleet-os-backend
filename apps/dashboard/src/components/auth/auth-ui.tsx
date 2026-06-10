@@ -242,16 +242,13 @@ export function AuthSelect({ label, error, helper, className, children, ...props
         <select
           {...props}
           className={cx(
-            'w-full appearance-none bg-none rounded-[16px] border bg-surface-hover-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
+            'w-full appearance-none rounded-[16px] border bg-surface-hover-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-[var(--ring)]',
             error ? 'border-danger-ink/40 focus:border-danger-ink focus:ring-danger-soft' : 'border-line-strong',
             className,
           )}
         >
           {children}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted">
-          v
-        </span>
       </div>
       {helper ? <p className="mt-2 text-xs text-ink-muted">{helper}</p> : null}
       {error ? <p className="mt-2 text-xs text-danger-ink">{error}</p> : null}
