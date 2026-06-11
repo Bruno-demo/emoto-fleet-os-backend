@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 // ── Schemas ─────────────────────────────────────────────────────────
 
@@ -81,10 +81,9 @@ function uptimePercentage(secs: number): string {
 // ── Page Component ──────────────────────────────────────────────────
 
 export default function HqMonitoringPage() {
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [secondsAgo, setSecondsAgo] = useState(0);
 
-  const { data: monitoring, isLoading: monitoringLoading, refetch: refetchMonitoring } = useQuery({
+  const { data: monitoring, isLoading: monitoringLoading, refetch: refetchMonitoring, dataUpdatedAt } = useQuery({
     queryKey: ['hq', 'monitoring', 'live'],
     queryFn: () => apiFetch('/hq/monitoring/live', {}, { schema: monitoringSchema }),
     refetchInterval: 15_000,
@@ -102,27 +101,21 @@ export default function HqMonitoringPage() {
     refetchInterval: 60_000,
   });
 
-  // Track seconds since last refresh
+  // Track seconds since last refresh using react-query's dataUpdatedAt
   useEffect(() => {
+    if (!dataUpdatedAt) return;
     const interval = setInterval(() => {
-      setSecondsAgo(Math.floor((Date.now() - lastRefresh.getTime()) / 1000));
+      setSecondsAgo(Math.floor((Date.now() - dataUpdatedAt) / 1000));
     }, 1000);
     return () => clearInterval(interval);
-  }, [lastRefresh]);
-
-  // Update lastRefresh when monitoring data changes
-  useEffect(() => {
-    if (monitoring) setLastRefresh(new Date());
-  }, [monitoring]);
+  }, [dataUpdatedAt]);
 
   const handleManualRefresh = useCallback(() => {
     refetchMonitoring();
     refetchHealth();
-    setLastRefresh(new Date());
   }, [refetchMonitoring, refetchHealth]);
 
   // Determine overall system status
-  const allHealthy = health?.every(h => h.color.includes('emerald') || h.color.includes('sky'));
   const hasWarning = health?.some(h => h.color.includes('amber'));
   const hasCritical = health?.some(h => h.color.includes('rose'));
 
