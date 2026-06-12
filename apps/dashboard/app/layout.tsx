@@ -8,11 +8,15 @@ import './globals.css';
 const manrope = Manrope({
   variable: '--font-manrope',
   subsets: ['latin'],
+  display: 'swap',
+  adjustFontFallback: true,
 });
 
 const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
   subsets: ['latin'],
+  display: 'swap',
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {

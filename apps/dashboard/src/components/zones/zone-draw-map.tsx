@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Polygon, Polyline, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import { useTheme } from 'next-themes';
 
