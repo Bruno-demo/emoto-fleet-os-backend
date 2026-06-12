@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
   Route,
@@ -30,10 +31,27 @@ import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { FleetTrip, PaginatedResponse } from '@/lib/types/dashboard';
 import { formatEnumLabel, formatTimestamp } from '@/lib/ui';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { getSubscriptionEntitlements } from '@/lib/subscription';
+
+const TripReplayMap = dynamic(
+  () => import('@/components/trips/trip-replay-map').then((mod) => mod.TripReplayMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-72 w-full flex items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm text-ink-soft animate-pulse">
+        Loading route replay map...
+      </div>
+    ),
+  },
+);
 
 const PAGE_SIZE = 20;
 
 export default function TripsPage() {
+  const { data: user } = useCurrentUser();
+  const entitlements = useMemo(() => getSubscriptionEntitlements(user), [user]);
+
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -421,6 +439,33 @@ export default function TripsPage() {
               </div>
             </section>
 
+            {/* Route Analysis Map Section */}
+            <DashboardCard
+              eyebrow="Route Analysis"
+              title="Interactive Journey Replay"
+              description="Play back the historical telemetry path and vehicle status on the map."
+            >
+              {entitlements.isPremium ? (
+                <TripRouteReplay tripId={selectedTrip.id} />
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center bg-surface-hover/30">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent mb-3">
+                    <Map size={18} />
+                  </span>
+                  <h4 className="text-sm font-bold text-white mb-1">Route Replay Locked</h4>
+                  <p className="text-xs text-zinc-400 max-w-xs mb-4">
+                    Trip map playback and speed telemetry replays are premium features. Upgrade to Operations Plus to unlock.
+                  </p>
+                  <Link
+                    href="/checkout?plan=operations-plus"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:bg-accent-strong"
+                  >
+                    Upgrade plan
+                  </Link>
+                </div>
+              )}
+            </DashboardCard>
+
             {/* Battery Power Profiler */}
             <DashboardCard
               eyebrow="Energy Analysis"
@@ -570,6 +615,42 @@ export default function TripsPage() {
       </Drawer>
     </div>
   );
+}
+
+interface TripRoutePoint {
+  ts: string;
+  lat: number;
+  lng: number;
+  speedKph: number;
+  batteryPct: number | null;
+  ignition: boolean | null;
+}
+
+function TripRouteReplay({ tripId }: { tripId: string }) {
+  const routeQuery = useQuery({
+    queryKey: ['trips', tripId, 'route'],
+    queryFn: () => apiFetch<TripRoutePoint[]>(`/trips/${tripId}/route`),
+    enabled: !!tripId,
+  });
+
+  if (routeQuery.isLoading) {
+    return (
+      <div className="h-72 w-full flex items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm text-ink-soft animate-pulse">
+        Loading route replay map...
+      </div>
+    );
+  }
+
+  if (routeQuery.isError) {
+    return (
+      <div className="flex h-64 items-center justify-center rounded-2xl border border-line bg-surface-hover text-sm text-ink-soft">
+        Error loading route telemetry: {String(routeQuery.error)}
+      </div>
+    );
+  }
+
+  const route = routeQuery.data ?? [];
+  return <TripReplayMap route={route} />;
 }
 
 // Helper to translate browser local datetime string to ISO UTC

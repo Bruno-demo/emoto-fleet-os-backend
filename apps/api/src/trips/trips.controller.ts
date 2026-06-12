@@ -66,4 +66,21 @@ export class TripsController {
   ): Promise<FleetTrip> {
     return this.tripsService.getTripForUser(user, tripId);
   }
+
+  @Get('trips/:id/route')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+    UserRole.RIDER,
+  )
+  @ApiOperation({ summary: 'Get coordinate route points for a trip' })
+  async getTripRoute(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) tripId: string,
+  ): Promise<any[]> {
+    return this.tripsService.getTripRouteForUser(user, tripId);
+  }
 }

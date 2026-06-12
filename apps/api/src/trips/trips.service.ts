@@ -278,6 +278,89 @@ export class TripsService {
     return this.toFleetTrip(trip);
   }
 
+  // Retrieves historical telemetry path coordinates for a trip.
+  async getTripRouteForUser(
+    user: AuthenticatedUser,
+    id: string,
+  ): Promise<any[]> {
+    // 1. Enforce subscription plan validation
+    if (user.fleetPlan === 'DEMO') {
+      throw new ForbiddenException(
+        'Trip route replay requires an active Operations Plus subscription',
+      );
+    }
+
+    // 2. Retrieve trip and check permissions
+    const trip = await this.prismaService.trip.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        fleetId: true,
+        bikeId: true,
+        startTs: true,
+        endTs: true,
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (user.role === 'INSURER') {
+      const bike = await this.prismaService.bike.findUnique({
+        where: { id: trip.bikeId },
+        select: { insurerName: true },
+      });
+      if (bike?.insurerName !== user.insurerName) {
+        throw new ForbiddenException('Access to this trip is denied');
+      }
+    } else {
+      this.assertFleetAccess(trip.fleetId, user);
+    }
+
+    // 3. Locate the device linked to this bike
+    const device = await this.prismaService.device.findFirst({
+      where: { bikeId: trip.bikeId },
+      select: { id: true },
+    });
+
+    if (!device) {
+      return [];
+    }
+
+    // 4. Query telemetry points during the trip duration
+    const points = await this.prismaService.telemetryPoint.findMany({
+      where: {
+        deviceId: device.id,
+        ts: {
+          gte: trip.startTs,
+          lte: trip.endTs || new Date(),
+        },
+      },
+      select: {
+        ts: true,
+        lat: true,
+        lng: true,
+        speedKph: true,
+        batteryPct: true,
+        ignition: true,
+      },
+      orderBy: {
+        ts: 'asc',
+      },
+    });
+
+    // 5. Convert Decimal structures to standard numeric formats for the response
+    return points.map((p) => ({
+      ts: p.ts.toISOString(),
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      speedKph: Number(p.speedKph),
+      batteryPct: p.batteryPct,
+      ignition: p.ignition,
+    }));
+  }
+
   // Converts persisted trip plus event aggregates into API response object.
   private async toFleetTrip(trip: TripWithRelations): Promise<FleetTrip> {
     const eventCounts = await this.getTripEventCounts(trip);

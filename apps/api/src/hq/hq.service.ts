@@ -790,7 +790,9 @@ export class HqService {
       const telemetryMatch = telemetryDays.find(
         (t) => new Date(t.day).toISOString().slice(0, 10) === targetDateStr,
       );
-      const telemetryHours = telemetryMatch ? Number(telemetryMatch.active_hours) : 0;
+      const telemetryHours = telemetryMatch
+        ? Number(telemetryMatch.active_hours)
+        : 0;
 
       const auditMatch = auditDays.find(
         (a) => new Date(a.day).toISOString().slice(0, 10) === targetDateStr,
