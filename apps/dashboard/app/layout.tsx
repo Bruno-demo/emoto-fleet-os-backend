@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Manrope, Space_Grotesk } from 'next/font/google';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 
 const manrope = Manrope({
@@ -151,7 +152,10 @@ export default function RootLayout({
         className={`${manrope.variable} ${spaceGrotesk.variable} min-h-screen antialiased`}
       >
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            {children}
+            <SpeedInsights />
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>
