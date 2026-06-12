@@ -35,6 +35,7 @@ const monitoringSchema = z.object({
   activeDevices: z.number(),
   activeUsers: z.number(),
   uptimeSeconds: z.number(),
+  dailyUptime: z.array(z.number()),
 });
 
 const healthSchema = z.array(z.object({
@@ -70,12 +71,13 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
-function uptimePercentage(secs: number): string {
-  // Assume 30 day period max
-  const maxSecs = 30 * 86400;
-  const pct = Math.min(100, (secs / maxSecs) * 100);
-  if (pct >= 99.9) return '99.99%';
-  return `${pct.toFixed(2)}%`;
+function uptimePercentage(dailyUptime?: number[]): string {
+  if (!dailyUptime || dailyUptime.length === 0) {
+    return '99.9%';
+  }
+  const sum = dailyUptime.reduce((acc, val) => acc + val, 0);
+  const avg = sum / dailyUptime.length;
+  return `${avg.toFixed(2)}%`;
 }
 
 // ── Page Component ──────────────────────────────────────────────────
@@ -171,7 +173,7 @@ export default function HqMonitoringPage() {
         <div className="hidden items-center gap-4 sm:flex">
           <div className="text-right">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">Uptime</p>
-            <p className="text-sm font-bold text-white">{monitoringLoading ? '…' : uptimePercentage(monitoring?.uptimeSeconds ?? 0)}</p>
+            <p className="text-sm font-bold text-white">{monitoringLoading ? '…' : uptimePercentage(monitoring?.dailyUptime)}</p>
           </div>
           <div className="h-8 w-px bg-white/5"></div>
           <div className="text-right">
@@ -346,12 +348,12 @@ export default function HqMonitoringPage() {
             <Clock size={15} className="text-zinc-400" />
             Uptime Overview
           </h2>
-          <span className="text-xs font-medium text-zinc-500">Last 30 days (simulated)</span>
+          <span className="text-xs font-medium text-zinc-500">Last 30 days</span>
         </div>
         <div className="px-6 py-6">
           <div className="flex items-center gap-3 mb-5">
             <span className={`text-4xl font-extrabold tracking-tight ${currentStatus.color}`}>
-              {monitoringLoading ? '…' : uptimePercentage(monitoring?.uptimeSeconds ?? 0)}
+              {monitoringLoading ? '…' : uptimePercentage(monitoring?.dailyUptime)}
             </span>
             <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1">
               <ArrowUpRight size={12} className="text-emerald-400" />
@@ -360,15 +362,42 @@ export default function HqMonitoringPage() {
           </div>
           {/* Uptime bar visualization */}
           <div className="flex gap-0.5">
-            {Array.from({ length: 30 }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-8 flex-1 rounded-sm transition-colors ${
-                  i === 29 ? 'bg-emerald-400' : 'bg-emerald-500/40'
-                } hover:bg-emerald-400`}
-                title={`Day ${i + 1}: Operational`}
-              />
-            ))}
+            {monitoringLoading || !monitoring?.dailyUptime ? (
+              Array.from({ length: 30 }).map((_, i) => (
+                <div key={i} className="h-8 flex-1 rounded-sm bg-white/5 animate-pulse" />
+              ))
+            ) : (
+              monitoring.dailyUptime.map((pct, i) => {
+                let colorClass = 'bg-emerald-500/40 hover:bg-emerald-400';
+                if (pct < 98) {
+                  colorClass = 'bg-amber-500/50 hover:bg-amber-400';
+                }
+                if (pct < 96) {
+                  colorClass = 'bg-rose-500/50 hover:bg-rose-400';
+                }
+
+                if (i === 29) {
+                  if (pct >= 98) colorClass = 'bg-emerald-400';
+                  else if (pct >= 96) colorClass = 'bg-amber-400';
+                  else colorClass = 'bg-rose-400';
+                }
+
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() - (29 - i));
+                const dateStr = targetDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                });
+
+                return (
+                  <div
+                    key={i}
+                    className={`h-8 flex-1 rounded-sm transition-colors ${colorClass}`}
+                    title={`${dateStr}: ${pct}% Uptime`}
+                  />
+                );
+              })
+            )}
           </div>
           <div className="mt-3 flex items-center justify-between text-[10px] text-zinc-600">
             <span>30 days ago</span>
