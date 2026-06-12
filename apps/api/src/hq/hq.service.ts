@@ -11,6 +11,7 @@ import {
   FleetSubscriptionStatus,
   BikeStatus,
   Prisma,
+  AuditActionType,
 } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -18,10 +19,15 @@ import {
   encryptDeviceSecret,
   hashDeviceSecret,
 } from '../crypto/device-secret.crypto';
+import { AuditService } from '../audit/audit.service';
+import type { AuthenticatedUser } from '../auth/auth.types';
 
 @Injectable()
 export class HqService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   // ── Overview ──────────────────────────────────────────────────────
 
@@ -193,7 +199,7 @@ export class HqService {
     return fleet;
   }
 
-  async updateFleetPlan(fleetId: string, plan: string) {
+  async updateFleetPlan(fleetId: string, plan: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
     });
@@ -203,14 +209,28 @@ export class HqService {
       throw new BadRequestException('Invalid plan. Must be DEMO or PREMIUM');
     }
 
-    return this.prisma.fleet.update({
+    const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: { plan: plan as FleetPlan },
       select: { id: true, name: true, plan: true },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_PLAN_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        oldPlan: fleet.plan,
+        newPlan: plan,
+      },
+    });
+
+    return updated;
   }
 
-  async updateFleetSubscription(fleetId: string, status: string) {
+  async updateFleetSubscription(fleetId: string, status: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
     });
@@ -220,14 +240,28 @@ export class HqService {
       throw new BadRequestException('Invalid status');
     }
 
-    return this.prisma.fleet.update({
+    const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: { subscriptionStatus: status as FleetSubscriptionStatus },
       select: { id: true, name: true, subscriptionStatus: true },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_SUBSCRIPTION_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        oldStatus: fleet.subscriptionStatus,
+        newStatus: status,
+      },
+    });
+
+    return updated;
   }
 
-  async softDeleteFleet(fleetId: string) {
+  async softDeleteFleet(fleetId: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
     });
@@ -253,17 +287,40 @@ export class HqService {
       }),
     ]);
 
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_DELETED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        softDelete: true,
+      },
+    });
+
     return {
       success: true,
       message: `Fleet "${fleet.name}" has been disabled.`,
     };
   }
 
-  async permanentDeleteFleet(fleetId: string) {
+  async permanentDeleteFleet(fleetId: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_DELETED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        permanentDelete: true,
+        name: fleet.name,
+      },
+    });
 
     await this.prisma.fleet.delete({
       where: { id: fleetId },
@@ -275,7 +332,7 @@ export class HqService {
     };
   }
 
-  async updateBikeStatus(bikeId: string, status: string) {
+  async updateBikeStatus(bikeId: string, status: string, actor: AuthenticatedUser) {
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
@@ -283,11 +340,25 @@ export class HqService {
       throw new BadRequestException('Invalid status');
     }
 
-    return this.prisma.bike.update({
+    const updated = await this.prisma.bike.update({
       where: { id: bikeId },
       data: { status: status as BikeStatus },
       select: { id: true, label: true, status: true },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: bike.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.BIKE_STATUS_CHANGED,
+      targetType: 'BIKE',
+      targetId: bikeId,
+      metaJson: {
+        oldStatus: bike.status,
+        newStatus: status,
+      },
+    });
+
+    return updated;
   }
 
   // ── Users ─────────────────────────────────────────────────────────
@@ -386,11 +457,11 @@ export class HqService {
     return { pendingUsers, pendingBikes };
   }
 
-  async activateUser(userId: string) {
+  async activateUser(userId: string, actor: AuthenticatedUser) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { status: 'ACTIVE' },
       select: {
@@ -401,9 +472,24 @@ export class HqService {
         fleet: { select: { name: true } },
       },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: userId,
+      metaJson: {
+        activated: true,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+
+    return updated;
   }
 
-  async updateUserRole(userId: string, role: string) {
+  async updateUserRole(userId: string, role: string, actor: AuthenticatedUser) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -421,14 +507,30 @@ export class HqService {
       );
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { role: role as UserRole },
       select: { id: true, email: true, phone: true, role: true },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: userId,
+      metaJson: {
+        oldRole: user.role,
+        newRole: role,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+
+    return updated;
   }
 
-  async updateUserStatus(userId: string, status: string) {
+  async updateUserStatus(userId: string, status: string, actor: AuthenticatedUser) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -439,8 +541,8 @@ export class HqService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
         where: { id: userId },
         data: { status: status as UserStatus },
         select: {
@@ -464,11 +566,27 @@ export class HqService {
         }
       }
 
-      return updatedUser;
+      return updated;
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: userId,
+      metaJson: {
+        oldStatus: user.status,
+        newStatus: status,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+
+    return updatedUser;
   }
 
-  async deleteUser(userId: string) {
+  async deleteUser(userId: string, actor: AuthenticatedUser) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -484,18 +602,41 @@ export class HqService {
       await tx.user.delete({ where: { id: userId } });
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: userId,
+      metaJson: {
+        deleted: true,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+
     return { success: true };
   }
 
   // ── Partners ──────────────────────────────────────────────────────
 
-  async createPartner(name: string) {
+  async createPartner(name: string, actor: AuthenticatedUser) {
     const partner = await this.prisma.partner.create({
       data: { name, status: 'ACTIVE' },
       include: {
         _count: { select: { clients: true, webhooks: true } },
       },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_CREATED,
+      targetType: 'PARTNER',
+      targetId: partner.id,
+      metaJson: { name },
+    });
+
     return partner;
   }
 
@@ -546,6 +687,7 @@ export class HqService {
     partnerId: string,
     clientId: string,
     scopes: string,
+    actor: AuthenticatedUser,
   ) {
     const partner = await this.prisma.partner.findUnique({
       where: { id: partnerId },
@@ -564,6 +706,15 @@ export class HqService {
       },
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_TOKEN_ISSUED,
+      targetType: 'PARTNER_CLIENT',
+      targetId: client.id,
+      metaJson: { clientId, scopes },
+    });
+
     return {
       id: client.id,
       clientId: client.clientId,
@@ -573,7 +724,11 @@ export class HqService {
     };
   }
 
-  async deletePartnerCredential(partnerId: string, credentialId: string) {
+  async deletePartnerCredential(
+    partnerId: string,
+    credentialId: string,
+    actor: AuthenticatedUser,
+  ) {
     const credential = await this.prisma.partnerClient.findUnique({
       where: { id: credentialId },
     });
@@ -583,10 +738,24 @@ export class HqService {
     }
 
     await this.prisma.partnerClient.delete({ where: { id: credentialId } });
+
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_TOKEN_ISSUED,
+      targetType: 'PARTNER_CLIENT',
+      targetId: credentialId,
+      metaJson: { clientId: credential.clientId, revoked: true },
+    });
+
     return { success: true };
   }
 
-  async createWebhook(partnerId: string, url: string) {
+  async createWebhook(
+    partnerId: string,
+    url: string,
+    actor: AuthenticatedUser,
+  ) {
     const partner = await this.prisma.partner.findUnique({
       where: { id: partnerId },
     });
@@ -603,6 +772,15 @@ export class HqService {
       },
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_WEBHOOK_REGISTERED,
+      targetType: 'PARTNER_WEBHOOK',
+      targetId: webhook.id,
+      metaJson: { url },
+    });
+
     return {
       id: webhook.id,
       url: webhook.url,
@@ -612,7 +790,11 @@ export class HqService {
     };
   }
 
-  async updateWebhook(webhookId: string, url: string) {
+  async updateWebhook(
+    webhookId: string,
+    url: string,
+    actor: AuthenticatedUser,
+  ) {
     const webhook = await this.prisma.partnerWebhook.findUnique({
       where: { id: webhookId },
     });
@@ -624,6 +806,15 @@ export class HqService {
       data: { url, updatedAt: new Date() },
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_WEBHOOK_REGISTERED,
+      targetType: 'PARTNER_WEBHOOK',
+      targetId: webhookId,
+      metaJson: { oldUrl: webhook.url, newUrl: url, updated: true },
+    });
+
     return {
       id: updated.id,
       url: updated.url,
@@ -632,7 +823,7 @@ export class HqService {
     };
   }
 
-  async deleteWebhook(webhookId: string) {
+  async deleteWebhook(webhookId: string, actor: AuthenticatedUser) {
     const webhook = await this.prisma.partnerWebhook.findUnique({
       where: { id: webhookId },
     });
@@ -640,6 +831,16 @@ export class HqService {
     if (!webhook) throw new NotFoundException('Webhook not found');
 
     await this.prisma.partnerWebhook.delete({ where: { id: webhookId } });
+
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_WEBHOOK_REGISTERED,
+      targetType: 'PARTNER_WEBHOOK',
+      targetId: webhookId,
+      metaJson: { url: webhook.url, deleted: true },
+    });
+
     return { success: true };
   }
 
@@ -872,7 +1073,7 @@ export class HqService {
     };
   }
 
-  async assignBikeToDevice(deviceId: string, bikeId: string) {
+  async assignBikeToDevice(deviceId: string, bikeId: string, actor: AuthenticatedUser) {
     const device = await this.prisma.device.findUnique({
       where: { id: deviceId },
     });
@@ -887,7 +1088,7 @@ export class HqService {
       );
     }
 
-    return this.prisma.device.update({
+    const updated = await this.prisma.device.update({
       where: { id: deviceId },
       data: { bikeId },
       include: {
@@ -895,15 +1096,26 @@ export class HqService {
         fleet: { select: { id: true, name: true } },
       },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: device.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.DEVICE_BIKE_ASSIGNMENT_CHANGED,
+      targetType: 'DEVICE',
+      targetId: deviceId,
+      metaJson: { bikeId },
+    });
+
+    return updated;
   }
 
-  async unassignBikeFromDevice(deviceId: string) {
+  async unassignBikeFromDevice(deviceId: string, actor: AuthenticatedUser) {
     const device = await this.prisma.device.findUnique({
       where: { id: deviceId },
     });
     if (!device) throw new NotFoundException('Device not found');
 
-    return this.prisma.device.update({
+    const updated = await this.prisma.device.update({
       where: { id: deviceId },
       data: { bikeId: null },
       include: {
@@ -911,13 +1123,27 @@ export class HqService {
         fleet: { select: { id: true, name: true } },
       },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: device.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.DEVICE_BIKE_ASSIGNMENT_CHANGED,
+      targetType: 'DEVICE',
+      targetId: deviceId,
+      metaJson: { bikeId: null },
+    });
+
+    return updated;
   }
 
-  async createDevice(body: {
-    deviceUid: string;
-    imei?: string;
-    fleetId: string;
-  }) {
+  async createDevice(
+    body: {
+      deviceUid: string;
+      imei?: string;
+      fleetId: string;
+    },
+    actor: AuthenticatedUser,
+  ) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: body.fleetId },
     });
@@ -950,6 +1176,15 @@ export class HqService {
         },
       });
 
+      await this.auditService.createAuditLog({
+        fleetId: body.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.DEVICE_CREATED,
+        targetType: 'DEVICE',
+        targetId: device.id,
+        metaJson: { deviceUid: body.deviceUid, imei: body.imei },
+      });
+
       return {
         device,
         deviceSecret,
@@ -965,10 +1200,10 @@ export class HqService {
     }
   }
 
-  async rotateDeviceSecret(deviceId: string) {
+  async rotateDeviceSecret(deviceId: string, actor: AuthenticatedUser) {
     const device = await this.prisma.device.findUnique({
       where: { id: deviceId },
-      select: { id: true, deviceUid: true },
+      select: { id: true, deviceUid: true, fleetId: true },
     });
     if (!device) throw new NotFoundException('Device not found');
 
@@ -987,6 +1222,15 @@ export class HqService {
         secretHash,
         secretEncrypted,
       },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: device.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.DEVICE_SECRET_ROTATED,
+      targetType: 'DEVICE',
+      targetId: deviceId,
+      metaJson: { deviceUid: device.deviceUid },
     });
 
     return {
@@ -1139,13 +1383,16 @@ export class HqService {
     };
   }
 
-  async createInsurer(body: {
-    email?: string;
-    phone?: string;
-    password: string;
-    fullName: string;
-    fleetId: string;
-  }) {
+  async createInsurer(
+    body: {
+      email?: string;
+      phone?: string;
+      password: string;
+      fullName: string;
+      fleetId: string;
+    },
+    actor: AuthenticatedUser,
+  ) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: body.fleetId },
     });
@@ -1219,10 +1466,28 @@ export class HqService {
       return u;
     });
 
+    await this.auditService.createAuditLog({
+      fleetId: body.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_INVITED,
+      targetType: 'USER',
+      targetId: user.id,
+      metaJson: { email: body.email, role: 'INSURER' },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: body.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_PLAN_CHANGED,
+      targetType: 'FLEET',
+      targetId: body.fleetId,
+      metaJson: { oldPlan: fleet.plan, newPlan: 'INSURANCE' },
+    });
+
     return user;
   }
 
-  async assignBikeToInsurer(insurerId: string, bikeId: string) {
+  async assignBikeToInsurer(insurerId: string, bikeId: string, actor: AuthenticatedUser) {
     const insurer = await this.prisma.user.findUnique({
       where: { id: insurerId },
       include: { fleet: true },
@@ -1234,16 +1499,27 @@ export class HqService {
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
-    return this.prisma.bike.update({
+    const updated = await this.prisma.bike.update({
       where: { id: bikeId },
       data: { insurerName: insurer.fleet?.insurerName },
       include: {
         fleet: { select: { id: true, name: true } },
       },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: bike.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.BIKE_ASSIGNMENT_CHANGED,
+      targetType: 'BIKE',
+      targetId: bikeId,
+      metaJson: { insurerId, insurerName: insurer.fleet?.insurerName },
+    });
+
+    return updated;
   }
 
-  async unassignBikeFromInsurer(insurerId: string, bikeId: string) {
+  async unassignBikeFromInsurer(insurerId: string, bikeId: string, actor: AuthenticatedUser) {
     const insurer = await this.prisma.user.findUnique({
       where: { id: insurerId },
       include: { fleet: true },
@@ -1260,6 +1536,15 @@ export class HqService {
     await this.prisma.bike.update({
       where: { id: bikeId },
       data: { insurerName: null },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: bike.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.BIKE_ASSIGNMENT_CHANGED,
+      targetType: 'BIKE',
+      targetId: bikeId,
+      metaJson: { insurerId, insurerName: null },
     });
 
     return { success: true };
@@ -1331,6 +1616,7 @@ export class HqService {
       type?: string;
       imageUrl?: string;
     },
+    actor: AuthenticatedUser,
   ) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
@@ -1338,8 +1624,8 @@ export class HqService {
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const bike = await tx.bike.create({
+      const bike = await this.prisma.$transaction(async (tx) => {
+        const b = await tx.bike.create({
           data: {
             fleetId,
             label: dto.label,
@@ -1368,7 +1654,7 @@ export class HqService {
             await tx.bikeAssignment.create({
               data: {
                 fleetId,
-                bikeId: bike.id,
+                bikeId: b.id,
                 riderUserId: rider.id,
                 active: true,
               },
@@ -1376,8 +1662,24 @@ export class HqService {
           }
         }
 
-        return bike;
+        return b;
       });
+
+      await this.auditService.createAuditLog({
+        fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.BIKE_CREATED,
+        targetType: 'BIKE',
+        targetId: bike.id,
+        metaJson: {
+          label: dto.label,
+          plate: dto.plate,
+          serial: dto.serial,
+          model: dto.model,
+        },
+      });
+
+      return bike;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -1402,12 +1704,13 @@ export class HqService {
       type?: string;
       imageUrl?: string;
     },
+    actor: AuthenticatedUser,
   ) {
     const bike = await this.prisma.bike.findUnique({ where: { id } });
     if (!bike) throw new NotFoundException('Bike not found');
 
     try {
-      return await this.prisma.bike.update({
+      const updated = await this.prisma.bike.update({
         where: { id },
         data: {
           label: dto.label,
@@ -1420,6 +1723,19 @@ export class HqService {
             dto.imageUrl !== undefined ? dto.imageUrl || null : undefined,
         },
       });
+
+      await this.auditService.createAuditLog({
+        fleetId: bike.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.BIKE_UPDATED,
+        targetType: 'BIKE',
+        targetId: id,
+        metaJson: {
+          changes: dto,
+        },
+      });
+
+      return updated;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -1433,11 +1749,25 @@ export class HqService {
     }
   }
 
-  async deleteBikeHq(id: string) {
+  async deleteBikeHq(id: string, actor: AuthenticatedUser) {
     const bike = await this.prisma.bike.findUnique({ where: { id } });
     if (!bike) throw new NotFoundException('Bike not found');
 
     await this.prisma.bike.delete({ where: { id } });
+
+    await this.auditService.createAuditLog({
+      fleetId: bike.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.BIKE_DELETED,
+      targetType: 'BIKE',
+      targetId: id,
+      metaJson: {
+        label: bike.label,
+        plate: bike.plate,
+        serial: bike.serial,
+      },
+    });
+
     return { success: true };
   }
 
@@ -1456,6 +1786,7 @@ export class HqService {
       licencePhoto?: string;
       identityCardPhoto?: string;
     },
+    actor: AuthenticatedUser,
   ) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
@@ -1486,7 +1817,7 @@ export class HqService {
       ? await bcrypt.hash(body.password, 10)
       : await bcrypt.hash('DefaultPass123!', 10);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const u = await tx.user.create({
         data: {
           fleetId,
@@ -1527,6 +1858,22 @@ export class HqService {
         status: u.status,
       };
     });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: body.role === 'RIDER' ? AuditActionType.RIDER_CREATED : AuditActionType.USER_INVITED,
+      targetType: 'USER',
+      targetId: result.id,
+      metaJson: {
+        email: result.email,
+        phone: result.phone,
+        role: result.role,
+        fullName: body.fullName,
+      },
+    });
+
+    return result;
   }
 
   async updateUserHq(
@@ -1543,6 +1890,7 @@ export class HqService {
       licencePhoto?: string;
       identityCardPhoto?: string;
     },
+    actor: AuthenticatedUser,
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -1570,7 +1918,7 @@ export class HqService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({
         where: { id },
         data: {
@@ -1629,6 +1977,19 @@ export class HqService {
 
       return updated;
     });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.USER_ROLE_CHANGED,
+      targetType: 'USER',
+      targetId: id,
+      metaJson: {
+        changes: body,
+      },
+    });
+
+    return result;
   }
 
   async getBillingFleets() {
@@ -1650,28 +2011,43 @@ export class HqService {
     });
   }
 
-  async toggleInstallationPayment(fleetId: string) {
+  async toggleInstallationPayment(fleetId: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
       select: { id: true, installationPaid: true },
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
-    return this.prisma.fleet.update({
+    const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: { installationPaid: !fleet.installationPaid },
       select: { id: true, name: true, installationPaid: true },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_SUBSCRIPTION_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        toggledInstallationPayment: true,
+        oldValue: fleet.installationPaid,
+        newValue: updated.installationPaid,
+      },
+    });
+
+    return updated;
   }
 
-  async approveFleetUpgrade(fleetId: string) {
+  async approveFleetUpgrade(fleetId: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
       select: { id: true, upgradeRequested: true },
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
-    return this.prisma.fleet.update({
+    const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         plan: 'PREMIUM',
@@ -1680,6 +2056,20 @@ export class HqService {
       },
       select: { id: true, name: true, plan: true, upgradeRequested: true },
     });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_PLAN_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        approvedUpgrade: true,
+        plan: 'PREMIUM',
+      },
+    });
+
+    return updated;
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
