@@ -291,6 +291,14 @@ export class AuthService {
       }
     }
 
+    const role = dto.role ?? UserRole.DISPATCHER;
+    const isHqStaff = actor.fleetName === 'E-Moto HQ';
+    if (!isHqStaff && (role === UserRole.OWNER || role === UserRole.INSURER)) {
+      throw new ForbiddenException(
+        'Only E-Moto HQ superAdmin can register owner or insurer roles',
+      );
+    }
+
     const canAssignAnyRole =
       actor.role === UserRole.OWNER || actor.role === UserRole.ADMIN;
     if (!canAssignAnyRole && dto.role && dto.role !== UserRole.RIDER) {
@@ -957,7 +965,17 @@ export class AuthService {
       throw new BadRequestException('Cannot change your own role');
     }
 
-    // Only OWNER can assign/remove ADMIN
+    const isHqStaff = actor.fleetName === 'E-Moto HQ';
+    if (
+      (newRole === UserRole.INSURER || targetUser.role === UserRole.INSURER) &&
+      !isHqStaff
+    ) {
+      throw new ForbiddenException(
+        'Only E-Moto HQ superAdmin can assign or remove insurer roles',
+      );
+    }
+
+    // Only OWNER can assign/remove ADMIN/OWNER
     if (
       (newRole === UserRole.OWNER || targetUser.role === UserRole.OWNER) &&
       actor.role !== UserRole.OWNER
