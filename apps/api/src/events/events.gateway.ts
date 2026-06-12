@@ -56,6 +56,9 @@ export interface CommandStatusPayload {
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.warn(
+          `WebSocket CORS rejected for origin: "${origin}". Allowed origins: "${allowedRaw}"`,
+        );
         callback(new Error('WebSocket CORS rejected'));
       }
     },
@@ -78,12 +81,22 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
   // Installs handshake middleware that authenticates websocket JWT tokens.
   afterInit(server: Server): void {
     server.use((socket, next) => {
+      this.logger.log(
+        `WS connection attempt: ${socket.id} from origin: ${socket.handshake.headers.origin}`,
+      );
       void this.authenticateSocket(socket)
         .then((user) => {
+          this.logger.log(
+            `WS connection authenticated: ${socket.id} (user: ${user.email}, role: ${user.role})`,
+          );
           this.setSocketUser(socket, user);
           next();
         })
-        .catch(() => {
+        .catch((error: unknown) => {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          this.logger.warn(
+            `WS connection auth failed: ${socket.id} - ${errMsg}`,
+          );
           next(new Error('Unauthorized'));
         });
     });
@@ -217,7 +230,17 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
       return headerToken;
     }
 
-    return this.extractCookieToken(socket.handshake.headers.cookie);
+    const cookieToken = this.extractCookieToken(
+      socket.handshake.headers.cookie,
+    );
+    if (cookieToken) {
+      return cookieToken;
+    }
+
+    this.logger.warn(
+      `No WS token found in handshake auth, authorization header, or cookies (cookies present: ${!!socket.handshake.headers.cookie})`,
+    );
+    return null;
   }
 
   // Extracts the access token from the httpOnly auth cookie for browser clients.

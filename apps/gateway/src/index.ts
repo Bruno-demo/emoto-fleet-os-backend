@@ -356,8 +356,26 @@ const server = http.createServer((req, res) => {
 });
 
 server.on('upgrade', (req, socket, head) => {
-  ensureRequestId(req);
-  proxy.ws(req, socket, head);
+  const requestId = ensureRequestId(req);
+  logger.info(
+    {
+      requestId,
+      method: req.method,
+      path: req.url,
+      headers: {
+        connection: req.headers.connection,
+        upgrade: req.headers.upgrade,
+        origin: req.headers.origin,
+        host: req.headers.host,
+      },
+    },
+    'gateway_upgrade_request',
+  );
+
+  proxy.ws(req, socket, head, {}, (error) => {
+    logger.error({ requestId, err: error }, 'gateway_upgrade_error');
+    socket.destroy();
+  });
 });
 
 server.listen(gatewayPort, () => {
