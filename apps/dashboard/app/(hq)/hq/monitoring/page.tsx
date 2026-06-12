@@ -9,19 +9,15 @@ import {
   BarChart3,
   Clock,
   ShieldCheck,
-  Cpu,
   Users,
   Wifi,
   HardDrive,
   RefreshCw,
   CheckCircle2,
   AlertTriangle,
-  ArrowUpRight,
   Layers,
-  Globe,
   Timer,
   Terminal,
-  HelpCircle,
   Copy,
   Check,
   XCircle,
@@ -50,14 +46,7 @@ const healthSchema = z.array(z.object({
   color: z.string(),
 }));
 
-const statsSchema = z.object({
-  totalFleets: z.number(),
-  totalBikes: z.number(),
-  totalPendingSetups: z.number(),
-  totalPartners: z.number(),
-  totalInsurers: z.number().optional(),
-  unassignedDevices: z.number().optional(),
-});
+
 
 const eventSchema = z.array(z.object({
   fleet: z.string(),
@@ -102,7 +91,7 @@ export default function HqMonitoringPage() {
   // Real-time TPS tracking
   const [tpsHistory, setTpsHistory] = useState<number[]>([15, 20, 18, 24, 32, 28, 30, 42, 38, 45, 52, 48, 55, 60, 58, 62]);
   const prevPointsRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(Date.now());
+  const lastUpdateTimeRef = useRef<number>(0);
 
   // Interactive Inspector state
   const [inspectedService, setInspectedService] = useState<{
@@ -132,12 +121,6 @@ export default function HqMonitoringPage() {
     refetchInterval: 30_000,
   });
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['hq', 'stats'],
-    queryFn: () => apiFetch('/hq/stats', {}, { schema: statsSchema }),
-    refetchInterval: 60_000,
-  });
-
   const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = useQuery({
     queryKey: ['hq', 'events'],
     queryFn: () => apiFetch('/hq/events', {}, { schema: eventSchema }),
@@ -151,7 +134,7 @@ export default function HqMonitoringPage() {
     const now = Date.now();
     const currentPoints = monitoring.totalTelemetryPoints;
     
-    if (prevPointsRef.current !== null) {
+    if (prevPointsRef.current !== null && lastUpdateTimeRef.current !== 0) {
       const timeDelta = (now - lastUpdateTimeRef.current) / 1000;
       const pointsDelta = currentPoints - prevPointsRef.current;
       
@@ -161,11 +144,14 @@ export default function HqMonitoringPage() {
         computedTps = 15 + Math.floor(Math.random() * 20);
       }
       
-      setTpsHistory(prev => {
-        const next = [...prev, Math.round(computedTps)];
-        if (next.length > 20) next.shift();
-        return next;
-      });
+      const roundedTps = Math.round(computedTps);
+      setTimeout(() => {
+        setTpsHistory(prev => {
+          const next = [...prev, roundedTps];
+          if (next.length > 20) next.shift();
+          return next;
+        });
+      }, 0);
     }
     
     prevPointsRef.current = currentPoints;
@@ -288,7 +274,7 @@ export default function HqMonitoringPage() {
     if (tpsHistory.length < 2) return '';
     const width = 600;
     const height = 120;
-    return `${svgChartPath} L 600 120 L 0 120 Z`;
+    return `${svgChartPath} L ${width} ${height} L 0 ${height} Z`;
   }, [tpsHistory, svgChartPath]);
 
   // Filtered Events list
@@ -557,7 +543,10 @@ export default function HqMonitoringPage() {
                   status={item.status}
                   color={item.color}
                   onClick={() => {
-                    const servicesDetails: Record<string, any> = {
+                    const servicesDetails: Record<
+                      string,
+                      { version: string; cluster: string; details: string; metrics: string }
+                    > = {
                       'EMQX Cluster': {
                         version: 'EMQX v5.8.0-Alpine',
                         cluster: '3 nodes (active consensus)',
