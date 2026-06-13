@@ -572,6 +572,16 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .expect(200);
     });
 
+    it('allows INSURER to fetch assignments list for covered bikes', async () => {
+      const response = await request(httpServer)
+        .get('/assignments?active=true')
+        .set('Authorization', `Bearer ${insurerSameFleetToken}`)
+        .expect(200);
+
+      const body = response.body as { data: Array<{ id: string }> };
+      expect(body.data).toBeDefined();
+    });
+
     it('blocks INSURER from accessing details of bike insured by another company', async () => {
       const otherInsurerBike = await prisma.bike.create({
         data: {

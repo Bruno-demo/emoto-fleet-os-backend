@@ -73,7 +73,13 @@ export class RidersAdminController {
   }
 
   @Get('assignments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.TECH,
+    UserRole.RIDER,
+    UserRole.INSURER,
+  )
   @ApiOperation({ summary: 'List bike assignments with optional filters' })
   async listAssignments(
     @CurrentUser() user: AuthenticatedUser,

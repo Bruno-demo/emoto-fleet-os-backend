@@ -343,9 +343,12 @@ export class RidersService {
     query: ListAssignmentsDto,
   ): Promise<PaginatedResponse<AssignmentSummary>> {
     const pagination = getPaginationParams(query);
-    const where: Prisma.BikeAssignmentWhereInput = {
-      fleetId: user.fleetId,
-    };
+    const where: Prisma.BikeAssignmentWhereInput = {};
+    if (user.fleetPlan === 'INSURANCE') {
+      where.bike = { insurerName: user.insurerName };
+    } else {
+      where.fleetId = user.fleetId;
+    }
     if (query.bikeId) {
       where.bikeId = query.bikeId;
     }

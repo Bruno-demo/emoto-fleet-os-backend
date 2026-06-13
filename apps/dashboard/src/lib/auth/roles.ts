@@ -12,5 +12,11 @@ export function canManageZones(role: UserRole): boolean {
 
 // Returns true when role can access rider assignment management endpoint.
 export function canViewAssignments(role: UserRole): boolean {
-  return role === 'OWNER' || role === 'ADMIN' || role === 'TECH' || role === 'RIDER';
+  return (
+    role === 'OWNER' ||
+    role === 'ADMIN' ||
+    role === 'TECH' ||
+    role === 'RIDER' ||
+    role === 'INSURER'
+  );
 }
