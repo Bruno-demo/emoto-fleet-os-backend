@@ -199,7 +199,11 @@ export class HqService {
     return fleet;
   }
 
-  async updateFleetPlan(fleetId: string, plan: string, actor: AuthenticatedUser) {
+  async updateFleetPlan(
+    fleetId: string,
+    plan: string,
+    actor: AuthenticatedUser,
+  ) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
     });
@@ -230,7 +234,11 @@ export class HqService {
     return updated;
   }
 
-  async updateFleetSubscription(fleetId: string, status: string, actor: AuthenticatedUser) {
+  async updateFleetSubscription(
+    fleetId: string,
+    status: string,
+    actor: AuthenticatedUser,
+  ) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
     });
@@ -332,7 +340,11 @@ export class HqService {
     };
   }
 
-  async updateBikeStatus(bikeId: string, status: string, actor: AuthenticatedUser) {
+  async updateBikeStatus(
+    bikeId: string,
+    status: string,
+    actor: AuthenticatedUser,
+  ) {
     const bike = await this.prisma.bike.findUnique({ where: { id: bikeId } });
     if (!bike) throw new NotFoundException('Bike not found');
 
@@ -530,7 +542,11 @@ export class HqService {
     return updated;
   }
 
-  async updateUserStatus(userId: string, status: string, actor: AuthenticatedUser) {
+  async updateUserStatus(
+    userId: string,
+    status: string,
+    actor: AuthenticatedUser,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -1073,7 +1089,11 @@ export class HqService {
     };
   }
 
-  async assignBikeToDevice(deviceId: string, bikeId: string, actor: AuthenticatedUser) {
+  async assignBikeToDevice(
+    deviceId: string,
+    bikeId: string,
+    actor: AuthenticatedUser,
+  ) {
     const device = await this.prisma.device.findUnique({
       where: { id: deviceId },
     });
@@ -1487,7 +1507,11 @@ export class HqService {
     return user;
   }
 
-  async assignBikeToInsurer(insurerId: string, bikeId: string, actor: AuthenticatedUser) {
+  async assignBikeToInsurer(
+    insurerId: string,
+    bikeId: string,
+    actor: AuthenticatedUser,
+  ) {
     const insurer = await this.prisma.user.findUnique({
       where: { id: insurerId },
       include: { fleet: true },
@@ -1519,7 +1543,11 @@ export class HqService {
     return updated;
   }
 
-  async unassignBikeFromInsurer(insurerId: string, bikeId: string, actor: AuthenticatedUser) {
+  async unassignBikeFromInsurer(
+    insurerId: string,
+    bikeId: string,
+    actor: AuthenticatedUser,
+  ) {
     const insurer = await this.prisma.user.findUnique({
       where: { id: insurerId },
       include: { fleet: true },
@@ -1862,7 +1890,10 @@ export class HqService {
     await this.auditService.createAuditLog({
       fleetId,
       actorUserId: actor.id,
-      actionType: body.role === 'RIDER' ? AuditActionType.RIDER_CREATED : AuditActionType.USER_INVITED,
+      actionType:
+        body.role === 'RIDER'
+          ? AuditActionType.RIDER_CREATED
+          : AuditActionType.USER_INVITED,
       targetType: 'USER',
       targetId: result.id,
       metaJson: {

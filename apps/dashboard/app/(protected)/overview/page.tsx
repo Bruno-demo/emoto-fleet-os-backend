@@ -376,7 +376,7 @@ export default function OverviewPage() {
                 <>
                   <QuickAction href="/bikes" icon={<Bike size={16} />} label="Bikes" />
                   <QuickAction href="/reports" icon={<Activity size={16} />} label="Reports" />
-                  <QuickAction href="/settings" icon={<Settings size={16} />} label="API Credentials" />
+                  <QuickAction href="/settings?tab=apiCredentials" icon={<Settings size={16} />} label="API Credentials" />
                 </>
               ) : (
                 <>

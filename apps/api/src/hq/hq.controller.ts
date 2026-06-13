@@ -83,13 +83,20 @@ export class HqController {
   }
 
   @Put('fleets/:id/billing-rate')
-  @ApiOperation({ summary: 'Update custom monthly payment rate per bike for a fleet (HQ admin)' })
+  @ApiOperation({
+    summary:
+      'Update custom monthly payment rate per bike for a fleet (HQ admin)',
+  })
   updateFleetBillingRate(
     @Param('id') id: string,
     @Body() body: { monthlyRatePerBike: number },
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.hqService.updateFleetBillingRate(id, body.monthlyRatePerBike, user);
+    return this.hqService.updateFleetBillingRate(
+      id,
+      body.monthlyRatePerBike,
+      user,
+    );
   }
 
   @Delete('fleets/:id')
@@ -102,7 +109,10 @@ export class HqController {
   @ApiOperation({
     summary: 'Permanently delete a fleet and all its data (HQ admin)',
   })
-  deleteFleetPermanently(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  deleteFleetPermanently(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.permanentDeleteFleet(id, user);
   }
 
@@ -152,7 +162,10 @@ export class HqController {
 
   @Delete('bikes/:id')
   @ApiOperation({ summary: 'Delete a bike permanently (HQ admin)' })
-  deleteBikeHq(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  deleteBikeHq(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.deleteBikeHq(id, user);
   }
 
@@ -215,7 +228,10 @@ export class HqController {
 
   @Post('users/:id/activate')
   @ApiOperation({ summary: 'Activate a user pending setup' })
-  activateUser(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  activateUser(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.activateUser(id, user);
   }
 
@@ -296,7 +312,10 @@ export class HqController {
 
   @Post('partners')
   @ApiOperation({ summary: 'Create a new API partner' })
-  createPartner(@Body() body: { name: string }, @CurrentUser() user: AuthenticatedUser) {
+  createPartner(
+    @Body() body: { name: string },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.createPartner(body.name, user);
   }
 
@@ -336,7 +355,11 @@ export class HqController {
     @Param('credentialId') credentialId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.hqService.deletePartnerCredential(partnerId, credentialId, user);
+    return this.hqService.deletePartnerCredential(
+      partnerId,
+      credentialId,
+      user,
+    );
   }
 
   @Post('partners/:id/webhooks')
@@ -361,7 +384,10 @@ export class HqController {
 
   @Delete('webhooks/:id')
   @ApiOperation({ summary: 'Delete webhook endpoint' })
-  deleteWebhook(@Param('id') webhookId: string, @CurrentUser() user: AuthenticatedUser) {
+  deleteWebhook(
+    @Param('id') webhookId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.deleteWebhook(webhookId, user);
   }
 
@@ -455,7 +481,10 @@ export class HqController {
 
   @Post('devices/:id/unassign-bike')
   @ApiOperation({ summary: 'Unassign bike from a device' })
-  unassignBikeFromDevice(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  unassignBikeFromDevice(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.unassignBikeFromDevice(id, user);
   }
 
@@ -470,7 +499,10 @@ export class HqController {
 
   @Post('devices/:id/rotate-secret')
   @ApiOperation({ summary: 'Rotate the secret credentials of a device' })
-  rotateDeviceSecret(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  rotateDeviceSecret(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.rotateDeviceSecret(id, user);
   }
 
@@ -550,13 +582,19 @@ export class HqController {
   @ApiOperation({
     summary: 'Toggle one-time device installation fee payment status',
   })
-  toggleInstallationPayment(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  toggleInstallationPayment(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.toggleInstallationPayment(id, user);
   }
 
   @Post('fleets/:id/approve-upgrade')
   @ApiOperation({ summary: 'Approve pending Operations Plus upgrade request' })
-  approveFleetUpgrade(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  approveFleetUpgrade(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.hqService.approveFleetUpgrade(id, user);
   }
 }

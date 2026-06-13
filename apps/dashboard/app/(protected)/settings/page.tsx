@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -53,7 +54,20 @@ export default function SettingsPage() {
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const entitlements = getSubscriptionEntitlements(user);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const initialTab = (tabParam && ['profile', 'fleet', 'team', 'security', 'notifications', 'apiCredentials'].includes(tabParam))
+    ? (tabParam as SettingsTab)
+    : 'profile';
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+
+  useEffect(() => {
+    if (tabParam && ['profile', 'fleet', 'team', 'security', 'notifications', 'apiCredentials'].includes(tabParam)) {
+      setActiveTab(tabParam as SettingsTab);
+    }
+  }, [tabParam]);
+
   const { setTheme, resolvedTheme } = useTheme();
 
   const [showContactSales, setShowContactSales] = useState(false);
@@ -150,7 +164,12 @@ export default function SettingsPage() {
       {/* Tab navigation */}
       <div className="flex overflow-x-auto dashboard-scrollbar gap-1 rounded-2xl border border-line bg-surface-muted p-1 whitespace-nowrap">
         {ALL_TABS
-          .filter(tab => !tab.adminOnly || (user && (user.role === 'ADMIN' || user.role === 'OWNER')))
+          .filter(tab => {
+            if (tab.id === 'apiCredentials' && user?.role === 'INSURER') {
+              return true;
+            }
+            return !tab.adminOnly || (user && (user.role === 'ADMIN' || user.role === 'OWNER'));
+          })
           .filter(tab => tab.id !== 'apiCredentials' || (user && user.fleetPlan === 'INSURANCE'))
           .map((tab) => (
           <button

@@ -34,6 +34,9 @@ export class SubscriptionController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { monthlyRatePerBike: number },
   ) {
-    return this.subscriptionService.updateBillingRate(user, body.monthlyRatePerBike);
+    return this.subscriptionService.updateBillingRate(
+      user,
+      body.monthlyRatePerBike,
+    );
   }
 }
