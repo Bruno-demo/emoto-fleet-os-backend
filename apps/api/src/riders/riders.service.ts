@@ -356,7 +356,7 @@ export class RidersService {
       where.riderUserId = query.riderUserId;
     }
     if (query.active !== undefined) {
-      where.active = query.active;
+      where.active = query.active === true || String(query.active) === 'true';
     }
 
     const [assignments, total] = await Promise.all([
