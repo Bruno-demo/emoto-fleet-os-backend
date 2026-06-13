@@ -71,13 +71,15 @@ export class RoadFeaturesService {
       return JSON.parse(cached) as RoadFeatureSummary[];
     }
 
-    await this.refreshFeaturesIfStale(normalizedBounds);
+    const success = await this.refreshFeaturesIfStale(normalizedBounds);
     const features = await this.loadFeatures(normalizedBounds, types);
-    await this.redisService.set(
-      cacheKey,
-      JSON.stringify(features),
-      this.cacheTtlSeconds,
-    );
+    if (success) {
+      await this.redisService.set(
+        cacheKey,
+        JSON.stringify(features),
+        this.cacheTtlSeconds,
+      );
+    }
     return features;
   }
 
@@ -104,7 +106,7 @@ export class RoadFeaturesService {
   // Reloads Overpass data when cached features are stale or missing.
   private async refreshFeaturesIfStale(
     bounds: RoadFeatureBounds,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const existing = await this.prismaService.roadFeature.findFirst({
       where: {
         lat: { gte: bounds.minLat, lte: bounds.maxLat },
@@ -118,12 +120,15 @@ export class RoadFeaturesService {
       existing &&
       Date.now() - existing.updatedAt.getTime() < this.refreshSeconds * 1000
     ) {
-      return;
+      return true;
     }
 
     const fetched = await this.fetchOverpassFeatures(bounds);
+    if (fetched === null) {
+      return false;
+    }
     if (!fetched.length) {
-      return;
+      return true;
     }
 
     await this.prismaService.$transaction(
@@ -197,7 +202,7 @@ export class RoadFeaturesService {
       lat: number;
       lng: number;
       tagsJson: Record<string, string> | null;
-    }>
+    }> | null
   > {
     const bbox = `${bounds.minLat},${bounds.minLng},${bounds.maxLat},${bounds.maxLng}`;
     const query = `
@@ -225,7 +230,7 @@ export class RoadFeaturesService {
         this.logger.warn(
           `Overpass request failed with status ${response.status}`,
         );
-        return [];
+        return null;
       }
 
       const payload = (await response.json()) as {
@@ -239,7 +244,7 @@ export class RoadFeaturesService {
         );
     } catch (error: unknown) {
       this.logger.warn('Overpass request failed', error as Error);
-      return [];
+      return null;
     }
   }
 

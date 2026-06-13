@@ -2,6 +2,8 @@ import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/roles.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthenticatedUser } from '../auth/auth.types';
 import { RoadFeaturesQueryDto } from './dto/road-features-query.dto';
 import { RoadFeaturesService } from './roads.service';
 import type { RoadFeatureBounds, RoadFeatureSummary } from './roads.types';
@@ -26,7 +28,11 @@ export class RoadsController {
   })
   async listFeatures(
     @Query() query: RoadFeaturesQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<RoadFeatureSummary[]> {
+    if (user.role === UserRole.INSURER) {
+      return [];
+    }
     const bounds = parseBounds(query.bbox);
     return this.roadFeaturesService.getFeaturesInBounds(bounds, query.types);
   }
