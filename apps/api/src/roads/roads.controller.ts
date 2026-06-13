@@ -19,6 +19,7 @@ export class RoadsController {
     UserRole.DISPATCHER,
     UserRole.TECH,
     UserRole.RIDER,
+    UserRole.INSURER,
   )
   @ApiOperation({
     summary: 'List map-ready road features within a bounding box',
