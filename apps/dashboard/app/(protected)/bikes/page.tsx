@@ -999,13 +999,15 @@ export default function BikesPage() {
       {/* Create Bike Modal */}
       {showCreateBike && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateBike(false)}>
-          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setShowCreateBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowCreateBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition z-10">
               <X size={18} />
             </button>
-            <h2 className="text-lg font-bold text-ink">Add New Bike</h2>
-            <p className="mt-1 text-sm text-ink-muted">Register a new bike in your fleet inventory.</p>
-            <div className="mt-5 space-y-3">
+            <div className="flex-shrink-0 pr-6">
+              <h2 className="text-lg font-bold text-ink">Add New Bike</h2>
+              <p className="mt-1 text-sm text-ink-muted">Register a new bike in your fleet inventory.</p>
+            </div>
+            <div className="mt-5 space-y-3 overflow-y-auto flex-1 pr-1">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Label *</label>
                 <input
@@ -1115,20 +1117,20 @@ export default function BikesPage() {
                 </div>
               </div>
               {createBikeError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{createBikeError}</p>}
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowCreateBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateBike}
-                  disabled={isCreatingBike}
-                  className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
-                  style={{ background: '#3B82F6', color: 'white' }}
-                >
-                  {isCreatingBike ? 'Creating...' : 'Create Bike'}
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-3 pt-4 mt-4 border-t border-line flex-shrink-0">
+              <button type="button" onClick={() => setShowCreateBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateBike}
+                disabled={isCreatingBike}
+                className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                style={{ background: '#3B82F6', color: 'white' }}
+              >
+                {isCreatingBike ? 'Creating...' : 'Create Bike'}
+              </button>
             </div>
           </div>
         </div>
@@ -1137,13 +1139,15 @@ export default function BikesPage() {
       {/* Edit Bike Modal */}
       {showEditBike && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowEditBike(false)}>
-          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setShowEditBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowEditBike(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition z-10">
               <X size={18} />
             </button>
-            <h2 className="text-lg font-bold text-ink">Edit Bike Info</h2>
-            <p className="mt-1 text-sm text-ink-muted">Modify bike details and status in the registry.</p>
-            <div className="mt-5 space-y-3">
+            <div className="flex-shrink-0 pr-6">
+              <h2 className="text-lg font-bold text-ink">Edit Bike Info</h2>
+              <p className="mt-1 text-sm text-ink-muted">Modify bike details and status in the registry.</p>
+            </div>
+            <div className="mt-5 space-y-3 overflow-y-auto flex-1 pr-1">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Label *</label>
                 <input
@@ -1265,20 +1269,20 @@ export default function BikesPage() {
                 </div>
               </div>
               {editBikeError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{editBikeError}</p>}
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowEditBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleEditBike}
-                  disabled={isUpdatingBike}
-                  className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
-                  style={{ background: '#3B82F6', color: 'white' }}
-                >
-                  {isUpdatingBike ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-3 pt-4 mt-4 border-t border-line flex-shrink-0">
+              <button type="button" onClick={() => setShowEditBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEditBike}
+                disabled={isUpdatingBike}
+                className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                style={{ background: '#3B82F6', color: 'white' }}
+              >
+                {isUpdatingBike ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>
