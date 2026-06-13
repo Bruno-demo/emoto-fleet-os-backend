@@ -82,6 +82,16 @@ export class HqController {
     return this.hqService.updateFleetSubscription(id, body.status, user);
   }
 
+  @Put('fleets/:id/billing-rate')
+  @ApiOperation({ summary: 'Update custom monthly payment rate per bike for a fleet (HQ admin)' })
+  updateFleetBillingRate(
+    @Param('id') id: string,
+    @Body() body: { monthlyRatePerBike: number },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.updateFleetBillingRate(id, body.monthlyRatePerBike, user);
+  }
+
   @Delete('fleets/:id')
   @ApiOperation({ summary: 'Soft-delete a fleet (set all users to DISABLED)' })
   deleteFleet(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {

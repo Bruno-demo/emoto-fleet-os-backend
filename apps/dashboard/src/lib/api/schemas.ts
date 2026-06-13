@@ -12,7 +12,7 @@ export const userRoleSchema = z.enum([
 ]);
 
 export const userStatusSchema = z.enum(['INVITED', 'PENDING_SETUP', 'ACTIVE', 'SUSPENDED', 'DISABLED']);
-export const fleetPlanSchema = z.enum(['DEMO', 'PREMIUM']);
+export const fleetPlanSchema = z.enum(['DEMO', 'PREMIUM', 'INSURANCE']);
 export const subscriptionStatusSchema = z.enum(['ACTIVE', 'PAST_DUE', 'CANCELED']);
 
 export const authUserSchema = z.object({
@@ -26,6 +26,8 @@ export const authUserSchema = z.object({
   email: z.string().nullable(),
   phone: z.string().nullable(),
   status: userStatusSchema,
+  insurerName: z.string().nullable().optional(),
+  monthlyRatePerBike: z.number().nullable().optional(),
 });
 
 export const loginFormSchema = z.object({

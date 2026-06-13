@@ -257,75 +257,91 @@ export default function SettingsPage() {
             title="Billing & Subscription Summary"
             description="Operational billing overview based on your active fleet size and plan."
           >
-            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-              {/* Stat 1: Fleet Size */}
-              <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Total Fleet Bikes</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-ink">{totalBikes}</span>
-                  <span className="text-xs text-ink-muted">Active {totalBikes === 1 ? 'bike' : 'bikes'}</span>
-                </div>
-                <p className="text-xs text-ink-faint leading-relaxed">Subscriptions are calculated per bike dynamically.</p>
-              </div>
+            {(() => {
+              const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? 10000 : user?.fleetPlan === 'INSURANCE' ? 0 : 5000);
+              const isInsurance = user?.fleetPlan === 'INSURANCE';
+              return (
+                <>
+                  <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+                    {/* Stat 1: Fleet Size */}
+                    <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+                        {isInsurance ? 'Total Covered Bikes' : 'Total Fleet Bikes'}
+                      </p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-extrabold text-ink">{totalBikes}</span>
+                        <span className="text-xs text-ink-muted">Active {totalBikes === 1 ? 'bike' : 'bikes'}</span>
+                      </div>
+                      <p className="text-xs text-ink-faint leading-relaxed">
+                        {isInsurance
+                          ? 'Bikes covered under your insurance policy.'
+                          : 'Subscriptions are calculated per bike dynamically.'}
+                      </p>
+                    </div>
 
-              {/* Stat 2: Active Plan Cost */}
-              <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Monthly Rate</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-ink">
-                    {entitlements.isPremium ? '10,000 RWF' : '5,000 RWF'}
-                  </span>
-                  <span className="text-xs text-ink-muted">/ bike / mo</span>
-                </div>
-                <p className="text-xs text-ink-faint leading-relaxed">
-                  Plan: <span className="font-bold text-accent">{entitlements.planLabel}</span>
-                </p>
-              </div>
+                    {/* Stat 2: Active Plan Cost */}
+                    <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Monthly Rate</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-extrabold text-ink">
+                          {rate.toLocaleString()} RWF
+                        </span>
+                        <span className="text-xs text-ink-muted">/ bike / mo</span>
+                      </div>
+                      <p className="text-xs text-ink-faint leading-relaxed">
+                        Plan: <span className="font-bold text-accent">{entitlements.planLabel}</span>
+                      </p>
+                    </div>
 
-              {/* Stat 3: Total Money To Pay */}
-              <div className="rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 space-y-2 col-span-full md:col-span-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-accent">Total Monthly Cost</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-accent">
-                    {((entitlements.isPremium ? 10000 : 5000) * totalBikes).toLocaleString()} RWF
-                  </span>
-                  <span className="text-xs text-ink-muted">/ month</span>
-                </div>
-                <p className="text-xs text-ink-faint leading-relaxed">
-                  Auto-calculated subscription dues.
-                </p>
-              </div>
-            </div>
+                    {/* Stat 3: Total Money To Pay */}
+                    <div className="rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 space-y-2 col-span-full md:col-span-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">Total Monthly Cost</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-extrabold text-accent">
+                          {(rate * totalBikes).toLocaleString()} RWF
+                        </span>
+                        <span className="text-xs text-ink-muted">/ month</span>
+                      </div>
+                      <p className="text-xs text-ink-faint leading-relaxed">
+                        Auto-calculated subscription dues.
+                      </p>
+                    </div>
+                  </div>
 
-            {/* Installation Setup Fee Info */}
-            <div className="mt-6 rounded-2xl border border-line bg-black/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-ink flex items-center gap-2">
-                  <Banknote size={16} className="text-accent" />
-                  One-time Installation Setup Fee
-                </p>
-                <p className="text-xs text-ink-muted leading-relaxed">
-                  A flat fee of <strong className="text-ink">30,000 RWF</strong> per bike is charged once upon hardware device setup.
-                </p>
-              </div>
-              <div className="text-left sm:text-right">
-                <p className="text-xs text-ink-muted">Total Setup Dues</p>
-                <p className="text-lg font-extrabold text-ink">{(totalBikes * 30000).toLocaleString()} RWF</p>
-              </div>
-            </div>
+                  {/* Installation Setup Fee Info */}
+                  {!isInsurance && (
+                    <div className="mt-6 rounded-2xl border border-line bg-black/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-ink flex items-center gap-2">
+                          <Banknote size={16} className="text-accent" />
+                          One-time Installation Setup Fee
+                        </p>
+                        <p className="text-xs text-ink-muted leading-relaxed">
+                          A flat fee of <strong className="text-ink">30,000 RWF</strong> per bike is charged once upon hardware device setup.
+                        </p>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <p className="text-xs text-ink-muted">Total Setup Dues</p>
+                        <p className="text-lg font-extrabold text-ink">{(totalBikes * 30000).toLocaleString()} RWF</p>
+                      </div>
+                    </div>
+                  )}
 
-            {/* Pending Alert if subscription is pending */}
-            {user?.subscriptionStatus === 'PENDING_UPGRADE' && (
-              <div className="mt-6 rounded-2xl border border-warning-ink/20 bg-warning-soft/20 p-5 flex gap-4 items-start animate-pulse">
-                <AlertTriangle className="text-warning-ink shrink-0 mt-0.5" size={20} />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-warning-ink">Plan Upgrade Pending Approval</p>
-                  <p className="text-xs text-ink-soft leading-relaxed">
-                    You have requested to upgrade to <strong className="font-semibold text-warning-ink">Operations Plus</strong>. Your monthly rate will remain <strong className="font-semibold text-ink">5,000 RWF</strong> until your payment setup is confirmed and approved by the HQ admin.
-                  </p>
-                </div>
-              </div>
-            )}
+                  {/* Pending Alert if subscription is pending */}
+                  {user?.subscriptionStatus === 'PENDING_UPGRADE' && (
+                    <div className="mt-6 rounded-2xl border border-warning-ink/20 bg-warning-soft/20 p-5 flex gap-4 items-start animate-pulse">
+                      <AlertTriangle className="text-warning-ink shrink-0 mt-0.5" size={20} />
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-warning-ink">Plan Upgrade Pending Approval</p>
+                        <p className="text-xs text-ink-soft leading-relaxed">
+                          You have requested to upgrade to <strong className="font-semibold text-warning-ink">Operations Plus</strong>. Your monthly rate will remain <strong className="font-semibold text-ink">5,000 RWF</strong> until your payment setup is confirmed and approved by the HQ admin.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </DashboardCard>
 
           <DashboardCard

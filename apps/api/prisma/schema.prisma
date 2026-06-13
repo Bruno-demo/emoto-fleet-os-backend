@@ -221,6 +221,7 @@ model Fleet {
   installationPaid  Boolean                 @default(false)
   upgradeRequested  Boolean                 @default(false)
   upgradeRequestedAt DateTime?              @db.Timestamptz(6)
+  monthlyRatePerBike Int                 @default(10000)
   createdAt         DateTime             @default(now()) @db.Timestamptz(6)
   users             User[]
   bikes             Bike[]

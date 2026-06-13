@@ -25,6 +25,8 @@ export interface SessionUser {
   email: string | null;
   phone: string | null;
   status: 'INVITED' | 'PENDING_SETUP' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  insurerName?: string | null;
+  monthlyRatePerBike?: number | null;
 }
 
 export interface Bike {

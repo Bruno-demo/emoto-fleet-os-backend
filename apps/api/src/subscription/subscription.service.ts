@@ -40,4 +40,27 @@ export class SubscriptionService {
       upgradeRequested: fleet.upgradeRequested,
     };
   }
+
+  async updateBillingRate(
+    user: AuthenticatedUser,
+    monthlyRatePerBike: number,
+  ): Promise<{ monthlyRatePerBike: number }> {
+    if (typeof monthlyRatePerBike !== 'number' || monthlyRatePerBike < 0) {
+      throw new BadRequestException('Invalid monthly rate per bike');
+    }
+
+    const fleet = await this.prismaService.fleet.update({
+      where: { id: user.fleetId },
+      data: {
+        monthlyRatePerBike: Math.round(monthlyRatePerBike),
+      },
+      select: {
+        monthlyRatePerBike: true,
+      },
+    });
+
+    return {
+      monthlyRatePerBike: fleet.monthlyRatePerBike,
+    };
+  }
 }

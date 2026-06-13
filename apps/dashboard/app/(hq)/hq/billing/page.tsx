@@ -29,6 +29,8 @@ const billingFleetSchema = z.array(
     upgradeRequested: z.boolean(),
     upgradeRequestedAt: z.string().nullable(),
     createdAt: z.string(),
+    insurerName: z.string().nullable().optional(),
+    monthlyRatePerBike: z.number().nullable().optional(),
     _count: z.object({
       users: z.number(),
       bikes: z.number(),
@@ -41,7 +43,7 @@ type BillingFleet = z.infer<typeof billingFleetSchema>[number];
 export default function HqBillingPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'PREMIUM' | 'CORE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'PREMIUM' | 'CORE' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
 
   const { data: fleets, isLoading } = useQuery({
@@ -82,11 +84,24 @@ export default function HqBillingPage() {
     },
   });
 
+  const updateBillingRateMutation = useMutation({
+    mutationFn: ({ fleetId, monthlyRatePerBike }: { fleetId: string; monthlyRatePerBike: number }) => 
+      apiFetch(`/hq/fleets/${fleetId}/billing-rate`, { 
+        method: 'PUT',
+        body: JSON.stringify({ monthlyRatePerBike }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
+    },
+  });
+
   // KPI calculations
   const totalCount = fleets?.length ?? 0;
-  const outstandingSetupCount = fleets?.filter(f => !f.installationPaid).length ?? 0;
+  const outstandingSetupCount = fleets?.filter(f => f.plan !== 'INSURANCE' && !f.installationPaid).length ?? 0;
+  const setupPaidCount = fleets?.filter(f => f.plan !== 'INSURANCE' && f.installationPaid).length ?? 0;
   const pendingUpgradeCount = fleets?.filter(f => f.upgradeRequested).length ?? 0;
   const premiumCount = fleets?.filter(f => f.plan === 'PREMIUM').length ?? 0;
+  const insuranceCount = fleets?.filter(f => f.plan === 'INSURANCE').length ?? 0;
   const activeSubCount = fleets?.filter(f => f.subscriptionStatus === 'ACTIVE').length ?? 0;
   const unpaidSubCount = fleets?.filter(f => f.subscriptionStatus !== 'ACTIVE').length ?? 0;
 
@@ -106,13 +121,15 @@ export default function HqBillingPage() {
         case 'PENDING_UPGRADE':
           return fleet.upgradeRequested;
         case 'UNPAID_SETUP':
-          return !fleet.installationPaid;
+          return fleet.plan !== 'INSURANCE' && !fleet.installationPaid;
         case 'PAID_SETUP':
-          return fleet.installationPaid;
+          return fleet.plan !== 'INSURANCE' && fleet.installationPaid;
         case 'PREMIUM':
           return fleet.plan === 'PREMIUM';
         case 'CORE':
           return fleet.plan === 'DEMO';
+        case 'INSURANCE':
+          return fleet.plan === 'INSURANCE';
         case 'SUB_ACTIVE':
           return fleet.subscriptionStatus === 'ACTIVE';
         case 'SUB_UNPAID':
@@ -263,7 +280,18 @@ export default function HqBillingPage() {
                 : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
             )}
           >
-            Setup Paid ({totalCount - outstandingSetupCount})
+            Setup Paid ({setupPaidCount})
+          </button>
+          <button
+            onClick={() => setFilterType('INSURANCE')}
+            className={cx(
+              "px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border",
+              filterType === 'INSURANCE' 
+                ? 'bg-purple-500/15 text-purple-400 border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border-transparent'
+            )}
+          >
+            Insurers ({insuranceCount})
           </button>
           <button
             onClick={() => setFilterType('SUB_ACTIVE')}
@@ -320,7 +348,8 @@ export default function HqBillingPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredFleets?.map((fleet) => {
               const setupAmount = fleet._count.bikes * 30000;
-              const monthlyAmount = fleet._count.bikes * (fleet.plan === 'PREMIUM' ? 10000 : 5000);
+              const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'PREMIUM' ? 10000 : fleet.plan === 'INSURANCE' ? 0 : 5000);
+              const monthlyAmount = fleet._count.bikes * rate;
               const hasUpgrade = fleet.upgradeRequested;
 
               return (
@@ -356,11 +385,16 @@ export default function HqBillingPage() {
                             "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
                             fleet.plan === 'PREMIUM'
                               ? 'bg-emerald-500/15 text-emerald-400'
+                              : fleet.plan === 'INSURANCE'
+                              ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
                               : 'bg-white/5 text-zinc-500'
                           )}>
-                            {fleet.plan === 'PREMIUM' ? 'Plus' : 'Core'}
+                            {fleet.plan === 'PREMIUM' ? 'Plus' : fleet.plan === 'INSURANCE' ? 'Insurance' : 'Core'}
                           </span>
-                          <span className="text-[10px] text-zinc-600">
+                          <span className="text-[10px] text-zinc-400">
+                            {fleet.insurerName ? `(${fleet.insurerName})` : ''}
+                          </span>
+                          <span className="text-[10px] text-zinc-650">
                             {fleet._count.users}u · {fleet._count.bikes}b
                           </span>
                         </div>
@@ -386,30 +420,32 @@ export default function HqBillingPage() {
                   )}
 
                   {/* Financial Status Row */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className={cx("grid gap-2 mb-3", fleet.plan === 'INSURANCE' ? "grid-cols-1" : "grid-cols-2")}>
                     {/* Setup Fee */}
-                    <div className={cx(
-                      "rounded-xl border p-3",
-                      fleet.installationPaid
-                        ? "border-emerald-500/10 bg-emerald-500/[0.03]"
-                        : "border-amber-500/15 bg-amber-500/[0.04]"
-                    )}>
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">Setup Fee</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-extrabold text-white">
-                          {setupAmount > 0 ? `${(setupAmount / 1000).toFixed(0)}k` : '0'}
-                        </span>
-                        <span className={cx(
-                          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold",
-                          fleet.installationPaid
-                            ? 'text-emerald-400'
-                            : 'text-amber-400'
-                        )}>
-                          <div className={cx("h-1 w-1 rounded-full", fleet.installationPaid ? 'bg-emerald-400' : 'bg-amber-400')} />
-                          {fleet.installationPaid ? 'Paid' : 'Due'}
-                        </span>
+                    {fleet.plan !== 'INSURANCE' && (
+                      <div className={cx(
+                        "rounded-xl border p-3",
+                        fleet.installationPaid
+                          ? "border-emerald-500/10 bg-emerald-500/[0.03]"
+                          : "border-amber-500/15 bg-amber-500/[0.04]"
+                      )}>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">Setup Fee</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-extrabold text-white">
+                            {setupAmount > 0 ? `${(setupAmount / 1000).toFixed(0)}k` : '0'}
+                          </span>
+                          <span className={cx(
+                            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                            fleet.installationPaid
+                              ? 'text-emerald-400'
+                              : 'text-amber-400'
+                          )}>
+                            <div className={cx("h-1 w-1 rounded-full", fleet.installationPaid ? 'bg-emerald-400' : 'bg-amber-400')} />
+                            {fleet.installationPaid ? 'Paid' : 'Due'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Monthly Sub */}
                     <div className={cx(
@@ -432,7 +468,7 @@ export default function HqBillingPage() {
                             ? 'text-emerald-400'
                             : fleet.subscriptionStatus === 'PAST_DUE'
                             ? 'text-rose-400'
-                            : 'text-zinc-500'
+                            : 'text-zinc-550'
                         )}>
                           <div className={cx("h-1 w-1 rounded-full",
                             fleet.subscriptionStatus === 'ACTIVE'
@@ -453,19 +489,21 @@ export default function HqBillingPage() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-1.5 pt-3 border-t border-white/[0.04]">
-                    <button
-                      onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
-                      disabled={toggleInstallationPaidMutation.isPending}
-                      className={cx(
-                        "flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-bold transition-all border cursor-pointer active:scale-95 disabled:opacity-50",
-                        fleet.installationPaid
-                          ? 'bg-white/[0.03] text-zinc-500 border-white/[0.04] hover:text-zinc-300 hover:bg-white/[0.06]'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/15'
-                      )}
-                    >
-                      <Banknote size={12} />
-                      {fleet.installationPaid ? 'Undo Setup' : 'Pay Setup'}
-                    </button>
+                    {fleet.plan !== 'INSURANCE' && (
+                      <button
+                        onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
+                        disabled={toggleInstallationPaidMutation.isPending}
+                        className={cx(
+                          "flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-bold transition-all border cursor-pointer active:scale-95 disabled:opacity-50",
+                          fleet.installationPaid
+                            ? 'bg-white/[0.03] text-zinc-500 border-white/[0.04] hover:text-zinc-300 hover:bg-white/[0.06]'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/15'
+                        )}
+                      >
+                        <Banknote size={12} />
+                        {fleet.installationPaid ? 'Undo Setup' : 'Pay Setup'}
+                      </button>
+                    )}
 
                     <button
                       onClick={() => updateSubscriptionStatusMutation.mutate({
@@ -507,8 +545,7 @@ export default function HqBillingPage() {
         onClose={() => setSelectedFleet(null)}
       >
         {activeFleetDetails && (
-          <div className="space-y-6">
-            {/* Plan Tier Highlight */}
+          <div className="space-y-6">            {/* Plan Tier Highlight */}
             <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-zinc-400">Service Plan</span>
@@ -516,9 +553,11 @@ export default function HqBillingPage() {
                   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border",
                   activeFleetDetails.plan === 'PREMIUM' 
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
+                    : activeFleetDetails.plan === 'INSURANCE'
+                    ? 'border-purple-500/30 bg-purple-500/10 text-purple-400 font-bold border-purple-500/30'
                     : 'border-line bg-white/5 text-zinc-455'
                 )}>
-                  {activeFleetDetails.plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core'}
+                  {activeFleetDetails.plan === 'PREMIUM' ? 'Operations Plus' : activeFleetDetails.plan === 'INSURANCE' ? 'Insurance' : 'Safety Core'}
                 </span>
               </div>
               
@@ -534,26 +573,58 @@ export default function HqBillingPage() {
               </div>
             </div>
 
-            {/* Setup Fee Details */}
+            {/* Monthly Rate Per Bike Edit */}
             <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">One-time Setup Fee (30k RWF/bike)</p>
-                <span className={cx(
-                  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
-                  activeFleetDetails.installationPaid 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                )}>
-                  {activeFleetDetails.installationPaid ? 'Paid' : 'Unpaid'}
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1.5 pt-1">
-                <span className="text-3xl font-extrabold text-white">
-                  {(activeFleetDetails._count.bikes * 30000).toLocaleString()}
-                </span>
-                <span className="text-xs text-zinc-400 font-semibold">RWF</span>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Edit Monthly Rate Per Bike (RWF)</p>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  defaultValue={activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'PREMIUM' ? 10000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 5000)}
+                  key={activeFleetDetails.id}
+                  id={`rate-input-${activeFleetDetails.id}`}
+                  placeholder="Rate in RWF..."
+                  className="h-9 w-full rounded-xl border border-line bg-background px-3 text-xs text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none transition-all"
+                />
+                <button
+                  onClick={() => {
+                    const el = document.getElementById(`rate-input-${activeFleetDetails.id}`) as HTMLInputElement;
+                    if (el) {
+                      updateBillingRateMutation.mutate({
+                        fleetId: activeFleetDetails.id,
+                        monthlyRatePerBike: Number(el.value),
+                      });
+                    }
+                  }}
+                  disabled={updateBillingRateMutation.isPending}
+                  className="shrink-0 h-9 px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  Save
+                </button>
               </div>
             </div>
+
+            {/* Setup Fee Details */}
+            {activeFleetDetails.plan !== 'INSURANCE' && (
+              <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">One-time Setup Fee (30k RWF/bike)</p>
+                  <span className={cx(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
+                    activeFleetDetails.installationPaid 
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  )}>
+                    {activeFleetDetails.installationPaid ? 'Paid' : 'Unpaid'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 pt-1">
+                  <span className="text-3xl font-extrabold text-white">
+                    {(activeFleetDetails._count.bikes * 30000).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-zinc-400 font-semibold">RWF</span>
+                </div>
+              </div>
+            )}
 
             {/* Monthly Subscription Cost */}
             <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
@@ -576,12 +647,12 @@ export default function HqBillingPage() {
               </div>
               <div className="flex items-baseline gap-1.5 pt-1">
                 <span className="text-3xl font-extrabold text-white">
-                  {(activeFleetDetails._count.bikes * (activeFleetDetails.plan === 'PREMIUM' ? 10000 : 5000)).toLocaleString()}
+                  {(activeFleetDetails._count.bikes * (activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'PREMIUM' ? 10000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 5000))).toLocaleString()}
                 </span>
                 <span className="text-xs text-zinc-400 font-semibold font-mono">RWF / month</span>
               </div>
-              <p className="text-[10px] text-zinc-500 leading-relaxed pt-1 border-t border-white/5">
-                Formula: {activeFleetDetails._count.bikes} bikes × {activeFleetDetails.plan === 'PREMIUM' ? '10,000' : '5,000'} RWF/mo
+              <p className="text-[10px] text-zinc-550 leading-relaxed pt-1 border-t border-white/5">
+                Formula: {activeFleetDetails._count.bikes} bikes × {(activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'PREMIUM' ? 10000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 5000)).toLocaleString()} RWF/mo
               </p>
             </div>
 
@@ -615,19 +686,21 @@ export default function HqBillingPage() {
                   </button>
                 )}
 
-                <button
-                  onClick={() => toggleInstallationPaidMutation.mutate(activeFleetDetails.id)}
-                  disabled={toggleInstallationPaidMutation.isPending}
-                  className={cx(
-                    "w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
-                    activeFleetDetails.installationPaid 
-                      ? 'bg-white/5 text-zinc-450 border-line hover:text-white' 
-                      : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  )}
-                >
-                  <Banknote size={14} />
-                  {activeFleetDetails.installationPaid ? 'Mark Setup Fee Unpaid' : 'Mark Setup Fee Paid'}
-                </button>
+                {activeFleetDetails.plan !== 'INSURANCE' && (
+                  <button
+                    onClick={() => toggleInstallationPaidMutation.mutate(activeFleetDetails.id)}
+                    disabled={toggleInstallationPaidMutation.isPending}
+                    className={cx(
+                      "w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold transition-all border cursor-pointer hover:bg-surface-hover active:scale-95 disabled:opacity-50 disabled:scale-100",
+                      activeFleetDetails.installationPaid 
+                        ? 'bg-white/5 text-zinc-450 border-line hover:text-white' 
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    )}
+                  >
+                    <Banknote size={14} />
+                    {activeFleetDetails.installationPaid ? 'Mark Setup Fee Unpaid' : 'Mark Setup Fee Paid'}
+                  </button>
+                )}
 
                 <button
                   onClick={() => updateSubscriptionStatusMutation.mutate({

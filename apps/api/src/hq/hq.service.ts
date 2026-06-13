@@ -1993,7 +1993,7 @@ export class HqService {
   }
 
   async getBillingFleets() {
-    return this.prisma.fleet.findMany({
+    const fleets = await this.prisma.fleet.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -2004,11 +2004,40 @@ export class HqService {
         upgradeRequested: true,
         upgradeRequestedAt: true,
         createdAt: true,
+        insurerName: true,
+        monthlyRatePerBike: true,
         _count: {
           select: { users: true, bikes: true },
         },
       },
     });
+
+    const result = [];
+    for (const f of fleets) {
+      let bikeCount = f._count.bikes;
+      if (f.plan === 'INSURANCE' && f.insurerName) {
+        bikeCount = await this.prisma.bike.count({
+          where: { insurerName: f.insurerName },
+        });
+      }
+      result.push({
+        id: f.id,
+        name: f.name,
+        plan: f.plan,
+        subscriptionStatus: f.subscriptionStatus,
+        installationPaid: f.installationPaid,
+        upgradeRequested: f.upgradeRequested,
+        upgradeRequestedAt: f.upgradeRequestedAt,
+        createdAt: f.createdAt,
+        insurerName: f.insurerName,
+        monthlyRatePerBike: f.monthlyRatePerBike,
+        _count: {
+          users: f._count.users,
+          bikes: bikeCount,
+        },
+      });
+    }
+    return result;
   }
 
   async toggleInstallationPayment(fleetId: string, actor: AuthenticatedUser) {
@@ -2066,6 +2095,41 @@ export class HqService {
       metaJson: {
         approvedUpgrade: true,
         plan: 'PREMIUM',
+      },
+    });
+
+    return updated;
+  }
+
+  async updateFleetBillingRate(
+    fleetId: string,
+    monthlyRatePerBike: number,
+    actor: AuthenticatedUser,
+  ) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    if (typeof monthlyRatePerBike !== 'number' || monthlyRatePerBike < 0) {
+      throw new BadRequestException('Invalid monthly rate per bike');
+    }
+
+    const updated = await this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: { monthlyRatePerBike: Math.round(monthlyRatePerBike) },
+      select: { id: true, name: true, monthlyRatePerBike: true },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_PLAN_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        oldRate: fleet.monthlyRatePerBike,
+        newRate: monthlyRatePerBike,
       },
     });
 

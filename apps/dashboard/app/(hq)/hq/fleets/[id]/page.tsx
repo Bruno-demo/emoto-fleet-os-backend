@@ -602,6 +602,8 @@ export default function FleetDetailPage() {
                   ? 'Operations Plus'
                   : fleet.plan === 'DEMO'
                   ? 'Safety Core'
+                  : fleet.plan === 'INSURANCE'
+                  ? 'Insurance'
                   : fleet.plan}
               </p>
               <p className="mt-1 text-xs text-zinc-600">

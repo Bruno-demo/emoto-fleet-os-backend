@@ -24,6 +24,7 @@ export interface AuthenticatedUser {
   phone: string | null;
   status: UserStatus;
   insurerName?: string | null;
+  monthlyRatePerBike?: number;
 }
 
 export interface AuthenticatedRequest extends Request {

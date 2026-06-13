@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FleetPlan, FleetSubscriptionStatus, UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -25,5 +25,15 @@ export class SubscriptionController {
     upgradeRequested: boolean;
   }> {
     return this.subscriptionService.updateCurrentFleetPlan(user, body.plan);
+  }
+
+  @Put('billing-rate')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.INSURER)
+  @ApiOperation({ summary: 'Update custom monthly payment rate per bike' })
+  async updateBillingRate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { monthlyRatePerBike: number },
+  ) {
+    return this.subscriptionService.updateBillingRate(user, body.monthlyRatePerBike);
   }
 }
