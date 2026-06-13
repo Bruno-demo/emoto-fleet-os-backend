@@ -74,7 +74,7 @@ export function Drawer({
         aria-label={title}
       >
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-transparent px-5 py-4">
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-background px-5 py-4">
           <div className="min-w-0 pt-0.5">
             <h2 className="truncate font-display text-base font-bold text-ink">{title}</h2>
             {description ? (
