@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { AuthenticatedUser } from '../auth/auth.types';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import { RoadFeaturesQueryDto } from './dto/road-features-query.dto';
 import { RoadFeaturesService } from './roads.service';
 import type { RoadFeatureBounds, RoadFeatureSummary } from './roads.types';

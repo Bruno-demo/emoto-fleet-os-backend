@@ -165,6 +165,7 @@ export class RoadFeaturesService {
         });
       }),
     );
+    return true;
   }
 
   // Queries the database for features in a bounding box.
