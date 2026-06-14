@@ -308,6 +308,33 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
       },
     });
     assignedBikeId = assignedBike.id;
+
+    await prisma.roadFeature.upsert({
+      where: {
+        source_osmId_osmType: {
+          source: 'OSM',
+          osmId: '100040',
+          osmType: 'WAY',
+        },
+      },
+      update: {
+        type: 'SCHOOL',
+        name: 'Muhima Primary School',
+        speedLimitKph: 15,
+        lat: -1.945,
+        lng: 30.055,
+      },
+      create: {
+        source: 'OSM',
+        osmId: '100040',
+        osmType: 'WAY',
+        type: 'SCHOOL',
+        name: 'Muhima Primary School',
+        speedLimitKph: 15,
+        lat: -1.945,
+        lng: 30.055,
+      },
+    });
   };
 
   // Computes the persisted hash format used for device secrets.
