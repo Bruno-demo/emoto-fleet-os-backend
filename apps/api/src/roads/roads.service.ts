@@ -222,7 +222,9 @@ export class RoadFeaturesService {
       const response = await fetch(this.overpassUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'eMotoFleetOS/1.0 (contact: admin@emoto.io)',
+          'Accept': 'application/json',
         },
         body: `data=${encodeURIComponent(query)}`,
       });
