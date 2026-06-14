@@ -588,9 +588,10 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .set('Authorization', `Bearer ${insurerSameFleetToken}`)
         .expect(200);
 
-      console.log('INSURER road features response length:', response.body?.length);
-      expect(response.body).toBeDefined();
-      expect(response.body).toEqual([]);
+      const body = response.body as unknown[];
+      console.log('INSURER road features response length:', body?.length);
+      expect(body).toBeDefined();
+      expect(body).toEqual([]);
     });
 
     it('allows OWNER/ADMIN to fetch road features and returns populated results', async () => {
@@ -599,9 +600,10 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      console.log('OWNER/ADMIN road features response length:', response.body?.length);
-      expect(response.body).toBeDefined();
-      expect(response.body.length).toBeGreaterThan(0);
+      const body = response.body as unknown[];
+      console.log('OWNER/ADMIN road features response length:', body?.length);
+      expect(body).toBeDefined();
+      expect(body.length).toBeGreaterThan(0);
     });
 
     it('blocks INSURER from accessing details of bike insured by another company', async () => {

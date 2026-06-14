@@ -191,19 +191,19 @@ export class RoadFeaturesService {
   }
 
   // Pulls road, amenity, and sign features from the Overpass API.
-  private async fetchOverpassFeatures(bounds: RoadFeatureBounds): Promise<
-    Array<{
-      id: string;
-      osmId: string;
-      osmType: RoadFeatureOsmType;
-      type: RoadFeatureType;
-      name: string | null;
-      speedLimitKph: number | null;
-      lat: number;
-      lng: number;
-      tagsJson: Record<string, string> | null;
-    }> | null
-  > {
+  private async fetchOverpassFeatures(
+    bounds: RoadFeatureBounds,
+  ): Promise<Array<{
+    id: string;
+    osmId: string;
+    osmType: RoadFeatureOsmType;
+    type: RoadFeatureType;
+    name: string | null;
+    speedLimitKph: number | null;
+    lat: number;
+    lng: number;
+    tagsJson: Record<string, string> | null;
+  }> | null> {
     const bbox = `${bounds.minLat},${bounds.minLng},${bounds.maxLat},${bounds.maxLng}`;
     const query = `
       [out:json][timeout:25];
