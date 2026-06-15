@@ -97,7 +97,7 @@ export default function DocsPage() {
         <div className="grid gap-10 lg:grid-cols-12">
           {/* Sidebar Directory */}
           <div className="lg:col-span-3">
-            <div className="sticky top-24 space-y-6 text-left max-h-[80vh] overflow-y-auto pr-2">
+            <div className="sticky top-24 space-y-6 text-left">
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3">Core Manual</h3>
                 <ul className="space-y-2.5 text-xs md:text-sm">
@@ -120,40 +120,7 @@ export default function DocsPage() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3">SaaS User Guide</h3>
                 <ul className="space-y-2.5 text-xs md:text-sm">
                   <li>
-                    <a href="#guide-auth" className="block text-zinc-400 transition hover:text-white">1. Login &amp; Register</a>
-                  </li>
-                  <li>
-                    <a href="#guide-overview" className="block text-zinc-400 transition hover:text-white">2. Fleet Overview</a>
-                  </li>
-                  <li>
-                    <a href="#guide-live" className="block text-zinc-400 transition hover:text-white">3. Live Map &amp; GPS</a>
-                  </li>
-                  <li>
-                    <a href="#guide-bikes" className="block text-zinc-400 transition hover:text-white">4. Bike Inventory</a>
-                  </li>
-                  <li>
-                    <a href="#guide-devices" className="block text-zinc-400 transition hover:text-white">5. Telemetry &amp; Binding</a>
-                  </li>
-                  <li>
-                    <a href="#guide-riders" className="block text-zinc-400 transition hover:text-white">6. Rider Directory</a>
-                  </li>
-                  <li>
-                    <a href="#guide-incidents" className="block text-zinc-400 transition hover:text-white">7. Incident Command</a>
-                  </li>
-                  <li>
-                    <a href="#guide-geofencing" className="block text-zinc-400 transition hover:text-white">8. Geofencing (Zones)</a>
-                  </li>
-                  <li>
-                    <a href="#guide-financials" className="block text-zinc-400 transition hover:text-white">9. Financials &amp; Leasing</a>
-                  </li>
-                  <li>
-                    <a href="#guide-settings" className="block text-zinc-400 transition hover:text-white">10. Settings &amp; Webhooks</a>
-                  </li>
-                  <li>
-                    <a href="#guide-insurer" className="block text-zinc-400 transition hover:text-white">11. Insurer Portal</a>
-                  </li>
-                  <li>
-                    <a href="#guide-hq" className="block text-zinc-400 transition hover:text-white">12. HQ Control Desk</a>
+                    <a href="#saas-user-guide" className="block text-zinc-400 transition hover:text-white">Platform Screen Guide</a>
                   </li>
                 </ul>
               </div>
@@ -347,7 +314,16 @@ export default function DocsPage() {
             </div>
 
             {/* --- SaaS Screen-by-Screen User Guide --- */}
-            
+            <div id="saas-user-guide" className="space-y-6 scroll-mt-24 border-t border-white/[0.06] pt-10">
+              <div className="flex items-center gap-3">
+                <BookOpen size={20} className="text-zinc-400" />
+                <h2 className="text-xl font-bold text-white">SaaS Screen-by-Screen User Guide</h2>
+              </div>
+              <p className="text-xs md:text-sm leading-relaxed text-zinc-400">
+                Detailed guides for each screen in the eMoto Fleet OS dashboard, detailing their operational purpose, key actions, troubleshooting, and best practices.
+              </p>
+            </div>
+
             {/* 1. Landing & Auth */}
             <div id="guide-auth" className="space-y-6 scroll-mt-24 border-t border-white/[0.06] pt-10">
               <div className="flex items-center gap-3">
