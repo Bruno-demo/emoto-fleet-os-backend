@@ -14,13 +14,11 @@ import {
   Layers,
   CheckCircle,
   Lock,
-  Unlock,
   Settings,
   DollarSign,
   MapPin,
   Users,
   Smartphone,
-  History,
   UserCheck,
   Globe,
   AlertOctagon,
@@ -370,8 +368,8 @@ export default function DocsPage() {
                 </div>
                 <div className="rounded-lg border border-red-500/10 bg-red-500/[0.01] p-5 text-xs text-zinc-500 leading-relaxed">
                   <strong className="text-red-400 block mb-2">Common Errors:</strong>
-                  <p className="mb-2">⚠️ <strong>"Invalid Credentials":</strong> Check for leading spaces in the email. Passwords require a capital letter, a number, and a symbol.</p>
-                  <p>⚠️ <strong>"Account Pending HQ Verification":</strong> Newly registered fleets are locked until approved by the eMoto HQ admin team.</p>
+                  <p className="mb-2">⚠️ <strong>&quot;Invalid Credentials&quot;:</strong> Check for leading spaces in the email. Passwords require a capital letter, a number, and a symbol.</p>
+                  <p>⚠️ <strong>&quot;Account Pending HQ Verification&quot;:</strong> Newly registered fleets are locked until approved by the eMoto HQ admin team.</p>
                 </div>
               </div>
             </div>
@@ -418,14 +416,14 @@ export default function DocsPage() {
                 <h2 className="text-xl font-bold text-white">SaaS Guide 3: Live Map &amp; GPS Tracking</h2>
               </div>
               <p className="text-xs md:text-sm leading-relaxed text-zinc-400">
-                Monitor vehicle locations in real-time on Kigali's streets. The map aggregates traffic signs, speed warnings, and school boundaries to flag risky driver behavior.
+                Monitor vehicle locations in real-time on Kigali&apos;s streets. The map aggregates traffic signs, speed warnings, and school boundaries to flag risky driver behavior.
               </p>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] p-5">
                   <h4 className="text-xs font-bold text-white">Available Map Controls</h4>
                   <ul className="list-disc list-inside mt-3 text-xs text-zinc-500 space-y-2 leading-relaxed">
                     <li><strong>Auto-Center:</strong> Click any vehicle plate in the sidebar directory to zoom and snap the map layout onto its GPS point.</li>
-                    <li><strong>Road Context Overlay:</strong> Toggle the "Road Context" switch to display local safety hazards (schools, market crossings, speed signs) on the canvas.</li>
+                    <li><strong>Road Context Overlay:</strong> Toggle the &quot;Road Context&quot; switch to display local safety hazards (schools, market crossings, speed signs) on the canvas.</li>
                     <li><strong>Relay Immobilization:</strong> Select an active bike, click the Lock command, and enter password validation to cut the starter ignition relay.</li>
                   </ul>
                 </div>
@@ -452,7 +450,7 @@ export default function DocsPage() {
                 <div className="grid gap-4 md:grid-cols-2 text-xs text-zinc-500 leading-relaxed">
                   <div>
                     <strong className="text-white">Adding a Bike:</strong>
-                    <p className="mt-1">Click the "+ Add Bike" button, enter the chassis number, Rwanda license plate number, battery configuration (72V/60Ah), and select the manufacturing year.</p>
+                    <p className="mt-1">Click the &quot;+ Add Bike&quot; button, enter the chassis number, Rwanda license plate number, battery configuration (72V/60Ah), and select the manufacturing year.</p>
                   </div>
                   <div>
                     <strong className="text-white">Setting Lease Progress:</strong>
@@ -476,7 +474,7 @@ export default function DocsPage() {
                   <h4 className="text-xs font-bold text-white">Binding Steps</h4>
                   <ol className="list-decimal list-inside mt-3 text-xs text-zinc-500 space-y-2 leading-relaxed">
                     <li>Navigate to the **Devices** control panel.</li>
-                    <li>Click **"Bind New Unit"**.</li>
+                    <li>Click **&quot;Bind New Unit&quot;**.</li>
                     <li>Input the 15-digit **SinoTrack Device UID**.</li>
                     <li>Select the target **Bike ID** plate from the dropdown menu.</li>
                     <li>Input the SIM card cellular phone number and choose carrier (**MTN** or **Airtel**).</li>
@@ -484,7 +482,7 @@ export default function DocsPage() {
                 </div>
                 <div className="rounded-lg border border-yellow-500/10 bg-yellow-500/[0.01] p-5 text-xs text-zinc-500 leading-relaxed">
                   <strong className="text-yellow-500 block mb-2">Hardware Setup Check:</strong>
-                  <p className="mb-2">Before leaving the workshop, make sure the installer sends the SMS setup strings to the SIM card. The yellow signal lights on the tracker must be solid before you click "Test Stream".</p>
+                  <p className="mb-2">Before leaving the workshop, make sure the installer sends the SMS setup strings to the SIM card. The yellow signal lights on the tracker must be solid before you click &quot;Test Stream&quot;.</p>
                   <p>Refer to the <a href="#sinotrack" className="text-blue-400 hover:underline">SinoTrack SMS Programming guide</a> below for commands.</p>
                 </div>
               </div>
@@ -553,7 +551,7 @@ export default function DocsPage() {
                   </div>
                   <div>
                     <strong className="text-white">Setting Zone Rules:</strong>
-                    <p className="mt-1">Define maximum speeds inside the boundary. Choose "Notify Operators" or "Automatic Cutoff" if a vehicle crosses geofence boundaries during restricted night hours.</p>
+                    <p className="mt-1">Define maximum speeds inside the boundary. Choose &quot;Notify Operators&quot; or &quot;Automatic Cutoff&quot; if a vehicle crosses geofence boundaries during restricted night hours.</p>
                   </div>
                 </div>
               </div>
