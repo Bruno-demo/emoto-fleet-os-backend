@@ -35,11 +35,11 @@ const CORE_FEATURES: DashboardFeature[] = [
   'bikes',
   'riders',
   'settings',
-  'commands',
 ];
 
 const PREMIUM_FEATURES: DashboardFeature[] = [
   ...CORE_FEATURES,
+  'commands',
   'devices',
   'zones',
   'reports',
@@ -51,6 +51,7 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
 
 const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
+  commands: 'Remote commands',
   devices: 'Device provisioning',
   zones: 'Policy zones',
   reports: 'Trip analytics and reports',

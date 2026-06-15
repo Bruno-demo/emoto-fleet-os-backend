@@ -45,10 +45,7 @@ export class SubscriptionFeatureGuard implements CanActivate {
     if (
       user.subscriptionStatus === FleetSubscriptionStatus.ACTIVE &&
       (user.fleetPlan === FleetPlan.PREMIUM ||
-        user.fleetPlan === FleetPlan.INSURANCE ||
-        feature === 'reports' ||
-        feature === 'commands' ||
-        (feature === 'devices' && request.method === 'GET'))
+        user.fleetPlan === FleetPlan.INSURANCE)
     ) {
       return true;
     }
