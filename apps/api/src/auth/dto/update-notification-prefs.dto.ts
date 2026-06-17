@@ -4,13 +4,13 @@ import { ApiProperty } from '@nestjs/swagger';
 export class UpdateNotificationPrefsDto {
   @ApiProperty()
   @IsBoolean()
-  openIncidents: boolean;
+  openIncidents!: boolean;
 
   @ApiProperty()
   @IsBoolean()
-  sosAlerts: boolean;
+  sosAlerts!: boolean;
 
   @ApiProperty()
   @IsBoolean()
-  crashEvents: boolean;
+  crashEvents!: boolean;
 }
