@@ -301,7 +301,13 @@ export function LiveMapPanel() {
 
   // Batches bursty realtime events into grouped toasts so the operator feed stays readable.
   useEffect(() => {
-    const unseenEvents = recentEvents.filter((event) => !seenEventIdsRef.current.has(event.id));
+    const unseenEvents = recentEvents
+      .filter((event) => !seenEventIdsRef.current.has(event.id))
+      .filter((event) => {
+        if (event.type === 'SOS' && currentUser?.notifSosAlerts === false) return false;
+        if (event.type === 'CRASH' && currentUser?.notifCrashEvents === false) return false;
+        return true;
+      });
     if (!unseenEvents.length) {
       return;
     }

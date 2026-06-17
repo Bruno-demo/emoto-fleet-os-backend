@@ -28,6 +28,9 @@ export const authUserSchema = z.object({
   status: userStatusSchema,
   insurerName: z.string().nullable().optional(),
   monthlyRatePerBike: z.number().nullable().optional(),
+  notifOpenIncidents: z.boolean().optional().default(true),
+  notifSosAlerts: z.boolean().optional().default(true),
+  notifCrashEvents: z.boolean().optional().default(true),
 });
 
 export const loginFormSchema = z.object({

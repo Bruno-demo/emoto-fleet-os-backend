@@ -27,6 +27,9 @@ export interface SessionUser {
   status: 'INVITED' | 'PENDING_SETUP' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
   insurerName?: string | null;
   monthlyRatePerBike?: number | null;
+  notifOpenIncidents?: boolean;
+  notifSosAlerts?: boolean;
+  notifCrashEvents?: boolean;
 }
 
 export interface Bike {

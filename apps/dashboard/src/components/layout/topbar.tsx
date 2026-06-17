@@ -35,7 +35,8 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
     enabled: canViewIncidents,
   });
 
-  const openCount = canViewIncidents ? incidentsQuery.data?.total ?? 0 : 0;
+  const showBadge = user?.notifOpenIncidents ?? true;
+  const openCount = canViewIncidents && showBadge ? incidentsQuery.data?.total ?? 0 : 0;
   const openIncidents = canViewIncidents ? incidentsQuery.data?.data ?? [] : [];
 
   const fleetLabel =

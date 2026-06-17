@@ -25,6 +25,9 @@ export interface AuthenticatedUser {
   status: UserStatus;
   insurerName?: string | null;
   monthlyRatePerBike?: number;
+  notifOpenIncidents: boolean;
+  notifSosAlerts: boolean;
+  notifCrashEvents: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

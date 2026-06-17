@@ -9,6 +9,7 @@ import {
   NotificationChannel,
   NotificationType,
   Prisma,
+  UserStatus,
 } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/auth.types';
 import {
@@ -71,7 +72,21 @@ export class IncidentsService {
           },
         });
 
+        const activeUsers = await tx.user.findMany({
+          where: {
+            fleetId: event.fleetId,
+            status: UserStatus.ACTIVE,
+            notifCrashEvents: true,
+          },
+          select: {
+            email: true,
+            phone: true,
+          },
+        });
+
         const notificationIds: string[] = [];
+
+        // 1. Dispatch to emergency contacts (SMS)
         for (const contact of activeContacts) {
           const notification = await tx.notification.create({
             data: {
@@ -87,6 +102,43 @@ export class IncidentsService {
             select: { id: true },
           });
           notificationIds.push(notification.id);
+        }
+
+        // 2. Dispatch to fleet operators (Email and SMS based on preferences)
+        for (const user of activeUsers) {
+          if (user.email) {
+            const emailNotif = await tx.notification.create({
+              data: {
+                fleetId: event.fleetId,
+                type: NotificationType.CRASH_ALERT,
+                channel: NotificationChannel.EMAIL,
+                to: user.email,
+                payloadJson: this.buildCrashNotificationPayload(
+                  event,
+                  incident.id,
+                ),
+              },
+              select: { id: true },
+            });
+            notificationIds.push(emailNotif.id);
+          }
+
+          if (user.phone) {
+            const smsNotif = await tx.notification.create({
+              data: {
+                fleetId: event.fleetId,
+                type: NotificationType.CRASH_ALERT,
+                channel: NotificationChannel.SMS,
+                to: user.phone,
+                payloadJson: this.buildCrashNotificationPayload(
+                  event,
+                  incident.id,
+                ),
+              },
+              select: { id: true },
+            });
+            notificationIds.push(smsNotif.id);
+          }
         }
 
         return {
@@ -146,7 +198,21 @@ export class IncidentsService {
           },
         });
 
+        const activeUsers = await tx.user.findMany({
+          where: {
+            fleetId: event.fleetId,
+            status: UserStatus.ACTIVE,
+            notifSosAlerts: true,
+          },
+          select: {
+            email: true,
+            phone: true,
+          },
+        });
+
         const notificationIds: string[] = [];
+
+        // 1. Dispatch to emergency contacts (SMS)
         for (const contact of activeContacts) {
           const notification = await tx.notification.create({
             data: {
@@ -167,6 +233,53 @@ export class IncidentsService {
             select: { id: true },
           });
           notificationIds.push(notification.id);
+        }
+
+        // 2. Dispatch to fleet operators (Email and SMS based on preferences)
+        for (const user of activeUsers) {
+          if (user.email) {
+            const emailNotif = await tx.notification.create({
+              data: {
+                fleetId: event.fleetId,
+                type: NotificationType.SOS_ALERT,
+                channel: NotificationChannel.EMAIL,
+                to: user.email,
+                payloadJson: {
+                  incidentId: incident.id,
+                  eventId: event.id,
+                  bikeId: event.bikeId,
+                  deviceId: event.deviceId,
+                  severity: event.severity,
+                  eventTs: event.ts.toISOString(),
+                  eventType: event.type,
+                },
+              },
+              select: { id: true },
+            });
+            notificationIds.push(emailNotif.id);
+          }
+
+          if (user.phone) {
+            const smsNotif = await tx.notification.create({
+              data: {
+                fleetId: event.fleetId,
+                type: NotificationType.SOS_ALERT,
+                channel: NotificationChannel.SMS,
+                to: user.phone,
+                payloadJson: {
+                  incidentId: incident.id,
+                  eventId: event.id,
+                  bikeId: event.bikeId,
+                  deviceId: event.deviceId,
+                  severity: event.severity,
+                  eventTs: event.ts.toISOString(),
+                  eventType: event.type,
+                },
+              },
+              select: { id: true },
+            });
+            notificationIds.push(smsNotif.id);
+          }
         }
 
         return {

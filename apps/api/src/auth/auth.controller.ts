@@ -28,6 +28,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { RegisterSelfDto } from './dto/register-self.dto';
 import { ContactInquiryDto } from './dto/contact-inquiry.dto';
+import { UpdateNotificationPrefsDto } from './dto/update-notification-prefs.dto';
 import type { AuthenticatedUser } from './auth.types';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
@@ -415,5 +416,14 @@ export class MeController {
   @ApiOperation({ summary: 'Return current authenticated user' })
   async me(@CurrentUser() user: AuthenticatedUser): Promise<AuthenticatedUser> {
     return this.authService.me(user.id);
+  }
+
+  @Put('me/notifications')
+  @ApiOperation({ summary: 'Update current user notification preferences' })
+  async updateNotificationPrefs(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: UpdateNotificationPrefsDto,
+  ): Promise<AuthenticatedUser> {
+    return this.authService.updateNotificationPrefs(user.id, body);
   }
 }

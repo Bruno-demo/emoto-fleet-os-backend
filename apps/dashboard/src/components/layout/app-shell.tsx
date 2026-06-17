@@ -28,7 +28,8 @@ export function AppShell({ children }: AppShellProps) {
     refetchInterval: 30_000,
     enabled: canViewIncidents,
   });
-  const openIncidentCount = canViewIncidents ? incidentsStatsQuery.data?.open ?? 0 : 0;
+  const showBadge = user?.notifOpenIncidents ?? true;
+  const openIncidentCount = canViewIncidents && showBadge ? incidentsStatsQuery.data?.open ?? 0 : 0;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');

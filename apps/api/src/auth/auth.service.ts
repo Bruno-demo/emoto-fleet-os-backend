@@ -30,6 +30,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { RegisterSelfDto } from './dto/register-self.dto';
 import { ContactInquiryDto } from './dto/contact-inquiry.dto';
+import { UpdateNotificationPrefsDto } from './dto/update-notification-prefs.dto';
 import { MailService } from '../mail/mail.service';
 
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -43,6 +44,9 @@ const userSelectForAuth = {
   phone: true,
   passwordHash: true,
   status: true,
+  notifOpenIncidents: true,
+  notifSosAlerts: true,
+  notifCrashEvents: true,
   fleet: {
     select: {
       name: true,
@@ -1101,6 +1105,23 @@ export class AuthService {
     return this.loadUserOrThrow(userId);
   }
 
+  // Updates the notification preferences of the authenticated user.
+  async updateNotificationPrefs(
+    userId: string,
+    dto: UpdateNotificationPrefsDto,
+  ): Promise<AuthenticatedUser> {
+    const updated = await this.prismaService.user.update({
+      where: { id: userId },
+      data: {
+        notifOpenIncidents: dto.openIncidents,
+        notifSosAlerts: dto.sosAlerts,
+        notifCrashEvents: dto.crashEvents,
+      },
+      select: userSelectForAuth,
+    });
+    return this.toAuthenticatedUser(updated);
+  }
+
   // Verifies an access token and returns the active user identity.
   async authenticateAccessToken(
     accessToken: string,
@@ -1377,6 +1398,9 @@ export class AuthService {
       status: user.status,
       insurerName: user.fleet.insurerName,
       monthlyRatePerBike: user.fleet.monthlyRatePerBike,
+      notifOpenIncidents: user.notifOpenIncidents,
+      notifSosAlerts: user.notifSosAlerts,
+      notifCrashEvents: user.notifCrashEvents,
     };
   }
 
