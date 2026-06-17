@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
   BadgeCheck,
@@ -8,6 +8,7 @@ import {
   Bike,
   ChevronLeft,
   ShieldCheck,
+  Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -15,6 +16,30 @@ import { useState, useEffect } from 'react';
 import { RequireAuth } from '@/components/auth/require-auth';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { subscriptionCheckoutResponseSchema } from '@/lib/api/schemas';
+interface PricingTier {
+  id: string;
+  name: string;
+  planCode: string;
+  monthlyRatePerBike: number;
+  setupFeePerBike: number;
+  description: string | null;
+  isActive: boolean;
+}
+
+interface PromoDiscount {
+  id: string;
+  name: string;
+  code: string | null;
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  value: string;
+  appliesTo: 'SETUP_FEE' | 'SUBSCRIPTION' | 'BOTH';
+  maxUses: number | null;
+  usedCount: number;
+  validFrom: string | null;
+  validUntil: string | null;
+  fleetId: string | null;
+  isActive: boolean;
+}
 
 const PLAN_DETAILS: Record<
   string,
@@ -80,6 +105,23 @@ function CheckoutContent() {
   const [error, setError] = useState<string | null>(null);
   const isOperationsPlus = planSlug === 'operations-plus';
 
+  // Dynamic pricing & promo codes
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<PromoDiscount | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
+  const { data: pricingTiers } = useQuery<PricingTier[]>({
+    queryKey: ['billing', 'pricing-tiers'],
+    queryFn: () => apiFetch<PricingTier[]>('/billing/pricing'),
+  });
+
+  const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
+  const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
+
+  const displayPrice = isOperationsPlus
+    ? (premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF` : '10,000 RWF')
+    : (demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF` : '5,000 RWF');
+
   useEffect(() => {
     if (!showSuccess) return;
     if (countdown <= 0) {
@@ -119,11 +161,49 @@ function CheckoutContent() {
     },
   });
 
+  const handleValidatePromo = async () => {
+    setPromoError(null);
+    setAppliedDiscount(null);
+    if (!promoCode.trim()) return;
+
+    try {
+      const originalAmount = isOperationsPlus
+        ? (premiumTier?.monthlyRatePerBike ?? 10000)
+        : (demoTier?.monthlyRatePerBike ?? 5000);
+      const res = await apiFetch<{ discount: PromoDiscount }>('/billing/validate-discount', {
+        method: 'POST',
+        body: JSON.stringify({
+          code: promoCode,
+          originalAmount,
+          target: 'subscription',
+        }),
+      });
+      setAppliedDiscount(res.discount);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setPromoError(err.message);
+      } else {
+        setPromoError('Invalid code');
+      }
+    }
+  };
+
+  const handleConfirm = () => {
+    setError(null);
+    setConfirmed(false);
+
+    if (!isOperationsPlus) {
+      setError('Only Operations Plus checkout is available in the dashboard right now.');
+      return;
+    }
+
+    checkoutMutation.mutate();
+  };
+
   if (showSuccess) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-ink px-6">
         <div className="w-full max-w-lg rounded-3xl border border-white/[0.06] bg-[var(--background-subtle)] p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
-          {/* Subtle top light effect */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
           
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 border border-accent/30 text-accent">
@@ -186,18 +266,6 @@ function CheckoutContent() {
     );
   }
 
-  const handleConfirm = () => {
-    setError(null);
-    setConfirmed(false);
-
-    if (!isOperationsPlus) {
-      setError('Only Operations Plus checkout is available in the dashboard right now.');
-      return;
-    }
-
-    checkoutMutation.mutate();
-  };
-
   return (
     <div className="min-h-screen bg-background text-ink">
       {/* Header */}
@@ -246,7 +314,7 @@ function CheckoutContent() {
               </p>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-4xl font-extrabold text-ink">
-                  {plan.price}
+                  {displayPrice}
                 </span>
                 {plan.period && (
                   <span className="text-sm text-ink-muted">{plan.period}</span>
@@ -314,6 +382,38 @@ function CheckoutContent() {
               </div>
             </div>
 
+            {/* Promo Code Card */}
+            <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
+                Have a promo code?
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter code..."
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleValidatePromo}
+                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95"
+                >
+                  Apply
+                </button>
+              </div>
+              {appliedDiscount ? (
+                <p className="text-xs text-success-ink font-semibold flex items-center gap-1.5">
+                  <Check size={12} /> {`Discount "${String(appliedDiscount.name)}" applied successfully!`}
+                </p>
+              ) : promoError ? (
+                <p className="text-xs text-danger-ink font-semibold">
+                  {promoError}
+                </p>
+              ) : null}
+            </div>
+
             {/* Confirm */}
             <button
               type="button"
@@ -379,4 +479,3 @@ function CheckoutContent() {
     </div>
   );
 }
-

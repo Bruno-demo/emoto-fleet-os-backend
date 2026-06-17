@@ -26,6 +26,7 @@ import { TripsModule } from './trips/trips.module';
 import { ZonesModule } from './zones/zones.module';
 import { FinancialsModule } from './financials/financials.module';
 import { MailModule } from './mail/mail.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { MailModule } from './mail/mail.module';
     SubscriptionModule,
     FinancialsModule,
     MailModule,
+    BillingModule,
   ],
   providers: [
     {

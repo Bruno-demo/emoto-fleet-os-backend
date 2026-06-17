@@ -209,6 +209,16 @@ enum AuditActionType {
   WEBHOOK_DELETED
   INSTALLATION_PAYMENT_TOGGLED
   UPGRADE_APPROVED
+  BILLING_CYCLE_GENERATED
+  BILLING_PAYMENT_RECORDED
+  BILLING_OVERDUE_MARKED
+  BILLING_REMINDER_SENT
+  DISCOUNT_CREATED
+  DISCOUNT_UPDATED
+  PRICING_TIER_UPDATED
+  BILLING_CONFIG_UPDATED
+  TRIAL_STARTED
+  TRIAL_EXPIRED
 }
 
 model Fleet {
@@ -223,6 +233,9 @@ model Fleet {
   upgradeRequestedAt DateTime?              @db.Timestamptz(6)
   monthlyRatePerBike Int                 @default(10000)
   createdAt         DateTime             @default(now()) @db.Timestamptz(6)
+  trialStartedAt    DateTime?            @db.Timestamptz(6)
+  trialEndsAt       DateTime?            @db.Timestamptz(6)
+  billingStartedAt  DateTime?            @db.Timestamptz(6)
   users             User[]
   bikes             Bike[]
   devices           Device[]
@@ -240,6 +253,9 @@ model Fleet {
   bikeAssignments   BikeAssignment[]
   pois              Poi[]
   payments          RiderPayment[]
+  billingCycles     BillingCycle[]
+  billingPayments   BillingPayment[]
+  fleetDiscounts    Discount[]           @relation("FleetDiscount")
 }
 
 model User {
@@ -262,6 +278,7 @@ model User {
   bikeAssignments       BikeAssignment[] @relation("BikeAssignmentRider")
   usedInvites           RegistrationInvite[] @relation("InviteUsedBy")
   payments              RiderPayment[]
+  billingPayments       BillingPayment[]
 
   @@unique([fleetId, email])
   @@unique([fleetId, phone])
@@ -737,5 +754,115 @@ model RiderPayment {
   @@index([riderId])
   @@index([paidAt])
   @@index([fleetId, paidAt])
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum DiscountTarget {
+  SETUP_FEE
+  SUBSCRIPTION
+  BOTH
+}
+
+enum BillingCycleStatus {
+  DRAFT
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELED
+  VOID
+}
+
+model PricingTier {
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String
+  planCode            FleetPlan @unique
+  monthlyRatePerBike  Int
+  setupFeePerBike     Int       @default(30000)
+  description         String?
+  isActive            Boolean   @default(true)
+  sortOrder           Int       @default(0)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(6)
+}
+
+model Discount {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  code          String?        @unique
+  type          DiscountType
+  value         Decimal        @db.Decimal(10, 2)
+  appliesTo     DiscountTarget
+  maxUses       Int?
+  usedCount     Int            @default(0)
+  validFrom     DateTime?      @db.Timestamptz(6)
+  validUntil    DateTime?      @db.Timestamptz(6)
+  fleetId       String?        @db.Uuid
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(6)
+  fleet         Fleet?         @relation("FleetDiscount", fields: [fleetId], references: [id])
+  billingCycles BillingCycle[]
+}
+
+model BillingConfig {
+  id                    String   @id @default(uuid()) @db.Uuid
+  billingCycleDays      Int      @default(30)
+  gracePeriodDays       Int      @default(7)
+  trialEnabled          Boolean  @default(true)
+  trialDurationDays     Int      @default(14)
+  upcomingReminderDays  Int[]    @default([7, 3, 1])
+  overdueReminderDays   Int[]    @default([1, 3, 7])
+  currencyCode          String   @default("RWF")
+  updatedAt             DateTime @updatedAt @db.Timestamptz(6)
+}
+
+model BillingCycle {
+  id              String             @id @default(uuid()) @db.Uuid
+  fleetId         String             @db.Uuid
+  cycleNumber     Int
+  periodStart     DateTime           @db.Timestamptz(6)
+  periodEnd       DateTime           @db.Timestamptz(6)
+  dueDate         DateTime           @db.Timestamptz(6)
+  bikeCount       Int
+  ratePerBike     Int
+  subtotal        Int
+  discountAmount  Int                @default(0)
+  totalDue        Int
+  totalPaid       Int                @default(0)
+  status          BillingCycleStatus @default(PENDING)
+  isTrial         Boolean            @default(false)
+  discountId      String?            @db.Uuid
+  remindersSent   Int                @default(0)
+  lastReminderAt  DateTime?          @db.Timestamptz(6)
+  paidAt          DateTime?          @db.Timestamptz(6)
+  notes           String?
+  createdAt       DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime           @updatedAt @db.Timestamptz(6)
+  fleet           Fleet              @relation(fields: [fleetId], references: [id])
+  discount        Discount?          @relation(fields: [discountId], references: [id])
+  payments        BillingPayment[]
+
+  @@unique([fleetId, cycleNumber])
+}
+
+model BillingPayment {
+  id             String        @id @default(uuid()) @db.Uuid
+  billingCycleId String        @db.Uuid
+  fleetId        String        @db.Uuid
+  amount         Int
+  method         PaymentMethod
+  reference      String?
+  notes          String?
+  recordedById   String        @db.Uuid
+  paidAt         DateTime      @db.Timestamptz(6)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
+  billingCycle   BillingCycle  @relation(fields: [billingCycleId], references: [id])
+  fleet          Fleet         @relation(fields: [fleetId], references: [id])
+  recordedBy     User          @relation(fields: [recordedById], references: [id])
 }
 

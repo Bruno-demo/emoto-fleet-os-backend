@@ -33,6 +33,17 @@ import { ApiError, apiFetch } from '@/lib/api/client';
 import { getSubscriptionEntitlements } from '@/lib/subscription';
 import { cx, formatEnumLabel } from '@/lib/ui';
 
+interface BillingCycleData {
+  id: string;
+  cycleNumber: number;
+  periodStart: string;
+  periodEnd: string;
+  totalDue: number;
+  totalPaid: number;
+  status: string;
+  dueDate: string;
+}
+
 type SettingsTab = 'profile' | 'fleet' | 'team' | 'security' | 'notifications' | 'apiCredentials';
 
 const ALL_TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode; adminOnly?: boolean }> = [
@@ -115,6 +126,12 @@ export default function SettingsPage() {
     queryFn: () => apiFetch<{ total: number }>('/bikes?page=1&pageSize=1'),
   });
   const totalBikes = bikesQuery.data?.total ?? 0;
+
+  const myCyclesQuery = useQuery({
+    queryKey: ['billing', 'my-cycles'],
+    queryFn: () => apiFetch<{ data: BillingCycleData[] }>('/billing/my-cycles?limit=50'),
+    enabled: !!user,
+  });
 
   const [notifPrefs, setNotifPrefs] = useState(() => {
     if (typeof window === 'undefined') {
@@ -361,6 +378,64 @@ export default function SettingsPage() {
                 </>
               );
             })()}
+          </DashboardCard>
+
+          <DashboardCard
+            eyebrow="History"
+            title="Billing History"
+            description="View your recent invoices and payment history."
+          >
+            {myCyclesQuery.isLoading ? (
+              <p className="text-xs text-ink-muted">Loading billing history...</p>
+            ) : !myCyclesQuery.data?.data || myCyclesQuery.data.data.length === 0 ? (
+              <p className="text-xs text-ink-muted">No invoices found for your fleet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-ink-muted font-bold uppercase tracking-wider">
+                      <th className="py-3 px-4">Invoice</th>
+                      <th className="py-3 px-4">Billing Period</th>
+                      <th className="py-3 px-4">Amount Due</th>
+                      <th className="py-3 px-4">Amount Paid</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line text-ink-soft">
+                    {myCyclesQuery.data.data.map((cycle: BillingCycleData) => (
+                      <tr key={cycle.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-bold text-ink">Invoice #{cycle.cycleNumber}</td>
+                        <td className="py-3 px-4">
+                          {new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 font-bold text-ink">
+                          {cycle.totalDue.toLocaleString()} RWF
+                        </td>
+                        <td className="py-3 px-4 text-success-ink font-semibold">
+                          {cycle.totalPaid.toLocaleString()} RWF
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={cx(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
+                            cycle.status === 'PAID'
+                              ? 'border-success-ink/20 bg-success-soft/10 text-success-ink'
+                              : cycle.status === 'OVERDUE'
+                              ? 'border-error-ink/20 bg-error-soft/10 text-error-ink'
+                              : 'border-warning-ink/20 bg-warning-soft/10 text-warning-ink'
+                          )}>
+                            {cycle.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {new Date(cycle.dueDate).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </DashboardCard>
 
           <DashboardCard
