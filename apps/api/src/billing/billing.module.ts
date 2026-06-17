@@ -14,7 +14,13 @@ import { BillingPaymentService } from './services/billing-payment.service';
 import { BillingCronService } from './services/billing-cron.service';
 
 @Module({
-  imports: [PrismaModule, AuditModule, MailModule, AuthModule, ScheduleModule.forRoot()],
+  imports: [
+    PrismaModule,
+    AuditModule,
+    MailModule,
+    AuthModule,
+    ScheduleModule.forRoot(),
+  ],
   controllers: [BillingController],
   providers: [
     PricingTierService,
