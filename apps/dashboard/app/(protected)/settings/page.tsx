@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardCard } from '@/components/ui/dashboard-card';
@@ -1085,6 +1086,10 @@ const ROLE_OPTIONS = ['OWNER', 'ADMIN', 'DISPATCHER', 'TECH', 'RIDER'];
 
 function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fleetId: string } }) {
   const queryClient = useQueryClient();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);
   const [roleError, setRoleError] = useState<string | null>(null);
 
@@ -1296,7 +1301,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
       </DashboardCard>
 
       {/* Invite Member Modal */}
-      {showInviteModal && (
+      {mounted && showInviteModal && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)}>
           <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl text-ink" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setShowInviteModal(false)} className="absolute right-4 top-4 rounded-lg p-1 text-ink-muted hover:text-ink transition">
@@ -1389,11 +1394,12 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+      {mounted && showDeleteConfirm && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
           <div className="relative mx-4 w-full max-sm rounded-[24px] border border-line bg-surface p-6 shadow-xl text-ink" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-ink">Remove Team Member</h2>
@@ -1421,7 +1427,8 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
