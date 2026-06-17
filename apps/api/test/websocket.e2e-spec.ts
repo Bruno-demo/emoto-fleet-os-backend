@@ -158,7 +158,6 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    await app.init();
     await app.listen(0);
 
     const nodeHttpServer = app.getHttpServer() as HttpServer;

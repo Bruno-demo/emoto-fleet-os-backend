@@ -31,6 +31,9 @@
     "mqtt:publish:sample:ack": "npm run mqtt:publish:sample:ack -w apps/api"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "@nestjs/websockets": "^11.1.15",
+    "@nestjs/platform-socket.io": "^11.1.15",
+    "socket.io": "^4.8.3"
   }
 }
