@@ -497,7 +497,7 @@ export default function HqBillingPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
-                  const setupAmount = fleet._count.bikes * 30000;
+                  const setupAmount = fleet.plan === 'INSURANCE' ? 0 : fleet._count.bikes * 30000;
                   const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'PREMIUM' ? 10000 : fleet.plan === 'INSURANCE' ? 0 : 5000);
                   const monthlyAmount = fleet._count.bikes * rate;
                   const hasUpgrade = fleet.upgradeRequested;
@@ -555,12 +555,14 @@ export default function HqBillingPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 pt-3 border-t border-white/[0.04]">
-                        <button
-                          onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
-                          className="flex-1 py-1.5 text-center text-[10px] font-bold rounded-lg bg-white/5 border border-line text-zinc-400 hover:text-white"
-                        >
-                          {fleet.installationPaid ? 'Undo Setup' : 'Pay Setup'}
-                        </button>
+                        {fleet.plan !== 'INSURANCE' && (
+                          <button
+                            onClick={() => toggleInstallationPaidMutation.mutate(fleet.id)}
+                            className="flex-1 py-1.5 text-center text-[10px] font-bold rounded-lg bg-white/5 border border-line text-zinc-400 hover:text-white"
+                          >
+                            {fleet.installationPaid ? 'Undo Setup' : 'Pay Setup'}
+                          </button>
+                        )}
                         <button
                           onClick={() => updateSubscriptionStatusMutation.mutate({ fleetId: fleet.id, status: fleet.subscriptionStatus === 'ACTIVE' ? 'PAST_DUE' : 'ACTIVE' })}
                           className="flex-1 py-1.5 text-center text-[10px] font-bold rounded-lg bg-white/5 border border-line text-zinc-400 hover:text-white"
