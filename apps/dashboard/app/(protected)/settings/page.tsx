@@ -134,25 +134,13 @@ export default function SettingsPage() {
     enabled: !!user,
   });
 
-  const [notifPrefs, setNotifPrefs] = useState(() => {
-    if (typeof window === 'undefined') {
-      return DEFAULT_NOTIF_PREFS;
-    }
-
-    try {
-      const stored = localStorage.getItem('emoto-notif-prefs');
-      if (!stored) {
-        return DEFAULT_NOTIF_PREFS;
-      }
-
-      return {
-        ...DEFAULT_NOTIF_PREFS,
-        ...(JSON.parse(stored) as Partial<typeof DEFAULT_NOTIF_PREFS>),
-      };
-    } catch {
-      return DEFAULT_NOTIF_PREFS;
-    }
-  });
+  // Notification preferences derived from server state
+  const notifPrefs = {
+    openIncidents: user?.notifOpenIncidents ?? DEFAULT_NOTIF_PREFS.openIncidents,
+    sosAlerts: user?.notifSosAlerts ?? DEFAULT_NOTIF_PREFS.sosAlerts,
+    crashEvents: user?.notifCrashEvents ?? DEFAULT_NOTIF_PREFS.crashEvents,
+  };
+  const [savingNotifPref, setSavingNotifPref] = useState(false);
 
   const [useLocalTimezone, setUseLocalTimezone] = useState(() => {
     if (typeof window === 'undefined') {
@@ -167,12 +155,22 @@ export default function SettingsPage() {
     }
   });
 
-  const updateNotifPref = (key: keyof typeof notifPrefs) => {
-    setNotifPrefs((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem('emoto-notif-prefs', JSON.stringify(next));
-      return next;
-    });
+  const updateNotifPref = async (key: keyof typeof notifPrefs) => {
+    if (savingNotifPref) return;
+    setSavingNotifPref(true);
+    try {
+      const next = { ...notifPrefs, [key]: !notifPrefs[key] };
+      await apiFetch('/me/notifications', {
+        method: 'PUT',
+        body: JSON.stringify(next),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    } catch {
+      // Silently handle – the toggle will revert on next re-render from server state
+    } finally {
+      setSavingNotifPref(false);
+    }
   };
 
   const isDark = resolvedTheme === 'dark';
@@ -739,6 +737,7 @@ export default function SettingsPage() {
                 label="Open incidents"
                 description="Show incident count badge in the sidebar and topbar"
                 checked={notifPrefs.openIncidents}
+                disabled={savingNotifPref}
                 onChange={() => updateNotifPref('openIncidents')}
               />
               <SettingsToggle
@@ -746,6 +745,7 @@ export default function SettingsPage() {
                 label="SOS alerts"
                 description="Real-time notification when a rider triggers SOS"
                 checked={notifPrefs.sosAlerts}
+                disabled={savingNotifPref}
                 onChange={() => updateNotifPref('sosAlerts')}
               />
               <SettingsToggle
@@ -753,12 +753,13 @@ export default function SettingsPage() {
                 label="Crash events"
                 description="Immediate notification for crash detection events"
                 checked={notifPrefs.crashEvents}
+                disabled={savingNotifPref}
                 onChange={() => updateNotifPref('crashEvents')}
               />
             </div>
-            <p className="mt-4 text-xs text-ink-faint">
-              Notification preferences are saved locally. Server-side notification
-              delivery will be enabled in a future update.
+            <p className="mt-4 text-xs text-ink-faint flex items-center gap-1.5">
+              <CheckCircle2 size={12} className="text-green-500 shrink-0" />
+              Notification preferences are synced to your account and apply across all your sessions.
             </p>
           </DashboardCard>
         </div>
