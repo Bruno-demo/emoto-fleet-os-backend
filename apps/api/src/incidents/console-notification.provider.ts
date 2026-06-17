@@ -8,6 +8,13 @@ import { MailService } from '../mail/mail.service';
 import { NotificationProvider } from './notification-provider';
 import { NotificationDispatchInput } from './incidents.types';
 
+interface EmailNotificationPayload {
+  bikeId?: string;
+  deviceId?: string;
+  severity?: string;
+  eventTs?: string;
+}
+
 @Injectable()
 export class ConsoleNotificationProvider implements NotificationProvider {
   private readonly logger = new Logger(ConsoleNotificationProvider.name);
@@ -26,7 +33,7 @@ export class ConsoleNotificationProvider implements NotificationProvider {
     }
 
     if (input.channel === 'EMAIL') {
-      const payload = input.payloadJson as any;
+      const payload = input.payloadJson as EmailNotificationPayload;
       const subject = input.type === 'CRASH_ALERT' ? '⚠️ eMoto Crash Alert' : '🚨 eMoto SOS Triggered';
       const html = input.type === 'CRASH_ALERT'
         ? this.buildCrashEmailHtml(input.to, payload)
@@ -44,7 +51,7 @@ export class ConsoleNotificationProvider implements NotificationProvider {
     );
   }
 
-  private buildCrashEmailHtml(to: string, payload: any): string {
+  private buildCrashEmailHtml(to: string, payload: EmailNotificationPayload): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -101,7 +108,7 @@ export class ConsoleNotificationProvider implements NotificationProvider {
     `;
   }
 
-  private buildSosEmailHtml(to: string, payload: any): string {
+  private buildSosEmailHtml(to: string, payload: EmailNotificationPayload): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
