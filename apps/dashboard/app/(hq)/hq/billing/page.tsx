@@ -179,7 +179,7 @@ export default function HqBillingPage() {
 
   const { data: fleetCycles, isLoading: cyclesLoading } = useQuery({
     queryKey: ['hq', 'fleet-cycles', activeFleetDetails?.id],
-    queryFn: () => apiFetch(`/billing/cycles?fleetId=${activeFleetDetails?.id}&limit=50`, {}, { schema: billingCycleSchema }),
+    queryFn: () => apiFetch(`/billing/cycles?fleetId=${activeFleetDetails?.id}&pageSize=50`, {}, { schema: billingCycleSchema }),
     enabled: !!activeFleetDetails?.id,
   });
 

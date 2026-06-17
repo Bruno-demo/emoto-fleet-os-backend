@@ -20,7 +20,7 @@ export function getPaginationParams(
   query: PaginationQueryDto,
 ): PaginationParams {
   const parsedPage = Number(query.page ?? 1);
-  const parsedPageSize = Number(query.pageSize ?? 20);
+  const parsedPageSize = Number(query.pageSize ?? query.limit ?? 20);
   const page =
     Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
   const pageSize =
