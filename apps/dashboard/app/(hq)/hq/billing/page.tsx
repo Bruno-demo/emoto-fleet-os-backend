@@ -101,7 +101,7 @@ const billingConfigSchema = z.object({
 type BillingConfig = z.infer<typeof billingConfigSchema>;
 
 const billingCycleSchema = z.object({
-  items: z.array(
+  data: z.array(
     z.object({
       id: z.string(),
       fleetId: z.string(),
@@ -124,16 +124,13 @@ const billingCycleSchema = z.object({
       discount: z.object({ name: z.string(), code: z.string().nullable() }).nullable().optional(),
     })
   ),
-  meta: z.object({
-    totalItems: z.number(),
-    itemCount: z.number(),
-    itemsPerPage: z.number(),
-    totalPages: z.number(),
-    currentPage: z.number(),
-  }),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+  totalPages: z.number(),
 });
 
-type BillingCycle = z.infer<typeof billingCycleSchema>['items'][number];
+type BillingCycle = z.infer<typeof billingCycleSchema>['data'][number];
 
 // ── Main Component ────────────────────────────────────────────────
 
@@ -1008,11 +1005,11 @@ export default function HqBillingPage() {
 
               {cyclesLoading ? (
                 <p className="text-xs text-zinc-550">Loading invoices...</p>
-              ) : fleetCycles?.items.length === 0 ? (
+              ) : fleetCycles?.data.length === 0 ? (
                 <p className="text-xs text-zinc-550">No invoices have been generated for this fleet.</p>
               ) : (
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                  {fleetCycles?.items.map((cycle) => (
+                  {fleetCycles?.data.map((cycle) => (
                     <div key={cycle.id} className="rounded-xl border border-line bg-background/50 p-3 flex items-center justify-between text-xs">
                       <div>
                         <div className="flex items-center gap-1.5">
