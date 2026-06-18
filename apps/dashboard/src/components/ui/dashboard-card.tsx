@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cx } from '@/lib/ui';
 
 interface DashboardCardProps {
+  id?: string;
   eyebrow?: string;
   title?: string;
   description?: string;
@@ -13,6 +14,7 @@ interface DashboardCardProps {
 
 // Standardizes the main dashboard surface styling for sections and detail panes.
 export function DashboardCard({
+  id,
   eyebrow,
   title,
   description,
@@ -23,6 +25,7 @@ export function DashboardCard({
 }: DashboardCardProps) {
   return (
     <section
+      id={id}
       className={cx(
         'glass-panel rounded-[24px] border border-line shadow-[var(--shadow)] transition-all overflow-hidden',
         className,

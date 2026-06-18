@@ -113,7 +113,7 @@ function SubscriptionNotice({
           </p>
         </div>
         <a
-          href={isActive ? '/checkout?plan=operations-plus' : '/settings'}
+          href={isActive ? '/checkout?plan=operations-plus' : '/settings?tab=fleet#billing'}
           className={cx(
             'inline-flex shrink-0 items-center justify-center rounded-xl px-4 py-2 text-xs font-bold transition',
             isActive

@@ -288,6 +288,7 @@ export default function SettingsPage() {
           </DashboardCard>
 
           <DashboardCard
+            id="billing"
             eyebrow="Billing"
             title="Billing & Subscription Summary"
             description="Operational billing overview based on your active fleet size and plan."

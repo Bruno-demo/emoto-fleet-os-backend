@@ -393,7 +393,7 @@ function CheckoutContent() {
                   placeholder="Enter code..."
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white"
+                  className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white placeholder:text-zinc-500"
                 />
                 <button
                   type="button"
