@@ -221,6 +221,13 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
+interface LandingPricingTier {
+  planCode: string;
+  monthlyRatePerBike: number;
+  setupFeePerBike: number;
+  description: string | null;
+}
+
 /* ─── Main Component ──────────────────────────────────── */
 
 export default function LandingContent() {
@@ -248,9 +255,9 @@ export default function LandingContent() {
       try {
         const res = await fetch(`${API_BASE_URL}/billing/pricing`);
         if (!res.ok) return;
-        const tiers = await res.json();
+        const tiers = (await res.json()) as LandingPricingTier[];
         const updatedPlans = pricingPlans.map(plan => {
-          const matchingTier = tiers.find((t: any) => 
+          const matchingTier = tiers.find((t) => 
             (plan.slug === 'demo' && t.planCode === 'DEMO') ||
             (plan.slug === 'operations-plus' && t.planCode === 'PREMIUM') ||
             (plan.slug === 'insurance' && t.planCode === 'INSURANCE')

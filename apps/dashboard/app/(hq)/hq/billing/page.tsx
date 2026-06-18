@@ -912,8 +912,9 @@ export default function HqBillingPage() {
                       if (fleetSelect) fleetSelect.value = '';
                       if (durationInput) durationInput.value = '14';
                     },
-                    onError: (err: any) => {
-                      alert(err.message || 'Failed to grant free trial');
+                    onError: (err: unknown) => {
+                      const msg = err instanceof Error ? err.message : String(err);
+                      alert(msg || 'Failed to grant free trial');
                     }
                   });
                 }}
@@ -1234,7 +1235,16 @@ interface PricingTierCardProps {
     setupFeePerBike: number;
     description: string | null;
   };
-  updatePricingTierMutation: any;
+  updatePricingTierMutation: {
+    mutate: (variables: {
+      planCode: string;
+      name: string;
+      monthlyRatePerBike: number;
+      setupFeePerBike: number;
+      description: string;
+    }) => void;
+    isPending: boolean;
+  };
 }
 
 const PREDEFINED_DESCRIPTIONS = [
@@ -1299,10 +1309,11 @@ function PricingTierCard({ tier, updatePricingTierMutation }: PricingTierCardPro
           </select>
         </div>
 
-        {selectVal === "Other" && (
+        {selectVal === "Other" ? (
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Custom Description</label>
             <textarea
+              id={`price-desc-${tier.planCode}`}
               value={customDesc}
               onChange={(e) => setCustomDesc(e.target.value)}
               className="mt-1 w-full rounded-xl border border-line bg-background p-3 text-xs text-white animate-fade-in"
@@ -1310,6 +1321,13 @@ function PricingTierCard({ tier, updatePricingTierMutation }: PricingTierCardPro
               placeholder="Enter custom plan description..."
             />
           </div>
+        ) : (
+          <textarea
+            id={`price-desc-${tier.planCode}`}
+            value={selectVal || ""}
+            readOnly
+            className="hidden"
+          />
         )}
       </div>
 

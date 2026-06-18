@@ -38,6 +38,21 @@ import {
 import { cx } from '@/lib/ui';
 
 
+interface PromoDiscount {
+  id: string;
+  name: string;
+  code: string | null;
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  value: string;
+  appliesTo: 'SETUP_FEE' | 'SUBSCRIPTION' | 'BOTH';
+  maxUses: number | null;
+  usedCount: number;
+  validFrom: string | null;
+  validUntil: string | null;
+  fleetId: string | null;
+  isActive: boolean;
+}
+
 const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
 
 const RWANDA_INSURERS = [
@@ -206,7 +221,7 @@ function CreateAccountInner() {
 
   // Promo code states
   const [promoCode, setPromoCode] = useState('');
-  const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<PromoDiscount | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
@@ -215,10 +230,11 @@ function CreateAccountInner() {
     setIsValidatingPromo(true);
     setPromoError(null);
     try {
-      const res = await apiFetch<any>(`/billing/public/validate-discount?code=${encodeURIComponent(promoCode)}`);
+      const res = await apiFetch<PromoDiscount>(`/billing/public/validate-discount?code=${encodeURIComponent(promoCode)}`);
       setAppliedDiscount(res);
-    } catch (err: any) {
-      setPromoError(err.message || 'Invalid promo code');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Invalid promo code';
+      setPromoError(errorMsg);
       setAppliedDiscount(null);
     } finally {
       setIsValidatingPromo(false);
