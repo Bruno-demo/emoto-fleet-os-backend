@@ -1032,7 +1032,7 @@ export default function HqBillingPage() {
                           <p className="font-bold text-white">{cycle.totalDue.toLocaleString()} RWF</p>
                           {cycle.totalPaid > 0 && <p className="text-[9px] text-emerald-400 font-semibold">Paid: {cycle.totalPaid.toLocaleString()}</p>}
                         </div>
-                        {cycle.status !== 'PAID' && cycle.status !== 'VOID' && (
+                        {cycle.status !== 'PAID' && cycle.status !== 'VOID' && (cycle.totalDue - cycle.totalPaid) > 0 && (
                           <button
                             onClick={() => setShowRecordPayment(cycle)}
                             className="bg-accent px-2 py-1 rounded font-bold text-[10px] text-white"
@@ -1131,9 +1131,11 @@ export default function HqBillingPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
+                const amount = Number(fd.get('amount'));
+                if (amount < 1) return;
                 recordPaymentMutation.mutate({
                   cycleId: showRecordPayment.id,
-                  amount: Number(fd.get('amount')),
+                  amount,
                   method: fd.get('method') as string,
                   reference: fd.get('reference') as string || undefined,
                   notes: fd.get('notes') as string || undefined,
@@ -1146,7 +1148,8 @@ export default function HqBillingPage() {
                 <input
                   type="number"
                   name="amount"
-                  defaultValue={showRecordPayment.totalDue - showRecordPayment.totalPaid}
+                  min={1}
+                  defaultValue={Math.max(1, showRecordPayment.totalDue - showRecordPayment.totalPaid)}
                   max={showRecordPayment.totalDue - showRecordPayment.totalPaid}
                   required
                   className="h-9 w-full bg-background border border-line rounded-xl px-3 text-white"
