@@ -55,7 +55,7 @@ const PLAN_DETAILS: Record<
       'Rider scores',
       'Remote command controls',
       'Email support',
-      '+ 30,000 RWF device setup & install fee',
+      '+ 35,000 RWF device setup & install fee',
     ],
   },
   'operations-plus': {
@@ -68,7 +68,7 @@ const PLAN_DETAILS: Record<
       'Trip analytics',
       'Compliance reports',
       'Priority support',
-      '+ 30,000 RWF device setup & install fee',
+      '+ 35,000 RWF device setup & install fee',
     ],
   },
   enterprise: {

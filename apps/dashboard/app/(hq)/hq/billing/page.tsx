@@ -497,7 +497,7 @@ export default function HqBillingPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
-                  const setupAmount = fleet.plan === 'INSURANCE' ? 0 : fleet._count.bikes * 30000;
+                  const setupAmount = fleet.plan === 'INSURANCE' ? 0 : fleet._count.bikes * 35000;
                   const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'PREMIUM' ? 10000 : fleet.plan === 'INSURANCE' ? 0 : 5000);
                   const monthlyAmount = fleet._count.bikes * rate;
                   const hasUpgrade = fleet.upgradeRequested;

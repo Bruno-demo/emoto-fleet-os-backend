@@ -9,7 +9,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Terms of Service | Subscription Conditions',
-  description: 'Review active subscriptions, device setup fees (30,000 RWF), operator over-the-air locking liabilities, and strict anti-tampering rules for SinoTrack trackers.',
+  description: 'Review active subscriptions, device setup fees (35,000 RWF), operator over-the-air locking liabilities, and strict anti-tampering rules for SinoTrack trackers.',
   keywords: [
     'e-moto terms of service',
     'Safety Core subscription fees',
@@ -27,7 +27,7 @@ export default function TermsPage() {
     {
       icon: <DollarSign size={16} className="text-accent" />,
       title: '1. Subscription Commitments & Fees',
-      content: 'E-Moto offers subscription tiers for fleet operators: Safety Core at 5,000 RWF per bike/month, and Operations Plus at 10,000 RWF per bike/month. Each deployed hardware device requires a one-time device setup & installation fee of 30,000 RWF. Subscriptions are billed monthly and subject to hardware validation limits.',
+      content: 'E-Moto offers subscription tiers for fleet operators: Safety Core at 5,000 RWF per bike/month, and Operations Plus at 10,000 RWF per bike/month. Each deployed hardware device requires a one-time device setup & installation fee of 35,000 RWF. Subscriptions are billed monthly and subject to hardware validation limits.',
     },
     {
       icon: <ShieldAlert size={16} className="text-rose-400" />,

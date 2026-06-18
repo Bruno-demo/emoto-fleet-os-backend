@@ -352,12 +352,12 @@ export default function SettingsPage() {
                           One-time Installation Setup Fee
                         </p>
                         <p className="text-xs text-ink-muted leading-relaxed">
-                          A flat fee of <strong className="text-ink">30,000 RWF</strong> per bike is charged once upon hardware device setup.
+                          A flat fee of <strong className="text-ink">35,000 RWF</strong> per bike is charged once upon hardware device setup.
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
                         <p className="text-xs text-ink-muted">Total Setup Dues</p>
-                        <p className="text-lg font-extrabold text-ink">{(totalBikes * 30000).toLocaleString()} RWF</p>
+                        <p className="text-lg font-extrabold text-ink">{(totalBikes * 35000).toLocaleString()} RWF</p>
                       </div>
                     </div>
                   )}
@@ -502,7 +502,7 @@ export default function SettingsPage() {
                          <span className="text-2xl font-extrabold text-ink">5,000 RWF</span>
                          <span className="text-xs text-ink-muted">/ bike / month</span>
                        </div>
-                       <span className="text-[10px] font-bold text-success-ink">+ 30,000 RWF device setup & install</span>
+                       <span className="text-[10px] font-bold text-success-ink">+ 35,000 RWF device setup & install</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                        Essential telemetry, safety event detection, and manual incident response tools.
@@ -571,7 +571,7 @@ export default function SettingsPage() {
                          <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
                          <span className="text-xs text-ink-muted">/ bike / month</span>
                        </div>
-                       <span className="text-[10px] font-bold text-accent">+ 30,000 RWF device setup & install</span>
+                       <span className="text-[10px] font-bold text-accent">+ 35,000 RWF device setup & install</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                        Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.

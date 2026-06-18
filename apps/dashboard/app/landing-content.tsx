@@ -102,7 +102,7 @@ const pricingPlans = [
       'Rider scores',
       'Remote command controls',
       'Email support',
-      '+ 30,000 RWF device setup & install fee',
+      '+ 35,000 RWF device setup & install fee',
     ],
   },
   {
@@ -117,7 +117,7 @@ const pricingPlans = [
       'Trip analytics',
       'Compliance reports',
       'Priority support',
-      '+ 30,000 RWF device setup & install fee',
+      '+ 35,000 RWF device setup & install fee',
     ],
     featured: true,
   },

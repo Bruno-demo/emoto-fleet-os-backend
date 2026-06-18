@@ -224,8 +224,8 @@ export default function DocsPage() {
                     </tr>
                     <tr>
                       <td className="p-4 font-semibold text-white">One-Time Setup Fee</td>
-                      <td className="p-4">30,000 RWF / bike (Device installation)</td>
-                      <td className="p-4">30,000 RWF / bike (Device installation)</td>
+                      <td className="p-4">35,000 RWF / bike (Device installation)</td>
+                      <td className="p-4">35,000 RWF / bike (Device installation)</td>
                     </tr>
                     <tr>
                       <td className="p-4 font-semibold text-white">Realtime Telemetry</td>
