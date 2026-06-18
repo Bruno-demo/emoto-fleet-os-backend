@@ -46,6 +46,13 @@ export class PricingTierService implements OnModuleInit {
       data: dto,
     });
 
+    if (typeof dto.monthlyRatePerBike === 'number') {
+      await this.prisma.fleet.updateMany({
+        where: { plan: planCode },
+        data: { monthlyRatePerBike: dto.monthlyRatePerBike },
+      });
+    }
+
     await this.auditService.createAuditLog({
       fleetId: user.fleetId,
       actorUserId: user.id,

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
+import { AuditActionType, FleetPlan, Prisma, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
@@ -463,12 +463,19 @@ export class AuthService {
     try {
       const createdUser = await this.prismaService.$transaction(async (tx) => {
         // Create the personal fleet for the self owner
+        const plan = dto.plan ?? 'DEMO';
+        const tier = await tx.pricingTier.findUnique({
+          where: { planCode: plan as FleetPlan },
+        });
+        const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : 5000);
+
         const fleet = await tx.fleet.create({
           data: {
             name: `${dto.fullName}'s Bike`,
             type: 'PERSONAL',
-            plan: dto.plan ?? 'DEMO',
+            plan,
             subscriptionStatus: 'ACTIVE',
+            monthlyRatePerBike,
           },
         });
 
@@ -548,13 +555,20 @@ export class AuthService {
 
     try {
       const result = await this.prismaService.$transaction(async (tx) => {
+        const plan = dto.plan ?? 'DEMO';
+        const tier = await tx.pricingTier.findUnique({
+          where: { planCode: plan as FleetPlan },
+        });
+        const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : plan === 'INSURANCE' ? 0 : 5000);
+
         const fleet = await tx.fleet.create({
           data: {
             name: dto.fleetName,
             type: dto.plan === 'INSURANCE' ? 'PERSONAL' : 'DELIVERY',
-            plan: dto.plan ?? 'DEMO',
+            plan,
             insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',
+            monthlyRatePerBike,
           },
         });
 

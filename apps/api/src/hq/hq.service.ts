@@ -213,9 +213,17 @@ export class HqService {
       throw new BadRequestException('Invalid plan. Must be DEMO or PREMIUM');
     }
 
+    const tier = await this.prisma.pricingTier.findUnique({
+      where: { planCode: plan as FleetPlan },
+    });
+    const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : 5000);
+
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
-      data: { plan: plan as FleetPlan },
+      data: {
+        plan: plan as FleetPlan,
+        monthlyRatePerBike,
+      },
       select: { id: true, name: true, plan: true },
     });
 
@@ -1422,11 +1430,17 @@ export class HqService {
 
     const user = await this.prisma.$transaction(async (tx) => {
       // Ensure the fleet is updated to have the INSURANCE plan and insurerName
+      const tier = await tx.pricingTier.findUnique({
+        where: { planCode: 'INSURANCE' },
+      });
+      const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : 0;
+
       await tx.fleet.update({
         where: { id: body.fleetId },
         data: {
           plan: 'INSURANCE',
           insurerName: body.fullName,
+          monthlyRatePerBike,
         },
       });
 
@@ -2107,12 +2121,18 @@ export class HqService {
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
+    const tier = await this.prisma.pricingTier.findUnique({
+      where: { planCode: 'PREMIUM' },
+    });
+    const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : 10000;
+
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         plan: 'PREMIUM',
         upgradeRequested: false,
         upgradeRequestedAt: null,
+        monthlyRatePerBike,
       },
       select: { id: true, name: true, plan: true, upgradeRequested: true },
     });
