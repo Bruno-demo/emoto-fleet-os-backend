@@ -561,6 +561,25 @@ export class AuthService {
         });
         const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : plan === 'INSURANCE' ? 0 : 5000);
 
+        let fleetDiscountConnect = undefined;
+
+        if (dto.promoCode) {
+          const discount = await tx.discount.findUnique({
+            where: { code: dto.promoCode.toUpperCase() },
+          });
+          if (discount && discount.isActive && !discount.fleetId) {
+            const now = new Date();
+            const isValidDates = (!discount.validFrom || discount.validFrom <= now) && (!discount.validUntil || discount.validUntil >= now);
+            if (isValidDates && (discount.maxUses === null || discount.usedCount < discount.maxUses)) {
+              fleetDiscountConnect = { id: discount.id };
+              await tx.discount.update({
+                where: { id: discount.id },
+                data: { usedCount: { increment: 1 } },
+              });
+            }
+          }
+        }
+
         const fleet = await tx.fleet.create({
           data: {
             name: dto.fleetName,
@@ -569,6 +588,7 @@ export class AuthService {
             insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',
             monthlyRatePerBike,
+            fleetDiscounts: fleetDiscountConnect ? { connect: [fleetDiscountConnect] } : undefined,
           },
         });
 

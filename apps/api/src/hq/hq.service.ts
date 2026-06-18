@@ -2187,6 +2187,55 @@ export class HqService {
     return updated;
   }
 
+  async updateFleetTrial(
+    fleetId: string,
+    durationDays: number,
+    actor: AuthenticatedUser,
+  ) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    if (typeof durationDays !== 'number' || durationDays <= 0) {
+      throw new BadRequestException('Duration must be a positive number of days');
+    }
+
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + durationDays);
+
+    const updated = await this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: {
+        trialStartedAt,
+        trialEndsAt,
+      },
+      select: {
+        id: true,
+        name: true,
+        trialStartedAt: true,
+        trialEndsAt: true,
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_PLAN_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        updatedTrial: true,
+        durationDays,
+        trialStartedAt,
+        trialEndsAt,
+      },
+    });
+
+    return updated;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────
 
   private formatRelative(date: Date) {

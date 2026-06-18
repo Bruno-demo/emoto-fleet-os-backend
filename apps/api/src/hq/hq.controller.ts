@@ -597,4 +597,14 @@ export class HqController {
   ) {
     return this.hqService.approveFleetUpgrade(id, user);
   }
+
+  @Put('fleets/:id/trial')
+  @ApiOperation({ summary: 'Grant or update free trial duration for a fleet' })
+  updateFleetTrial(
+    @Param('id') id: string,
+    @Body() body: { durationDays: number },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.updateFleetTrial(id, body.durationDays, user);
+  }
 }

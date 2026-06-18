@@ -52,4 +52,9 @@ export class RegisterFleetDto {
   @IsString()
   @MinLength(2)
   fullName?: string;
+
+  @ApiPropertyOptional({ example: 'WELCOME50' })
+  @IsOptional()
+  @IsString()
+  promoCode?: string;
 }

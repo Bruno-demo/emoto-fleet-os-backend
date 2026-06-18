@@ -232,6 +232,17 @@ export default function HqBillingPage() {
     },
   });
 
+  const grantTrialMutation = useMutation({
+    mutationFn: ({ fleetId, durationDays }: { fleetId: string; durationDays: number }) =>
+      apiFetch(`/hq/fleets/${fleetId}/trial`, {
+        method: 'PUT',
+        body: JSON.stringify({ durationDays }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
+    },
+  });
+
   const createDiscountMutation = useMutation({
     mutationFn: (body: unknown) =>
       apiFetch('/billing/discounts', {
@@ -586,64 +597,11 @@ export default function HqBillingPage() {
             <p className="text-zinc-500">Loading pricing plans...</p>
           ) : (
             pricingTiers?.map((tier) => (
-              <div key={tier.id} className="rounded-3xl border border-line bg-surface-strong/50 p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-white">{tier.name}</h3>
-                  <span className="text-xs font-mono bg-white/5 px-2 py-0.5 rounded text-zinc-450">{tier.planCode}</span>
-                </div>
-                
-                <p className="text-xs text-zinc-400 min-h-[40px]">{tier.description}</p>
-                
-                <div className="h-px bg-line w-full" />
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Monthly Rate Per Bike (RWF)</label>
-                    <input
-                      type="number"
-                      id={`price-rate-${tier.planCode}`}
-                      defaultValue={tier.monthlyRatePerBike}
-                      className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-sm text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Setup Fee Per Bike (RWF)</label>
-                    <input
-                      type="number"
-                      id={`price-setup-${tier.planCode}`}
-                      defaultValue={tier.setupFeePerBike}
-                      className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-sm text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Description</label>
-                    <textarea
-                      id={`price-desc-${tier.planCode}`}
-                      defaultValue={tier.description ?? ''}
-                      className="mt-1 w-full rounded-xl border border-line bg-background p-3 text-xs text-white"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    const rate = Number((document.getElementById(`price-rate-${tier.planCode}`) as HTMLInputElement).value);
-                    const setup = Number((document.getElementById(`price-setup-${tier.planCode}`) as HTMLInputElement).value);
-                    const desc = (document.getElementById(`price-desc-${tier.planCode}`) as HTMLTextAreaElement).value;
-                    updatePricingTierMutation.mutate({
-                      planCode: tier.planCode,
-                      name: tier.name,
-                      monthlyRatePerBike: rate,
-                      setupFeePerBike: setup,
-                      description: desc,
-                    });
-                  }}
-                  className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:brightness-110 active:scale-95 transition-all text-xs"
-                >
-                  Save Tier Config
-                </button>
-              </div>
+              <PricingTierCard
+                key={tier.id}
+                tier={tier}
+                updatePricingTierMutation={updatePricingTierMutation}
+              />
             ))
           )}
         </div>
@@ -903,55 +861,122 @@ export default function HqBillingPage() {
       {/* TAB 5: TRIALS */}
       {activeTab === 'trials' && (
         <div className="space-y-6">
-          <DashboardCard title="Active Free Trials" description="Manage electric motorcycle fleet accounts currently operating on temporary free trial periods.">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
-                <thead>
-                  <tr className="border-b border-line text-zinc-500 font-bold uppercase tracking-wider">
-                    <th className="py-3 px-4">Fleet Name</th>
-                    <th className="py-3 px-4">Trial Start</th>
-                    <th className="py-3 px-4">Trial End</th>
-                    <th className="py-3 px-4">Bikes Count</th>
-                    <th className="py-3 px-4">Remaining Days</th>
-                    <th className="py-3 px-4">Subscription Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line text-zinc-300">
-                  {fleetsLoading ? (
-                    <tr>
-                      <td colSpan={6} className="py-4 text-center text-zinc-500">Loading trials...</td>
-                    </tr>
-                  ) : trialFleets.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-4 text-center text-zinc-550">No fleets are currently on trial.</td>
-                    </tr>
-                  ) : (
-                    trialFleets.map((fleet) => {
-                      const daysRemaining = Math.max(0, Math.ceil((new Date(fleet.trialEndsAt!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-                      return (
-                        <tr key={fleet.id} className="hover:bg-white/[0.02]">
-                          <td className="py-3 px-4 font-bold text-white">{fleet.name}</td>
-                          <td className="py-3 px-4 text-zinc-450">{fleet.trialStartedAt ? new Date(fleet.trialStartedAt).toLocaleDateString() : 'N/A'}</td>
-                          <td className="py-3 px-4 text-zinc-450">{new Date(fleet.trialEndsAt!).toLocaleDateString()}</td>
-                          <td className="py-3 px-4">{fleet._count.bikes} bikes</td>
-                          <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-bold">
-                              {daysRemaining} days left
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400">
-                              {fleet.subscriptionStatus}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Form to Grant Trial */}
+            <div className="md:col-span-1 rounded-3xl border border-line bg-surface-strong/50 p-6 space-y-4 h-fit">
+              <h3 className="text-lg font-bold text-white">Grant Free Trial</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">Select a fleet and define the trial duration in days.</p>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Select Fleet</label>
+                  <select
+                    id="trial-fleet-select"
+                    className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
+                  >
+                    <option value="">Choose a fleet...</option>
+                    {fleets?.map((f) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Duration (Days)</label>
+                  <input
+                    type="number"
+                    id="trial-duration-days"
+                    defaultValue={14}
+                    min={1}
+                    className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-sm text-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const fleetSelect = document.getElementById('trial-fleet-select') as HTMLSelectElement;
+                  const durationInput = document.getElementById('trial-duration-days') as HTMLInputElement;
+                  const fleetId = fleetSelect?.value;
+                  const durationDays = Number(durationInput?.value);
+                  if (!fleetId) {
+                    alert('Please select a fleet first');
+                    return;
+                  }
+                  if (isNaN(durationDays) || durationDays <= 0) {
+                    alert('Please enter a valid positive number of days');
+                    return;
+                  }
+                  grantTrialMutation.mutate({ fleetId, durationDays }, {
+                    onSuccess: () => {
+                      alert('Free trial granted successfully!');
+                      if (fleetSelect) fleetSelect.value = '';
+                      if (durationInput) durationInput.value = '14';
+                    },
+                    onError: (err: any) => {
+                      alert(err.message || 'Failed to grant free trial');
+                    }
+                  });
+                }}
+                disabled={grantTrialMutation.isPending}
+                className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:brightness-110 active:scale-95 transition-all text-xs disabled:opacity-50"
+              >
+                {grantTrialMutation.isPending ? "Granting..." : "Grant Free Trial"}
+              </button>
             </div>
-          </DashboardCard>
+
+            {/* Table of Active Trials */}
+            <div className="md:col-span-2">
+              <DashboardCard title="Active Free Trials" description="Manage electric motorcycle fleet accounts currently operating on temporary free trial periods.">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-line text-zinc-500 font-bold uppercase tracking-wider">
+                        <th className="py-3 px-4">Fleet Name</th>
+                        <th className="py-3 px-4">Trial Start</th>
+                        <th className="py-3 px-4">Trial End</th>
+                        <th className="py-3 px-4">Bikes Count</th>
+                        <th className="py-3 px-4">Remaining Days</th>
+                        <th className="py-3 px-4">Subscription Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line text-zinc-300">
+                      {fleetsLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-4 text-center text-zinc-500">Loading trials...</td>
+                        </tr>
+                      ) : trialFleets.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-4 text-center text-zinc-550">No fleets are currently on trial.</td>
+                        </tr>
+                      ) : (
+                        trialFleets.map((fleet) => {
+                          const daysRemaining = Math.max(0, Math.ceil((new Date(fleet.trialEndsAt!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+                          return (
+                            <tr key={fleet.id} className="hover:bg-white/[0.02]">
+                              <td className="py-3 px-4 font-bold text-white">{fleet.name}</td>
+                              <td className="py-3 px-4 text-zinc-450">{fleet.trialStartedAt ? new Date(fleet.trialStartedAt).toLocaleDateString() : 'N/A'}</td>
+                              <td className="py-3 px-4 text-zinc-450">{new Date(fleet.trialEndsAt!).toLocaleDateString()}</td>
+                              <td className="py-3 px-4">{fleet._count.bikes} bikes</td>
+                              <td className="py-3 px-4">
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-bold">
+                                  {daysRemaining} days left
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400">
+                                  {fleet.subscriptionStatus}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </DashboardCard>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1196,6 +1221,116 @@ export default function HqBillingPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+interface PricingTierCardProps {
+  tier: {
+    id: string;
+    planCode: string;
+    name: string;
+    monthlyRatePerBike: number;
+    setupFeePerBike: number;
+    description: string | null;
+  };
+  updatePricingTierMutation: any;
+}
+
+const PREDEFINED_DESCRIPTIONS = [
+  "Live map, remote lock/unlock, rider scoring, and support.",
+  "Incident workflows, financial management, reports, and priority support.",
+  "Telemetry access, weekly reports, crash evidence, and API keys.",
+];
+
+function PricingTierCard({ tier, updatePricingTierMutation }: PricingTierCardProps) {
+  const isPredefined = tier.description && PREDEFINED_DESCRIPTIONS.includes(tier.description);
+  const initialSelectVal = isPredefined ? tier.description : "Other";
+  
+  const [selectVal, setSelectVal] = useState(initialSelectVal);
+  const [customDesc, setCustomDesc] = useState(tier.description ?? "");
+
+  return (
+    <div className="rounded-3xl border border-line bg-surface-strong/50 p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-white">{tier.name}</h3>
+        <span className="text-xs font-mono bg-white/5 px-2 py-0.5 rounded text-zinc-400">{tier.planCode}</span>
+      </div>
+      
+      <p className="text-xs text-zinc-400 min-h-[40px]">{tier.description}</p>
+      
+      <div className="h-px bg-line w-full" />
+      
+      <div className="space-y-3">
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Monthly Rate Per Bike (RWF)</label>
+          <input
+            type="number"
+            id={`price-rate-${tier.planCode}`}
+            defaultValue={tier.monthlyRatePerBike}
+            className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-sm text-white"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Setup Fee Per Bike (RWF)</label>
+          <input
+            type="number"
+            id={`price-setup-${tier.planCode}`}
+            defaultValue={tier.setupFeePerBike}
+            className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-sm text-white"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Description template</label>
+          <select
+            value={selectVal || ""}
+            onChange={(e) => {
+              setSelectVal(e.target.value);
+              if (e.target.value !== "Other") {
+                setCustomDesc(e.target.value);
+              }
+            }}
+            className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
+          >
+            <option value="Live map, remote lock/unlock, rider scoring, and support.">Safety Core description</option>
+            <option value="Incident workflows, financial management, reports, and priority support.">Operations Plus description</option>
+            <option value="Telemetry access, weekly reports, crash evidence, and API keys.">Insurance description</option>
+            <option value="Other">Other (custom description)</option>
+          </select>
+        </div>
+
+        {selectVal === "Other" && (
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Custom Description</label>
+            <textarea
+              value={customDesc}
+              onChange={(e) => setCustomDesc(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-line bg-background p-3 text-xs text-white animate-fade-in"
+              rows={3}
+              placeholder="Enter custom plan description..."
+            />
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() => {
+          const rate = Number((document.getElementById(`price-rate-${tier.planCode}`) as HTMLInputElement).value);
+          const setup = Number((document.getElementById(`price-setup-${tier.planCode}`) as HTMLInputElement).value);
+          const desc = selectVal === "Other" ? customDesc : (selectVal || "");
+          updatePricingTierMutation.mutate({
+            planCode: tier.planCode,
+            name: tier.name,
+            monthlyRatePerBike: rate,
+            setupFeePerBike: setup,
+            description: desc,
+          });
+        }}
+        disabled={updatePricingTierMutation.isPending}
+        className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:brightness-110 active:scale-95 transition-all text-xs disabled:opacity-50"
+      >
+        {updatePricingTierMutation.isPending ? "Saving..." : "Save Tier Config"}
+      </button>
     </div>
   );
 }

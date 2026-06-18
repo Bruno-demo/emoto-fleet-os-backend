@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FleetPlan } from '@prisma/client';
@@ -16,6 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { HqGuard } from '../hq/guards/hq.guard';
+import { Public } from '../auth/public.decorator';
 
 import { PricingTierService } from './services/pricing-tier.service';
 import { DiscountService } from './services/discount.service';
@@ -91,9 +93,27 @@ export class BillingController {
     );
   }
 
+  @Get('public/validate-discount')
+  @Public()
+  @ApiOperation({ summary: 'Validate a discount code publicly' })
+  async validateDiscountPublic(
+    @Query('code') code: string,
+  ) {
+    if (!code) {
+      throw new BadRequestException('Discount code is required');
+    }
+    return await this.discountService.validateDiscountCode(
+      code,
+      '00000000-0000-0000-0000-000000000000', // Dummy UUID for validation
+      10000, // Dummy originalAmount
+      'subscription', // Dummy target
+    );
+  }
+
   // ── HQ-Only Endpoints ───────────────────────────────────────────
 
   @Get('pricing')
+  @Public()
   @ApiOperation({ summary: 'List all pricing tiers' })
   async getPricingTiers() {
     return await this.pricingTierService.getAllTiers();

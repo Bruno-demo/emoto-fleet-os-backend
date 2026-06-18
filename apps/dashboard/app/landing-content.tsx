@@ -120,6 +120,7 @@ const pricingPlans = [
       '+ 35,000 RWF device setup & install fee',
     ],
     featured: true,
+    promoTag: '20% off for 50+ bikes',
   },
   {
     slug: 'insurance',
@@ -227,6 +228,8 @@ export default function LandingContent() {
   const [hasSession, setHasSession] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const [plans, setPlans] = useState(pricingPlans);
+
   useEffect(() => {
     const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
     fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
@@ -240,6 +243,38 @@ export default function LandingContent() {
       .catch(() => {
         setHasSession(false);
       });
+
+    async function loadPricing() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/billing/pricing`);
+        if (!res.ok) return;
+        const tiers = await res.json();
+        const updatedPlans = pricingPlans.map(plan => {
+          const matchingTier = tiers.find((t: any) => 
+            (plan.slug === 'demo' && t.planCode === 'DEMO') ||
+            (plan.slug === 'operations-plus' && t.planCode === 'PREMIUM') ||
+            (plan.slug === 'insurance' && t.planCode === 'INSURANCE')
+          );
+          if (matchingTier) {
+            return {
+              ...plan,
+              price: matchingTier.monthlyRatePerBike === 0 && plan.slug === 'insurance' ? 'Custom' : `${matchingTier.monthlyRatePerBike.toLocaleString()} RWF`,
+              description: matchingTier.description || plan.description,
+              features: plan.features.map(f => 
+                f.includes('setup & install fee') 
+                  ? `+ ${matchingTier.setupFeePerBike.toLocaleString()} RWF device setup & install fee`
+                  : f
+              )
+            };
+          }
+          return plan;
+        });
+        setPlans(updatedPlans);
+      } catch (err) {
+        console.error('Failed to load dynamic pricing:', err);
+      }
+    }
+    loadPricing();
   }, []);
 
   return (
@@ -552,7 +587,7 @@ export default function LandingContent() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3 relative z-10 items-stretch">
-          {pricingPlans.map((plan) => (
+          {plans.map((plan) => (
             <div
               key={plan.title}
               className={`flex flex-col rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 ${
@@ -571,6 +606,13 @@ export default function LandingContent() {
                 <span className="text-4xl font-extrabold text-white">{plan.price}</span>
                 {plan.period && <span className="text-sm text-zinc-500">{plan.period}</span>}
               </div>
+
+              {plan.promoTag && (
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-400 uppercase tracking-wider w-max">
+                  {plan.promoTag}
+                </div>
+              )}
+
               <p className="mt-3 text-sm text-zinc-400 leading-relaxed min-h-[48px]">{plan.description}</p>
 
               <div className="my-6 h-px w-full bg-white/[0.06]" />

@@ -204,6 +204,27 @@ function CreateAccountInner() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
 
+  // Promo code states
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<any>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+
+  const handleValidatePromo = async () => {
+    if (!promoCode) return;
+    setIsValidatingPromo(true);
+    setPromoError(null);
+    try {
+      const res = await apiFetch<any>(`/billing/public/validate-discount?code=${encodeURIComponent(promoCode)}`);
+      setAppliedDiscount(res);
+    } catch (err: any) {
+      setPromoError(err.message || 'Invalid promo code');
+      setAppliedDiscount(null);
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
   const isGateLocked = email.trim().length > 0 && !isEmailVerified;
 
   const registrationMode = useMemo(() => {
@@ -489,6 +510,7 @@ function CreateAccountInner() {
               plan: selectedPlanSlug === 'safety-core' ? 'DEMO' : selectedPlanSlug === 'insurance' ? 'INSURANCE' : 'PREMIUM',
               insurerName: finalInsurerName,
               fullName: fullName.trim() || undefined,
+              promoCode: appliedDiscount ? promoCode : undefined,
             }),
           },
           { auth: false },
@@ -717,6 +739,42 @@ function CreateAccountInner() {
                     </button>
                   );
                 })}
+            </div>
+          )}
+
+          {/* Promo Code Input for account creation */}
+          {selectedPlanSlug && selectedPlanSlug !== 'insurance' && (
+            <div className="mt-4 rounded-2xl border border-line bg-surface-muted/30 p-4 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
+                Have a promo code?
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter code..."
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  disabled={isFormDisabled || isGateLocked}
+                  className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={handleValidatePromo}
+                  disabled={!promoCode || isValidatingPromo || isFormDisabled || isGateLocked}
+                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  {isValidatingPromo ? 'Checking...' : 'Apply'}
+                </button>
+              </div>
+              {appliedDiscount ? (
+                <p className="text-xs text-success-ink font-semibold flex items-center gap-1.5 animate-fade-in">
+                  ✓ {`Discount "${String(appliedDiscount.name)}" validated successfully!`}
+                </p>
+              ) : promoError ? (
+                <p className="text-xs text-danger-ink font-semibold animate-fade-in">
+                  {promoError}
+                </p>
+              ) : null}
             </div>
           )}
         </div>
