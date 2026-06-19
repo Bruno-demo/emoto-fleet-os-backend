@@ -610,7 +610,7 @@ export class AuthService {
             insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',
             monthlyRatePerBike,
-            bikeRange: dto.bikeRange,
+            bikeRange: dto.bikeRange ? String(dto.bikeRange) : null,
             fleetDiscounts: fleetDiscountConnect
               ? { connect: [fleetDiscountConnect] }
               : undefined,
