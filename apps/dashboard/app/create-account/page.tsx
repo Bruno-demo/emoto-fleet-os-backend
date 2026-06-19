@@ -13,7 +13,6 @@ import {
   AtSign,
   Phone,
   Lock,
-  ArrowLeft,
   Zap,
   X,
 } from 'lucide-react';
@@ -102,20 +101,13 @@ const BIKE_RANGE_OPTIONS = [
 
 const registerFormSchema = z
   .object({
-    email: z.string().email('Enter a valid email').optional(),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
     phone: z.string().min(6, 'Enter a valid phone number').optional(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string().min(8, 'Confirm password'),
     role: z.enum(['ADMIN', 'DISPATCHER', 'TECH', 'RIDER']),
   })
   .superRefine((data, context) => {
-    if (!data.email && !data.phone) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Provide either email or phone',
-        path: ['email'],
-      });
-    }
     if (data.password !== data.confirmPassword) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -489,7 +481,7 @@ function CreateAccountInner() {
     }
 
     const parsed = registerFormSchema.safeParse({
-      email: email.trim() ? email.trim() : undefined,
+      email: email.trim(),
       phone: phone.trim() ? phone.trim() : undefined,
       password,
       confirmPassword,
@@ -579,9 +571,10 @@ function CreateAccountInner() {
           setTimeout(() => router.push('/login?next=/live'), 1500);
         }
       } else if (isPublicMode) {
+        const selectedRangeLabel = BIKE_RANGE_OPTIONS.find(o => o.value === bikeRange)?.label ?? bikeRange;
         const successUrl = selectedPlanSlug === 'insurance'
           ? '/registration-success?type=insurance'
-          : '/registration-success';
+          : `/registration-success?fleet=${encodeURIComponent(finalFleetName)}&size=${encodeURIComponent(selectedRangeLabel)}`;
         setTimeout(() => router.push(successUrl), 1500);
       }
 
@@ -1429,14 +1422,13 @@ function getRegisterFieldErrors({
   if (touched.fullName && fullName.trim().length < 2) {
     errors.fullName = 'Enter full name';
   }
-  if (touched.email && email.trim().length > 0 && !z.string().email().safeParse(email).success) {
+  if (touched.email && !email.trim()) {
+    errors.email = 'Email is required';
+  } else if (touched.email && !z.string().email().safeParse(email).success) {
     errors.email = 'Enter a valid email';
   }
   if (touched.phone && phone.trim().length > 0 && phone.trim().length < 6) {
     errors.phone = 'Enter a valid phone number';
-  }
-  if ((touched.email || touched.phone) && !email.trim() && !phone.trim()) {
-    errors.email = 'Provide either email or phone';
   }
   if (touched.password && password.length < 8) {
     errors.password = 'Password must be at least 8 characters';

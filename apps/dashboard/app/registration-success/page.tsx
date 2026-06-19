@@ -10,6 +10,8 @@ function RegistrationSuccessContent() {
   const params = useSearchParams();
   const accountType = params.get('type'); // 'insurance' or null (fleet)
   const isInsurance = accountType === 'insurance';
+  const fleetName = params.get('fleet');
+  const fleetSize = params.get('size');
 
   return (
     <AuthShell
@@ -88,11 +90,28 @@ function RegistrationSuccessContent() {
           />
         </div>
 
+        {!isInsurance && fleetName && (
+          <div className="mt-6 w-full rounded-[20px] border border-line bg-surface-muted/50 p-5 text-left flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">Registered Fleet</p>
+              <p className="text-sm font-bold text-white mt-1.5">{fleetName}</p>
+            </div>
+            {fleetSize && (
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">Fleet Size</p>
+                <span className="inline-flex items-center rounded-lg border border-accent bg-accent/[0.08] px-2.5 py-1 text-xs font-bold text-accent mt-1">
+                  {fleetSize}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mt-8 w-full rounded-[20px] border border-line bg-surface-muted p-5 text-left">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-muted">
             {isInsurance ? 'Want to get started faster?' : 'Need faster setup?'}
           </p>
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 text-accent">
               <Phone size={18} />
             </div>
