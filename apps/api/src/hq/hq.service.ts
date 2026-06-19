@@ -216,7 +216,11 @@ export class HqService {
     const tier = await this.prisma.pricingTier.findUnique({
       where: { planCode: plan as FleetPlan },
     });
-    const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : 5000);
+    const monthlyRatePerBike = tier
+      ? tier.monthlyRatePerBike
+      : plan === 'PREMIUM'
+        ? 10000
+        : 5000;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
@@ -2198,7 +2202,9 @@ export class HqService {
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     if (typeof durationDays !== 'number' || durationDays <= 0) {
-      throw new BadRequestException('Duration must be a positive number of days');
+      throw new BadRequestException(
+        'Duration must be a positive number of days',
+      );
     }
 
     const trialStartedAt = new Date();
@@ -2234,6 +2240,216 @@ export class HqService {
     });
 
     return updated;
+  }
+
+  async globalSearch(q: string) {
+    if (!q || typeof q !== 'string' || !q.trim()) {
+      return {
+        fleets: [],
+        users: [],
+        bikes: [],
+        logs: [],
+        devices: [],
+      };
+    }
+
+    const searchTerm = q.trim();
+
+    // Determine matched audit log action types
+    const matchedActionTypes = Object.values(AuditActionType).filter((val) =>
+      val.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    const [fleets, users, bikes, devices, logs] = await Promise.all([
+      // 1. Fleets
+      this.prisma.fleet.findMany({
+        where: {
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { insurerName: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        },
+        take: 10,
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          plan: true,
+          subscriptionStatus: true,
+        },
+      }),
+
+      // 2. Users
+      this.prisma.user.findMany({
+        where: {
+          OR: [
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+            { phone: { contains: searchTerm, mode: 'insensitive' } },
+            {
+              riderProfile: {
+                fullName: { contains: searchTerm, mode: 'insensitive' },
+              },
+            },
+          ],
+        },
+        take: 10,
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          role: true,
+          status: true,
+          fleet: {
+            select: {
+              name: true,
+            },
+          },
+          riderProfile: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      }),
+
+      // 3. Bikes
+      this.prisma.bike.findMany({
+        where: {
+          OR: [
+            { label: { contains: searchTerm, mode: 'insensitive' } },
+            { plate: { contains: searchTerm, mode: 'insensitive' } },
+            { serial: { contains: searchTerm, mode: 'insensitive' } },
+            { model: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        },
+        take: 10,
+        select: {
+          id: true,
+          label: true,
+          plate: true,
+          serial: true,
+          model: true,
+          status: true,
+          fleetId: true,
+          fleet: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+
+      // 4. Devices
+      this.prisma.device.findMany({
+        where: {
+          OR: [
+            { deviceUid: { contains: searchTerm, mode: 'insensitive' } },
+            { imei: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        },
+        take: 10,
+        select: {
+          id: true,
+          deviceUid: true,
+          imei: true,
+          status: true,
+          fleet: {
+            select: {
+              name: true,
+            },
+          },
+          bike: {
+            select: {
+              label: true,
+            },
+          },
+        },
+      }),
+
+      // 5. Audit Logs
+      this.prisma.auditLog.findMany({
+        where: {
+          OR: [
+            { targetType: { contains: searchTerm, mode: 'insensitive' } },
+            { targetId: { contains: searchTerm, mode: 'insensitive' } },
+            {
+              actionType: { in: matchedActionTypes },
+            },
+            {
+              actorUser: {
+                OR: [
+                  { email: { contains: searchTerm, mode: 'insensitive' } },
+                  {
+                    riderProfile: {
+                      fullName: { contains: searchTerm, mode: 'insensitive' },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          actionType: true,
+          targetType: true,
+          targetId: true,
+          createdAt: true,
+          fleet: {
+            select: {
+              name: true,
+            },
+          },
+          actorUser: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      fleets,
+      users: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        status: u.status,
+        fleetName: u.fleet?.name ?? 'No Fleet',
+        fullName: u.riderProfile?.fullName ?? 'No Profile Name',
+      })),
+      bikes: bikes.map((b) => ({
+        id: b.id,
+        label: b.label,
+        plate: b.plate,
+        serial: b.serial,
+        model: b.model,
+        status: b.status,
+        fleetId: b.fleetId,
+        fleetName: b.fleet?.name ?? 'No Fleet',
+      })),
+      devices: devices.map((d) => ({
+        id: d.id,
+        deviceUid: d.deviceUid,
+        imei: d.imei,
+        status: d.status,
+        fleetName: d.fleet?.name ?? 'No Fleet',
+        bikeLabel: d.bike?.label ?? null,
+      })),
+      logs: logs.map((l) => ({
+        id: String(l.id),
+        actionType: l.actionType,
+        targetType: l.targetType,
+        targetId: l.targetId,
+        createdAt: l.createdAt,
+        fleetName: l.fleet?.name ?? 'No Fleet',
+        actorEmail: l.actorUser?.email ?? 'System/Unknown',
+      })),
+    };
   }
 
   // ── Helpers ───────────────────────────────────────────────────────

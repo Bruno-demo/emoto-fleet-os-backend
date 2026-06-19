@@ -15,12 +15,16 @@ import {
   ArrowUpRight,
   ShieldCheck,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Search,
+  X,
+  Loader2
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 
 const statsSchema = z.object({
   totalFleets: z.number(),
@@ -49,6 +53,52 @@ const eventSchema = z.array(z.object({
   type: z.enum(['success', 'info', 'warning']),
 }));
 
+const globalSearchResponseSchema = z.object({
+  fleets: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+    plan: z.string(),
+    subscriptionStatus: z.string(),
+  })),
+  users: z.array(z.object({
+    id: z.string(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    role: z.string(),
+    status: z.string(),
+    fleetName: z.string(),
+    fullName: z.string(),
+  })),
+  bikes: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    plate: z.string().nullable(),
+    serial: z.string().nullable(),
+    model: z.string().nullable(),
+    status: z.string(),
+    fleetId: z.string(),
+    fleetName: z.string(),
+  })),
+  devices: z.array(z.object({
+    id: z.string(),
+    deviceUid: z.string(),
+    imei: z.string().nullable(),
+    status: z.string(),
+    fleetName: z.string(),
+    bikeLabel: z.string().nullable(),
+  })),
+  logs: z.array(z.object({
+    id: z.string(),
+    actionType: z.string(),
+    targetType: z.string(),
+    targetId: z.string().nullable(),
+    createdAt: z.string(),
+    fleetName: z.string(),
+    actorEmail: z.string().nullable(),
+  })),
+});
+
 export default function HqOverviewPage() {
   const router = useRouter();
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -71,6 +121,47 @@ export default function HqOverviewPage() {
     queryFn: () => apiFetch('/hq/events', {}, { schema: eventSchema }),
   });
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const { data: searchResults, isFetching: searchLoading } = useQuery({
+    queryKey: ['hq', 'global-search', debouncedQuery],
+    queryFn: () => {
+      if (!debouncedQuery.trim()) return null;
+      return apiFetch(`/hq/search?q=${encodeURIComponent(debouncedQuery)}`, {}, { schema: globalSearchResponseSchema });
+    },
+    enabled: debouncedQuery.trim().length >= 2,
+  });
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -87,6 +178,191 @@ export default function HqOverviewPage() {
             Live Telemetry Active
           </div>
         </div>
+      </div>
+
+      {/* Global Unified Search */}
+      <div ref={searchRef} className="relative z-50 max-w-xl">
+        <div className="relative group flex items-center">
+          <Search className="absolute left-4 text-zinc-500 group-focus-within:text-accent transition-colors" size={18} />
+          <input
+            type="text"
+            placeholder="Search fleets, users, bikes, devices, logs..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            className="h-12 w-full rounded-2xl border border-line bg-[#18181b]/80 backdrop-blur-md pl-12 pr-10 text-xs text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+          />
+          {searchLoading && (
+            <Loader2 className="absolute right-4 text-zinc-500 animate-spin" size={18} />
+          )}
+          {!searchLoading && searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setIsOpen(false);
+              }}
+              className="absolute right-4 text-zinc-500 hover:text-white"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        {isOpen && debouncedQuery.trim().length >= 2 && (
+          <div className="absolute left-0 mt-2 w-full max-h-[480px] overflow-y-auto rounded-2xl border border-line bg-[#161618]/95 backdrop-blur-xl p-4 shadow-2xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            {searchLoading && !searchResults && (
+              <div className="py-8 text-center text-zinc-500 text-xs">Searching global database...</div>
+            )}
+            
+            {!searchLoading && searchResults && 
+              Object.values(searchResults).every(arr => arr.length === 0) && (
+              <div className="py-8 text-center text-zinc-500 text-xs">No matches found for &quot;{debouncedQuery}&quot;</div>
+            )}
+
+            {searchResults && (
+              <>
+                {/* Fleets */}
+                {searchResults.fleets.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2 px-2">Fleets</div>
+                    <div className="space-y-1">
+                      {searchResults.fleets.map(f => (
+                        <Link
+                          key={f.id}
+                          href={`/hq/fleets/${f.id}`}
+                          className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-white/5 transition"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">{f.name}</span>
+                            <span className="text-[10px] text-zinc-400 capitalize">{f.type.toLowerCase()} · Plan: {f.plan}</span>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                            f.subscriptionStatus === 'ACTIVE' 
+                              ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                              : 'bg-rose-400/10 text-rose-400 border-rose-400/20'
+                          }`}>
+                            {f.subscriptionStatus}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Users */}
+                {searchResults.users.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2 px-2">Users</div>
+                    <div className="space-y-1">
+                      {searchResults.users.map(u => (
+                        <Link
+                          key={u.id}
+                          href={`/hq/users?search=${encodeURIComponent(u.email || u.phone || '')}`}
+                          className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-white/5 transition"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">{u.fullName}</span>
+                            <span className="text-[10px] text-zinc-400">{u.email || u.phone} · {u.fleetName}</span>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-medium px-2 py-0.5 rounded bg-white/5 border border-white/10 uppercase">
+                            {u.role}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Bikes */}
+                {searchResults.bikes.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2 px-2">Bikes</div>
+                    <div className="space-y-1">
+                      {searchResults.bikes.map(b => (
+                        <Link
+                          key={b.id}
+                          href={`/hq/fleets/${b.fleetId}`}
+                          className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-white/5 transition"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">{b.label}</span>
+                            <span className="text-[10px] text-zinc-400">
+                              Plate: {b.plate || 'N/A'} · Model: {b.model || 'N/A'} · {b.fleetName}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                            b.status === 'ACTIVE' 
+                              ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
+                              : b.status === 'MAINTENANCE'
+                              ? 'bg-amber-400/10 text-amber-400 border-amber-400/20'
+                              : 'bg-rose-400/10 text-rose-400 border-rose-400/20'
+                          }`}>
+                            {b.status}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Devices */}
+                {searchResults.devices.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2 px-2">Devices</div>
+                    <div className="space-y-1">
+                      {searchResults.devices.map(d => (
+                        <Link
+                          key={d.id}
+                          href={`/hq/devices?search=${encodeURIComponent(d.deviceUid)}`}
+                          className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-white/5 transition"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">{d.deviceUid}</span>
+                            <span className="text-[10px] text-zinc-400">
+                              IMEI: {d.imei || 'N/A'} · Bike: {d.bikeLabel || 'None'} · {d.fleetName}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-medium px-2 py-0.5 rounded bg-white/5 border border-white/10 uppercase">
+                            {d.status}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Audit Logs */}
+                {searchResults.logs.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2 px-2">Audit Logs</div>
+                    <div className="space-y-1">
+                      {searchResults.logs.map(l => (
+                        <Link
+                          key={l.id}
+                          href="/hq/audit"
+                          className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-white/5 transition"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">{l.actionType.replaceAll('_', ' ')}</span>
+                            <span className="text-[10px] text-zinc-400">
+                              Target: {l.targetType} ({l.targetId || 'N/A'}) · Actor: {l.actorEmail}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-medium font-mono">
+                            {new Date(l.createdAt).toLocaleDateString()}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

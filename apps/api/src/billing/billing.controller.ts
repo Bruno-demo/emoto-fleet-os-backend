@@ -96,9 +96,7 @@ export class BillingController {
   @Get('public/validate-discount')
   @Public()
   @ApiOperation({ summary: 'Validate a discount code publicly' })
-  async validateDiscountPublic(
-    @Query('code') code: string,
-  ) {
+  async validateDiscountPublic(@Query('code') code: string) {
     if (!code) {
       throw new BadRequestException('Discount code is required');
     }

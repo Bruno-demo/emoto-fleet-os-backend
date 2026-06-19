@@ -9,7 +9,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuditActionType, FleetPlan, Prisma, UserRole, UserStatus } from '@prisma/client';
+import {
+  AuditActionType,
+  FleetPlan,
+  Prisma,
+  UserRole,
+  UserStatus,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
@@ -467,7 +473,11 @@ export class AuthService {
         const tier = await tx.pricingTier.findUnique({
           where: { planCode: plan as FleetPlan },
         });
-        const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : 5000);
+        const monthlyRatePerBike = tier
+          ? tier.monthlyRatePerBike
+          : plan === 'PREMIUM'
+            ? 10000
+            : 5000;
 
         const fleet = await tx.fleet.create({
           data: {
@@ -559,7 +569,13 @@ export class AuthService {
         const tier = await tx.pricingTier.findUnique({
           where: { planCode: plan as FleetPlan },
         });
-        const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : (plan === 'PREMIUM' ? 10000 : plan === 'INSURANCE' ? 0 : 5000);
+        const monthlyRatePerBike = tier
+          ? tier.monthlyRatePerBike
+          : plan === 'PREMIUM'
+            ? 10000
+            : plan === 'INSURANCE'
+              ? 0
+              : 5000;
 
         let fleetDiscountConnect = undefined;
 
@@ -569,8 +585,14 @@ export class AuthService {
           });
           if (discount && discount.isActive && !discount.fleetId) {
             const now = new Date();
-            const isValidDates = (!discount.validFrom || discount.validFrom <= now) && (!discount.validUntil || discount.validUntil >= now);
-            if (isValidDates && (discount.maxUses === null || discount.usedCount < discount.maxUses)) {
+            const isValidDates =
+              (!discount.validFrom || discount.validFrom <= now) &&
+              (!discount.validUntil || discount.validUntil >= now);
+            if (
+              isValidDates &&
+              (discount.maxUses === null ||
+                discount.usedCount < discount.maxUses)
+            ) {
               fleetDiscountConnect = { id: discount.id };
               await tx.discount.update({
                 where: { id: discount.id },
@@ -588,7 +610,9 @@ export class AuthService {
             insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',
             monthlyRatePerBike,
-            fleetDiscounts: fleetDiscountConnect ? { connect: [fleetDiscountConnect] } : undefined,
+            fleetDiscounts: fleetDiscountConnect
+              ? { connect: [fleetDiscountConnect] }
+              : undefined,
           },
         });
 

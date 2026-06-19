@@ -48,6 +48,14 @@ export class HqController {
     return this.hqService.getEvents();
   }
 
+  @Get('search')
+  @ApiOperation({
+    summary: 'Global search across fleets, users, bikes, logs, and devices',
+  })
+  globalSearch(@Query('q') query: string) {
+    return this.hqService.globalSearch(query);
+  }
+
   // ── Fleets ────────────────────────────────────────────────────────
 
   @Get('fleets')
