@@ -3,6 +3,7 @@ import { Manrope, Space_Grotesk } from 'next/font/google';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const manrope = Manrope({
@@ -159,6 +160,7 @@ export default function RootLayout({
           <QueryProvider>
             {children}
             <SpeedInsights />
+            <Analytics />
           </QueryProvider>
         </ThemeProvider>
       </body>
