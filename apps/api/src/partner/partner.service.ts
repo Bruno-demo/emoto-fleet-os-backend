@@ -235,6 +235,12 @@ export class PartnerService {
   ): Promise<PaginatedResponse<any>> {
     this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
 
+    const partnerUser = await this.prismaService.user.findFirst({
+      where: { id: partner.partnerId },
+      select: { fleetId: true },
+    });
+    const fleetId = partnerUser?.fleetId;
+
     const isInsurer = await this.isInsurerPartner(partner.partnerId);
     const where: Prisma.BikeWhereInput = {};
 
@@ -291,15 +297,12 @@ export class PartnerService {
       this.prismaService.bike.count({ where }),
     ]);
 
-    await this.auditPartnerApiAccess(
-      partner,
-      'all-fleets',
-      'partner.list_bikes',
-      {
+    if (fleetId) {
+      await this.auditPartnerApiAccess(partner, fleetId, 'partner.list_bikes', {
         page: pagination.page,
         pageSize: pagination.pageSize,
-      },
-    );
+      });
+    }
 
     return createPaginatedResponse(
       bikes.map((b) => ({
