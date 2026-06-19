@@ -14,6 +14,7 @@ const fleetsSchema = z.array(
     plan: z.string(),
     subscriptionStatus: z.string(),
     createdAt: z.string(),
+    bikeRange: z.string().nullable().optional(),
     _count: z.object({
       users: z.number(),
       bikes: z.number(),
@@ -192,7 +193,14 @@ export default function HqFleetsPage() {
                           <Building2 size={18} />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white leading-tight">{fleet.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-white leading-tight">{fleet.name}</p>
+                            {fleet.bikeRange && (
+                              <span className="inline-flex items-center rounded-md bg-accent/10 border border-accent/25 px-1.5 py-0.5 text-[9px] font-bold text-accent leading-none uppercase tracking-wide">
+                                Size: {fleet.bikeRange}
+                              </span>
+                            )}
+                          </div>
                           <p className="mt-1 text-[10px] text-zinc-500 font-mono tracking-tight">{fleet.id.slice(0, 8)}...</p>
                         </div>
                       </div>

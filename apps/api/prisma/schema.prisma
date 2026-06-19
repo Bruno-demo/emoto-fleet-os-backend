@@ -232,6 +232,7 @@ model Fleet {
   upgradeRequested  Boolean                 @default(false)
   upgradeRequestedAt DateTime?              @db.Timestamptz(6)
   monthlyRatePerBike Int                 @default(10000)
+  bikeRange         String?
   createdAt         DateTime             @default(now()) @db.Timestamptz(6)
   trialStartedAt    DateTime?            @db.Timestamptz(6)
   trialEndsAt       DateTime?            @db.Timestamptz(6)

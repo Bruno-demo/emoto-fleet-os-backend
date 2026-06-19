@@ -40,6 +40,7 @@ const fleetDetailSchema = z.object({
   plan: z.string(),
   subscriptionStatus: z.string(),
   createdAt: z.string(),
+  bikeRange: z.string().nullable().optional(),
   users: z.array(
     z.object({
       id: z.string(),
@@ -551,9 +552,16 @@ export default function FleetDetailPage() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-white">
-              {fleet.name}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="font-display text-3xl font-bold tracking-tight text-white">
+                {fleet.name}
+              </h1>
+              {fleet.bikeRange && (
+                <span className="inline-flex items-center rounded-lg bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-xs font-bold text-accent">
+                  Expected size: {fleet.bikeRange}
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-zinc-400">
               Detailed analytics and configuration for {fleet.type} fleet
             </p>
