@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/public.decorator';
 import { PaginatedResponse } from '../common/pagination';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CurrentPartner } from './current-partner.decorator';
 import { CreatePartnerWebhookDto } from './dto/create-partner-webhook.dto';
 import { PartnerDateRangeDto } from './dto/partner-date-range.dto';
@@ -86,6 +87,17 @@ export class PartnerController {
       partner,
       incidentId,
     );
+  }
+
+  @Get('bikes')
+  @ApiOperation({
+    summary: 'List all bikes assigned to this partner (insurer)',
+  })
+  async listBikes(
+    @CurrentPartner() partner: AuthenticatedPartner,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<any>> {
+    return this.partnerService.listBikesForPartner(partner, query);
   }
 
   @Post('webhooks')

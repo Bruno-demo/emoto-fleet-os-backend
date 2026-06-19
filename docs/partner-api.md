@@ -40,6 +40,8 @@ curl -H "Authorization: Bearer <jwt>" \
 
 ## 3. Data Retrieval Endpoints
 
+- `GET /partner/bikes?page&pageSize&limit`
+  - Returns a paginated list of all bikes assigned to the partner. If the partner is an insurer, it isolates the list to bikes where `insurerName` matches the insurer's company name.
 - `GET /partner/fleets/:fleetId/weekly-summary?from&to`
   - Returns aggregate-only fleet performance metrics including total trip bounds, incident counts, crash occurrences, and the average fleet score.
 - `GET /partner/bikes/:bikeId/trips?from&to&page&pageSize`

@@ -20,6 +20,7 @@ import {
   createPaginatedResponse,
   getPaginationParams,
 } from '../common/pagination';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePartnerWebhookDto } from './dto/create-partner-webhook.dto';
 import type { PartnerDateRangeDto } from './dto/partner-date-range.dto';
@@ -222,6 +223,97 @@ export class PartnerService {
 
     return createPaginatedResponse(
       trips.map((trip) => toPartnerTripSummary(trip)),
+      total,
+      pagination.page,
+      pagination.pageSize,
+    );
+  }
+
+  async listBikesForPartner(
+    partner: AuthenticatedPartner,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<any>> {
+    this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
+
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    const where: Prisma.BikeWhereInput = {};
+
+    if (isInsurer) {
+      const user = await this.prismaService.user.findFirst({
+        where: { id: partner.partnerId },
+        include: { fleet: true },
+      });
+      if (user?.fleet?.insurerName) {
+        where.insurerName = user.fleet.insurerName;
+      } else {
+        where.insurerName = '____non_existent_insurer____';
+      }
+    } else {
+      const activeAccesses =
+        await this.prismaService.partnerFleetAccess.findMany({
+          where: {
+            partnerId: partner.partnerId,
+            active: true,
+          },
+          select: {
+            fleetId: true,
+          },
+        });
+      const fleetIds = activeAccesses.map((a) => a.fleetId);
+      where.fleetId = { in: fleetIds };
+    }
+
+    const pagination = getPaginationParams(query);
+
+    const [bikes, total] = await Promise.all([
+      this.prismaService.bike.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+        select: {
+          id: true,
+          fleetId: true,
+          label: true,
+          plate: true,
+          serial: true,
+          model: true,
+          status: true,
+          insurerName: true,
+          createdAt: true,
+          fleet: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prismaService.bike.count({ where }),
+    ]);
+
+    await this.auditPartnerApiAccess(
+      partner,
+      'all-fleets',
+      'partner.list_bikes',
+      {
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+      },
+    );
+
+    return createPaginatedResponse(
+      bikes.map((b) => ({
+        id: b.id,
+        fleetId: b.fleetId,
+        fleetName: b.fleet?.name ?? 'No Fleet',
+        label: b.label,
+        plate: b.plate,
+        serial: b.serial,
+        model: b.model,
+        status: b.status,
+        insurerName: b.insurerName,
+        createdAt: b.createdAt,
+      })),
       total,
       pagination.page,
       pagination.pageSize,
