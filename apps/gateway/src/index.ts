@@ -164,6 +164,12 @@ function isAuthBypassPath(pathname: string): boolean {
   if (pathname.startsWith('/partner/oauth/token')) {
     return true;
   }
+  if (pathname.startsWith('/billing/public/')) {
+    return true;
+  }
+  if (pathname.startsWith('/billing/pricing')) {
+    return true;
+  }
   return false;
 }
 
