@@ -34,6 +34,7 @@ import {
   Marker,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -1730,6 +1731,14 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
           </div>
         </div>
       </Popup>
+      <Tooltip
+        permanent
+        direction="bottom"
+        offset={[0, 18]}
+        className="!bg-zinc-950/90 !text-white !border-white/10 !shadow-lg backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md"
+      >
+        {poi.name}
+      </Tooltip>
     </Marker>
   );
 });
