@@ -112,7 +112,18 @@ const BIKE_RANGE_OPTIONS = [
 const registerFormSchema = z
   .object({
     email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-    phone: z.string().min(6, 'Enter a valid phone number').optional(),
+    phone: z
+      .string()
+      .optional()
+      .refine((val) => !val || /^07\d{8}$/.test(val.trim()), {
+        message: 'Phone number must be exactly 10 digits starting with 07',
+      })
+      .transform((val) => {
+        if (!val) return undefined;
+        const trimmed = val.trim();
+        if (!trimmed) return undefined;
+        return '+250' + trimmed.slice(1);
+      }),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string().min(8, 'Confirm password'),
     role: z.enum(['ADMIN', 'DISPATCHER', 'TECH', 'RIDER']),
@@ -914,7 +925,7 @@ function CreateAccountInner() {
           />
           <AuthInput
             label="Phone number"
-            placeholder="+2507..."
+            placeholder="07..."
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
@@ -1482,8 +1493,10 @@ function getRegisterFieldErrors({
   } else if (touched.email && !z.string().email().safeParse(email).success) {
     errors.email = 'Enter a valid email';
   }
-  if (touched.phone && phone.trim().length > 0 && phone.trim().length < 6) {
-    errors.phone = 'Enter a valid phone number';
+  if (touched.phone && phone.trim().length > 0) {
+    if (!/^07\d{8}$/.test(phone.trim())) {
+      errors.phone = 'Phone number must be exactly 10 digits starting with 07';
+    }
   }
   if (touched.password && password.length < 8) {
     errors.password = 'Password must be at least 8 characters';

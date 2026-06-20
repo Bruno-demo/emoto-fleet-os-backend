@@ -37,13 +37,24 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier.includes('@') && trimmedIdentifier.length > 0 && !/^07\d{8}$/.test(trimmedIdentifier)) {
+      setNoticeTone('error');
+      setNotice('Phone number must be exactly 10 digits starting with 07');
+      return;
+    }
+
+    const normalizedIdentifier = /^07\d{8}$/.test(trimmedIdentifier)
+      ? '+250' + trimmedIdentifier.slice(1)
+      : trimmedIdentifier;
+
     try {
       setIsSubmitting(true);
       const response = await apiFetch<{ token?: string }>(
         resetEndpoint,
         {
           method: 'POST',
-          body: JSON.stringify({ identifier: identifier.trim() }),
+          body: JSON.stringify({ identifier: normalizedIdentifier }),
         },
         { auth: false },
       );
@@ -53,7 +64,7 @@ export default function ForgotPasswordPage() {
         setGeneratedToken(response.token);
       } else {
         setTimeout(() => {
-          router.push(`/reset-password?identifier=${encodeURIComponent(identifier.trim())}`);
+          router.push(`/reset-password?identifier=${encodeURIComponent(normalizedIdentifier)}`);
         }, 2000);
       }
       setIdentifier('');
@@ -104,7 +115,7 @@ export default function ForgotPasswordPage() {
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <AuthInput
           label="Email or phone"
-          placeholder="name@fleet.example or +2507..."
+          placeholder="name@fleet.example or 07..."
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
           icon={<Mail size={16} />}

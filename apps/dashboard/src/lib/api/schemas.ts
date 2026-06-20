@@ -76,8 +76,12 @@ export function buildLoginPayload(
     };
   }
 
+  const phoneVal = /^07\d{8}$/.test(normalizedIdentifier)
+    ? '+250' + normalizedIdentifier.slice(1)
+    : normalizedIdentifier;
+
   return {
     ...commonFields,
-    phone: normalizedIdentifier,
+    phone: phoneVal,
   };
 }

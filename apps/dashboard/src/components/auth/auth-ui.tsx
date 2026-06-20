@@ -81,12 +81,9 @@ export function AuthShell({
       </section>
 
       {/* Right Pane - Centered Auth Form */}
-      <section className="flex flex-col justify-center items-center p-6 sm:p-12 lg:p-20 relative z-10">
-        <div className="w-full max-w-[440px] glass-panel rounded-[28px] p-8 md:p-10 transition-all shadow-[var(--shadow-strong)] relative overflow-hidden">
-           <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-100 pointer-events-none"></div>
-           <div className="relative z-10">
-             {children}
-           </div>
+      <section className="flex flex-col justify-center items-center p-6 sm:p-12 lg:p-20 relative z-10 w-full">
+        <div className="w-full max-w-2xl transition-all relative z-10">
+          {children}
         </div>
         <p className="absolute bottom-8 text-xs text-ink-muted hidden lg:block">
           (C) 2026 E-Moto Safety.

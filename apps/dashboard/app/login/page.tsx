@@ -82,9 +82,18 @@ export default function LoginPage() {
 
   const fieldErrors = useMemo<LoginFieldErrors>(() => {
     const errors: LoginFieldErrors = {};
+    const trimmed = identifier.trim();
 
-    if (touched.identifier && identifier.trim().length < 3) {
-      errors.identifier = 'Provide email or phone';
+    if (touched.identifier) {
+      if (trimmed.length === 0) {
+        errors.identifier = 'Provide email or phone';
+      } else if (!trimmed.includes('@')) {
+        if (!/^07\d{8}$/.test(trimmed)) {
+          errors.identifier = 'Phone number must be exactly 10 digits starting with 07';
+        }
+      } else if (trimmed.length < 3) {
+        errors.identifier = 'Provide email or phone';
+      }
     }
     if (touched.password && password.length < 8) {
       errors.password = 'Password must be at least 8 characters';
@@ -102,6 +111,12 @@ export default function LoginPage() {
     const parsed = loginFormSchema.safeParse({ identifier, password });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Invalid login form values');
+      return;
+    }
+
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier.includes('@') && trimmedIdentifier.length > 0 && !/^07\d{8}$/.test(trimmedIdentifier)) {
+      setError('Phone number must be exactly 10 digits starting with 07');
       return;
     }
 
@@ -495,14 +510,14 @@ function getLoginPresentation() {
       showDemoCredentials: true,
       description:
         'Use a fleet operator email or phone account. Seeded examples are shown below for local development.',
-      identifierPlaceholder: 'admin@demo.emoto or +250700000101',
+      identifierPlaceholder: 'admin@demo.emoto or 0700000101',
     };
   }
 
   return {
     showDemoCredentials: false,
     description: 'Use the email address or phone number assigned to your fleet operator account.',
-    identifierPlaceholder: 'name@fleet.example or +2507...',
+    identifierPlaceholder: 'name@fleet.example or 07...',
   };
 }
 
