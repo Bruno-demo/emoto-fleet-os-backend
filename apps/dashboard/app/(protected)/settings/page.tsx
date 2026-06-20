@@ -45,6 +45,16 @@ interface BillingCycleData {
   dueDate: string;
 }
 
+interface PricingTier {
+  id: string;
+  name: string;
+  planCode: string;
+  monthlyRatePerBike: number;
+  setupFeePerBike: number;
+  description: string | null;
+  isActive: boolean;
+}
+
 type SettingsTab = 'profile' | 'fleet' | 'team' | 'security' | 'notifications' | 'apiCredentials';
 
 const ALL_TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode; adminOnly?: boolean }> = [
@@ -67,9 +77,9 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const entitlements = getSubscriptionEntitlements(user);
 
-  const { data: pricingTiers } = useQuery<any[]>({
+  const { data: pricingTiers } = useQuery<PricingTier[]>({
     queryKey: ['billing', 'pricing-tiers'],
-    queryFn: () => apiFetch<any[]>('/billing/pricing'),
+    queryFn: () => apiFetch<PricingTier[]>('/billing/pricing'),
   });
 
   const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');

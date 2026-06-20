@@ -52,6 +52,16 @@ interface PromoDiscount {
   isActive: boolean;
 }
 
+interface PricingTier {
+  id: string;
+  name: string;
+  planCode: string;
+  monthlyRatePerBike: number;
+  setupFeePerBike: number;
+  description: string | null;
+  isActive: boolean;
+}
+
 const enableFullNameCapture = process.env.NEXT_PUBLIC_ENABLE_FULLNAME === '1';
 
 const RWANDA_INSURERS = [
@@ -165,7 +175,7 @@ function CreateAccountInner() {
       try {
         const res = await fetch(`${API_BASE_URL}/billing/pricing`);
         if (!res.ok) return;
-        const tiers = (await res.json()) as any[];
+        const tiers = (await res.json()) as PricingTier[];
         const updatedPlans = { ...PLAN_DETAILS };
         
         const coreTier = tiers.find(t => t.planCode === 'DEMO');
