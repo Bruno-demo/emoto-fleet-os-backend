@@ -109,6 +109,7 @@ function CheckoutContent() {
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<PromoDiscount | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
   const { data: pricingTiers } = useQuery<PricingTier[]>({
     queryKey: ['billing', 'pricing-tiers'],
@@ -175,6 +176,7 @@ function CheckoutContent() {
     if (!promoCode.trim()) return;
 
     try {
+      setIsValidatingPromo(true);
       const originalAmount = isOperationsPlus
         ? (premiumTier?.monthlyRatePerBike ?? 10000)
         : (demoTier?.monthlyRatePerBike ?? 5000);
@@ -193,6 +195,8 @@ function CheckoutContent() {
       } else {
         setPromoError('Invalid code');
       }
+    } finally {
+      setIsValidatingPromo(false);
     }
   };
 
@@ -401,14 +405,16 @@ function CheckoutContent() {
                   placeholder="Enter code..."
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  disabled={isValidatingPromo}
                   className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white placeholder:text-zinc-500"
                 />
                 <button
                   type="button"
                   onClick={handleValidatePromo}
-                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95"
+                  disabled={!promoCode.trim() || isValidatingPromo}
+                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
                 >
-                  Apply
+                  {isValidatingPromo ? 'Checking...' : 'Apply'}
                 </button>
               </div>
               {appliedDiscount ? (

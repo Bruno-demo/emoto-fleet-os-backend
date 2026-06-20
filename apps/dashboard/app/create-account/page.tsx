@@ -825,7 +825,7 @@ function CreateAccountInner() {
                   type="button"
                   onClick={handleValidatePromo}
                   disabled={!promoCode || isValidatingPromo || isFormDisabled || isGateLocked}
-                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
                 >
                   {isValidatingPromo ? 'Checking...' : 'Apply'}
                 </button>
