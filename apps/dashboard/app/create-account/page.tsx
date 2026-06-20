@@ -156,7 +156,52 @@ function CreateAccountInner() {
   const tokenFromUrl = searchParams.get('token');
   const [selectedPlanSlug, setSelectedPlanSlug] = useState<string | null>(planSlugFromUrl);
   
-  const selectedPlan = selectedPlanSlug ? PLAN_DETAILS[selectedPlanSlug] : null;
+  const [plans, setPlans] = useState(PLAN_DETAILS);
+  const selectedPlan = selectedPlanSlug ? plans[selectedPlanSlug] : null;
+
+  useEffect(() => {
+    const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+    async function loadPricing() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/billing/pricing`);
+        if (!res.ok) return;
+        const tiers = (await res.json()) as any[];
+        const updatedPlans = { ...PLAN_DETAILS };
+        
+        const coreTier = tiers.find(t => t.planCode === 'DEMO');
+        if (coreTier) {
+          updatedPlans['safety-core'] = {
+            ...updatedPlans['safety-core'],
+            price: `${coreTier.monthlyRatePerBike.toLocaleString()} RWF`,
+            description: `${coreTier.description || 'Essential safety'} (+ ${coreTier.setupFeePerBike.toLocaleString()} RWF setup).`,
+          };
+        }
+        
+        const premiumTier = tiers.find(t => t.planCode === 'PREMIUM');
+        if (premiumTier) {
+          updatedPlans['operations-plus'] = {
+            ...updatedPlans['operations-plus'],
+            price: `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF`,
+            description: `${premiumTier.description || 'Advanced fleet ops'} (+ ${premiumTier.setupFeePerBike.toLocaleString()} RWF setup).`,
+          };
+        }
+
+        const insuranceTier = tiers.find(t => t.planCode === 'INSURANCE');
+        if (insuranceTier) {
+          updatedPlans['insurance'] = {
+            ...updatedPlans['insurance'],
+            price: insuranceTier.monthlyRatePerBike === 0 ? 'Custom' : `${insuranceTier.monthlyRatePerBike.toLocaleString()} RWF`,
+            description: insuranceTier.description || 'For insurance companies only.',
+          };
+        }
+        
+        setPlans(updatedPlans);
+      } catch (err) {
+        console.error('Failed to load dynamic pricing in registration:', err);
+      }
+    }
+    loadPricing();
+  }, []);
   const isDemo = flow === 'demo';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
   const [signupType, setSignupType] = useState<SignupType>(tokenFromUrl ? 'rider' : planSlugFromUrl ? 'admin' : 'rider');
@@ -700,7 +745,7 @@ function CreateAccountInner() {
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {Object.entries(PLAN_DETAILS)
+              {Object.entries(plans)
                 .filter(([slug]) => slug !== 'insurance')
                 .map(([slug, plan]) => {
                   const isSelected = selectedPlanSlug === slug;

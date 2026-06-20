@@ -122,6 +122,14 @@ function CheckoutContent() {
     ? (premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF` : '10,000 RWF')
     : (demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF` : '5,000 RWF');
 
+  const activeTier = isOperationsPlus ? premiumTier : demoTier;
+  const displayFeatures = plan?.features.map(f => {
+    if (f.includes('setup & install fee') && activeTier) {
+      return `+ ${activeTier.setupFeePerBike.toLocaleString()} RWF device setup & install fee`;
+    }
+    return f;
+  }) ?? [];
+
   useEffect(() => {
     if (!showSuccess) return;
     if (countdown <= 0) {
@@ -325,7 +333,7 @@ function CheckoutContent() {
             <div className="h-px w-full bg-gradient-to-r from-transparent via-line to-transparent" />
 
             <ul className="space-y-3 text-sm">
-              {plan.features.map((feat) => (
+              {displayFeatures.map((feat) => (
                 <li key={feat} className="flex items-center gap-3">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
                     <BadgeCheck size={12} />

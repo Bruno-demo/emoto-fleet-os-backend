@@ -220,17 +220,7 @@ export default function HqBillingPage() {
     },
   });
 
-  const updatePricingTierMutation = useMutation({
-    mutationFn: ({ planCode, name, monthlyRatePerBike, setupFeePerBike, description }: { planCode: string; name: string; monthlyRatePerBike: number; setupFeePerBike: number; description: string }) =>
-      apiFetch(`/billing/pricing/${planCode}`, {
-        method: 'PUT',
-        body: JSON.stringify({ name, monthlyRatePerBike, setupFeePerBike, description }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-pricing'] });
-      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
-    },
-  });
+
 
   const grantTrialMutation = useMutation({
     mutationFn: ({ fleetId, durationDays }: { fleetId: string; durationDays: number }) =>
@@ -600,7 +590,6 @@ export default function HqBillingPage() {
               <PricingTierCard
                 key={tier.id}
                 tier={tier}
-                updatePricingTierMutation={updatePricingTierMutation}
               />
             ))
           )}
@@ -1235,16 +1224,6 @@ interface PricingTierCardProps {
     setupFeePerBike: number;
     description: string | null;
   };
-  updatePricingTierMutation: {
-    mutate: (variables: {
-      planCode: string;
-      name: string;
-      monthlyRatePerBike: number;
-      setupFeePerBike: number;
-      description: string;
-    }) => void;
-    isPending: boolean;
-  };
 }
 
 const PREDEFINED_DESCRIPTIONS = [
@@ -1253,7 +1232,21 @@ const PREDEFINED_DESCRIPTIONS = [
   "Telemetry access, weekly reports, crash evidence, and API keys.",
 ];
 
-function PricingTierCard({ tier, updatePricingTierMutation }: PricingTierCardProps) {
+function PricingTierCard({ tier }: PricingTierCardProps) {
+  const queryClient = useQueryClient();
+
+  const updatePricingTierMutation = useMutation({
+    mutationFn: ({ planCode, name, monthlyRatePerBike, setupFeePerBike, description }: { planCode: string; name: string; monthlyRatePerBike: number; setupFeePerBike: number; description: string }) =>
+      apiFetch(`/billing/pricing/${planCode}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, monthlyRatePerBike, setupFeePerBike, description }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
+    },
+  });
+
   const isPredefined = tier.description && PREDEFINED_DESCRIPTIONS.includes(tier.description);
   const initialSelectVal = isPredefined ? tier.description : "Other";
   

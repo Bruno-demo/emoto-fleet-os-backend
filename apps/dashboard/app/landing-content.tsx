@@ -236,6 +236,7 @@ export default function LandingContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [plans, setPlans] = useState(pricingPlans);
+  const [faqItems, setFaqItems] = useState(faqs);
 
   useEffect(() => {
     const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
@@ -258,7 +259,7 @@ export default function LandingContent() {
         const tiers = (await res.json()) as LandingPricingTier[];
         const updatedPlans = pricingPlans.map(plan => {
           const matchingTier = tiers.find((t) => 
-            (plan.slug === 'demo' && t.planCode === 'DEMO') ||
+            (plan.slug === 'safety-core' && t.planCode === 'DEMO') ||
             (plan.slug === 'operations-plus' && t.planCode === 'PREMIUM') ||
             (plan.slug === 'insurance' && t.planCode === 'INSURANCE')
           );
@@ -277,6 +278,21 @@ export default function LandingContent() {
           return plan;
         });
         setPlans(updatedPlans);
+
+        const demoTier = tiers.find(t => t.planCode === 'DEMO');
+        const premiumTier = tiers.find(t => t.planCode === 'PREMIUM');
+        const coreRateStr = demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '5,000 RWF/bike/month';
+        const premiumRateStr = premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '10,000 RWF/bike/month';
+        const updatedFaqs = faqs.map(faq => {
+          if (faq.q === 'How does pricing work?') {
+            return {
+              ...faq,
+              a: `We support two subscription tiers for fleets: Safety Core (${coreRateStr}) and Operations Plus (${premiumRateStr}). For insurance companies, we offer a dedicated Insurance plan with partner API access and custom pricing. Fleet accounts cannot subscribe or shift to this plan, and Insurance accounts cannot shift to fleet plans.`
+            };
+          }
+          return faq;
+        });
+        setFaqItems(updatedFaqs);
       } catch (err) {
         console.error('Failed to load dynamic pricing:', err);
       }
@@ -663,7 +679,7 @@ export default function LandingContent() {
         </div>
 
         <div className="border-t border-white/[0.08]">
-          {faqs.map((faq) => (
+          {faqItems.map((faq) => (
             <FaqItem key={faq.q} question={faq.q} answer={faq.a} />
           ))}
         </div>

@@ -66,6 +66,19 @@ export default function SettingsPage() {
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const entitlements = getSubscriptionEntitlements(user);
+
+  const { data: pricingTiers } = useQuery<any[]>({
+    queryKey: ['billing', 'pricing-tiers'],
+    queryFn: () => apiFetch<any[]>('/billing/pricing'),
+  });
+
+  const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
+  const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
+
+  const coreMonthlyRate = demoTier?.monthlyRatePerBike ?? 5000;
+  const coreSetupFee = demoTier?.setupFeePerBike ?? 35000;
+  const premiumMonthlyRate = premiumTier?.monthlyRatePerBike ?? 10000;
+  const premiumSetupFee = premiumTier?.setupFeePerBike ?? 35000;
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const initialTab = (tabParam && ['profile', 'fleet', 'team', 'security', 'notifications', 'apiCredentials'].includes(tabParam))
@@ -294,7 +307,7 @@ export default function SettingsPage() {
             description="Operational billing overview based on your active fleet size and plan."
           >
             {(() => {
-              const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? 10000 : user?.fleetPlan === 'INSURANCE' ? 0 : 5000);
+              const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? premiumMonthlyRate : user?.fleetPlan === 'INSURANCE' ? 0 : coreMonthlyRate);
               const isInsurance = user?.fleetPlan === 'INSURANCE';
               return (
                 <>
@@ -353,12 +366,12 @@ export default function SettingsPage() {
                           One-time Installation Setup Fee
                         </p>
                         <p className="text-xs text-ink-muted leading-relaxed">
-                          A flat fee of <strong className="text-ink">35,000 RWF</strong> per bike is charged once upon hardware device setup.
+                          A flat fee of <strong className="text-ink">{((user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</strong> per bike is charged once upon hardware device setup.
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
                         <p className="text-xs text-ink-muted">Total Setup Dues</p>
-                        <p className="text-lg font-extrabold text-ink">{(totalBikes * 35000).toLocaleString()} RWF</p>
+                        <p className="text-lg font-extrabold text-ink">{(totalBikes * (user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</p>
                       </div>
                     </div>
                   )}
@@ -500,10 +513,10 @@ export default function SettingsPage() {
                      </div>
                      <div className="mt-4 flex flex-col items-start gap-1">
                        <div className="flex items-baseline gap-1">
-                         <span className="text-2xl font-extrabold text-ink">5,000 RWF</span>
+                         <span className="text-2xl font-extrabold text-ink">{coreMonthlyRate.toLocaleString()} RWF</span>
                          <span className="text-xs text-ink-muted">/ bike / month</span>
                        </div>
-                       <span className="text-[10px] font-bold text-success-ink">+ 35,000 RWF device setup & install</span>
+                       <span className="text-[10px] font-bold text-success-ink">+ {coreSetupFee.toLocaleString()} RWF device setup & install</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                        Essential telemetry, safety event detection, and manual incident response tools.
@@ -569,10 +582,10 @@ export default function SettingsPage() {
                      </div>
                      <div className="mt-4 flex flex-col items-start gap-1">
                        <div className="flex items-baseline gap-1">
-                         <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
+                         <span className="text-2xl font-extrabold text-ink">{premiumMonthlyRate.toLocaleString()} RWF</span>
                          <span className="text-xs text-ink-muted">/ bike / month</span>
                        </div>
-                       <span className="text-[10px] font-bold text-accent">+ 35,000 RWF device setup & install</span>
+                       <span className="text-[10px] font-bold text-accent">+ {premiumSetupFee.toLocaleString()} RWF device setup & install</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                        Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.
