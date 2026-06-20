@@ -2,6 +2,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react
 import Link from 'next/link';
 import { Command } from 'lucide-react';
 import { cx } from '@/lib/ui';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
 interface AuthShellProps {
   eyebrow: string;
@@ -82,6 +83,9 @@ export function AuthShell({
 
       {/* Right Pane - Centered Auth Form */}
       <section className="flex flex-col justify-center items-center p-6 sm:p-12 lg:p-20 relative z-10 w-full">
+        <div className="absolute top-6 right-6 z-20">
+          <LanguageSwitcher />
+        </div>
         <div className="w-full max-w-2xl transition-all relative z-10">
           {children}
         </div>

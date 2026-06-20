@@ -11,12 +11,15 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { canUseFeature, getSubscriptionEntitlements } from '@/lib/subscription';
 import type { Incident, PaginatedResponse, SessionUser } from '@/lib/types/dashboard';
 import { cx, formatTimeAgo } from '@/lib/ui';
+import { useTranslation } from '../i18n/LanguageProvider';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
 interface TopbarProps {
   onOpenSidebar: () => void;
 }
 
 export function Topbar({ onOpenSidebar }: TopbarProps) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const { data: user } = useCurrentUser();
@@ -42,7 +45,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const fleetLabel =
     user?.fleetName?.trim() || (user?.fleetId ? `Fleet ${user.fleetId.slice(0, 8)}` : 'Fleet');
 
-  const routeContext = getRouteContext(pathname);
+  const routeContext = getRouteContext(pathname, t);
 
   // Close notification panel on click outside
   useEffect(() => {
@@ -147,6 +150,8 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
 
           <ConnectionIndicator />
 
+          <LanguageSwitcher />
+
           {/* Notifications bell */}
           {user?.role !== 'INSURER' && (
             <div ref={notifRef} className="relative">
@@ -248,19 +253,19 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   );
 }
 
-function getRouteContext(pathname: string) {
-  if (pathname.startsWith('/live')) return { eyebrow: 'Command center', title: 'Live Map' };
-  if (pathname.startsWith('/incidents')) return { eyebrow: 'Incident desk', title: 'Incidents' };
-  if (pathname.startsWith('/bikes')) return { eyebrow: 'Fleet assets', title: 'Bikes' };
-  if (pathname.startsWith('/devices')) return { eyebrow: 'Provisioning', title: 'Devices' };
-  if (pathname.startsWith('/events')) return { eyebrow: 'Risk signals', title: 'Events' };
-  if (pathname.startsWith('/trips')) return { eyebrow: 'Fleet telemetry', title: 'Trips' };
-  if (pathname.startsWith('/zones')) return { eyebrow: 'Policy controls', title: 'Zones' };
-  if (pathname.startsWith('/reports')) return { eyebrow: 'Reporting', title: 'Reports' };
-  if (pathname.startsWith('/riders')) return { eyebrow: 'Fleet personnel', title: 'Riders' };
-  if (pathname.startsWith('/audit')) return { eyebrow: 'Compliance', title: 'Audit Log' };
-  if (pathname.startsWith('/settings')) return { eyebrow: 'Configuration', title: 'Settings' };
-  return { eyebrow: 'Fleet overview', title: 'Overview' };
+function getRouteContext(pathname: string, t: (key: string, fallback?: string) => string) {
+  if (pathname.startsWith('/live')) return { eyebrow: t('eyebrow_live', 'Command center'), title: t('nav_live_map') };
+  if (pathname.startsWith('/incidents')) return { eyebrow: t('eyebrow_incidents', 'Incident desk'), title: t('nav_incidents') };
+  if (pathname.startsWith('/bikes')) return { eyebrow: t('eyebrow_bikes', 'Fleet assets'), title: t('nav_bikes') };
+  if (pathname.startsWith('/devices')) return { eyebrow: t('eyebrow_devices', 'Provisioning'), title: t('nav_devices', 'Devices') };
+  if (pathname.startsWith('/events')) return { eyebrow: t('eyebrow_events', 'Risk signals'), title: t('nav_events', 'Events') };
+  if (pathname.startsWith('/trips')) return { eyebrow: t('eyebrow_trips', 'Fleet telemetry'), title: t('nav_trips') };
+  if (pathname.startsWith('/zones')) return { eyebrow: t('eyebrow_zones', 'Policy controls'), title: t('nav_zones', 'Zones') };
+  if (pathname.startsWith('/reports')) return { eyebrow: t('eyebrow_reports', 'Reporting'), title: t('nav_reports') };
+  if (pathname.startsWith('/riders')) return { eyebrow: t('eyebrow_riders', 'Fleet personnel'), title: t('nav_riders') };
+  if (pathname.startsWith('/audit')) return { eyebrow: t('eyebrow_audit', 'Compliance'), title: t('nav_audit', 'Audit Log') };
+  if (pathname.startsWith('/settings')) return { eyebrow: t('eyebrow_settings', 'Configuration'), title: t('nav_settings') };
+  return { eyebrow: t('eyebrow_overview', 'Fleet overview'), title: t('nav_overview') };
 }
 
 // ─── Search overlay with real API search ───────────────────────────────────────

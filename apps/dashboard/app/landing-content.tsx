@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Activity,
   AlarmClock,
@@ -33,6 +33,8 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
 /* ─── Data ────────────────────────────────────────────── */
 
@@ -231,12 +233,12 @@ interface LandingPricingTier {
 /* ─── Main Component ──────────────────────────────────── */
 
 export default function LandingContent() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('live-map');
   const [hasSession, setHasSession] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [plans, setPlans] = useState(pricingPlans);
-  const [faqItems, setFaqItems] = useState(faqs);
+  const [pricingTiers, setPricingTiers] = useState<LandingPricingTier[] | null>(null);
 
   useEffect(() => {
     const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
@@ -257,48 +259,67 @@ export default function LandingContent() {
         const res = await fetch(`${API_BASE_URL}/billing/pricing`);
         if (!res.ok) return;
         const tiers = (await res.json()) as LandingPricingTier[];
-        const updatedPlans = pricingPlans.map(plan => {
-          const matchingTier = tiers.find((t) => 
-            (plan.slug === 'safety-core' && t.planCode === 'DEMO') ||
-            (plan.slug === 'operations-plus' && t.planCode === 'PREMIUM') ||
-            (plan.slug === 'insurance' && t.planCode === 'INSURANCE')
-          );
-          if (matchingTier) {
-            return {
-              ...plan,
-              price: matchingTier.monthlyRatePerBike === 0 && plan.slug === 'insurance' ? 'Custom' : `${matchingTier.monthlyRatePerBike.toLocaleString()} RWF`,
-              description: matchingTier.description || plan.description,
-              features: plan.features.map(f => 
-                f.includes('setup & install fee') 
-                  ? `+ ${matchingTier.setupFeePerBike.toLocaleString()} RWF device setup & install fee`
-                  : f
-              )
-            };
-          }
-          return plan;
-        });
-        setPlans(updatedPlans);
-
-        const demoTier = tiers.find(t => t.planCode === 'DEMO');
-        const premiumTier = tiers.find(t => t.planCode === 'PREMIUM');
-        const coreRateStr = demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '5,000 RWF/bike/month';
-        const premiumRateStr = premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '10,000 RWF/bike/month';
-        const updatedFaqs = faqs.map(faq => {
-          if (faq.q === 'How does pricing work?') {
-            return {
-              ...faq,
-              a: `We support two subscription tiers for fleets: Safety Core (${coreRateStr}) and Operations Plus (${premiumRateStr}). For insurance companies, we offer a dedicated Insurance plan with partner API access and custom pricing. Fleet accounts cannot subscribe or shift to this plan, and Insurance accounts cannot shift to fleet plans.`
-            };
-          }
-          return faq;
-        });
-        setFaqItems(updatedFaqs);
+        setPricingTiers(tiers);
       } catch (err) {
         console.error('Failed to load dynamic pricing:', err);
       }
     }
     loadPricing();
   }, []);
+
+  // Dynamic Pricing Rates & Plan Mapping
+  const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
+  const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
+  const coreRateStr = demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '5,000 RWF/bike/month';
+  const premiumRateStr = premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '10,000 RWF/bike/month';
+
+  const localizedFaqItems = useMemo(() => {
+    return faqs.map((faq) => {
+      if (faq.q === 'How does pricing work?') {
+        return {
+          q: t('faq_pricing_q', faq.q),
+          a: t('faq_pricing_a', faq.a)
+            .replace('{core}', coreRateStr)
+            .replace('{premium}', premiumRateStr)
+        };
+      }
+      return {
+        q: t('faq_q_' + faq.q.toLowerCase().replace(/[^a-z0-9]/g, '_'), faq.q),
+        a: t('faq_a_' + faq.q.toLowerCase().replace(/[^a-z0-9]/g, '_'), faq.a),
+      };
+    });
+  }, [t, coreRateStr, premiumRateStr]);
+
+  const localizedPlans = useMemo(() => {
+    return pricingPlans.map((plan) => {
+      const matchingTier = pricingTiers?.find((t) => 
+        (plan.slug === 'safety-core' && t.planCode === 'DEMO') ||
+        (plan.slug === 'operations-plus' && t.planCode === 'PREMIUM') ||
+        (plan.slug === 'insurance' && t.planCode === 'INSURANCE')
+      );
+      
+      const priceStr = matchingTier 
+        ? (matchingTier.monthlyRatePerBike === 0 && plan.slug === 'insurance' ? 'Custom' : `${matchingTier.monthlyRatePerBike.toLocaleString()} RWF`)
+        : plan.price;
+        
+      const setupFeeStr = matchingTier
+        ? matchingTier.setupFeePerBike.toLocaleString()
+        : '35,000';
+
+      return {
+        ...plan,
+        title: t(plan.slug.replace('-', '_') + '_title', plan.title), // safety_core_title etc.
+        price: priceStr,
+        description: t(plan.slug.replace('-', '_') + '_desc', plan.description),
+        features: plan.features.map(f => {
+          if (f.includes('setup & install fee')) {
+            return t('feat_setup_fee', '+ {fee} RWF device setup & install fee').replace('{fee}', setupFeeStr);
+          }
+          return t('feat_' + f.toLowerCase().replace(/[^a-z0-9]/g, '_'), f);
+        })
+      };
+    });
+  }, [t, pricingTiers]);
 
   return (
     <div className="dark min-h-screen bg-[#09090b] text-white overflow-x-hidden">
@@ -318,22 +339,23 @@ export default function LandingContent() {
           </Link>
 
           <div className="hidden items-center gap-8 text-[13px] font-medium md:flex" style={{color:'rgb(161,161,170)'}}>
-            <a href="#features" className="transition hover:text-white" style={{color:'inherit'}}>Features</a>
-            <a href="#showcase" className="transition hover:text-white" style={{color:'inherit'}}>Platform</a>
-            <a href="#pricing" className="transition hover:text-white" style={{color:'inherit'}}>Pricing</a>
-            <a href="#faq" className="transition hover:text-white" style={{color:'inherit'}}>FAQ</a>
+            <a href="#features" className="transition hover:text-white" style={{color:'inherit'}}>{t('land_features')}</a>
+            <a href="#showcase" className="transition hover:text-white" style={{color:'inherit'}}>{t('land_dashboard')}</a>
+            <a href="#pricing" className="transition hover:text-white" style={{color:'inherit'}}>{t('land_pricing')}</a>
+            <a href="#faq" className="transition hover:text-white" style={{color:'inherit'}}>{t('land_faq')}</a>
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-4 md:flex">
+            <LanguageSwitcher />
             {hasSession ? (
               <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
-                Dashboard <ArrowRight size={14} />
+                {t('land_dashboard')} <ArrowRight size={14} />
               </Link>
             ) : (
               <>
-                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium transition hover:text-white" style={{color:'rgb(161,161,170)'}}>Sign in</Link>
+                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium transition hover:text-white" style={{color:'rgb(161,161,170)'}}>{t('signin')}</Link>
                 <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
-                  Get started <ArrowRight size={14} />
+                  {t('land_cta_setup')} <ArrowRight size={14} />
                 </Link>
               </>
             )}
@@ -353,13 +375,16 @@ export default function LandingContent() {
         {mobileMenuOpen && (
           <div className="border-t border-white/[0.06] bg-[#09090b] px-6 py-6 md:hidden space-y-6 animate-in slide-in-from-top-4 duration-200">
             <div className="flex flex-col gap-4 text-sm font-medium" style={{color:'rgb(161,161,170)'}}>
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Features</a>
-              <a href="#showcase" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Platform</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Pricing</a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">FAQ</a>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('land_features')}</a>
+              <a href="#showcase" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('land_dashboard')}</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('land_pricing')}</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('land_faq')}</a>
             </div>
 
             <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.06]">
+              <div className="flex justify-center mb-2">
+                <LanguageSwitcher />
+              </div>
               {hasSession ? (
                 <Link
                   href="/overview"
@@ -367,7 +392,7 @@ export default function LandingContent() {
                   className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
                   style={{background:'white', color:'black'}}
                 >
-                  Dashboard <ArrowRight size={14} />
+                  {t('land_dashboard')} <ArrowRight size={14} />
                 </Link>
               ) : (
                 <>
@@ -377,7 +402,7 @@ export default function LandingContent() {
                     className="flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition hover:text-white border border-white/[0.08]"
                     style={{color:'rgb(161,161,170)'}}
                   >
-                    Sign in
+                    {t('signin')}
                   </Link>
                   <Link
                     href="/create-account"
@@ -385,7 +410,7 @@ export default function LandingContent() {
                     className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
                     style={{background:'white', color:'black'}}
                   >
-                    Get started <ArrowRight size={14} />
+                    {t('land_cta_setup')} <ArrowRight size={14} />
                   </Link>
                 </>
               )}
@@ -401,34 +426,34 @@ export default function LandingContent() {
 
         <span className="relative z-10 mb-8 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <Sparkles size={12} className="text-accent" />
-          Smart Mobility Command Center
+          {t('land_badge_cmd', 'Smart Mobility Command Center')}
         </span>
 
         <h1 className="relative z-10 text-[clamp(2.5rem,5.5vw,5rem)] font-extrabold leading-[1.08] tracking-tight max-w-4xl">
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
-            Real-time Safety for{' '}
+            {t('land_hero_title').split('Electric Motorbike')[0]}
           </span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-400 to-purple-400">
-            Electric Fleets
+            {t('land_hero_title').includes('Amashanyarazi') ? "Amagare y'Amashanyarazi" : "Electric Motorbike Fleets"}
           </span>
         </h1>
 
         <p className="relative z-10 mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
-          Track riders, coordinate incident response, and automate compliance — all from one command center built for motorcycle fleet operations.
+          {t('land_hero_desc')}
         </p>
 
         <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
           {hasSession ? (
             <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
-              Open Dashboard <ArrowRight size={15} />
+              {t('land_dashboard')} <ArrowRight size={15} />
             </Link>
           ) : (
             <>
               <Link href="/login" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
-                Enter Command Center <ArrowRight size={15} />
+                {t('land_dashboard')} <ArrowRight size={15} />
               </Link>
               <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium transition hover:bg-white/[0.08]" style={{color:'rgb(212,212,216)'}}>
-                Request Fleet Access
+                {t('land_cta_request', 'Request Fleet Access')}
               </Link>
             </>
           )}
@@ -457,11 +482,11 @@ export default function LandingContent() {
       <section id="features" className="mx-auto w-full max-w-7xl px-6 py-24">
         <div className="flex flex-col items-center text-center gap-4 mb-16">
           <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-3xl">
-            Powerful Fleet Management{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-purple-400">Tailored to You</span>
+            {t('land_power_title', 'Powerful Fleet Management')}{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-purple-400">{t('land_power_highlight', 'Tailored to You')}</span>
           </h2>
           <p className="max-w-2xl text-base leading-7 text-zinc-400 mt-2">
-            Unlock real-time fleet visibility, advanced rider safety, and flexible operations management — all with Fleet OS&apos;s operator-focused features.
+            {t('land_power_desc', "Unlock real-time fleet visibility, advanced rider safety, and flexible operations management — all with Fleet OS's operator-focused features.")}
           </p>
         </div>
 
@@ -489,11 +514,11 @@ export default function LandingContent() {
       <section id="showcase" className="mx-auto w-full max-w-7xl px-6 py-24">
         <div className="flex flex-col items-center text-center gap-4 mb-12">
           <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-3xl">
-            Comprehensive Control of Your{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-purple-400">Fleet Operations</span>
+            {t('land_control_title', 'Comprehensive Control of Your')}{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-purple-400">{t('land_control_highlight', 'Fleet Operations')}</span>
           </h2>
           <p className="max-w-2xl text-base leading-7 text-zinc-400 mt-2">
-            Simplify rider management, ensure robust monitoring, and coordinate fleet operations — all without the fuss.
+            {t('land_control_desc', 'Simplify rider management, ensure robust monitoring, and coordinate fleet operations — all without the fuss.')}
           </p>
         </div>
 
@@ -550,10 +575,10 @@ export default function LandingContent() {
       <section className="mx-auto w-full max-w-7xl px-6 py-24">
         <div className="flex flex-col items-center text-center gap-4 mb-16">
           <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight">
-            Fleet OS By the Numbers
+            {t('land_stats_title', 'Fleet OS By the Numbers')}
           </h2>
           <p className="text-base text-zinc-400 max-w-lg">
-            Real metrics from real fleet operations. Here&apos;s what the platform delivers.
+            {t('land_stats_desc', "Real metrics from real fleet operations. Here's what the platform delivers.")}
           </p>
         </div>
 
@@ -571,10 +596,10 @@ export default function LandingContent() {
       <section className="mx-auto w-full max-w-7xl px-6 py-24">
         <div className="flex flex-col items-center text-center gap-4 mb-16">
           <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight">
-            What Fleet Operators Say
+            {t('land_testimonials_title', 'What Fleet Operators Say')}
           </h2>
           <p className="text-base text-zinc-400 max-w-lg">
-            Hear from the operators who transformed their fleet safety with Fleet OS.
+            {t('land_testimonials_desc', 'Hear from the operators who transformed their fleet safety with Fleet OS.')}
           </p>
         </div>
 
@@ -604,13 +629,13 @@ export default function LandingContent() {
 
         <div className="flex flex-col items-center text-center gap-4 mb-16 relative z-10">
           <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-2xl">
-            Choose a Plan That Scales with Your Fleet
+            {t('land_plans_title', 'Choose a Plan That Scales with Your Fleet')}
           </h2>
-          <p className="text-base text-zinc-400">Transparent pricing. No hidden fees. Cancel anytime.</p>
+          <p className="text-base text-zinc-400">{t('land_plans_desc', 'Transparent pricing. No hidden fees. Cancel anytime.')}</p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3 relative z-10 items-stretch">
-          {plans.map((plan) => (
+          {localizedPlans.map((plan) => (
             <div
               key={plan.title}
               className={`flex flex-col rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 ${
@@ -621,7 +646,7 @@ export default function LandingContent() {
             >
               {plan.featured && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white px-4 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider">
-                  Most Popular
+                  {t('land_plans_popular', 'Most Popular')}
                 </div>
               )}
               <p className="text-xs font-semibold uppercase tracking-wider text-accent">{plan.title}</p>
@@ -660,7 +685,7 @@ export default function LandingContent() {
                     : { border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgb(212,212,216)' }
                 }
               >
-                Get started <ChevronRight size={14} />
+                {t('land_plans_get_started', 'Get started')} <ChevronRight size={14} />
               </Link>
             </div>
           ))}
@@ -671,15 +696,15 @@ export default function LandingContent() {
       <section id="faq" className="mx-auto w-full max-w-3xl px-6 py-24">
         <div className="flex flex-col items-center text-center gap-4 mb-12">
           <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight">
-            Frequently Asked Questions
+            {t('land_faq_title', 'Frequently Asked Questions')}
           </h2>
           <p className="text-base text-zinc-400">
-            Can&apos;t find what you&apos;re looking for? Reach out to our support team.
+            {t('land_faq_desc', "Can't find what you're looking for? Reach out to our support team.")}
           </p>
         </div>
 
         <div className="border-t border-white/[0.08]">
-          {faqItems.map((faq) => (
+          {localizedFaqItems.map((faq) => (
             <FaqItem key={faq.q} question={faq.q} answer={faq.a} />
           ))}
         </div>
@@ -691,23 +716,23 @@ export default function LandingContent() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-accent/[0.06] blur-[120px] rounded-full pointer-events-none" />
           <div className="relative z-10 flex flex-col items-center gap-6">
             <h2 className="text-3xl md:text-[40px] font-extrabold tracking-tight leading-tight max-w-2xl">
-              Unlock Your Fleet&apos;s Potential with eMoto Fleet OS
+              {t('land_banner_title', "Unlock Your Fleet's Potential with eMoto Fleet OS")}
             </h2>
             <p className="text-base text-zinc-400 max-w-xl">
-              Say goodbye to operational blind spots — Fleet OS handles it all. Deploy, monitor, and protect your riders with confidence.
+              {t('land_banner_desc', 'Say goodbye to operational blind spots — Fleet OS handles it all. Deploy, monitor, and protect your riders with confidence.')}
             </p>
             <div className="flex flex-wrap justify-center gap-4 mt-4">
               {hasSession ? (
                 <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
-                  Open Dashboard <ArrowRight size={15} />
+                  {t('land_banner_open', 'Open Dashboard')} <ArrowRight size={15} />
                 </Link>
               ) : (
                 <>
                   <Link href="/login" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
-                    Get Started <ArrowRight size={15} />
+                    {t('land_banner_start', 'Get Started')} <ArrowRight size={15} />
                   </Link>
                   <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.04] px-6 py-3 text-sm font-medium transition hover:bg-white/[0.08]" style={{color:'rgb(212,212,216)'}}>
-                    Create Account
+                    {t('land_banner_create', 'Create Account')}
                   </Link>
                 </>
               )}
@@ -734,7 +759,7 @@ export default function LandingContent() {
                 </div>
               </div>
               <p className="mt-4 text-xs leading-5 text-zinc-500 max-w-[200px]">
-                Smart mobility command center for electric motorcycle fleets.
+                {t('land_footer_desc', 'Smart mobility command center for electric motorcycle fleets.')}
               </p>
             </div>
 
@@ -762,7 +787,7 @@ export default function LandingContent() {
           </div>
 
           <div className="mt-10 flex flex-col gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-zinc-600">&copy; 2026 eMoto Safety &amp; Fleet OS. All rights reserved.</p>
+             <p className="text-xs text-zinc-600">&copy; 2026 eMoto Safety &amp; Fleet OS. {t('land_footer_rights', 'All rights reserved.')}</p>
             <div className="flex gap-4">
               <a href="#" className="text-zinc-600 hover:text-white transition" aria-label="Twitter">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>

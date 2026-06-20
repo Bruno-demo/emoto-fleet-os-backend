@@ -38,6 +38,7 @@ import {
   AuthTabs,
 } from '@/components/auth/auth-ui';
 import { cx } from '@/lib/ui';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 
 interface PromoDiscount {
@@ -114,12 +115,12 @@ const BIKE_RANGE_OPTIONS = [
 
 const registerFormSchema = z
   .object({
-    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+    email: z.string().min(1, 'email_error').email('email_invalid_error'),
     phone: z
       .string()
       .optional()
       .refine((val) => !val || /^07\d{8}$/.test(val.trim()), {
-        message: 'Phone number must be exactly 10 digits starting with 07',
+        message: 'phone_error',
       })
       .transform((val) => {
         if (!val) return undefined;
@@ -127,15 +128,15 @@ const registerFormSchema = z
         if (!trimmed) return undefined;
         return '+250' + trimmed.slice(1);
       }),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string().min(8, 'Confirm password'),
+    password: z.string().min(8, 'password_error'),
+    confirmPassword: z.string().min(8, 'confirm_password_label'),
     role: z.enum(['ADMIN', 'DISPATCHER', 'TECH', 'RIDER']),
   })
   .superRefine((data, context) => {
     if (data.password !== data.confirmPassword) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Passwords do not match',
+        message: 'passwords_match_error',
         path: ['confirmPassword'],
       });
     }
@@ -172,6 +173,7 @@ export default function CreateAccountPage() {
 }
 
 function CreateAccountInner() {
+  const { t } = useTranslation();
   const hasWindow = typeof window !== 'undefined';
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -390,7 +392,16 @@ function CreateAccountInner() {
       signupType,
     ],
   );
-  const mergedErrors: FieldErrors = { ...inlineErrors, ...fieldErrors };
+  const mergedErrors: FieldErrors = useMemo(() => {
+    const merged: FieldErrors = {};
+    (Object.keys(inlineErrors) as Array<keyof FieldErrors>).forEach((k) => {
+      if (inlineErrors[k]) merged[k] = t(inlineErrors[k]!);
+    });
+    (Object.keys(fieldErrors) as Array<keyof FieldErrors>).forEach((k) => {
+      if (fieldErrors[k]) merged[k] = t(fieldErrors[k]!);
+    });
+    return merged;
+  }, [inlineErrors, fieldErrors, t]);
 
   useEffect(() => {
     if (!isAdminMode && role !== 'RIDER') {
@@ -566,7 +577,7 @@ function CreateAccountInner() {
         confirmPassword: flattened.confirmPassword?.[0],
         role: flattened.role?.[0],
       });
-      setError(parsed.error.issues[0]?.message ?? 'Please review the form inputs');
+      setError(parsed.error.issues[0]?.message ? t(parsed.error.issues[0].message) : t('review_inputs_error', 'Please review the form inputs'));
       return;
     }
 
@@ -892,7 +903,7 @@ function CreateAccountInner() {
         {success ? <AuthNotice message={success} tone="success" /> : null}
 
         <AuthInput
-          label="Full name"
+          label={t('full_name_label')}
           placeholder="e.g. Aisha N."
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
@@ -902,8 +913,8 @@ function CreateAccountInner() {
           icon={<User size={16} />}
           helper={
             enableFullNameCapture
-              ? 'Saved to your Fleet OS profile after account creation.'
-              : 'Stored once profile capture is enabled on the backend.'
+              ? t('fullname_saved_helper')
+              : t('fullname_stored_helper')
           }
         />
 
@@ -911,10 +922,10 @@ function CreateAccountInner() {
           <AuthInput
             label={
               <span className="flex items-center justify-between w-full">
-                <span>Email address</span>
+                <span>{t('email_label')}</span>
                 {isEmailVerified && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-success-ink bg-success/15 rounded-full px-2 py-0.5 border border-success/30 animate-in fade-in zoom-in-95 duration-200">
-                    <BadgeCheck size={12} className="text-success-ink" /> Verified
+                    <BadgeCheck size={12} className="text-success-ink" /> {t('email_verified')}
                   </span>
                 )}
               </span>
@@ -942,7 +953,7 @@ function CreateAccountInner() {
             }
           />
           <AuthInput
-            label="Phone number"
+            label={t('phone_label')}
             placeholder="07..."
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
@@ -957,7 +968,7 @@ function CreateAccountInner() {
           <div className="rounded-[20px] border border-accent/20 bg-accent/[0.03] p-4 space-y-3 transition-all animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-                Email Verification
+                {t('email_verification')}
               </p>
               {devOtp && (
                 <span className="text-[10px] font-bold bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20">
@@ -967,7 +978,7 @@ function CreateAccountInner() {
             </div>
             
             <p className="text-xs text-ink-muted leading-relaxed">
-              We have sent a 6-digit verification code to <span className="font-semibold text-ink">{email}</span>. Please enter it below to proceed.
+              {t('email_verification_desc').replace('{email}', email)}
             </p>
 
             <div className="flex gap-2">
@@ -992,7 +1003,7 @@ function CreateAccountInner() {
                 {isVerifyingOtp ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 ) : (
-                  'Verify OTP'
+                  t('verify_otp_btn')
                 )}
               </button>
             </div>
@@ -1004,14 +1015,14 @@ function CreateAccountInner() {
             )}
 
             <div className="flex justify-between items-center text-[10px] text-ink-muted">
-              <span>{"Didn't receive the code?"}</span>
+              <span>{t('no_code_prompt')}</span>
               <button
                 type="button"
                 onClick={sendOtpCode}
                 className="font-bold text-accent hover:underline"
                 disabled={isSendingOtp}
               >
-                {isSendingOtp ? 'Sending...' : 'Resend Code'}
+                {isSendingOtp ? t('sending_code_btn') : t('resend_code_btn')}
               </button>
             </div>
           </div>
@@ -1019,7 +1030,7 @@ function CreateAccountInner() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <AuthInput
-            label="Password"
+            label={t('password')}
             type={showPassword ? 'text' : 'password'}
             placeholder="Minimum 8 characters"
             value={password}
@@ -1040,7 +1051,7 @@ function CreateAccountInner() {
             }
           />
           <AuthInput
-            label="Confirm password"
+            label={t('confirm_password_label')}
             type={showConfirmPassword ? 'text' : 'password'}
             placeholder="Re-enter password"
             value={confirmPassword}
@@ -1064,7 +1075,7 @@ function CreateAccountInner() {
 
         {isAdminMode ? (
           <AuthSelect
-            label="Role"
+            label={t('invite_role_label')}
             value={role}
             onChange={(event) => setRole(event.target.value as UserRole)}
             error={mergedErrors.role}
@@ -1072,14 +1083,14 @@ function CreateAccountInner() {
           >
             {availableRoles.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label} · {option.description}
+                {t(`role_${option.value.toLowerCase()}`)} · {t(`role_${option.value.toLowerCase()}_desc`)}
               </option>
             ))}
           </AuthSelect>
         ) : (
           <>
             <div>
-              <p className="text-sm font-medium text-ink">I am a</p>
+              <p className="text-sm font-medium text-ink">{t('i_am_a')}</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
                 <button
                   type="button"
@@ -1091,7 +1102,7 @@ function CreateAccountInner() {
                       : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
                   } disabled:opacity-50`}
                 >
-                  <Bike size={14} /> Rider
+                  <Bike size={14} /> {t('role_rider')}
                 </button>
                 <button
                   type="button"
@@ -1103,7 +1114,7 @@ function CreateAccountInner() {
                       : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
                   } disabled:opacity-50`}
                 >
-                  <ShieldCheck size={14} /> Fleet Admin
+                  <ShieldCheck size={14} /> {t('role_admin')}
                 </button>
               </div>
             </div>
@@ -1111,20 +1122,20 @@ function CreateAccountInner() {
             {signupType === 'rider' && (
               <>
                 <AuthInput
-                  label="Invite code"
-                  placeholder="Paste the code from your fleet admin"
+                  label={t('invite_code_label')}
+                  placeholder={t('invite_code_placeholder', 'Paste the code from your fleet admin')}
                   value={inviteToken}
                   onChange={(event) => setInviteToken(event.target.value)}
                   onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
                   error={mergedErrors.inviteToken}
                   disabled={isFormDisabled || isGateLocked}
                   icon={<UsersRound size={16} />}
-                  helper="Ask your fleet admin for an invite code to join their fleet."
+                  helper={t('invite_code_helper', 'Ask your fleet admin for an invite code to join their fleet.')}
                 />
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <AuthInput
-                    label="Driving licence number"
+                    label={t('licence_number_label')}
                     placeholder="e.g. DL-12345"
                     value={licenceNumber}
                     onChange={(event) => setLicenceNumber(event.target.value)}
@@ -1132,7 +1143,7 @@ function CreateAccountInner() {
                     icon={<User size={16} />}
                   />
                   <AuthInput
-                    label="Identity card number"
+                    label={t('identity_number_label')}
                     placeholder="e.g. ID-54321"
                     value={identityNumber}
                     onChange={(event) => setIdentityNumber(event.target.value)}
@@ -1144,7 +1155,7 @@ function CreateAccountInner() {
                 <div className="grid gap-3 sm:grid-cols-3 mt-4">
                   {/* Passport Photo */}
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Passport Photo</label>
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t('passport_photo_label')}</label>
                     {passportPhoto ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
                         <img src={passportPhoto} alt="Passport" className="w-full h-full object-cover" />
@@ -1160,7 +1171,7 @@ function CreateAccountInner() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
                         <span className="text-lg mb-0.5">👤</span>
                         <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingPassport ? 'Compressing...' : 'Passport Photo'}
+                          {isCompresingPassport ? 'Compressing...' : t('passport_photo_label')}
                         </span>
                         <input
                           type="file"
@@ -1188,7 +1199,7 @@ function CreateAccountInner() {
 
                   {/* Licence Photo */}
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Licence Photo</label>
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t('licence_photo_label')}</label>
                     {licencePhoto ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
                         <img src={licencePhoto} alt="Licence" className="w-full h-full object-cover" />
@@ -1204,7 +1215,7 @@ function CreateAccountInner() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
                         <span className="text-lg mb-0.5">💳</span>
                         <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingLicence ? 'Compressing...' : 'Licence Photo'}
+                          {isCompresingLicence ? 'Compressing...' : t('licence_photo_label')}
                         </span>
                         <input
                           type="file"
@@ -1232,7 +1243,7 @@ function CreateAccountInner() {
 
                   {/* ID Card Photo */}
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">National ID Photo</label>
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t('id_photo_label')}</label>
                     {identityCardPhoto ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
                         <img src={identityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
@@ -1248,7 +1259,7 @@ function CreateAccountInner() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
                         <span className="text-lg mb-0.5">🆔</span>
                         <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingIdCard ? 'Compressing...' : 'ID Card Photo'}
+                          {isCompresingIdCard ? 'Compressing...' : t('id_photo_label')}
                         </span>
                         <input
                           type="file"
@@ -1282,23 +1293,23 @@ function CreateAccountInner() {
                 {selectedPlanSlug === 'insurance' ? (
                   <>
                     <AuthSelect
-                      label="Insurance Company"
+                      label={t('insurance_company_label')}
                       value={insurerName}
                       onChange={(event) => setInsurerName(event.target.value)}
                       disabled={isFormDisabled || isGateLocked}
                     >
-                      <option value="">Select insurance provider...</option>
+                      <option value="">{t('select_insurance_placeholder')}</option>
                       {RWANDA_INSURERS.map((ins) => (
                         <option key={ins} value={ins}>
                           {ins}
                         </option>
                       ))}
-                      <option value="Other">Other</option>
+                      <option value="Other">{t('other')}</option>
                     </AuthSelect>
 
                     {insurerName === 'Other' && (
                       <AuthInput
-                        label="Insurance company name"
+                        label={t('insurance_company_name_label')}
                         placeholder="e.g. Sanlam Insurance"
                         value={customInsurerName}
                         onChange={(event) => setCustomInsurerName(event.target.value)}
@@ -1310,7 +1321,7 @@ function CreateAccountInner() {
                 ) : (
                   <>
                     <AuthInput
-                      label="Fleet name"
+                      label={t('fleet_name')}
                       placeholder="e.g. Kigali Express Fleet"
                       value={fleetName}
                       onChange={(event) => setFleetName(event.target.value)}
@@ -1318,7 +1329,7 @@ function CreateAccountInner() {
                       icon={<Building2 size={16} />}
                     />
                     <AuthSelect
-                      label="Fleet size"
+                      label={t('bike_range_label')}
                       value={bikeRange}
                       onChange={(event) => setBikeRange(event.target.value)}
                       disabled={isFormDisabled || isGateLocked}
@@ -1339,7 +1350,7 @@ function CreateAccountInner() {
         <AuthCheckbox
           checked={termsAccepted}
           onChange={setTermsAccepted}
-          label="I agree to the Terms & Conditions and Privacy Policy."
+          label={`${t('terms_prefix')}${t('terms_link')}${t('terms_and')}${t('privacy_link')}`}
           disabled={isFormDisabled || isGateLocked}
         />
         {mergedErrors.terms ? (
@@ -1348,14 +1359,14 @@ function CreateAccountInner() {
 
         <AuthButton
           type="submit"
-          label={isSubmitting ? 'Creating account...' : 'Create account'}
+          label={isSubmitting ? t('signup_button_loading') : t('signup_button')}
           isLoading={isSubmitting}
           disabled={isFormDisabled || isGateLocked}
         />
 
         <div className="flex items-center gap-3 text-xs text-ink-muted">
           <span className="h-px flex-1 bg-line" />
-          <span>Or sign up with</span>
+          <span>{t('or_continue_with')}</span>
           <span className="h-px flex-1 bg-line" />
         </div>
 
@@ -1377,9 +1388,9 @@ function CreateAccountInner() {
         </div>
 
         <p className="text-center text-xs text-ink-muted">
-          Already have credentials?{' '}
+          {t('have_account')}{' '}
           <Link href="/login" className="font-semibold text-ink">
-            Return to login
+            {t('login_link')}
           </Link>
         </p>
       </form>
@@ -1387,28 +1398,27 @@ function CreateAccountInner() {
       {isAdminMode ? (
         <div className="mt-6 rounded-[20px] border border-line bg-surface-muted p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-            Invite codes
+            {t('invite_codes_title')}
           </p>
           <p className="mt-2 text-xs leading-5 text-ink-muted">
-            Generate a one-time invite token for operators who should self-register. Tokens are
-            short-lived and should be shared securely.
+            {t('invite_codes_desc')}
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <AuthSelect
-              label="Invite role"
+              label={t('invite_role_label')}
               value={inviteRole}
               onChange={(event) => setInviteRole(event.target.value as UserRole)}
               disabled={inviteSubmitting}
             >
               {inviteRoleOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(`role_${option.value.toLowerCase()}`)}
                 </option>
               ))}
             </AuthSelect>
             <AuthInput
-              label="Expires in (hours)"
+              label={t('expires_in_hours_label')}
               placeholder="168"
               value={inviteExpiresInHours}
               onChange={(event) => setInviteExpiresInHours(event.target.value)}
@@ -1421,14 +1431,14 @@ function CreateAccountInner() {
           {inviteTokenValue ? (
             <div className="mt-3 rounded-[16px] border border-line bg-surface px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                Invite code
+                {t('invite_code_label')}
               </p>
               <p className="mt-2 break-all font-mono text-xs text-ink">
                 {inviteTokenValue}
               </p>
               {inviteExpiresAt ? (
                 <p className="mt-2 text-xs text-ink-muted">
-                  Expires {new Date(inviteExpiresAt).toLocaleString()}
+                  {t('expires_label')} {new Date(inviteExpiresAt).toLocaleString()}
                 </p>
               ) : null}
             </div>
@@ -1437,7 +1447,7 @@ function CreateAccountInner() {
           <AuthButton
             type="button"
             variant="secondary"
-            label={inviteSubmitting ? 'Generating invite...' : 'Generate invite'}
+            label={inviteSubmitting ? t('generating_invite_btn') : t('generate_invite_btn')}
             onClick={() => void handleInviteCreate()}
             disabled={inviteSubmitting}
             isLoading={inviteSubmitting}
@@ -1501,29 +1511,29 @@ function getRegisterFieldErrors({
   const errors: FieldErrors = {};
 
   if (isPublicMode && signupType === 'rider' && touched.inviteToken && inviteToken.trim().length < 12) {
-    errors.inviteToken = 'Invite code is required';
+    errors.inviteToken = 'invite_code_error';
   }
   if (touched.fullName && fullName.trim().length < 2) {
-    errors.fullName = 'Enter full name';
+    errors.fullName = 'full_name_error';
   }
   if (touched.email && !email.trim()) {
-    errors.email = 'Email is required';
+    errors.email = 'email_error';
   } else if (touched.email && !z.string().email().safeParse(email).success) {
-    errors.email = 'Enter a valid email';
+    errors.email = 'email_invalid_error';
   }
   if (touched.phone && phone.trim().length > 0) {
     if (!/^07\d{8}$/.test(phone.trim())) {
-      errors.phone = 'Phone number must be exactly 10 digits starting with 07';
+      errors.phone = 'phone_error';
     }
   }
   if (touched.password && password.length < 8) {
-    errors.password = 'Password must be at least 8 characters';
+    errors.password = 'password_error';
   }
   if (touched.confirmPassword && confirmPassword.length > 0 && confirmPassword !== password) {
-    errors.confirmPassword = 'Passwords do not match';
+    errors.confirmPassword = 'passwords_match_error';
   }
   if (touched.terms && !termsAccepted) {
-    errors.terms = 'Accept the terms to continue';
+    errors.terms = 'terms_error';
   }
   return errors;
 }

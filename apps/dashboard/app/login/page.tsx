@@ -31,6 +31,7 @@ import {
   AuthShell,
   AuthTabs,
 } from '@/components/auth/auth-ui';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 
 type LoginFieldErrors = {
@@ -39,6 +40,7 @@ type LoginFieldErrors = {
 };
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -89,20 +91,20 @@ export default function LoginPage() {
 
     if (touched.identifier) {
       if (trimmed.length === 0) {
-        errors.identifier = 'Provide email or phone';
+        errors.identifier = t('credentials_error');
       } else if (!trimmed.includes('@')) {
         if (!/^07\d{8}$/.test(trimmed)) {
-          errors.identifier = 'Phone number must be exactly 10 digits starting with 07';
+          errors.identifier = t('phone_error');
         }
       } else if (trimmed.length < 3) {
-        errors.identifier = 'Provide email or phone';
+        errors.identifier = t('credentials_error');
       }
     }
     if (touched.password && password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+      errors.password = t('password_error');
     }
     return errors;
-  }, [identifier, password, touched.identifier, touched.password]);
+  }, [identifier, password, touched.identifier, touched.password, t]);
 
   // Validates credentials then requests a JWT or OTP prompt from the Nest auth endpoint.
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -119,7 +121,7 @@ export default function LoginPage() {
 
     const trimmedIdentifier = identifier.trim();
     if (!trimmedIdentifier.includes('@') && trimmedIdentifier.length > 0 && !/^07\d{8}$/.test(trimmedIdentifier)) {
-      setError('Phone number must be exactly 10 digits starting with 07');
+      setError(t('phone_error'));
       return;
     }
 
@@ -267,47 +269,47 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      eyebrow="Secure Access"
-      title="Trusted access for live fleet operations."
-      subtitle="Log in to the Fleet OS command center to monitor riders, resolve incidents, and coordinate safer journeys in real time."
-      securityHint="Your data is secure"
+      eyebrow={t('secure_access')}
+      title={t('trusted_access')}
+      subtitle={t('login_center_desc')}
+      securityHint={t('data_secure')}
       features={[
         {
           icon: <UserPlus size={16} />,
-          title: 'Guided onboarding',
-          description: 'Create riders or staff in minutes with clear role separation.',
+          title: t('guided_onboarding'),
+          description: t('guided_onboarding_desc'),
         },
         {
           icon: <Navigation2 size={16} />,
-          title: 'Realtime telemetry',
-          description: 'Track speed, battery, and trip activity with live fleet visibility.',
+          title: t('realtime_telemetry'),
+          description: t('realtime_telemetry_desc'),
         },
         {
           icon: <Activity size={16} />,
-          title: 'Incident response',
-          description: 'Handle crashes and SOS alerts with guided workflows.',
+          title: t('incident_response'),
+          description: t('incident_response_desc'),
         },
         {
           icon: <ShieldCheck size={16} />,
-          title: 'Policy controls',
-          description: 'Role-based access, audit trails, and command safety checks.',
+          title: t('policy_controls'),
+          description: t('policy_controls_desc'),
         },
         {
           icon: <Building2 size={16} />,
-          title: 'Scales with growth',
-          description: 'Add dispatchers, technicians, and admins as your network expands.',
+          title: t('scales_growth'),
+          description: t('scales_growth_desc'),
         },
         {
           icon: <Banknote size={16} />,
-          title: 'Automated billing',
-          description: 'Centralized settings for cycles, grace periods, and custom coupons.',
+          title: t('automated_billing'),
+          description: t('automated_billing_desc'),
         },
       ]}
     >
       <AuthPanelHeader
-        eyebrow="Welcome back"
-        title="Login to Fleet OS"
-        description="Use your fleet email or phone number to continue. Login stays secure even on low-bandwidth networks."
+        eyebrow={t('welcome_back')}
+        title={t('login_title')}
+        description={t('login_desc')}
       />
       <AuthTabs active="login" />
 
@@ -383,7 +385,7 @@ export default function LoginPage() {
       ) : (
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <AuthInput
-            label="Email or phone"
+            label={t('email_or_phone')}
             placeholder={loginPresentation.identifierPlaceholder}
             value={identifier}
             onChange={(event) => setIdentifier(event.target.value)}
@@ -391,11 +393,11 @@ export default function LoginPage() {
             autoComplete="username"
             icon={<AtSign size={16} />}
             error={fieldErrors.identifier}
-            helper="Use the phone or email issued by your fleet admin."
+            helper={t('access_help_desc')}
           />
           <AuthInput
-            label="Password"
-            placeholder="Enter your password"
+            label={t('password')}
+            placeholder={t('password')}
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -419,14 +421,14 @@ export default function LoginPage() {
             <AuthCheckbox
               checked={rememberMe}
               onChange={setRememberMe}
-              label="Remember me for 30 days"
+              label={t('remember_me')}
               disabled={isSubmitting}
             />
             <Link
               href="/forgot-password"
               className="text-xs font-semibold text-ink-muted transition hover:text-ink"
             >
-              Forgot password?
+              {t('forgot_password')}
             </Link>
           </div>
 
@@ -447,14 +449,14 @@ export default function LoginPage() {
 
           <AuthButton
             type="submit"
-            label={isSubmitting ? 'Signing in...' : 'Login'}
+            label={isSubmitting ? t('signing_in') : t('signin')}
             isLoading={isSubmitting}
             disabled={isSubmitting}
           />
 
           <div className="flex items-center gap-3 text-xs text-ink-muted">
             <span className="h-px flex-1 bg-line" />
-            <span>Or continue with</span>
+            <span>{t('or_continue_with')}</span>
             <span className="h-px flex-1 bg-line" />
           </div>
 
@@ -476,9 +478,9 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-ink-muted">
-            New to Fleet OS?{' '}
+            {t('new_to_fleet_os')}{' '}
             <Link href="/create-account" className="font-semibold text-ink">
-              Create an account
+              {t('create_account_link')}
             </Link>
           </p>
         </form>
@@ -505,11 +507,10 @@ export default function LoginPage() {
       ) : (
         <div className="mt-6 rounded-[20px] border border-line bg-surface-muted p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-muted">
-            Access help
+            {t('access_help')}
           </p>
           <p className="mt-2 text-xs leading-5 text-ink-muted">
-            Use the credentials issued by your fleet administrator. If you need access, request an invite
-            or contact your operations lead.
+            {t('access_help_desc')}
           </p>
         </div>
       )}

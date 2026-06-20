@@ -13,11 +13,13 @@ import {
   AuthTabs,
 } from '@/components/auth/auth-ui';
 import { ApiError, apiFetch } from '@/lib/api/client';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 const resetEndpoint = process.env.NEXT_PUBLIC_PASSWORD_RESET_ENDPOINT || '/auth/forgot-password';
 
 // Provides a lightweight password reset landing page for fleets using admin-managed resets.
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -33,14 +35,14 @@ export default function ForgotPasswordPage() {
 
     if (!resetEndpoint) {
       setNoticeTone('warning');
-      setNotice('Password reset is not configured yet. Contact your fleet admin for access.');
+      setNotice(t('reset_not_configured', 'Password reset is not configured yet. Contact your fleet admin for access.'));
       return;
     }
 
     const trimmedIdentifier = identifier.trim();
     if (!trimmedIdentifier.includes('@') && trimmedIdentifier.length > 0 && !/^07\d{8}$/.test(trimmedIdentifier)) {
       setNoticeTone('error');
-      setNotice('Phone number must be exactly 10 digits starting with 07');
+      setNotice(t('phone_error'));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function ForgotPasswordPage() {
         { auth: false },
       );
       setNoticeTone('success');
-      setNotice('Request sent. Check your email or phone for next steps. Redirecting to reset page...');
+      setNotice(t('recovery_request_sent', 'Request sent. Check your email or phone for next steps. Redirecting to reset page...'));
       if (response && response.token) {
         setGeneratedToken(response.token);
       } else {
@@ -74,7 +76,7 @@ export default function ForgotPasswordPage() {
         setNotice(requestError.message);
       } else {
         setNoticeTone('error');
-        setNotice('Unable to request a reset right now');
+        setNotice(t('recovery_failed', 'Unable to request a reset right now'));
       }
     } finally {
       setIsSubmitting(false);
@@ -83,54 +85,54 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      eyebrow="Account recovery"
-      title="Reset requests are handled by your fleet admin."
-      subtitle="For security reasons, password resets are initiated by your fleet operations team. Submit your email or phone so they can verify your request."
-      securityHint="Your data is secure"
+      eyebrow={t('recovery_title')}
+      title={t('reset_requests_handled', 'Reset requests are handled by your fleet admin.')}
+      subtitle={t('recovery_subtitle')}
+      securityHint={t('data_secure')}
       features={[
         {
           icon: <Lock size={16} />,
-          title: 'Verified recovery',
-          description: 'Reset flows require fleet approval before credentials are updated.',
+          title: t('verified_recovery'),
+          description: t('verified_recovery_desc'),
         },
         {
           icon: <HelpCircle size={16} />,
-          title: 'Fast support',
-          description: 'Operators can restore access quickly via the admin console.',
+          title: t('fast_support'),
+          description: t('fast_support_desc'),
         },
         {
           icon: <Mail size={16} />,
-          title: 'Secure follow-up',
-          description: 'Recovery notifications are sent through trusted channels only.',
+          title: t('secure_follow_up'),
+          description: t('secure_follow_up_desc'),
         },
         {
           icon: <ShieldCheck size={16} />,
-          title: 'Access control',
-          description: 'Strict security audits protect operations and rider accounts.',
+          title: t('access_control', 'Access control'),
+          description: t('access_control_desc', 'Strict security audits protect operations and rider accounts.'),
         },
         {
           icon: <Activity size={16} />,
-          title: 'Live reporting',
-          description: 'Track operations activity live and review security audit logs.',
+          title: t('live_reporting', 'Live reporting'),
+          description: t('live_reporting_desc', 'Track operations activity live and review security audit logs.'),
         },
         {
           icon: <UserPlus size={16} />,
-          title: 'Team management',
-          description: 'Reinstate logins, modify permissions, or delete accounts securely.',
+          title: t('team_management', 'Team management'),
+          description: t('team_management_desc', 'Reinstate logins, modify permissions, or delete accounts securely.'),
         },
       ]}
     >
       <AuthPanelHeader
-        eyebrow="Forgot password"
-        title="Request assistance"
-        description="Share the email or phone attached to your account. Your admin will follow up with next steps."
+        eyebrow={t('forgot_title')}
+        title={t('forgot_request')}
+        description={t('forgot_desc')}
       />
       <AuthTabs active="login" />
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <AuthInput
-          label="Email or phone"
-          placeholder="name@fleet.example or 07..."
+          label={t('email_or_phone')}
+          placeholder={t('email_or_phone_placeholder', 'name@fleet.example or 07...')}
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
           icon={<Mail size={16} />}
@@ -138,7 +140,7 @@ export default function ForgotPasswordPage() {
         {notice ? <AuthNotice message={notice} tone={noticeTone} /> : null}
         <AuthButton
           type="submit"
-          label={isSubmitting ? 'Requesting support...' : 'Request reset support'}
+          label={isSubmitting ? t('requesting_support') : t('request_support')}
           isLoading={isSubmitting}
           disabled={identifier.trim().length < 3 || isSubmitting}
         />
@@ -162,9 +164,9 @@ export default function ForgotPasswordPage() {
         )}
 
         <p className="text-center text-xs text-ink-muted">
-          Remembered your password?{' '}
+          {t('remembered_password_prompt', 'Remembered your password?')}{' '}
           <Link href="/login" className="font-semibold text-ink">
-            Return to login
+            {t('return_login')}
           </Link>
         </p>
       </form>

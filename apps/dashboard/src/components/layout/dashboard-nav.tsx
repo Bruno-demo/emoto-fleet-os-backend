@@ -32,6 +32,7 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { disconnectFleetSocket } from '@/lib/realtime/socket';
 import { canUseFeature, getSubscriptionEntitlements, type DashboardFeature } from '@/lib/subscription';
 import { cx } from '@/lib/ui';
+import { useTranslation } from '../i18n/LanguageProvider';
 
 interface NavGroup {
   label: string;
@@ -93,8 +94,15 @@ export function DashboardNav({
   onToggleCollapse,
   openIncidentCount = 0,
 }: DashboardNavProps) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
+
+  const getLinkLabel = (link: NavLink) => {
+    const key = link.href.replace('/', '');
+    if (key === 'live') return t('nav_live_map');
+    return t(`nav_${key}`, link.label);
+  };
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const entitlements = getSubscriptionEntitlements(user);
@@ -196,7 +204,7 @@ export function DashboardNav({
               <div key={group.label} className="mb-5">
                 {!collapsed && (
                   <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
-                    {group.label}
+                    {t('nav_group_' + group.label.toLowerCase(), group.label)}
                   </p>
                 )}
                 <div className="grid gap-0.5">
@@ -205,12 +213,13 @@ export function DashboardNav({
                     const active = isActive(link.href);
                     const badge = getBadge(link.href);
                     const locked = user ? !canUseFeature(user, link.feature) : false;
+                    const translatedLabel = getLinkLabel(link);
                     return (
                       <Link
                         key={link.href}
                         href={link.href}
                         onClick={onClose}
-                        title={collapsed ? link.label : undefined}
+                        title={collapsed ? translatedLabel : undefined}
                         className={cx(
                           'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all',
                           active
@@ -236,7 +245,7 @@ export function DashboardNav({
                         </span>
                         {!collapsed && (
                           <>
-                            <span className="flex-1">{link.label}</span>
+                            <span className="flex-1">{translatedLabel}</span>
                             {locked ? (
                               <Lock size={13} className="text-ink-faint" />
                             ) : badge !== undefined ? (
@@ -304,7 +313,7 @@ export function DashboardNav({
                   className="flex items-center justify-center gap-2 rounded-xl bg-accent text-white px-3 py-2 text-[13px] font-semibold hover:bg-accent-strong transition-all shadow-sm"
                 >
                   <Zap size={14} className="fill-current" />
-                  Enter HQ
+                  {t('nav_superadmin', 'Enter HQ')}
                 </Link>
               )}
             </div>
@@ -319,7 +328,7 @@ export function DashboardNav({
             )}
           >
             <LogOut size={14} className="text-danger-ink" />
-            {!collapsed ? 'Sign out' : null}
+            {!collapsed ? t('nav_logout', 'Sign out') : null}
           </button>
         </div>
       </aside>
