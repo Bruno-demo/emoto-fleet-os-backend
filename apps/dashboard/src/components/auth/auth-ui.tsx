@@ -28,7 +28,7 @@ export function AuthShell({
         {/* Deep, immersive abstract background */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center brightness-50"
-          style={{ backgroundImage: 'linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(11, 15, 25, 0.4)), url(https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80)' }}
+          style={{ backgroundImage: 'linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(11, 15, 25, 0.4)), url(https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1200&q=80)' }}
         />
         
         {/* Glow Effects */}

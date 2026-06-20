@@ -9,6 +9,9 @@ import {
   Lock,
   Navigation2,
   ShieldCheck,
+  UserPlus,
+  Building2,
+  Banknote,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -270,6 +273,11 @@ export default function LoginPage() {
       securityHint="Your data is secure"
       features={[
         {
+          icon: <UserPlus size={16} />,
+          title: 'Guided onboarding',
+          description: 'Create riders or staff in minutes with clear role separation.',
+        },
+        {
           icon: <Navigation2 size={16} />,
           title: 'Realtime telemetry',
           description: 'Track speed, battery, and trip activity with live fleet visibility.',
@@ -283,6 +291,16 @@ export default function LoginPage() {
           icon: <ShieldCheck size={16} />,
           title: 'Policy controls',
           description: 'Role-based access, audit trails, and command safety checks.',
+        },
+        {
+          icon: <Building2 size={16} />,
+          title: 'Scales with growth',
+          description: 'Add dispatchers, technicians, and admins as your network expands.',
+        },
+        {
+          icon: <Banknote size={16} />,
+          title: 'Automated billing',
+          description: 'Centralized settings for cycles, grace periods, and custom coupons.',
         },
       ]}
     >

@@ -15,6 +15,9 @@ import {
   Lock,
   Zap,
   X,
+  Navigation2,
+  Activity,
+  Banknote,
 } from 'lucide-react';
 import { compressImage } from '@/lib/image';
 import Link from 'next/link';
@@ -729,6 +732,16 @@ function CreateAccountInner() {
           description: 'Create riders or staff in minutes with clear role separation.',
         },
         {
+          icon: <Navigation2 size={16} />,
+          title: 'Realtime telemetry',
+          description: 'Track speed, battery, and trip activity with live fleet visibility.',
+        },
+        {
+          icon: <Activity size={16} />,
+          title: 'Incident response',
+          description: 'Handle crashes and SOS alerts with guided workflows.',
+        },
+        {
           icon: <ShieldCheck size={16} />,
           title: 'Fleet isolation',
           description: 'Every account is tied to a single fleet with enforced RBAC.',
@@ -737,6 +750,11 @@ function CreateAccountInner() {
           icon: <Building2 size={16} />,
           title: 'Scales with growth',
           description: 'Add dispatchers, technicians, and admins as your network expands.',
+        },
+        {
+          icon: <Banknote size={16} />,
+          title: 'Automated billing',
+          description: 'Centralized settings for cycles, grace periods, and custom coupons.',
         },
       ]}
     >

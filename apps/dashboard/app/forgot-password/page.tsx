@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircle, Lock, Mail } from 'lucide-react';
+import { HelpCircle, Lock, Mail, ShieldCheck, Activity, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -102,6 +102,21 @@ export default function ForgotPasswordPage() {
           icon: <Mail size={16} />,
           title: 'Secure follow-up',
           description: 'Recovery notifications are sent through trusted channels only.',
+        },
+        {
+          icon: <ShieldCheck size={16} />,
+          title: 'Access control',
+          description: 'Strict security audits protect operations and rider accounts.',
+        },
+        {
+          icon: <Activity size={16} />,
+          title: 'Live reporting',
+          description: 'Track operations activity live and review security audit logs.',
+        },
+        {
+          icon: <UserPlus size={16} />,
+          title: 'Team management',
+          description: 'Reinstate logins, modify permissions, or delete accounts securely.',
         },
       ]}
     >
