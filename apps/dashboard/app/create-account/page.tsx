@@ -501,14 +501,14 @@ function CreateAccountInner() {
     }));
 
     if (fullName.trim().length < 2) {
-      setFieldErrors({ fullName: 'Enter full name' });
-      setError('Full name is required');
+      setFieldErrors({ fullName: 'full_name_error' });
+      setError(t('full_name_error', 'Full name is required'));
       return;
     }
 
     if (!termsAccepted) {
-      setFieldErrors({ terms: 'Accept the terms to continue' });
-      setError('Please accept the terms to continue');
+      setFieldErrors({ terms: 'terms_error' });
+      setError(t('terms_accept_error', 'Please accept the terms to continue'));
       return;
     }
 
@@ -516,11 +516,11 @@ function CreateAccountInner() {
     if (isPublicMode && signupType === 'rider') {
       const parsedToken = z
         .string()
-        .min(12, 'Invite code is required')
+        .min(12, 'invite_code_error')
         .safeParse(inviteToken.trim());
       if (!parsedToken.success) {
         setFieldErrors({ inviteToken: parsedToken.error.issues[0]?.message });
-        setError(parsedToken.error.issues[0]?.message ?? 'Invite code is required');
+        setError(parsedToken.error.issues[0]?.message ? t(parsedToken.error.issues[0].message) : t('invite_code_error'));
         return;
       }
     }
@@ -532,12 +532,12 @@ function CreateAccountInner() {
     if (isPublicMode && signupType === 'admin') {
       if (selectedPlanSlug === 'insurance') {
         if (!insurerName) {
-          setError('Please select your insurance company');
+          setError(t('select_insurance_error', 'Please select your insurance company'));
           return;
         }
         if (insurerName === 'Other') {
           if (!customInsurerName.trim()) {
-            setError('Please enter your insurance company name');
+            setError(t('enter_insurance_name_error', 'Please enter your insurance company name'));
             return;
           }
           finalInsurerName = customInsurerName.trim();
@@ -548,11 +548,11 @@ function CreateAccountInner() {
         }
       } else {
         if (fleetName.trim().length < 2) {
-          setError('Fleet name is required');
+          setError(t('fleet_name_required_error', 'Fleet name is required'));
           return;
         }
         if (!selectedPlan && !isDemo) {
-          setError('Please select a pricing plan to continue');
+          setError(t('select_plan_error', 'Please select a pricing plan to continue'));
           // Scroll to the top to see the banner
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
@@ -639,8 +639,8 @@ function CreateAccountInner() {
 
       setSuccess(
         isPublicMode
-          ? 'Account created! Redirecting to sign in...'
-          : 'Account created. Share the login credentials securely with the new operator.',
+          ? t('account_created_redirecting', 'Account created! Redirecting to sign in...')
+          : t('account_created_operator', 'Account created. Share the login credentials securely with the new operator.'),
       );
 
       // Redirect based on flow
@@ -679,7 +679,7 @@ function CreateAccountInner() {
       if (requestError instanceof ApiError) {
         setError(requestError.message);
       } else {
-        setError('Unable to create an account right now');
+        setError(t('register_failed_error', 'Unable to create an account right now'));
       }
     } finally {
       setIsSubmitting(false);
@@ -697,7 +697,7 @@ function CreateAccountInner() {
     if (trimmedHours.length > 0) {
       const parsedHours = Number(trimmedHours);
       if (!Number.isFinite(parsedHours) || parsedHours < 1 || parsedHours > 720) {
-        setInviteError('Expiry must be between 1 and 720 hours');
+        setInviteError(t('expiry_hours_error', 'Expiry must be between 1 and 720 hours'));
         return;
       }
       expiresInHours = parsedHours;
@@ -723,7 +723,7 @@ function CreateAccountInner() {
       if (requestError instanceof ApiError) {
         setInviteError(requestError.message);
       } else {
-        setInviteError('Unable to generate invite right now');
+        setInviteError(t('invite_failed_error', 'Unable to generate invite right now'));
       }
     } finally {
       setInviteSubmitting(false);
@@ -732,54 +732,54 @@ function CreateAccountInner() {
 
   return (
     <AuthShell
-      eyebrow="Fleet identity"
-      title="Create safe access for every rider and operator."
-      subtitle="Provision accounts with the right roles and invite codes so each team member sees only the data they need."
-      securityHint="Your data is secure"
+      eyebrow={t('fleet_identity_eyebrow', 'Fleet identity')}
+      title={t('create_access_title', 'Create safe access for every rider and operator.')}
+      subtitle={t('create_access_subtitle', 'Provision accounts with the right roles and invite codes so each team member sees only the data they need.')}
+      securityHint={t('data_secure_hint', 'Your data is secure')}
       features={[
         {
           icon: <UserPlus size={16} />,
-          title: 'Guided onboarding',
-          description: 'Create riders or staff in minutes with clear role separation.',
+          title: t('onboarding_title', 'Guided onboarding'),
+          description: t('onboarding_desc', 'Create riders or staff in minutes with clear role separation.'),
         },
         {
           icon: <Navigation2 size={16} />,
-          title: 'Realtime telemetry',
-          description: 'Track speed, battery, and trip activity with live fleet visibility.',
+          title: t('telemetry_title', 'Realtime telemetry'),
+          description: t('telemetry_desc', 'Track speed, battery, and trip activity with live fleet visibility.'),
         },
         {
           icon: <Activity size={16} />,
-          title: 'Incident response',
-          description: 'Handle crashes and SOS alerts with guided workflows.',
+          title: t('incident_dispatch_title', 'Incident response'),
+          description: t('incident_dispatch_desc', 'Handle crashes and SOS alerts with guided workflows.'),
         },
         {
           icon: <ShieldCheck size={16} />,
-          title: 'Fleet isolation',
-          description: 'Every account is tied to a single fleet with enforced RBAC.',
+          title: t('fleet_isolation_title', 'Fleet isolation'),
+          description: t('fleet_isolation_desc', 'Every account is tied to a single fleet with enforced RBAC.'),
         },
         {
           icon: <Building2 size={16} />,
-          title: 'Scales with growth',
-          description: 'Add dispatchers, technicians, and admins as your network expands.',
+          title: t('scales_growth_title', 'Scales with growth'),
+          description: t('scales_growth_desc', 'Add dispatchers, technicians, and admins as your network expands.'),
         },
         {
           icon: <Banknote size={16} />,
-          title: 'Automated billing',
-          description: 'Centralized settings for cycles, grace periods, and custom coupons.',
+          title: t('billing_automation_title', 'Automated billing'),
+          description: t('billing_automation_desc', 'Centralized settings for cycles, grace periods, and custom coupons.'),
         },
       ]}
     >
       <AuthPanelHeader
-        eyebrow="Create account"
-        title="Join Fleet OS"
-        description="Fast onboarding for riders and operators. Admin roles require fleet approval."
+        eyebrow={t('create_account_eyebrow', 'Create account')}
+        title={t('join_fleet_os_title', 'Join Fleet OS')}
+        description={t('join_fleet_os_desc', 'Fast onboarding for riders and operators. Admin roles require fleet approval.')}
       />
       <AuthTabs active="signup" />
 
       {signupType === 'admin' && !isDemo && isPublicMode && (
         <div className="mt-6 space-y-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted px-1">
-            Choose your fleet plan
+            {t('choose_fleet_plan', 'Choose your fleet plan')}
           </p>
           {selectedPlanSlug === 'insurance' ? (
             <div className="rounded-[20px] border border-accent bg-accent/[0.05] p-5 flex gap-4 items-start ring-1 ring-accent">
@@ -787,9 +787,9 @@ function CreateAccountInner() {
                 <Building2 size={20} />
               </span>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-ink">Insurance Partner Plan</p>
+                <p className="text-sm font-bold text-ink">{t('insurance_partner_plan_title', 'Insurance Partner Plan')}</p>
                 <p className="text-xs text-ink-muted leading-relaxed">
-                  This plan is dedicated to insurance companies only. Fleet operators cannot subscribe or shift to this plan.
+                  {t('insurance_partner_plan_desc', 'This plan is dedicated to insurance companies only. Fleet operators cannot subscribe or shift to this plan.')}
                 </p>
               </div>
             </div>
@@ -823,16 +823,20 @@ function CreateAccountInner() {
                           'text-sm font-bold',
                           isSelected ? 'text-ink' : 'text-ink-muted'
                         )}>
-                          {plan.title}
+                          {slug === 'safety-core' ? t('safety_core_plan_title', 'Safety Core') : slug === 'operations-plus' ? t('operations_plus_plan_title', 'Operations Plus') : plan.title}
                         </p>
                         <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
-                          {plan.description}
+                          {slug === 'safety-core' 
+                            ? t('safety_core_desc_short', 'Essential safety (+ {fee} RWF setup).').replace('{fee}', plan.description?.match(/[\d,]+/)?.[0] || '35,000')
+                            : slug === 'operations-plus'
+                            ? t('operations_plus_desc_short', 'Advanced fleet ops (+ {fee} RWF setup).').replace('{fee}', plan.description?.match(/[\d,]+/)?.[0] || '35,000')
+                            : plan.description}
                         </p>
                       </div>
 
                       <div className="mt-4 flex items-baseline gap-1">
                         <span className="text-sm font-extrabold text-ink">{plan.price}</span>
-                        <span className="text-[10px] text-ink-muted">{plan.period}</span>
+                        <span className="text-[10px] text-ink-muted">{t('per_bike_per_mo', '/ bike / mo')}</span>
                       </div>
 
                       {isSelected && (
@@ -850,12 +854,12 @@ function CreateAccountInner() {
           {selectedPlanSlug && selectedPlanSlug !== 'insurance' && (
             <div className="mt-4 rounded-2xl border border-line bg-surface-muted/30 p-4 space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
-                Have a promo code?
+                {t('promo_code_label', 'Have a promo code?')}
               </p>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Enter code..."
+                  placeholder={t('promo_code_placeholder', 'Enter code...')}
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   disabled={isFormDisabled || isGateLocked}
@@ -867,12 +871,12 @@ function CreateAccountInner() {
                   disabled={!promoCode || isValidatingPromo || isFormDisabled || isGateLocked}
                   className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
                 >
-                  {isValidatingPromo ? 'Checking...' : 'Apply'}
+                  {isValidatingPromo ? t('promo_code_checking', 'Checking...') : t('promo_code_apply', 'Apply')}
                 </button>
               </div>
               {appliedDiscount ? (
                 <p className="text-xs text-success-ink font-semibold flex items-center gap-1.5 animate-fade-in">
-                  ✓ {`Discount "${String(appliedDiscount.name)}" validated successfully!`}
+                  ✓ {t('promo_code_success', 'Discount "{name}" validated successfully!').replace('{name}', appliedDiscount.name)}
                 </p>
               ) : promoError ? (
                 <p className="text-xs text-danger-ink font-semibold animate-fade-in">
@@ -890,8 +894,8 @@ function CreateAccountInner() {
             <UserPlus size={16} />
           </span>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">Demo request</p>
-            <p className="text-sm text-ink-soft">Create your account to access a guided demo of Fleet OS.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">{t('demo_request_title', 'Demo request')}</p>
+            <p className="text-sm text-ink-soft">{t('demo_request_desc', 'Create your account to access a guided demo of Fleet OS.')}</p>
           </div>
         </div>
       )}
@@ -904,7 +908,7 @@ function CreateAccountInner() {
 
         <AuthInput
           label={t('full_name_label')}
-          placeholder="e.g. Aisha N."
+          placeholder={t('full_name_placeholder', 'e.g. Aisha N.')}
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, fullName: true }))}
@@ -930,7 +934,7 @@ function CreateAccountInner() {
                 )}
               </span>
             }
-            placeholder="operator@fleet.example"
+            placeholder={t('email_placeholder', 'operator@fleet.example')}
             value={email}
             onChange={(event) => {
               setEmail(event.target.value);
@@ -954,7 +958,7 @@ function CreateAccountInner() {
           />
           <AuthInput
             label={t('phone_label')}
-            placeholder="07..."
+            placeholder={t('phone_placeholder', '07...')}
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
@@ -986,7 +990,7 @@ function CreateAccountInner() {
                 <input
                   type="text"
                   maxLength={6}
-                  placeholder="Enter 6-digit OTP"
+                  placeholder={t('enter_otp_placeholder', 'Enter 6-digit OTP')}
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   className="w-full rounded-[14px] border border-line bg-surface px-4 py-2.5 text-center font-mono text-sm tracking-[0.3em] text-ink placeholder:font-sans placeholder:tracking-normal placeholder:text-ink-soft focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
@@ -1032,7 +1036,7 @@ function CreateAccountInner() {
           <AuthInput
             label={t('password')}
             type={showPassword ? 'text' : 'password'}
-            placeholder="Minimum 8 characters"
+            placeholder={t('password_placeholder', 'Minimum 8 characters')}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
@@ -1053,7 +1057,7 @@ function CreateAccountInner() {
           <AuthInput
             label={t('confirm_password_label')}
             type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="Re-enter password"
+            placeholder={t('confirm_password_placeholder', 'Re-enter password')}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, confirmPassword: true }))}
@@ -1136,7 +1140,7 @@ function CreateAccountInner() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <AuthInput
                     label={t('licence_number_label')}
-                    placeholder="e.g. DL-12345"
+                    placeholder={t('licence_number_placeholder', 'e.g. DL-12345')}
                     value={licenceNumber}
                     onChange={(event) => setLicenceNumber(event.target.value)}
                     disabled={isFormDisabled || isGateLocked}
@@ -1144,7 +1148,7 @@ function CreateAccountInner() {
                   />
                   <AuthInput
                     label={t('identity_number_label')}
-                    placeholder="e.g. ID-54321"
+                    placeholder={t('identity_number_placeholder', 'e.g. ID-54321')}
                     value={identityNumber}
                     onChange={(event) => setIdentityNumber(event.target.value)}
                     disabled={isFormDisabled || isGateLocked}
@@ -1171,7 +1175,7 @@ function CreateAccountInner() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
                         <span className="text-lg mb-0.5">👤</span>
                         <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingPassport ? 'Compressing...' : t('passport_photo_label')}
+                          {isCompresingPassport ? t('compressing', 'Compressing...') : t('passport_photo_label')}
                         </span>
                         <input
                           type="file"
@@ -1215,7 +1219,7 @@ function CreateAccountInner() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
                         <span className="text-lg mb-0.5">💳</span>
                         <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingLicence ? 'Compressing...' : t('licence_photo_label')}
+                          {isCompresingLicence ? t('compressing', 'Compressing...') : t('licence_photo_label')}
                         </span>
                         <input
                           type="file"
@@ -1259,7 +1263,7 @@ function CreateAccountInner() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
                         <span className="text-lg mb-0.5">🆔</span>
                         <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingIdCard ? 'Compressing...' : t('id_photo_label')}
+                          {isCompresingIdCard ? t('compressing', 'Compressing...') : t('id_photo_label')}
                         </span>
                         <input
                           type="file"
@@ -1310,7 +1314,7 @@ function CreateAccountInner() {
                     {insurerName === 'Other' && (
                       <AuthInput
                         label={t('insurance_company_name_label')}
-                        placeholder="e.g. Sanlam Insurance"
+                        placeholder={t('insurance_company_name_placeholder', 'e.g. Sanlam Insurance')}
                         value={customInsurerName}
                         onChange={(event) => setCustomInsurerName(event.target.value)}
                         disabled={isFormDisabled || isGateLocked}
@@ -1322,7 +1326,7 @@ function CreateAccountInner() {
                   <>
                     <AuthInput
                       label={t('fleet_name')}
-                      placeholder="e.g. Kigali Express Fleet"
+                      placeholder={t('fleet_name_placeholder', 'e.g. Kigali Express Fleet')}
                       value={fleetName}
                       onChange={(event) => setFleetName(event.target.value)}
                       disabled={isFormDisabled || isGateLocked}
@@ -1336,7 +1340,7 @@ function CreateAccountInner() {
                     >
                       {BIKE_RANGE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
-                          {opt.label}
+                          {t('bike_range_' + opt.value.replace('+', '_plus'), opt.label)}
                         </option>
                       ))}
                     </AuthSelect>
@@ -1376,14 +1380,14 @@ function CreateAccountInner() {
             variant="secondary"
             label="Google"
             icon={<span className="text-base font-semibold">G</span>}
-            onClick={() => handleSocialLogin('google', setSocialNotice)}
+            onClick={() => handleSocialLogin('google', setSocialNotice, t)}
           />
           <AuthButton
             type="button"
             variant="secondary"
             label="Apple"
             icon={<span className="text-base font-semibold">A</span>}
-            onClick={() => handleSocialLogin('apple', setSocialNotice)}
+            onClick={() => handleSocialLogin('apple', setSocialNotice, t)}
           />
         </div>
 
@@ -1419,7 +1423,7 @@ function CreateAccountInner() {
             </AuthSelect>
             <AuthInput
               label={t('expires_in_hours_label')}
-              placeholder="168"
+              placeholder={t('expires_in_hours_placeholder', '168')}
               value={inviteExpiresInHours}
               onChange={(event) => setInviteExpiresInHours(event.target.value)}
               disabled={inviteSubmitting}
@@ -1462,6 +1466,7 @@ function CreateAccountInner() {
 function handleSocialLogin(
   provider: 'google' | 'apple',
   setNotice: (message: string | null) => void,
+  t: (key: string, fallback?: string) => string,
 ) {
   const oauthUrl =
     provider === 'google'
@@ -1469,7 +1474,7 @@ function handleSocialLogin(
       : process.env.NEXT_PUBLIC_APPLE_OAUTH_URL;
 
   if (!oauthUrl) {
-    setNotice('Social sign-up is not configured for this environment yet.');
+    setNotice(t('social_signup_not_configured', 'Social sign-up is not configured for this environment yet.'));
     return;
   }
 
