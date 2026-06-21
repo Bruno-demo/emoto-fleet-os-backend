@@ -27,7 +27,8 @@ export function LanguageSwitcher() {
         className="flex items-center gap-1.5 rounded-xl border border-line bg-surface-muted/30 px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-surface-hover hover:text-ink transition-all cursor-pointer backdrop-blur-sm"
       >
         <Globe size={14} className="text-accent" />
-        <span>{locale === 'en' ? 'English' : 'Kinyarwanda'}</span>
+        <span className="hidden sm:inline">{locale === 'en' ? 'English' : 'Kinyarwanda'}</span>
+        <span className="inline sm:hidden uppercase">{locale}</span>
       </button>
 
       {isOpen && (

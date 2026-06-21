@@ -25,7 +25,7 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
 };
 
 interface BadgeProps {
-  label: string;
+  label: ReactNode;
   tone?: BadgeTone;
   icon?: ReactNode;
   size?: 'sm' | 'md';

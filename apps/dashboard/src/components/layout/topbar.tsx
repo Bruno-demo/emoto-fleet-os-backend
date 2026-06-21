@@ -98,14 +98,14 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted mt-0.5">
               <span className="truncate max-w-[120px]">{fleetLabel}</span>
-              <div className="flex items-center gap-1.5">
+              <div className="hidden md:flex items-center gap-1.5">
                 <span className="text-ink-faint">&middot;</span>
                 <span className="truncate max-w-[100px]">
                   {user?.role ? t(`role_${user.role.toLowerCase()}`, user.role.charAt(0) + user.role.slice(1).toLowerCase()) : t('Operator')}
                 </span>
               </div>
               {user && (
-                <div className="flex items-center gap-1.5">
+                <div className="hidden sm:flex items-center gap-1.5">
                   <span className="text-ink-faint">&middot;</span>
                   <span
                     className={cx(
