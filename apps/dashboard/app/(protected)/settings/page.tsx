@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -124,7 +124,7 @@ export default function SettingsPage() {
   const [copiedClientSecret, setCopiedClientSecret] = useState(false);
 
   const handleRotateKeys = async () => {
-    if (!confirm('Are you sure you want to rotate your partner API keys? Any existing integrations using the old secret will break immediately.')) {
+    if (!confirm(t('Are you sure you want to rotate your partner API keys? Any existing integrations using the old secret will break immediately.'))) {
       return;
     }
     setIsRotatingKeys(true);
@@ -140,7 +140,7 @@ export default function SettingsPage() {
       if (error instanceof ApiError) {
         setRotateKeysError(error.message);
       } else {
-        setRotateKeysError('Failed to rotate API credentials');
+        setRotateKeysError(t('Failed to rotate API credentials'));
       }
     } finally {
       setIsRotatingKeys(false);
@@ -241,7 +241,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <p className="font-display text-lg font-bold text-ink">
-                    {user?.email ?? 'Unknown user'}
+                    {user?.email ?? t('Unknown user')}
                   </p>
                   <p className="text-sm text-ink-muted">
                     {user?.role ? t(formatEnumLabel(user.role)) : t('Operator')} &middot;{' '}
@@ -251,8 +251,8 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <SettingsField label={t("Email")} value={user?.email ?? 'Not set'} />
-                <SettingsField label={t("Phone")} value={user?.phone ?? 'Not set'} />
+                <SettingsField label={t("Email")} value={user?.email ?? t('Not set')} />
+                <SettingsField label={t("Phone")} value={user?.phone ?? t('Not set')} />
                 <SettingsField
                   label={t("Role")}
                   value={user?.role ? t(formatEnumLabel(user.role)) : t('Unknown')}
@@ -296,10 +296,10 @@ export default function SettingsPage() {
         <div className="space-y-5 animate-fade-in">
           <DashboardCard eyebrow={t("Organization")} title={t("Fleet details")}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <SettingsField label={t("Fleet ID")} value={user?.fleetId ?? 'Unknown'} mono />
+              <SettingsField label={t("Fleet ID")} value={user?.fleetId ?? t('Unknown')} mono />
               <SettingsField
                 label={t("Fleet name")}
-                value={user?.fleetName ?? 'Unnamed fleet'}
+                value={user?.fleetName ?? t('Unnamed fleet')}
               />
               <SettingsField
                 label={t("Plan")}
@@ -327,44 +327,44 @@ export default function SettingsPage() {
                     {/* Stat 1: Fleet Size */}
                     <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
-                        {isInsurance ? 'Total Covered Bikes' : 'Total Fleet Bikes'}
+                        {isInsurance ? t('Total Covered Bikes') : t('Total Fleet Bikes')}
                       </p>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-extrabold text-ink">{totalBikes}</span>
-                        <span className="text-xs text-ink-muted">Active {totalBikes === 1 ? 'bike' : 'bikes'}</span>
+                        <span className="text-xs text-ink-muted">{totalBikes === 1 ? t('Active bike') : t('Active bikes')}</span>
                       </div>
                       <p className="text-xs text-ink-faint leading-relaxed">
                         {isInsurance
-                          ? 'Bikes covered under your insurance policy.'
-                          : 'Subscriptions are calculated per bike dynamically.'}
+                          ? t('Bikes covered under your insurance policy.')
+                          : t('Subscriptions are calculated per bike dynamically.')}
                       </p>
                     </div>
 
                     {/* Stat 2: Active Plan Cost */}
                     <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Monthly Rate</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Monthly Rate')}</p>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-extrabold text-ink">
                           {rate.toLocaleString()} RWF
                         </span>
-                        <span className="text-xs text-ink-muted">/ bike / mo</span>
+                        <span className="text-xs text-ink-muted">{t('/ bike / mo')}</span>
                       </div>
                       <p className="text-xs text-ink-faint leading-relaxed">
-                        Plan: <span className="font-bold text-accent">{entitlements.planLabel}</span>
+                        {t('Plan:')} <span className="font-bold text-accent">{t(entitlements.planLabel)}</span>
                       </p>
                     </div>
 
                     {/* Stat 3: Total Money To Pay */}
                     <div className="rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 space-y-2 col-span-full md:col-span-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">Total Monthly Cost</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">{t('Total Monthly Cost')}</p>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-extrabold text-accent">
                           {(rate * totalBikes).toLocaleString()} RWF
                         </span>
-                        <span className="text-xs text-ink-muted">/ month</span>
+                        <span className="text-xs text-ink-muted">{t('/ month')}</span>
                       </div>
                       <p className="text-xs text-ink-faint leading-relaxed">
-                        Auto-calculated subscription dues.
+                        {t('Auto-calculated subscription dues.')}
                       </p>
                     </div>
                   </div>
@@ -375,14 +375,14 @@ export default function SettingsPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-ink flex items-center gap-2">
                           <Banknote size={16} className="text-accent" />
-                          One-time Installation Setup Fee
+                          {t('One-time Installation Setup Fee')}
                         </p>
                         <p className="text-xs text-ink-muted leading-relaxed">
-                          A flat fee of <strong className="text-ink">{((user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</strong> per bike is charged once upon hardware device setup.
+                          {t('A flat fee of')} <strong className="text-ink">{((user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</strong> {t('per bike is charged once upon hardware device setup.')}
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="text-xs text-ink-muted">Total Setup Dues</p>
+                        <p className="text-xs text-ink-muted">{t('Total Setup Dues')}</p>
                         <p className="text-lg font-extrabold text-ink">{(totalBikes * (user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</p>
                       </div>
                     </div>
@@ -393,9 +393,9 @@ export default function SettingsPage() {
                     <div className="mt-6 rounded-2xl border border-warning-ink/20 bg-warning-soft/20 p-5 flex gap-4 items-start animate-pulse">
                       <AlertTriangle className="text-warning-ink shrink-0 mt-0.5" size={20} />
                       <div className="space-y-1">
-                        <p className="text-sm font-bold text-warning-ink">Plan Upgrade Pending Approval</p>
+                        <p className="text-sm font-bold text-warning-ink">{t('Plan Upgrade Pending Approval')}</p>
                         <p className="text-xs text-ink-soft leading-relaxed">
-                          You have requested to upgrade to <strong className="font-semibold text-warning-ink">Operations Plus</strong>. Your monthly rate will remain <strong className="font-semibold text-ink">5,000 RWF</strong> until your payment setup is confirmed and approved by the HQ admin.
+                          {t('You have requested to upgrade to')} <strong className="font-semibold text-warning-ink">{t('Operations Plus')}</strong>. {t('Your monthly rate will remain')} <strong className="font-semibold text-ink">{coreMonthlyRate.toLocaleString()} RWF</strong> {t('until your payment setup is confirmed and approved by the HQ admin.')}
                         </p>
                       </div>
                     </div>
@@ -406,31 +406,31 @@ export default function SettingsPage() {
           </DashboardCard>
 
           <DashboardCard
-            eyebrow="History"
-            title="Billing History"
-            description="View your recent invoices and payment history."
+            eyebrow={t("History")}
+            title={t("Billing History")}
+            description={t("View your recent invoices and payment history.")}
           >
             {myCyclesQuery.isLoading ? (
-              <p className="text-xs text-ink-muted">Loading billing history...</p>
+              <p className="text-xs text-ink-muted">{t("Loading billing history...")}</p>
             ) : !myCyclesQuery.data?.data || myCyclesQuery.data.data.length === 0 ? (
-              <p className="text-xs text-ink-muted">No invoices found for your fleet.</p>
+              <p className="text-xs text-ink-muted">{t("No invoices found for your fleet.")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="border-b border-line text-ink-muted font-bold uppercase tracking-wider">
-                      <th className="py-3 px-4">Invoice</th>
-                      <th className="py-3 px-4">Billing Period</th>
-                      <th className="py-3 px-4">Amount Due</th>
-                      <th className="py-3 px-4">Amount Paid</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Due Date</th>
+                      <th className="py-3 px-4">{t("Invoice")}</th>
+                      <th className="py-3 px-4">{t("Billing Period")}</th>
+                      <th className="py-3 px-4">{t("Amount Due")}</th>
+                      <th className="py-3 px-4">{t("Amount Paid")}</th>
+                      <th className="py-3 px-4">{t("Status")}</th>
+                      <th className="py-3 px-4">{t("Due Date")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line text-ink-soft">
                     {myCyclesQuery.data.data.map((cycle: BillingCycleData) => (
                       <tr key={cycle.id} className="hover:bg-white/[0.01]">
-                        <td className="py-3 px-4 font-bold text-ink">Invoice #{cycle.cycleNumber}</td>
+                        <td className="py-3 px-4 font-bold text-ink">{t("Invoice #{number}").replace('{number}', String(cycle.cycleNumber))}</td>
                         <td className="py-3 px-4">
                           {new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}
                         </td>
@@ -449,7 +449,7 @@ export default function SettingsPage() {
                               ? 'border-error-ink/20 bg-error-soft/10 text-error-ink'
                               : 'border-warning-ink/20 bg-warning-soft/10 text-warning-ink'
                           )}>
-                            {cycle.status}
+                            {t(cycle.status)}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -464,29 +464,29 @@ export default function SettingsPage() {
           </DashboardCard>
 
           <DashboardCard
-            eyebrow="Subscription"
-            title="Compare Plans"
-            description="View and compare the different service levels available for E-Moto Fleet OS."
+            eyebrow={t("Subscription")}
+            title={t("Compare Plans")}
+            description={t("View and compare the different service levels available for E-Moto Fleet OS.")}
           >
             {user?.fleetPlan === 'INSURANCE' ? (
               <div className="grid gap-6 md:grid-cols-1 max-w-xl">
                 {/* Insurance Active Card */}
                 <div className="rounded-[20px] border border-accent bg-accent/[0.05] p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ring-1 ring-accent">
                   <div className="absolute top-0 right-0 bg-accent text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-                    Active Plan
+                    {t("Active Plan")}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <Shield size={16} className="text-accent" />
-                      <p className="text-sm font-bold text-ink">Insurance Partner Plan</p>
+                      <p className="text-sm font-bold text-ink">{t("Insurance Partner Plan")}</p>
                     </div>
                     <div className="mt-4 flex flex-col items-start gap-1">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-extrabold text-ink">Active Partnership</span>
+                        <span className="text-2xl font-extrabold text-ink">{t("Active Partnership")}</span>
                       </div>
                     </div>
                     <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                      Dedicated portal for insurance providers. Provides read-only access to insured fleet telemetry, crash evidence validation, and partner API integration keys.
+                      {t("Dedicated portal for insurance providers. Provides read-only access to insured fleet telemetry, crash evidence validation, and partner API integration keys.")}
                     </p>
                     
                     <div className="h-px w-full bg-line my-4" />
@@ -495,7 +495,7 @@ export default function SettingsPage() {
                       {['Insured Fleet Telemetry Portal', 'Partner API & Access Token Keys', 'Dedicated Insurance SLA & Support', 'Automated Crash Evidence Packs', 'Weekly Risk Summary Analytics'].map((f) => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle2 size={12} className="text-accent shrink-0" />
-                          <span>{f}</span>
+                          <span>{t(f)}</span>
                         </li>
                       ))}
                     </ul>
@@ -515,23 +515,23 @@ export default function SettingsPage() {
                  >
                    {!entitlements.isPremium && entitlements.isActive && (
                      <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-                       Active Plan
+                       {t("Active Plan")}
                      </div>
                    )}
                    <div>
                      <div className="flex items-center gap-2">
                        <CheckCircle2 size={16} className={!entitlements.isPremium && entitlements.isActive ? "text-accent" : "text-ink-muted"} />
-                       <p className="text-sm font-bold text-ink">Safety Core</p>
+                       <p className="text-sm font-bold text-ink">{t("Safety Core")}</p>
                      </div>
                      <div className="mt-4 flex flex-col items-start gap-1">
                        <div className="flex items-baseline gap-1">
                          <span className="text-2xl font-extrabold text-ink">{coreMonthlyRate.toLocaleString()} RWF</span>
-                         <span className="text-xs text-ink-muted">/ bike / month</span>
+                         <span className="text-xs text-ink-muted">{t("/ bike / month")}</span>
                        </div>
-                       <span className="text-[10px] font-bold text-success-ink">+ {coreSetupFee.toLocaleString()} RWF device setup & install</span>
+                       <span className="text-[10px] font-bold text-success-ink">{t("+ {fee} RWF device setup & install").replace('{fee}', coreSetupFee.toLocaleString())}</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       Essential telemetry, safety event detection, and manual incident response tools.
+                       {t("Essential telemetry, safety event detection, and manual incident response tools.")}
                      </p>
                      
                      <div className="h-px w-full bg-line my-4" />
@@ -540,13 +540,13 @@ export default function SettingsPage() {
                        {['Overview Dashboard', 'Live Map Tracking', 'Incident Escalation', 'Risk Events Feed', 'Bikes & Riders Directory', 'Fleet Configuration'].map((f) => (
                          <li key={f} className="flex items-center gap-2">
                            <CheckCircle2 size={12} className="text-success-ink shrink-0" />
-                           <span>{f}</span>
+                           <span>{t(f)}</span>
                          </li>
                        ))}
                        {['Device provisioning', 'Policy geofencing', 'Remote commands', 'Audit logs'].map((f) => (
                          <li key={f} className="flex items-center gap-2 opacity-50">
                            <Lock size={10} className="text-ink-faint shrink-0" />
-                           <span className="line-through">{f}</span>
+                           <span className="line-through">{t(f)}</span>
                          </li>
                        ))}
                      </ul>
@@ -559,7 +559,7 @@ export default function SettingsPage() {
                          disabled
                          className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
                        >
-                         Active Plan
+                         {t("Active Plan")}
                        </button>
                      ) : (
                        <button
@@ -567,7 +567,7 @@ export default function SettingsPage() {
                          disabled
                          className="w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted py-2 text-xs font-semibold"
                        >
-                         Included in higher tier
+                         {t("Included in higher tier")}
                        </button>
                      )}
                    </div>
@@ -584,23 +584,23 @@ export default function SettingsPage() {
                  >
                    {entitlements.isPremium && entitlements.isActive && (
                      <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-                       Active Plan
+                       {t("Active Plan")}
                      </div>
                    )}
                    <div>
                      <div className="flex items-center gap-2">
                        <CheckCircle2 size={16} className={entitlements.isPremium && entitlements.isActive ? "text-accent" : "text-ink-muted"} />
-                       <p className="text-sm font-bold text-ink">Operations Plus</p>
+                       <p className="text-sm font-bold text-ink">{t("Operations Plus")}</p>
                      </div>
                      <div className="mt-4 flex flex-col items-start gap-1">
                        <div className="flex items-baseline gap-1">
                          <span className="text-2xl font-extrabold text-ink">{premiumMonthlyRate.toLocaleString()} RWF</span>
-                         <span className="text-xs text-ink-muted">/ bike / month</span>
+                         <span className="text-xs text-ink-muted">{t("/ bike / month")}</span>
                        </div>
-                       <span className="text-[10px] font-bold text-accent">+ {premiumSetupFee.toLocaleString()} RWF device setup & install</span>
+                       <span className="text-[10px] font-bold text-accent">{t("+ {fee} RWF device setup & install").replace('{fee}', premiumSetupFee.toLocaleString())}</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.
+                       {t("Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.")}
                      </p>
                      
                      <div className="h-px w-full bg-line my-4" />
@@ -608,7 +608,7 @@ export default function SettingsPage() {
                      <ul className="space-y-2.5 text-xs text-ink-soft">
                        <li className="flex items-center gap-2 text-accent font-semibold">
                          <CheckCircle2 size={12} className="text-accent shrink-0" />
-                         <span>Everything in Safety Core</span>
+                         <span>{t("Everything in Safety Core")}</span>
                        </li>
                        {[
                          'Device Provisioning (SIMs/Hardware)',
@@ -620,7 +620,7 @@ export default function SettingsPage() {
                        ].map((f) => (
                          <li key={f} className="flex items-center gap-2">
                            <CheckCircle2 size={12} className="text-accent shrink-0" />
-                           <span>{f}</span>
+                           <span>{t(f)}</span>
                          </li>
                        ))}
                      </ul>
@@ -633,14 +633,14 @@ export default function SettingsPage() {
                          disabled
                          className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
                        >
-                         Active Plan
+                         {t("Active Plan")}
                        </button>
                      ) : (
                        <Link
                          href="/checkout?plan=operations-plus"
                          className="block w-full text-center rounded-xl bg-accent hover:brightness-110 text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
                        >
-                         Upgrade Plan
+                         {t("Upgrade Plan")}
                        </Link>
                      )}
                    </div>
@@ -651,14 +651,14 @@ export default function SettingsPage() {
                    <div>
                      <div className="flex items-center gap-2">
                        <CheckCircle2 size={16} className="text-ink-muted" />
-                       <p className="text-sm font-bold text-ink">Enterprise Fleet</p>
+                       <p className="text-sm font-bold text-ink">{t("Enterprise Fleet")}</p>
                      </div>
                      <div className="mt-4 flex items-baseline gap-1">
-                       <span className="text-2xl font-extrabold text-ink">Custom</span>
-                       <span className="text-xs text-ink-muted">for &gt;50 bikes</span>
+                       <span className="text-2xl font-extrabold text-ink">{t("Custom")}</span>
+                       <span className="text-xs text-ink-muted">{t("for >50 bikes")}</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       Custom quotes, dedicated support, and volume discounts for fleet operators with more than 50 bikes.
+                       {t("Custom quotes, dedicated support, and volume discounts for fleet operators with more than 50 bikes.")}
                      </p>
                      
                      <div className="h-px w-full bg-line my-4" />
@@ -666,7 +666,7 @@ export default function SettingsPage() {
                      <ul className="space-y-2.5 text-xs text-ink-soft">
                        <li className="flex items-center gap-2 font-semibold">
                          <CheckCircle2 size={12} className="text-ink-muted shrink-0" />
-                         <span>Everything in Operations Plus</span>
+                         <span>{t("Everything in Operations Plus")}</span>
                        </li>
                        {[
                          'Volume Discounts for Large Fleets',
@@ -677,7 +677,7 @@ export default function SettingsPage() {
                        ].map((f) => (
                          <li key={f} className="flex items-center gap-2">
                            <CheckCircle2 size={12} className="text-success-ink shrink-0" />
-                           <span>{f}</span>
+                           <span>{t(f)}</span>
                          </li>
                        ))}
                      </ul>
@@ -689,7 +689,7 @@ export default function SettingsPage() {
                        onClick={() => setShowContactSales(true)}
                        className="w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
                      >
-                       Request Quote
+                       {t("Request Quote")}
                      </button>
                    </div>
                  </div>
@@ -707,17 +707,16 @@ export default function SettingsPage() {
       {/* Security */}
       {activeTab === 'security' && (
         <div className="space-y-5 animate-fade-in">
-          <DashboardCard eyebrow="Authentication" title="Security settings">
+          <DashboardCard eyebrow={t("Authentication")} title={t("Security settings")}>
             <div className="space-y-4">
               <div className="flex items-start gap-4 rounded-xl border border-line bg-surface-muted px-5 py-4">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-success-soft text-success-ink">
                   <Lock size={16} />
                 </span>
                 <div>
-                  <p className="font-semibold text-ink">Password</p>
+                  <p className="font-semibold text-ink">{t("Password")}</p>
                   <p className="mt-1 text-sm text-ink-muted">
-                    Password management is handled through the authentication system.
-                    Use the &ldquo;Forgot password&rdquo; flow to reset your credentials.
+                    {t('Password management is handled through the authentication system. Use the "Forgot password" flow to reset your credentials.')}
                   </p>
                 </div>
               </div>
@@ -727,10 +726,9 @@ export default function SettingsPage() {
                   <Key size={16} />
                 </span>
                 <div>
-                  <p className="font-semibold text-ink">Session</p>
+                  <p className="font-semibold text-ink">{t("Session")}</p>
                   <p className="mt-1 text-sm text-ink-muted">
-                    Your session is secured with an httpOnly cookie. Sessions expire
-                    after inactivity. Account locks after 5 failed login attempts.
+                    {t('Your session is secured with an httpOnly cookie. Sessions expire after inactivity. Account locks after 5 failed login attempts.')}
                   </p>
                 </div>
               </div>
@@ -740,11 +738,9 @@ export default function SettingsPage() {
                   <Shield size={16} />
                 </span>
                 <div>
-                  <p className="font-semibold text-ink">Role-based access</p>
+                  <p className="font-semibold text-ink">{t("Role-based access")}</p>
                   <p className="mt-1 text-sm text-ink-muted">
-                    Your role ({user?.role ? formatEnumLabel(user.role) : 'Operator'})
-                    determines which actions and data you can access. Contact an admin
-                    to change your role.
+                    {t('Your role ({role}) determines which actions and data you can access. Contact an admin to change your role.').replace('{role}', user?.role ? t(formatEnumLabel(user.role)) : t('Operator'))}
                   </p>
                 </div>
               </div>
@@ -756,28 +752,28 @@ export default function SettingsPage() {
       {/* Notifications */}
       {activeTab === 'notifications' && (
         <div className="space-y-5 animate-fade-in">
-          <DashboardCard eyebrow="Alerts" title="Notification preferences">
+          <DashboardCard eyebrow={t("Alerts")} title={t("Notification preferences")}>
             <div className="space-y-4">
               <SettingsToggle
                 icon={<Siren size={15} />}
-                label="Open incidents"
-                description="Show incident count badge in the sidebar and topbar"
+                label={t("Open incidents")}
+                description={t("Show incident count badge in the sidebar and topbar")}
                 checked={notifPrefs.openIncidents}
                 disabled={savingNotifPref}
                 onChange={() => updateNotifPref('openIncidents')}
               />
               <SettingsToggle
                 icon={<Bell size={15} />}
-                label="SOS alerts"
-                description="Real-time notification when a rider triggers SOS"
+                label={t("SOS alerts")}
+                description={t("Real-time notification when a rider triggers SOS")}
                 checked={notifPrefs.sosAlerts}
                 disabled={savingNotifPref}
                 onChange={() => updateNotifPref('sosAlerts')}
               />
               <SettingsToggle
                 icon={<AlertTriangle size={15} />}
-                label="Crash events"
-                description="Immediate notification for crash detection events"
+                label={t("Crash events")}
+                description={t("Immediate notification for crash detection events")}
                 checked={notifPrefs.crashEvents}
                 disabled={savingNotifPref}
                 onChange={() => updateNotifPref('crashEvents')}
@@ -785,7 +781,7 @@ export default function SettingsPage() {
             </div>
             <p className="mt-4 text-xs text-ink-faint flex items-center gap-1.5">
               <CheckCircle2 size={12} className="text-green-500 shrink-0" />
-              Notification preferences are synced to your account and apply across all your sessions.
+              {t("Notification preferences are synced to your account and apply across all your sessions.")}
             </p>
           </DashboardCard>
         </div>
@@ -821,9 +817,11 @@ export default function SettingsPage() {
                   <CheckCircle2 size={36} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-extrabold text-ink">Inquiry Submitted!</h3>
+                  <h3 className="text-xl font-extrabold text-ink">{t("Inquiry Submitted!")}</h3>
                   <p className="text-sm text-ink-muted leading-relaxed">
-                    Thank you for contacting sales. Our team has received your inquiry for the <strong className="text-accent font-semibold">Enterprise Plan</strong> and will get back to you within 2 hours.
+                    {t('Thank you for contacting sales. Our team has received your inquiry for the {plan} and will get back to you within 2 hours.')
+                      .split('{plan}')
+                      .map((part, i) => i === 0 ? part : <React.Fragment key={i}><strong className="text-accent font-semibold">{t('Enterprise Plan')}</strong>{part}</React.Fragment>)}
                   </p>
                 </div>
                 <button
@@ -831,16 +829,16 @@ export default function SettingsPage() {
                   className="w-full rounded-xl py-3.5 text-sm font-bold text-white transition-all"
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
-                  Return to Settings
+                  {t("Return to Settings")}
                 </button>
               </div>
             ) : (
               <>
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Enterprise Plan</p>
-                  <h3 className="text-2xl font-extrabold text-ink">Contact Sales Representative</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">{t("Enterprise Plan")}</p>
+                  <h3 className="text-2xl font-extrabold text-ink">{t("Contact Sales Representative")}</h3>
                   <p className="text-xs text-ink-muted">
-                    Reach out to our specialized enterprise sales team for customized volume pricing, API access keys, or SLA support contracts.
+                    {t("Reach out to our specialized enterprise sales team for customized volume pricing, API access keys, or SLA support contracts.")}
                   </p>
                 </div>
 
@@ -856,33 +854,33 @@ export default function SettingsPage() {
                   className="space-y-4"
                 >
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">Fleet Name</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">{t("Fleet Name")}</label>
                     <input
                       type="text"
                       required
                       defaultValue={user?.fleetName ?? ''}
-                      placeholder="Enter fleet name..."
+                      placeholder={t("Enter fleet name...")}
                       className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">Email Address</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">{t("Email Address")}</label>
                     <input
                       type="email"
                       required
                       defaultValue={user?.email ?? ''}
-                      placeholder="Enter business email..."
+                      placeholder={t("Enter business email...")}
                       className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">Message</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-wider">{t("Message")}</label>
                     <textarea
                       required
                       rows={3}
-                      placeholder="How can we help your fleet operations? (e.g. volume discount pricing for 200+ bikes...)"
+                      placeholder={t("How can we help your fleet operations? (e.g. volume discount pricing for 200+ bikes...)")}
                       className="w-full rounded-xl border border-line bg-surface p-4 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none"
                     />
                   </div>
@@ -892,7 +890,7 @@ export default function SettingsPage() {
                       href="mailto:sales@emotofleet.com?subject=Enterprise%20Plan%20Inquiry"
                       className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-line hover:bg-surface-hover text-xs font-bold py-3.5 transition-all"
                     >
-                      Email Direct
+                      {t("Email Direct")}
                     </a>
                     <button
                       type="submit"
@@ -900,7 +898,7 @@ export default function SettingsPage() {
                       className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
-                      {salesSending ? 'Sending Request...' : 'Send Inquiry'}
+                      {salesSending ? t('Sending Request...') : t('Send Inquiry')}
                     </button>
                   </div>
                 </form>
@@ -914,9 +912,9 @@ export default function SettingsPage() {
       {activeTab === 'apiCredentials' && user && user.fleetPlan === 'INSURANCE' && (
         <div className="space-y-5 animate-fade-in">
           <DashboardCard
-            eyebrow="Integration"
-            title="Partner API Credentials"
-            description="Use these credentials to access the E-Moto Fleet OS Partner API. Scopes are read-only and restricted to bikes covered under your insurance policy."
+            eyebrow={t("Integration")}
+            title={t("Partner API Credentials")}
+            description={t("Use these credentials to access the E-Moto Fleet OS Partner API. Scopes are read-only and restricted to bikes covered under your insurance policy.")}
           >
             {rotateKeysError && (
               <p className="mb-4 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{rotateKeysError}</p>
@@ -931,7 +929,7 @@ export default function SettingsPage() {
               <div className="space-y-5">
                 <div className="rounded-xl border border-line bg-surface-muted px-4 py-3 relative">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
-                    Client ID
+                    {t("Client ID")}
                   </p>
                   <div className="flex items-center justify-between gap-3 mt-1.5">
                     <p className="text-sm font-mono text-ink-muted select-all">
@@ -956,7 +954,7 @@ export default function SettingsPage() {
                 {rotatedSecret ? (
                   <div className="rounded-xl border border-warning-ink/30 bg-warning-soft/10 px-4 py-3 relative animate-scale-in">
                     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-warning-ink">
-                      New Client Secret (Copy now, it won&apos;t be shown again!)
+                      {t("New Client Secret (Copy now, it won't be shown again!)")}
                     </p>
                     <div className="flex items-center justify-between gap-3 mt-1.5">
                       <p className="text-sm font-mono text-ink select-all break-all">
@@ -978,17 +976,17 @@ export default function SettingsPage() {
                 ) : (
                   <div className="rounded-xl border border-line bg-surface-muted px-4 py-3 relative">
                     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
-                      Client Secret
+                      {t("Client Secret")}
                     </p>
                     <p className="mt-1.5 text-sm font-mono text-ink-soft italic">
-                      •••••••••••••••••••••••••••••••• (Hidden for security)
+                      •••••••••••••••••••••••••••••••• ({t("Hidden for security")})
                     </p>
                   </div>
                 )}
 
                 <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
-                    Assigned API Scopes
+                    {t("Assigned API Scopes")}
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {(partnerKeysQuery.data?.scopes ?? ['insurer:read', 'webhooks:write']).map((scope) => (
@@ -1010,7 +1008,7 @@ export default function SettingsPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
                     style={{ background: '#EF4444', color: 'white' }}
                   >
-                    {isRotatingKeys ? 'Generating...' : 'Rotate API Credentials'}
+                    {isRotatingKeys ? t('Generating...') : t('Rotate API Credentials')}
                   </button>
                 </div>
               </div>
@@ -1112,6 +1110,7 @@ interface FleetUser {
 const ROLE_OPTIONS = ['OWNER', 'ADMIN', 'DISPATCHER', 'TECH', 'RIDER'];
 
 function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fleetId: string } }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -1152,7 +1151,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
       if (error instanceof ApiError) {
         setRoleError(error.message);
       } else {
-        setRoleError('Failed to change role');
+        setRoleError(t('Failed to change role'));
       }
     } finally {
       setChangingRoleFor(null);
@@ -1161,7 +1160,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
 
   const handleInviteMember = async () => {
     if (!inviteForm.email.trim() && !inviteForm.phone.trim()) {
-      setInviteError('Either Email or Phone number is required');
+      setInviteError(t('Either Email or Phone number is required'));
       return;
     }
     setInviteError(null);
@@ -1185,7 +1184,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
       if (error instanceof ApiError) {
         setInviteError(error.message);
       } else {
-        setInviteError('Failed to invite member');
+        setInviteError(t('Failed to invite member'));
       }
     } finally {
       setIsInviting(false);
@@ -1207,7 +1206,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
       if (error instanceof ApiError) {
         setDeleteError(error.message);
       } else {
-        setDeleteError('Failed to remove member');
+        setDeleteError(t('Failed to remove member'));
       }
     } finally {
       setIsDeleting(false);
@@ -1229,9 +1228,9 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
   return (
     <div className="space-y-5 animate-fade-in">
       <DashboardCard
-        eyebrow="Organization"
-        title="Team members"
-        description="Manage users in your fleet. Change roles to control access levels."
+        eyebrow={t("Organization")}
+        title={t("Team members")}
+        description={t("Manage users in your fleet. Change roles to control access levels.")}
         actions={
           <button
             type="button"
@@ -1245,7 +1244,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
             style={{ background: '#3B82F6', color: 'white' }}
           >
             <UserPlus size={14} />
-            Invite Member
+            {t("Invite Member")}
           </button>
         }
       >
@@ -1260,7 +1259,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
             ))}
           </div>
         ) : !members?.length ? (
-          <p className="py-8 text-center text-sm text-ink-muted">No team members found.</p>
+          <p className="py-8 text-center text-sm text-ink-muted">{t("No team members found.")}</p>
         ) : (
           <div className="divide-y divide-line rounded-xl border border-line overflow-hidden max-h-[300px] overflow-y-auto dashboard-scrollbar">
             {members.map((member) => {
@@ -1273,18 +1272,18 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink truncate">
-                        {member.email ?? member.phone ?? 'Unknown'}
-                        {isCurrentUser && <span className="ml-2 text-xs text-ink-muted">(you)</span>}
+                        {member.email ?? member.phone ?? t('Unknown')}
+                        {isCurrentUser && <span className="ml-2 text-xs text-ink-muted">({t('you')})</span>}
                       </p>
                       <p className="text-xs text-ink-muted">
-                        {formatEnumLabel(member.status)} · Joined {new Date(member.createdAt).toLocaleDateString()}
+                        {t(formatEnumLabel(member.status))} · {t('Joined {date}').replace('{date}', new Date(member.createdAt).toLocaleDateString())}
                       </p>
                     </div>
                   </div>
                   <div className="shrink-0 flex items-center gap-2">
                     {isCurrentUser ? (
                       <span className="inline-flex rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
-                        {formatEnumLabel(member.role)}
+                        {t(formatEnumLabel(member.role))}
                       </span>
                     ) : (
                       <>
@@ -1296,7 +1295,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                             className="appearance-none rounded-xl border border-line bg-surface px-3 py-1.5 pr-8 text-xs font-semibold text-ink outline-none transition focus:border-accent disabled:opacity-50 cursor-pointer"
                           >
                             {ROLE_OPTIONS.map(role => (
-                              <option key={role} value={role}>{formatEnumLabel(role)}</option>
+                              <option key={role} value={role}>{t(formatEnumLabel(role))}</option>
                             ))}
                           </select>
                           <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted" />
@@ -1309,7 +1308,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                             setShowDeleteConfirm(true);
                           }}
                           className="rounded-xl border border-danger-ink/20 p-2 text-danger-ink hover:bg-danger-soft/20 hover:border-danger-ink/40 transition-colors"
-                          aria-label="Remove member"
+                          aria-label={t("Remove member")}
                         >
                           <Trash size={14} />
                         </button>
@@ -1323,7 +1322,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
         )}
 
         <p className="mt-4 text-xs text-ink-faint">
-          {members?.length ?? 0} members in this fleet. Use role assignments to control feature access.
+          {t('{count} members in this fleet. Use role assignments to control feature access.').replace('{count}', String(members?.length ?? 0))}
         </p>
       </DashboardCard>
 
@@ -1337,9 +1336,9 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
 
             {generatedInviteLink ? (
               <div className="space-y-4 pt-2">
-                <h2 className="text-lg font-bold text-ink">Invitation Link Generated</h2>
+                <h2 className="text-lg font-bold text-ink">{t("Invitation Link Generated")}</h2>
                 <p className="text-sm text-ink-muted leading-relaxed">
-                  Send this one-time link to the invitee to allow them to register in your fleet.
+                  {t("Send this one-time link to the invitee to allow them to register in your fleet.")}
                 </p>
                 <div className="flex gap-2 items-center rounded-xl border border-line bg-surface-muted p-3">
                   <input
@@ -1361,51 +1360,51 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                   onClick={() => setShowInviteModal(false)}
                   className="w-full mt-2 rounded-xl bg-surface-muted border border-line px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                 >
-                  Close
+                  {t("Close")}
                 </button>
               </div>
             ) : (
               <>
-                <h2 className="text-lg font-bold text-ink">Invite New Member</h2>
-                <p className="mt-1 text-sm text-ink-muted">Generate a secure invite link to register a new user.</p>
+                <h2 className="text-lg font-bold text-ink">{t("Invite New Member")}</h2>
+                <p className="mt-1 text-sm text-ink-muted">{t("Generate a secure invite link to register a new user.")}</p>
                 <div className="mt-5 space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Email Address</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t("Email Address")}</label>
                     <input
                       type="email"
-                      placeholder="e.g. member@emoto.com"
+                      placeholder={t("e.g. member@emoto.com")}
                       value={inviteForm.email}
                       onChange={(e) => setInviteForm(f => ({ ...f, email: e.target.value }))}
                       className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Phone Number</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t("Phone Number")}</label>
                     <input
                       type="text"
-                      placeholder="e.g. +250788000000"
+                      placeholder={t("e.g. +250788000000")}
                       value={inviteForm.phone}
                       onChange={(e) => setInviteForm(f => ({ ...f, phone: e.target.value }))}
                       className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Member Role</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t("Member Role")}</label>
                     <select
                       value={inviteForm.role}
                       onChange={(e) => setInviteForm(f => ({ ...f, role: e.target.value }))}
                       className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
                     >
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="DISPATCHER">DISPATCHER</option>
-                      <option value="TECH">TECH</option>
-                      <option value="RIDER">RIDER</option>
+                      <option value="ADMIN">{t("Admin")}</option>
+                      <option value="DISPATCHER">{t("Dispatcher")}</option>
+                      <option value="TECH">{t("Technician")}</option>
+                      <option value="RIDER">{t("Rider")}</option>
                     </select>
                   </div>
                   {inviteError && <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{inviteError}</p>}
                   <div className="flex gap-3 pt-2">
                     <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
-                      Cancel
+                      {t("Cancel")}
                     </button>
                     <button
                       type="button"
@@ -1414,7 +1413,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                       className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
-                      {isInviting ? 'Inviting...' : 'Send Invite'}
+                      {isInviting ? t('Inviting...') : t('Send Invite')}
                     </button>
                   </div>
                 </div>
@@ -1429,10 +1428,14 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
       {mounted && showDeleteConfirm && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
           <div className="relative mx-4 w-full max-sm rounded-[24px] border border-line bg-surface p-6 shadow-xl text-ink" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-ink">Remove Team Member</h2>
+            <h2 className="text-lg font-bold text-ink">{t("Remove Team Member")}</h2>
             <p className="mt-2 text-sm text-ink-muted leading-relaxed">
-              Are you sure you want to remove <strong className="font-semibold text-ink">{deletingUser?.email ?? deletingUser?.phone ?? 'this member'}</strong>?
-              They will lose immediate dashboard access.
+              {t('Are you sure you want to remove {member}? They will lose immediate dashboard access.')
+                .split('{member}')
+                .reduce<React.ReactNode[]>((acc, part, i) => {
+                  if (i === 0) return [part];
+                  return [...acc, <strong key={i} className="font-semibold text-ink">{deletingUser?.email ?? deletingUser?.phone ?? t('this member')}</strong>, part];
+                }, [])}
             </p>
             {deleteError && <p className="mt-3 rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-3 text-sm text-danger-ink">{deleteError}</p>}
             <div className="mt-5 flex gap-3">
@@ -1441,7 +1444,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                 onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -1450,7 +1453,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                 className="flex-1 rounded-xl bg-danger-ink text-white px-4 py-3 text-sm font-bold hover:brightness-110 transition disabled:opacity-60"
                 style={{ background: '#EF4444', color: 'white' }}
               >
-                {isDeleting ? 'Removing...' : 'Remove'}
+                {isDeleting ? t('Removing...') : t('Remove')}
               </button>
             </div>
           </div>

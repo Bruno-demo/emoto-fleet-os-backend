@@ -83,7 +83,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             type="button"
             onClick={onOpenSidebar}
             className="inline-flex rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover lg:hidden"
-            aria-label="Open sidebar"
+            aria-label={t('Open sidebar')}
           >
             <Menu size={18} />
           </button>
@@ -143,7 +143,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             type="button"
             onClick={() => setSearchOpen(true)}
             className="rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover md:hidden"
-            aria-label="Search"
+            aria-label={t('Search')}
           >
             <Search size={16} />
           </button>
@@ -159,7 +159,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                 type="button"
                 onClick={() => setNotifOpen(!notifOpen)}
                 className="relative rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover transition-all"
-                aria-label="Notifications"
+                aria-label={t('Notifications')}
               >
                 <Bell size={16} />
                 {openCount > 0 && (
