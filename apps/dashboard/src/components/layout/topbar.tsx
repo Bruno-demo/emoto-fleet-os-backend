@@ -92,20 +92,20 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
               <h1 className="truncate font-display text-lg font-bold text-ink">
                 {routeContext.title}
               </h1>
-              <span className="hidden text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint sm:inline-block">
+              <span className="hidden text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint lg:inline-block">
                 {routeContext.eyebrow}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted mt-0.5">
               <span className="truncate max-w-[120px]">{fleetLabel}</span>
-              <div className="hidden md:flex items-center gap-1.5">
+              <div className="hidden lg:flex items-center gap-1.5">
                 <span className="text-ink-faint">&middot;</span>
                 <span className="truncate max-w-[100px]">
                   {user?.role ? t(`role_${user.role.toLowerCase()}`, user.role.charAt(0) + user.role.slice(1).toLowerCase()) : t('Operator')}
                 </span>
               </div>
               {user && (
-                <div className="hidden sm:flex items-center gap-1.5">
+                <div className="hidden md:flex items-center gap-1.5">
                   <span className="text-ink-faint">&middot;</span>
                   <span
                     className={cx(
@@ -126,7 +126,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
         </div>
 
         {/* Center: search bar (desktop) */}
-        <div className="hidden flex-1 justify-center md:flex">
+        <div className="hidden flex-1 justify-center lg:flex">
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
@@ -146,7 +146,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover md:hidden"
+            className="rounded-lg p-2 text-ink-muted hover:text-ink hover:bg-surface-hover lg:hidden"
             aria-label={t('Search')}
           >
             <Search size={16} />
