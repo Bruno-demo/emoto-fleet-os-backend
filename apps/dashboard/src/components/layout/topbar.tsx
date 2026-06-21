@@ -96,16 +96,20 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                 {routeContext.eyebrow}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-muted mt-0.5">
-              <span className="truncate">{fleetLabel}</span>
-              <span className="text-ink-faint">&middot;</span>
-              <span className="truncate">{user?.role ? t(`role_${user.role.toLowerCase()}`, user.role.charAt(0) + user.role.slice(1).toLowerCase()) : t('Operator')}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted mt-0.5">
+              <span className="truncate max-w-[120px]">{fleetLabel}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-ink-faint">&middot;</span>
+                <span className="truncate max-w-[100px]">
+                  {user?.role ? t(`role_${user.role.toLowerCase()}`, user.role.charAt(0) + user.role.slice(1).toLowerCase()) : t('Operator')}
+                </span>
+              </div>
               {user && (
-                <>
+                <div className="flex items-center gap-1.5">
                   <span className="text-ink-faint">&middot;</span>
                   <span
                     className={cx(
-                      'inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide ring-1 ring-inset uppercase transition-colors',
+                      'inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide ring-1 ring-inset uppercase transition-colors whitespace-nowrap',
                       entitlements.isActive
                         ? entitlements.isPremium
                           ? 'bg-accent/10 text-accent ring-accent/20'
@@ -115,7 +119,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                   >
                     {t(entitlements.planLabel)} &middot; {t(entitlements.statusLabel)}
                   </span>
-                </>
+                </div>
               )}
             </div>
           </div>
