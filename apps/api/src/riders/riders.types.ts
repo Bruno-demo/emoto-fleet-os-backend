@@ -15,6 +15,9 @@ export interface RiderSummary {
   passportPhoto?: string | null;
   licencePhoto?: string | null;
   identityCardPhoto?: string | null;
+  leaseToOwn?: boolean;
+  leasePrincipal?: number;
+  leaseDailyRate?: number;
 }
 
 export interface AssignmentSummary {

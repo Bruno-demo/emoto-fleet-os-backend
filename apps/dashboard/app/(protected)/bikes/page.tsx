@@ -67,12 +67,12 @@ export default function BikesPage() {
   const [isSendingCommand, setIsSendingCommand] = useState(false);
   const [commandIntent, setCommandIntent] = useState<CommandIntent | null>(null);
   const [showCreateBike, setShowCreateBike] = useState(false);
-  const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', insurerName: '' });
+  const [createBikeForm, setCreateBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', insurerName: '', leaseToOwn: false });
   const [isCreatingBike, setIsCreatingBike] = useState(false);
   const [createBikeError, setCreateBikeError] = useState<string | null>(null);
 
   const [showEditBike, setShowEditBike] = useState(false);
-  const [editBikeForm, setEditBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', status: 'ACTIVE', insurerName: '' });
+  const [editBikeForm, setEditBikeForm] = useState({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', status: 'ACTIVE', insurerName: '', leaseToOwn: false });
   const [isUpdatingBike, setIsUpdatingBike] = useState(false);
   const [editBikeError, setEditBikeError] = useState<string | null>(null);
 
@@ -108,11 +108,12 @@ export default function BikesPage() {
           imageUrl: createBikeForm.imageUrl || undefined,
           type: createBikeForm.type || undefined,
           insurerName: createBikeForm.insurerName || undefined,
+          leaseToOwn: createBikeForm.leaseToOwn,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['bikes'] });
       setShowCreateBike(false);
-      setCreateBikeForm({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', insurerName: '' });
+      setCreateBikeForm({ label: '', plate: '', serial: '', model: '', imageUrl: '', type: 'SPIRO', insurerName: '', leaseToOwn: false });
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setCreateBikeError(error.message);
@@ -144,6 +145,7 @@ export default function BikesPage() {
           type: editBikeForm.type || null,
           status: editBikeForm.status,
           insurerName: editBikeForm.insurerName || null,
+          leaseToOwn: editBikeForm.leaseToOwn,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['bikes'] });
@@ -847,6 +849,7 @@ export default function BikesPage() {
                         type: activeBike.type || 'SPIRO',
                         status: activeBike.status || 'ACTIVE',
                         insurerName: activeBike.insurerName || '',
+                        leaseToOwn: activeBike.leaseToOwn || false,
                       });
                       setEditBikeError(null);
                       setShowEditBike(true);
@@ -1067,6 +1070,17 @@ export default function BikesPage() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Payment Plan')}</label>
+                <select
+                  value={createBikeForm.leaseToOwn ? 'lease' : 'collect'}
+                  onChange={(e) => setCreateBikeForm(f => ({ ...f, leaseToOwn: e.target.value === 'lease' }))}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
+                >
+                  <option value="collect">{t('Daily Collection')}</option>
+                  <option value="lease">{t('Lease-to-Own')}</option>
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Bike Type')} *</label>
@@ -1205,6 +1219,17 @@ export default function BikesPage() {
                       {name}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Payment Plan')}</label>
+                <select
+                  value={editBikeForm.leaseToOwn ? 'lease' : 'collect'}
+                  onChange={(e) => setEditBikeForm(f => ({ ...f, leaseToOwn: e.target.value === 'lease' }))}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
+                >
+                  <option value="collect">{t('Daily Collection')}</option>
+                  <option value="lease">{t('Lease-to-Own')}</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">

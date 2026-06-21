@@ -78,6 +78,7 @@ export class BikesService {
           imageUrl: dto.imageUrl,
           type: dto.type,
           insurerName: dto.insurerName,
+          leaseToOwn: dto.leaseToOwn ?? false,
         },
       });
 
@@ -94,6 +95,7 @@ export class BikesService {
           model: bike.model ?? null,
           type: bike.type ?? null,
           insurerName: bike.insurerName ?? null,
+          leaseToOwn: bike.leaseToOwn,
         },
       });
 
@@ -153,6 +155,9 @@ export class BikesService {
           ...(dto.insurerName !== undefined
             ? { insurerName: dto.insurerName }
             : {}),
+          ...(dto.leaseToOwn !== undefined
+            ? { leaseToOwn: dto.leaseToOwn }
+            : {}),
         },
       });
 
@@ -171,6 +176,7 @@ export class BikesService {
             status: bike.status,
             type: bike.type,
             insurerName: bike.insurerName,
+            leaseToOwn: bike.leaseToOwn,
           },
           after: {
             label: updated.label,
@@ -180,6 +186,7 @@ export class BikesService {
             status: updated.status,
             type: updated.type,
             insurerName: updated.insurerName,
+            leaseToOwn: updated.leaseToOwn,
           },
         },
       });

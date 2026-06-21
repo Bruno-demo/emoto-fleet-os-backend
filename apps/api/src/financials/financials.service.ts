@@ -296,6 +296,105 @@ export class FinancialsService {
     };
   }
 
+  async getLeases(user: AuthenticatedUser): Promise<any[]> {
+    const riders = await this.prisma.user.findMany({
+      where: {
+        fleetId: user.fleetId,
+        role: 'RIDER',
+        riderProfile: {
+          leaseToOwn: true,
+        },
+      },
+      include: {
+        riderProfile: true,
+        bikeAssignments: {
+          where: {
+            active: true,
+          },
+          include: {
+            bike: {
+              include: {
+                commands: {
+                  where: {
+                    status: 'ACKED',
+                    type: { in: ['LOCK', 'UNLOCK'] },
+                  },
+                  orderBy: {
+                    ackedAt: 'desc',
+                  },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+        payments: {
+          where: {
+            status: 'PAID',
+          },
+        },
+      },
+    });
+
+    return riders.map((rider) => {
+      const profile = rider.riderProfile;
+      const totalPrincipal = profile?.leasePrincipal ?? 2500000;
+      const dailyRate = profile?.leaseDailyRate ?? 15000;
+      const totalPaid = rider.payments.reduce(
+        (sum, p) => sum + p.amount.toNumber(),
+        0,
+      );
+
+      const activeAssignment = rider.bikeAssignments[0];
+      let arrears = 0;
+      let bikeLabel = 'N/A';
+      let bikePlate = 'N/A';
+      let lockState: 'LOCKED' | 'UNLOCKED' = 'UNLOCKED';
+
+      if (activeAssignment) {
+        const bike = activeAssignment.bike;
+        bikeLabel = bike.label;
+        bikePlate = bike.plate || 'N/A';
+
+        const lastCommand = bike.commands[0];
+        if (lastCommand && lastCommand.type === 'LOCK') {
+          lockState = 'LOCKED';
+        }
+
+        const assignedAt = activeAssignment.assignedAt;
+        const msDiff = Date.now() - assignedAt.getTime();
+        const daysDiff = Math.max(
+          0,
+          Math.floor(msDiff / (1000 * 60 * 60 * 24)),
+        );
+        const expected = daysDiff * dailyRate;
+        arrears = Math.max(0, expected - totalPaid);
+      }
+
+      let status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT' = 'ACTIVE';
+      if (totalPaid >= totalPrincipal) {
+        status = 'PAID_OFF';
+      } else if (arrears > 0) {
+        status = 'DELINQUENT';
+      }
+
+      return {
+        id: rider.id,
+        riderName: profile?.fullName ?? `Rider ${rider.id.slice(0, 8)}`,
+        riderPhone: rider.phone ?? '',
+        bikeLabel,
+        bikePlate,
+        totalPrincipal,
+        totalPaid,
+        dailyRate,
+        arrears,
+        status,
+        lockState,
+        bikeId: activeAssignment?.bikeId || null,
+      };
+    });
+  }
+
   private toPaymentSummary(p: PaymentWithRider) {
     return {
       id: p.id,

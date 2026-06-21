@@ -322,6 +322,7 @@ model Bike {
   status        BikeStatus       @default(ACTIVE)
   imageUrl      String?
   type          String?
+  leaseToOwn    Boolean          @default(false)
   createdAt     DateTime         @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime         @updatedAt @db.Timestamptz(6)
   fleet         Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
@@ -420,6 +421,9 @@ model RiderProfile {
   passportPhoto     String?
   licencePhoto      String?
   identityCardPhoto String?
+  leaseToOwn        Boolean  @default(false)
+  leasePrincipal    Int      @default(2500000)
+  leaseDailyRate    Int      @default(15000)
   createdAt         DateTime @default(now()) @db.Timestamptz(6)
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

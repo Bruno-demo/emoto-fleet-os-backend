@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BikeStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, MaxLength, IsIn } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsIn,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateBikeDto {
   @ApiProperty({ example: 'Bike-010' })
@@ -49,4 +56,9 @@ export class CreateBikeDto {
   @IsOptional()
   @IsString()
   insurerName?: string | null;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  leaseToOwn?: boolean;
 }

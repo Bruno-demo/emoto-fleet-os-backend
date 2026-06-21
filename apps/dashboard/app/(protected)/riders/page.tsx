@@ -54,6 +54,9 @@ export default function RidersPage() {
   const [newPassportPhoto, setNewPassportPhoto] = useState('');
   const [newLicencePhoto, setNewLicencePhoto] = useState('');
   const [newIdentityCardPhoto, setNewIdentityCardPhoto] = useState('');
+  const [leaseToOwn, setLeaseToOwn] = useState(false);
+  const [leasePrincipal, setLeasePrincipal] = useState('2500000');
+  const [leaseDailyRate, setLeaseDailyRate] = useState('15000');
   const [isCompresingPassport, setIsCompresingPassport] = useState(false);
   const [isCompresingLicence, setIsCompresingLicence] = useState(false);
   const [isCompresingIdentity, setIsCompresingIdentity] = useState(false);
@@ -170,6 +173,9 @@ export default function RidersPage() {
           passportPhoto: newPassportPhoto || undefined,
           licencePhoto: newLicencePhoto || undefined,
           identityCardPhoto: newIdentityCardPhoto || undefined,
+          leaseToOwn,
+          leasePrincipal: leaseToOwn ? Number(leasePrincipal) : undefined,
+          leaseDailyRate: leaseToOwn ? Number(leaseDailyRate) : undefined,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
@@ -178,6 +184,9 @@ export default function RidersPage() {
       setNewEmail('');
       setNewFullName('');
       setNewPassword('');
+      setLeaseToOwn(false);
+      setLeasePrincipal('2500000');
+      setLeaseDailyRate('15000');
       setNewLicenceNumber('');
       setNewIdentityNumber('');
       setNewPassportPhoto('');
@@ -455,6 +464,39 @@ export default function RidersPage() {
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
                   </label>
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Payment Plan")}
+                    <select
+                      value={leaseToOwn ? 'lease' : 'collect'}
+                      onChange={(e) => setLeaseToOwn(e.target.value === 'lease')}
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    >
+                      <option value="collect">{t("Daily Collection")}</option>
+                      <option value="lease">{t("Lease-to-Own")}</option>
+                    </select>
+                  </label>
+                  {leaseToOwn && (
+                    <>
+                      <label className="block text-sm font-medium text-ink">
+                        {t("Lease Principal Amount (RWF)")}
+                        <input
+                          type="number"
+                          value={leasePrincipal}
+                          onChange={(e) => setLeasePrincipal(e.target.value)}
+                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-ink">
+                        {t("Lease Daily Rate (RWF)")}
+                        <input
+                          type="number"
+                          value={leaseDailyRate}
+                          onChange={(e) => setLeaseDailyRate(e.target.value)}
+                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                        />
+                      </label>
+                    </>
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3 mt-4">

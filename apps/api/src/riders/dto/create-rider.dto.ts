@@ -5,6 +5,8 @@ import {
   IsString,
   IsUUID,
   MinLength,
+  IsBoolean,
+  IsNumber,
 } from 'class-validator';
 
 export class CreateRiderDto {
@@ -60,4 +62,19 @@ export class CreateRiderDto {
   @IsOptional()
   @IsString()
   identityCardPhoto?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  leaseToOwn?: boolean;
+
+  @ApiPropertyOptional({ example: 2500000 })
+  @IsOptional()
+  @IsNumber()
+  leasePrincipal?: number;
+
+  @ApiPropertyOptional({ example: 15000 })
+  @IsOptional()
+  @IsNumber()
+  leaseDailyRate?: number;
 }

@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Bike" ADD COLUMN     "leaseToOwn" BOOLEAN NOT NULL DEFAULT false;
+
+-- AlterTable
+ALTER TABLE "RiderProfile" ADD COLUMN     "leaseDailyRate" INTEGER NOT NULL DEFAULT 15000,
+ADD COLUMN     "leasePrincipal" INTEGER NOT NULL DEFAULT 2500000,
+ADD COLUMN     "leaseToOwn" BOOLEAN NOT NULL DEFAULT false;

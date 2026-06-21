@@ -46,6 +46,7 @@ export interface Bike {
   insurerName?: string | null;
   imageUrl?: string | null;
   type?: string | null;
+  leaseToOwn?: boolean;
   insurer?: {
     id: string;
     email: string | null;
@@ -275,6 +276,9 @@ export interface Rider {
     bikeLabel: string;
     bikeStatus: string;
   }>;
+  leaseToOwn?: boolean;
+  leasePrincipal?: number;
+  leaseDailyRate?: number;
 }
 
 export type AuditActionType =

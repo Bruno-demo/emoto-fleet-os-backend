@@ -47,4 +47,12 @@ export class FinancialsController {
   ) {
     return this.financialsService.getSummary(user, startDate, endDate);
   }
+
+  @Get('leases')
+  @ApiOperation({
+    summary: 'Get all active lease-to-own accounts',
+  })
+  async getLeases(@CurrentUser() user: AuthenticatedUser) {
+    return this.financialsService.getLeases(user);
+  }
 }

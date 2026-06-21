@@ -80,62 +80,8 @@ interface LeaseContract {
   arrears: number;
   status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
   lockState: 'LOCKED' | 'UNLOCKED';
+  bikeId: string | null;
 }
-
-const MOCK_LEASES: LeaseContract[] = [
-  {
-    id: 'lc-001',
-    riderName: 'Aisha Niyonsenga',
-    riderPhone: '0788123456',
-    bikeLabel: 'Express-01',
-    bikePlate: 'RA 204 B',
-    totalPrincipal: 2500000,
-    totalPaid: 1750000,
-    dailyRate: 15000,
-    arrears: 0,
-    status: 'ACTIVE',
-    lockState: 'UNLOCKED',
-  },
-  {
-    id: 'lc-002',
-    riderName: 'Jean Paul Gakire',
-    riderPhone: '0782345678',
-    bikeLabel: 'Express-02',
-    bikePlate: 'RA 509 C',
-    totalPrincipal: 2500000,
-    totalPaid: 2500000,
-    dailyRate: 15000,
-    arrears: 0,
-    status: 'PAID_OFF',
-    lockState: 'UNLOCKED',
-  },
-  {
-    id: 'lc-003',
-    riderName: 'Eric Gakwaya',
-    riderPhone: '0783456789',
-    bikeLabel: 'Express-03',
-    bikePlate: 'RB 102 D',
-    totalPrincipal: 2500000,
-    totalPaid: 800000,
-    dailyRate: 15000,
-    arrears: 45000,
-    status: 'DELINQUENT',
-    lockState: 'LOCKED',
-  },
-  {
-    id: 'lc-004',
-    riderName: 'Angelique Mukakarisa',
-    riderPhone: '0784567890',
-    bikeLabel: 'Express-04',
-    bikePlate: 'RC 883 E',
-    totalPrincipal: 2500000,
-    totalPaid: 1250000,
-    dailyRate: 15000,
-    arrears: 0,
-    status: 'ACTIVE',
-    lockState: 'UNLOCKED',
-  },
-];
 
 export default function FinancialsPage() {
   const { t } = useTranslation();
@@ -145,9 +91,13 @@ export default function FinancialsPage() {
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
   
-  // Buy-to-Own leases tab & mock data management
+  // Buy-to-Own leases tab & backend data management
   const [activeTab, setActiveTab] = useState<'collections' | 'buyToOwn'>('collections');
-  const [leases, setLeases] = useState<LeaseContract[]>(MOCK_LEASES);
+  const leasesQuery = useQuery({
+    queryKey: ['leases'],
+    queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
+  });
+  const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
   const [dispatchingLockId, setDispatchingLockId] = useState<string | null>(null);
   const [commandNotification, setCommandNotification] = useState<string | null>(null);
 
@@ -166,31 +116,41 @@ export default function FinancialsPage() {
   }, [leases]);
 
   const handleToggleLeaseLock = async (leaseId: string) => {
+    const lease = leases.find(l => l.id === leaseId);
+    if (!lease || !lease.bikeId) {
+      setCommandNotification(t('No bike assigned to this lease contract.'));
+      return;
+    }
+
     setDispatchingLockId(leaseId);
     setCommandNotification(null);
-    
-    // Simulate API dispatch latency
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setLeases(prev => prev.map(l => {
-      if (l.id === leaseId) {
-        const nextState = l.lockState === 'LOCKED' ? 'UNLOCKED' : 'LOCKED';
-        setCommandNotification(t(
-          nextState === 'LOCKED' 
-            ? 'Dispatched GPRS motor starter lock command to bike {plate}.' 
-            : 'Dispatched engine start enablement command to bike {plate}.'
-        ).replace('{plate}', l.bikePlate));
-        return {
-          ...l,
-          lockState: nextState as 'LOCKED' | 'UNLOCKED',
-          status: nextState === 'UNLOCKED' && l.status === 'DELINQUENT' ? 'ACTIVE' : l.status
-        };
+
+    const action = lease.lockState === 'LOCKED' ? 'unlock' : 'lock';
+
+    try {
+      await apiFetch(
+        `/commands/${action}?bikeId=${lease.bikeId}`,
+        { method: 'POST' }
+      );
+
+      const nextState = lease.lockState === 'LOCKED' ? 'UNLOCKED' : 'LOCKED';
+      setCommandNotification(t(
+        nextState === 'LOCKED' 
+          ? 'Dispatched GPRS motor starter lock command to bike {plate}.' 
+          : 'Dispatched engine start enablement command to bike {plate}.'
+      ).replace('{plate}', lease.bikePlate));
+
+      await queryClient.invalidateQueries({ queryKey: ['leases'] });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setCommandNotification(t('Failed to dispatch command: {msg}').replace('{msg}', error.message));
+      } else {
+        setCommandNotification(t('Failed to dispatch remote command.'));
       }
-      return l;
-    }));
-    
-    setDispatchingLockId(null);
-    
+    } finally {
+      setDispatchingLockId(null);
+    }
+
     setTimeout(() => {
       setCommandNotification(null);
     }, 4000);
@@ -291,6 +251,7 @@ export default function FinancialsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['leases'] });
       setShowCollectModal(false);
       resetForm();
     },

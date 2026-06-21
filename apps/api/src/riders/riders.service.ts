@@ -77,6 +77,9 @@ interface RiderIdentity {
     passportPhoto: string | null;
     licencePhoto: string | null;
     identityCardPhoto: string | null;
+    leaseToOwn: boolean;
+    leasePrincipal: number;
+    leaseDailyRate: number;
   } | null;
   bikeAssignments: Array<{
     id: string;
@@ -218,6 +221,9 @@ export class RidersService {
             passportPhoto: dto.passportPhoto,
             licencePhoto: dto.licencePhoto,
             identityCardPhoto: dto.identityCardPhoto,
+            leaseToOwn: dto.leaseToOwn ?? false,
+            leasePrincipal: dto.leasePrincipal ?? 2500000,
+            leaseDailyRate: dto.leaseDailyRate ?? 15000,
           },
         });
 
@@ -1278,6 +1284,9 @@ export class RidersService {
             passportPhoto: true,
             licencePhoto: true,
             identityCardPhoto: true,
+            leaseToOwn: true,
+            leasePrincipal: true,
+            leaseDailyRate: true,
           },
         },
         bikeAssignments: {
@@ -1333,6 +1342,9 @@ export class RidersService {
             passportPhoto: true,
             licencePhoto: true,
             identityCardPhoto: true,
+            leaseToOwn: true,
+            leasePrincipal: true,
+            leaseDailyRate: true,
           },
         },
         bikeAssignments: {
@@ -1422,6 +1434,9 @@ export class RidersService {
       passportPhoto: rider.riderProfile?.passportPhoto ?? null,
       licencePhoto: rider.riderProfile?.licencePhoto ?? null,
       identityCardPhoto: rider.riderProfile?.identityCardPhoto ?? null,
+      leaseToOwn: rider.riderProfile?.leaseToOwn ?? false,
+      leasePrincipal: rider.riderProfile?.leasePrincipal ?? 2500000,
+      leaseDailyRate: rider.riderProfile?.leaseDailyRate ?? 15000,
     };
   }
 
