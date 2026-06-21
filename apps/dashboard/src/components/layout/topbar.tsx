@@ -16,9 +16,10 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
 interface TopbarProps {
   onOpenSidebar: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-export function Topbar({ onOpenSidebar }: TopbarProps) {
+export function Topbar({ onOpenSidebar, sidebarCollapsed = false }: TopbarProps) {
   const { t, locale } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
@@ -109,7 +110,8 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                   <span className="text-ink-faint shrink-0">&middot;</span>
                   <span
                     className={cx(
-                      'inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide ring-1 ring-inset uppercase transition-colors whitespace-nowrap',
+                      'inline-flex items-center rounded-md font-bold tracking-wide ring-1 ring-inset uppercase transition-colors whitespace-nowrap',
+                      sidebarCollapsed ? 'px-1.5 py-0.5 text-[10px]' : 'px-1 py-0.5 text-[9px]',
                       entitlements.isActive
                         ? entitlements.isPremium
                           ? 'bg-accent/10 text-accent ring-accent/20'

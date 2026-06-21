@@ -57,7 +57,10 @@ export function AppShell({ children }: AppShellProps) {
           sidebarCollapsed ? 'lg:pl-[76px]' : 'lg:pl-[272px]',
         )}
       >
-        <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
+        <Topbar
+          onOpenSidebar={() => setSidebarOpen(true)}
+          sidebarCollapsed={sidebarCollapsed}
+        />
         <main className="px-4 py-5 md:px-6 md:py-6 xl:px-8">
           <div className="mx-auto max-w-[1600px]">
             {user ? (
