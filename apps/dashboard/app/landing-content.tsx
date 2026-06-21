@@ -320,6 +320,61 @@ export default function LandingContent() {
       };
     });
   }, [t, pricingTiers]);
+  const localizedFeatures = useMemo(() => {
+    return features.map((f) => {
+      const keyBase = f.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      return {
+        ...f,
+        title: t(`feat_title_${keyBase}`, f.title),
+        desc: t(`feat_desc_${keyBase}`, f.desc),
+      };
+    });
+  }, [t]);
+
+  const localizedShowcaseTabs = useMemo(() => {
+    return showcaseTabs.map((tab) => {
+      const keyBase = tab.id.replace('-', '_');
+      return {
+        ...tab,
+        label: t(`showcase_label_${keyBase}`, tab.label),
+        desc: t(`showcase_desc_${keyBase}`, tab.desc),
+      };
+    });
+  }, [t]);
+
+  const localizedStats = useMemo(() => {
+    return stats.map((s) => {
+      const keyBase = s.label.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      return {
+        ...s,
+        label: t(`stat_label_${keyBase}`, s.label),
+      };
+    });
+  }, [t]);
+
+  const localizedTestimonials = useMemo(() => {
+    return testimonials.map((test) => {
+      const keyBase = test.org.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      return {
+        ...test,
+        quote: t(`test_quote_${keyBase}`, test.quote),
+        name: t(`test_name_${keyBase}`, test.name),
+        org: t(`test_org_${keyBase}`, test.org),
+      };
+    });
+  }, [t]);
+
+  const localizedFooterLinks = useMemo(() => {
+    const res: Record<string, typeof footerLinks.Product> = {};
+    for (const [title, links] of Object.entries(footerLinks)) {
+      const localizedTitle = t(`footer_col_${title.toLowerCase()}`, title);
+      res[localizedTitle] = links.map((link) => ({
+        ...link,
+        label: t(`footer_link_${link.label.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, link.label),
+      }));
+    }
+    return res;
+  }, [t]);
 
   return (
     <div className="dark min-h-screen bg-[#09090b] text-white overflow-x-hidden">
@@ -491,7 +546,7 @@ export default function LandingContent() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.map((f) => (
+          {localizedFeatures.map((f) => (
             <article
               key={f.title}
               className="group rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
@@ -524,7 +579,7 @@ export default function LandingContent() {
 
         {/* Tab bar */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {showcaseTabs.map((tab) => (
+          {localizedShowcaseTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -542,7 +597,7 @@ export default function LandingContent() {
 
         {/* Tab content */}
         <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
-          {showcaseTabs.map((tab) => (
+          {localizedShowcaseTabs.map((tab) => (
             <div
               key={tab.id}
               className={`transition-opacity duration-300 ${activeTab === tab.id ? 'block' : 'hidden'}`}
@@ -562,7 +617,7 @@ export default function LandingContent() {
                       {tab.id === 'analytics' && <Activity size={48} className="text-accent/60" />}
                       {tab.id === 'commands' && <Signal size={48} className="text-accent/60" />}
                     </div>
-                    <span className="text-sm font-medium text-zinc-500">{tab.label} Dashboard</span>
+                    <span className="text-sm font-medium text-zinc-500">{t('showcase_dash_title', '{label} Dashboard').replace('{label}', tab.label)}</span>
                   </div>
                 </div>
               </div>
@@ -583,7 +638,7 @@ export default function LandingContent() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((s) => (
+          {localizedStats.map((s) => (
             <div key={s.label} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-8 text-center">
               <AnimatedStat value={s.value} suffix={s.suffix} decimals={s.decimals} />
               <p className="mt-4 text-sm text-zinc-500">{s.label}</p>
@@ -604,19 +659,19 @@ export default function LandingContent() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {testimonials.map((t) => (
-            <figure key={t.name} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-6 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
+          {localizedTestimonials.map((test) => (
+            <figure key={test.name} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-6 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-10 w-10 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent">
-                  {t.name.charAt(0)}
+                  {test.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{t.name}</p>
-                  <p className="text-xs text-zinc-500">{t.handle}</p>
+                  <p className="text-sm font-semibold text-white">{test.name}</p>
+                  <p className="text-xs text-zinc-500">{test.handle}</p>
                 </div>
               </div>
               <blockquote className="text-sm leading-relaxed text-zinc-400">
-                &ldquo;{t.quote}&rdquo;
+                &ldquo;{test.quote}&rdquo;
               </blockquote>
             </figure>
           ))}
@@ -764,7 +819,7 @@ export default function LandingContent() {
             </div>
 
             {/* Link columns */}
-            {Object.entries(footerLinks).map(([title, links]) => (
+            {Object.entries(localizedFooterLinks).map(([title, links]) => (
               <div key={title}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">{title}</p>
                 <ul className="space-y-2.5">
