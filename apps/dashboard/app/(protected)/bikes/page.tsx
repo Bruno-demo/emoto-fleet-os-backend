@@ -512,7 +512,7 @@ export default function BikesPage() {
         render: (bike) => (
           <button
             type="button"
-            className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30"
+            className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30 whitespace-nowrap"
             onClick={() => setSelectedBikeId(bike.id)}
           >
             {t('View detail')}
@@ -530,7 +530,7 @@ export default function BikesPage() {
           <button
             type="button"
             onClick={() => setShowCreateBike(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm"
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm whitespace-nowrap"
             style={{ background: '#3B82F6', color: 'white' }}
           >
             <Plus size={16} strokeWidth={3} />

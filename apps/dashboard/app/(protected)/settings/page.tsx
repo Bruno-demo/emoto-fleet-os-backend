@@ -419,28 +419,28 @@ export default function SettingsPage() {
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="border-b border-line text-ink-muted font-bold uppercase tracking-wider">
-                      <th className="py-3 px-4">{t("Invoice")}</th>
-                      <th className="py-3 px-4">{t("Billing Period")}</th>
-                      <th className="py-3 px-4">{t("Amount Due")}</th>
-                      <th className="py-3 px-4">{t("Amount Paid")}</th>
-                      <th className="py-3 px-4">{t("Status")}</th>
-                      <th className="py-3 px-4">{t("Due Date")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Invoice")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Billing Period")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Amount Due")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Amount Paid")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Status")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Due Date")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line text-ink-soft">
                     {myCyclesQuery.data.data.map((cycle: BillingCycleData) => (
                       <tr key={cycle.id} className="hover:bg-white/[0.01]">
-                        <td className="py-3 px-4 font-bold text-ink">{t("Invoice #{number}").replace('{number}', String(cycle.cycleNumber))}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 font-bold text-ink whitespace-nowrap">{t("Invoice #{number}").replace('{number}', String(cycle.cycleNumber))}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
                           {new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}
                         </td>
-                        <td className="py-3 px-4 font-bold text-ink">
+                        <td className="py-3 px-4 font-bold text-ink whitespace-nowrap">
                           {cycle.totalDue.toLocaleString()} RWF
                         </td>
-                        <td className="py-3 px-4 text-success-ink font-semibold">
+                        <td className="py-3 px-4 text-success-ink font-semibold whitespace-nowrap">
                           {cycle.totalPaid.toLocaleString()} RWF
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 whitespace-nowrap">
                           <span className={cx(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
                             cycle.status === 'PAID'
@@ -493,8 +493,8 @@ export default function SettingsPage() {
                     
                     <ul className="space-y-2.5 text-xs text-ink-soft">
                       {['Insured Fleet Telemetry Portal', 'Partner API & Access Token Keys', 'Dedicated Insurance SLA & Support', 'Automated Crash Evidence Packs', 'Weekly Risk Summary Analytics'].map((f) => (
-                        <li key={f} className="flex items-center gap-2">
-                          <CheckCircle2 size={12} className="text-accent shrink-0" />
+                        <li key={f} className="flex items-start gap-2">
+                          <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
                           <span>{t(f)}</span>
                         </li>
                       ))}
@@ -538,14 +538,14 @@ export default function SettingsPage() {
                      
                      <ul className="space-y-2.5 text-xs text-ink-soft">
                        {['Overview Dashboard', 'Live Map Tracking', 'Incident Escalation', 'Risk Events Feed', 'Bikes & Riders Directory', 'Fleet Configuration'].map((f) => (
-                         <li key={f} className="flex items-center gap-2">
-                           <CheckCircle2 size={12} className="text-success-ink shrink-0" />
+                         <li key={f} className="flex items-start gap-2">
+                           <CheckCircle2 size={12} className="text-success-ink shrink-0 mt-0.5" />
                            <span>{t(f)}</span>
                          </li>
                        ))}
                        {['Device provisioning', 'Policy geofencing', 'Remote commands', 'Audit logs'].map((f) => (
-                         <li key={f} className="flex items-center gap-2 opacity-50">
-                           <Lock size={10} className="text-ink-faint shrink-0" />
+                         <li key={f} className="flex items-start gap-2 opacity-50">
+                           <Lock size={10} className="text-ink-faint shrink-0 mt-0.5" />
                            <span className="line-through">{t(f)}</span>
                          </li>
                        ))}
@@ -606,8 +606,8 @@ export default function SettingsPage() {
                      <div className="h-px w-full bg-line my-4" />
                      
                      <ul className="space-y-2.5 text-xs text-ink-soft">
-                       <li className="flex items-center gap-2 text-accent font-semibold">
-                         <CheckCircle2 size={12} className="text-accent shrink-0" />
+                       <li className="flex items-start gap-2 text-accent font-semibold">
+                         <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
                          <span>{t("Everything in Safety Core")}</span>
                        </li>
                        {[
@@ -618,8 +618,8 @@ export default function SettingsPage() {
                          'Remote Commands (Lock/Unlock/Sound)',
                          'Incident Evidence Packs'
                        ].map((f) => (
-                         <li key={f} className="flex items-center gap-2">
-                           <CheckCircle2 size={12} className="text-accent shrink-0" />
+                         <li key={f} className="flex items-start gap-2">
+                           <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
                            <span>{t(f)}</span>
                          </li>
                        ))}
@@ -664,8 +664,8 @@ export default function SettingsPage() {
                      <div className="h-px w-full bg-line my-4" />
                      
                      <ul className="space-y-2.5 text-xs text-ink-soft">
-                       <li className="flex items-center gap-2 font-semibold">
-                         <CheckCircle2 size={12} className="text-ink-muted shrink-0" />
+                       <li className="flex items-start gap-2 font-semibold">
+                         <CheckCircle2 size={12} className="text-ink-muted shrink-0 mt-0.5" />
                          <span>{t("Everything in Operations Plus")}</span>
                        </li>
                        {[
@@ -675,8 +675,8 @@ export default function SettingsPage() {
                          'Custom Integrations & Development',
                          'Priority Hardware Provisioning'
                        ].map((f) => (
-                         <li key={f} className="flex items-center gap-2">
-                           <CheckCircle2 size={12} className="text-success-ink shrink-0" />
+                         <li key={f} className="flex items-start gap-2">
+                           <CheckCircle2 size={12} className="text-success-ink shrink-0 mt-0.5" />
                            <span>{t(f)}</span>
                          </li>
                        ))}

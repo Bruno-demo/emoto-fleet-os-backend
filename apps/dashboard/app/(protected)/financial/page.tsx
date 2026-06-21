@@ -302,6 +302,8 @@ export default function FinancialsPage() {
     () => [
       {
         header: t('Rider'),
+        className: 'whitespace-nowrap',
+        cellClassName: 'whitespace-nowrap',
         render: (pay) => (
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent font-semibold text-xs">
@@ -316,6 +318,8 @@ export default function FinancialsPage() {
       },
       {
         header: t('Amount Collected'),
+        className: 'whitespace-nowrap',
+        cellClassName: 'whitespace-nowrap',
         render: (pay) => (
           <span className="font-mono text-sm font-bold text-ink-soft">
             {pay.amount.toLocaleString()} RWF
@@ -324,6 +328,8 @@ export default function FinancialsPage() {
       },
       {
         header: t('Collection Date'),
+        className: 'whitespace-nowrap',
+        cellClassName: 'whitespace-nowrap',
         render: (pay) => (
           <span className="text-xs text-ink-muted tabular-nums">
             {new Date(pay.paidAt).toLocaleDateString()} &middot;{' '}
@@ -333,6 +339,8 @@ export default function FinancialsPage() {
       },
       {
         header: t('Payment Method'),
+        className: 'whitespace-nowrap',
+        cellClassName: 'whitespace-nowrap',
         render: (pay) => (
           <div className="flex items-center gap-1 text-xs text-ink-soft">
             {pay.method === 'MOBILE_MONEY' && <Wallet size={12} className="text-emerald-400" />}
@@ -350,6 +358,8 @@ export default function FinancialsPage() {
       },
       {
         header: t('Status'),
+        className: 'whitespace-nowrap',
+        cellClassName: 'whitespace-nowrap',
         render: (pay) => (
           <Badge
             label={t(pay.status)}
@@ -367,6 +377,8 @@ export default function FinancialsPage() {
       },
       {
         header: t('Reference Code'),
+        className: 'whitespace-nowrap',
+        cellClassName: 'whitespace-nowrap',
         render: (pay) => (
           <span className="font-mono text-xs text-ink-faint">{pay.reference ?? '--'}</span>
         ),
@@ -659,13 +671,15 @@ export default function FinancialsPage() {
                   <tbody>
                     {ridersList.map((rider) => (
                       <tr key={rider.id} className="border-b border-line hover:bg-surface-hover transition-colors">
-                        <td className="py-3 font-semibold text-ink flex items-center gap-2">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
-                            {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
-                          </span>
-                          <span className="truncate max-w-[120px]">
-                            {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
-                          </span>
+                        <td className="py-3 font-semibold text-ink">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
+                              {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
+                            </span>
+                            <span className="truncate max-w-[120px]">
+                              {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
+                            </span>
+                          </div>
                         </td>
                         {weekDays.map((day) => {
                           const status = getMatrixCellStatus(rider.id, day.dateString);

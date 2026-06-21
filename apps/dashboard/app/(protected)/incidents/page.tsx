@@ -236,7 +236,7 @@ export default function IncidentsPage() {
         <button
           type="button"
           onClick={() => setSelectedIncidentId(incident.id)}
-          className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30"
+          className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30 whitespace-nowrap"
         >
           {t('Open detail')}
         </button>
@@ -561,7 +561,7 @@ function StatusTab({
       type="button"
       onClick={onClick}
       className={cx(
-        'rounded-xl border px-4 py-2 text-sm font-semibold transition-all',
+        'rounded-xl border px-4 py-2 text-sm font-semibold transition-all whitespace-nowrap',
         toneClasses,
       )}
     >

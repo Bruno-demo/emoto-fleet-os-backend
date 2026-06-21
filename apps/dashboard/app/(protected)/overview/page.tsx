@@ -412,7 +412,7 @@ function FleetStatCard({
   return (
     <div
       className={cx(
-        'flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all',
+        'flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all min-w-0',
         urgent
           ? 'border-danger-ink/20 bg-danger-soft/30'
           : 'border-line bg-surface-muted hover:bg-surface-hover',
@@ -420,19 +420,19 @@ function FleetStatCard({
     >
       <span
         className={cx(
-          'flex h-10 w-10 items-center justify-center rounded-xl',
+          'flex h-10 w-10 items-center justify-center rounded-xl shrink-0',
           urgent ? 'bg-danger-soft text-danger-ink' : 'bg-surface-muted text-ink-muted',
         )}
       >
         {icon}
       </span>
-      <div>
+      <div className="min-w-0 flex-1">
         {loading ? (
           <Skeleton className="h-6 w-12 rounded" />
         ) : (
           <p className="font-display text-2xl font-bold text-ink tabular-nums">{value}</p>
         )}
-        <p className="text-xs text-ink-muted">{label}</p>
+        <p className="text-xs text-ink-muted truncate">{label}</p>
       </div>
     </div>
   );
@@ -450,10 +450,10 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-surface-hover hover:border-line-strong"
+      className="flex items-center gap-3 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-medium text-ink transition-all hover:bg-surface-hover hover:border-line-strong min-w-0"
     >
-      <span className="text-accent">{icon}</span>
-      {label}
+      <span className="text-accent shrink-0">{icon}</span>
+      <span className="truncate flex-1 min-w-0">{label}</span>
     </Link>
   );
 }

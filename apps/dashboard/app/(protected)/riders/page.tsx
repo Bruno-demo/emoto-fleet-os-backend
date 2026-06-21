@@ -328,7 +328,7 @@ export default function RidersPage() {
           <button
             type="button"
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20"
+            className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20 whitespace-nowrap"
           >
             <UserPlus size={14} />
             {t("Add rider")}

@@ -103,13 +103,13 @@ export default function EventsPage() {
               <>
                 <Link
                   href={`/bikes?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted"
+                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted whitespace-nowrap"
                 >
                   {t('Open bike')}
                 </Link>
                 <Link
                   href={`/live?bikeId=${event.bikeId}`}
-                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted"
+                  className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted whitespace-nowrap"
                 >
                   {t('View live')}
                 </Link>

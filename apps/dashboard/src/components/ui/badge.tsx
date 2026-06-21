@@ -43,7 +43,7 @@ export function Badge({
   return (
     <span
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-semibold',
+        'inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-semibold whitespace-nowrap',
         size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs',
         BADGE_TONE_CLASS[tone],
         className,

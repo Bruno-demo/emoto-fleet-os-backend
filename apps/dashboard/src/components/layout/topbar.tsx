@@ -126,11 +126,11 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="flex w-full max-w-md items-center gap-2.5 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm text-ink-muted hover:bg-surface-hover hover:border-line-strong transition-all"
+            className="flex w-full max-w-md items-center gap-2.5 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm text-ink-muted hover:bg-surface-hover hover:border-line-strong transition-all min-w-0"
           >
-            <Search size={14} />
-            <span className="flex-1 text-left">{t('Search bikes, riders, events...')}</span>
-            <kbd className="hidden rounded-md border border-line bg-surface-muted px-1.5 py-0.5 text-[10px] font-mono text-ink-faint lg:inline-block">
+            <Search size={14} className="shrink-0" />
+            <span className="flex-1 text-left truncate min-w-0">{t('Search bikes, riders, events...')}</span>
+            <kbd className="hidden shrink-0 rounded-md border border-line bg-surface-muted px-1.5 py-0.5 text-[10px] font-mono text-ink-faint lg:inline-block">
               Ctrl+K
             </kbd>
           </button>
