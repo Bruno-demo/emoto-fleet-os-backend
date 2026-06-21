@@ -368,23 +368,7 @@ export default function FinancialsPage() {
       return;
     }
 
-    // Allocate payment to Buy-to-Own lease contract if the rider is registered
-    const targetRider = ridersList.find(r => r.id === formRiderId);
-    if (targetRider) {
-      setLeases(prev => prev.map(l => {
-        if (l.riderName === targetRider.fullName) {
-          const newPaid = Math.min(l.totalPrincipal, l.totalPaid + amountNum);
-          const newArrears = Math.max(0, l.arrears - amountNum);
-          return {
-            ...l,
-            totalPaid: newPaid,
-            arrears: newArrears,
-            status: newPaid >= l.totalPrincipal ? 'PAID_OFF' : newArrears === 0 ? 'ACTIVE' : l.status
-          };
-        }
-        return l;
-      }));
-    }
+
 
     recordPaymentMutation.mutate({
       riderId: formRiderId,
