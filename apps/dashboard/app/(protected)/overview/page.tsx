@@ -29,6 +29,7 @@ import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type { Incident, PaginatedResponse, WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo } from '@/lib/ui';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 function getDefaultRange() {
   const to = new Date();
@@ -41,6 +42,7 @@ function getDefaultRange() {
 }
 
 export default function OverviewPage() {
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState(getDefaultRange);
   const { data: user } = useCurrentUser();
 
@@ -97,16 +99,16 @@ export default function OverviewPage() {
         ) : (
           <>
             <MetricCard
-              title={user?.role === 'INSURER' ? 'Insured Trips' : 'Weekly Trips'}
+              title={user?.role === 'INSURER' ? t('Insured Trips') : t('Weekly Trips')}
               value={report ? String(report.tripCount) : '--'}
-              hint={user?.role === 'INSURER' ? 'Trips by covered bikes' : 'Trips in the current 7-day window'}
+              hint={user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in the current 7-day window')}
               icon={<Bike size={18} />}
               tone="info"
             />
             <MetricCard
-              title={user?.role === 'INSURER' ? 'Covered Score' : 'Fleet Score'}
+              title={user?.role === 'INSURER' ? t('Covered Score') : t('Fleet Score')}
               value={report ? report.avgScore.toFixed(1) : '--'}
-              hint={user?.role === 'INSURER' ? 'Avg driving score of covered bikes' : 'Avg driving score across completed trips'}
+              hint={user?.role === 'INSURER' ? t('Avg driving score of covered bikes') : t('Avg driving score across completed trips')}
               icon={<TrendingUp size={18} />}
               tone={
                 report
@@ -119,16 +121,16 @@ export default function OverviewPage() {
               }
             />
             <MetricCard
-              title={user?.role === 'INSURER' ? 'Open Covered Incidents' : 'Open Incidents'}
+              title={user?.role === 'INSURER' ? t('Open Covered Incidents') : t('Open Incidents')}
               value={String(openIncidents)}
-              hint="Awaiting acknowledgement or resolution"
+              hint={t('Awaiting acknowledgement or resolution')}
               icon={<ShieldAlert size={18} />}
               tone={openIncidents > 0 ? 'danger' : 'neutral'}
             />
             <MetricCard
-              title={user?.role === 'INSURER' ? 'Covered Events' : 'Total Events'}
+              title={user?.role === 'INSURER' ? t('Covered Events') : t('Total Events')}
               value={String(totalEvents)}
-              hint={`${report?.eventCounts.CRASH ?? 0} crashes · ${report?.eventCounts.HARSH_BRAKE ?? 0} brakes`}
+              hint={`${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}`}
               icon={<Zap size={18} />}
               tone="warning"
             />
@@ -139,19 +141,19 @@ export default function OverviewPage() {
       {/* Fleet health bar */}
       <section className="grid gap-4 sm:grid-cols-3">
         <FleetStatCard
-          label={user?.role === 'INSURER' ? 'Insured Bikes' : 'Active Bikes'}
+          label={user?.role === 'INSURER' ? t('Insured Bikes') : t('Active Bikes')}
           value={totalBikes}
           icon={<Bike size={16} />}
           loading={bikesQuery.isLoading}
         />
         <FleetStatCard
-          label={user?.role === 'INSURER' ? 'Covered Risk Events' : 'Risk Events'}
+          label={user?.role === 'INSURER' ? t('Covered Risk Events') : t('Risk Events')}
           value={totalEvents}
           icon={<AlertTriangle size={16} />}
           loading={weeklyReportQuery.isLoading}
         />
         <FleetStatCard
-          label={user?.role === 'INSURER' ? 'Covered Incidents' : 'Incidents'}
+          label={user?.role === 'INSURER' ? t('Covered Incidents') : t('Incidents')}
           value={openIncidents}
           icon={<Siren size={16} />}
           loading={incidentsQuery.isLoading}
@@ -164,15 +166,15 @@ export default function OverviewPage() {
         {/* Left: Event mix + chart area */}
         <div className="space-y-5">
           <DashboardCard
-            eyebrow="Risk profile"
-            title="Event breakdown"
+            eyebrow={t('Risk profile')}
+            title={t('Event breakdown')}
             actions={
               user?.role === 'INSURER' ? null : (
                 <Link
                   href="/events"
                   className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                 >
-                  View all <ArrowRight size={12} />
+                  {t('View all')} <ArrowRight size={12} />
                 </Link>
               )
             }
@@ -207,7 +209,7 @@ export default function OverviewPage() {
                                 <Activity size={11} />
                               </span>
                               <span className="text-sm font-medium text-ink">
-                                {formatEnumLabel(type)}
+                                {t(formatEnumLabel(type))}
                               </span>
                             </div>
                             <span className="text-sm font-bold text-ink tabular-nums">
@@ -235,23 +237,23 @@ export default function OverviewPage() {
             ) : (
               <EmptyState
                 icon={<Activity size={18} />}
-                title="No events this week"
-                description="Event distribution appears once telemetry generates activity."
+                title={t('No events this week')}
+                description={t('Event distribution appears once telemetry generates activity.')}
               />
             )}
           </DashboardCard>
 
           {/* Recent incidents timeline */}
           <DashboardCard
-            eyebrow="Activity"
-            title="Recent incidents"
+            eyebrow={t('Activity')}
+            title={t('Recent incidents')}
             actions={
               user?.role === 'INSURER' ? null : (
                 <Link
                   href="/incidents"
                   className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                 >
-                  Incident desk <ArrowRight size={12} />
+                  {t('Incident desk')} <ArrowRight size={12} />
                 </Link>
               )
             }
@@ -265,8 +267,8 @@ export default function OverviewPage() {
             ) : recentIncidents.length === 0 ? (
               <EmptyState
                 icon={<Siren size={18} />}
-                title="No recent incidents"
-                description="Incidents will appear here as they are created."
+                title={t('No recent incidents')}
+                description={t('Incidents will appear here as they are created.')}
               />
             ) : (
               <div className="space-y-1">
@@ -294,14 +296,14 @@ export default function OverviewPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-ink">
-                        {formatEnumLabel(inc.status)} Incident
+                        {t(formatEnumLabel(inc.status))} {t('Incident')}
                       </p>
                       <p className="text-xs text-ink-muted">
                         {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}
                       </p>
                     </div>
                     <Badge
-                      label={formatEnumLabel(inc.status)}
+                      label={t(formatEnumLabel(inc.status))}
                       tone={
                         inc.status === 'OPEN'
                           ? 'danger'
@@ -320,23 +322,23 @@ export default function OverviewPage() {
         {/* Right: Watchlist */}
         <div className="space-y-5">
           <DashboardCard
-            eyebrow="Watchlist"
-            title={user?.role === 'INSURER' ? 'Insured Risky Bikes' : 'Risky bikes'}
+            eyebrow={t('Watchlist')}
+            title={user?.role === 'INSURER' ? t('Insured Risky Bikes') : t('Risky bikes')}
             actions={
               <Link
                 href="/bikes"
                 className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
               >
-                {user?.role === 'INSURER' ? 'Bikes' : 'Fleet'} <ArrowRight size={12} />
+                {user?.role === 'INSURER' ? t('Bikes') : t('Fleet')} <ArrowRight size={12} />
               </Link>
             }
           >
             <WatchlistSection
-              emptyLabel="No risky bikes this week"
+              emptyLabel={t('No risky bikes this week')}
               items={(report?.topRiskyBikes ?? []).slice(0, 5).map((bike) => ({
                 id: bike.bikeId,
                 title: bike.label,
-                subtitle: `${bike.tripCount} trips · ${bike.eventCount} events`,
+                subtitle: `${bike.tripCount} ${t('trips')} · ${bike.eventCount} ${t('events')}`,
                 score: bike.avgScore,
               }))}
               loading={weeklyReportQuery.isLoading}
@@ -344,25 +346,25 @@ export default function OverviewPage() {
           </DashboardCard>
 
           <DashboardCard
-            eyebrow="Watchlist"
-            title={user?.role === 'INSURER' ? 'Insured Risky Riders' : 'Risky riders'}
+            eyebrow={t('Watchlist')}
+            title={user?.role === 'INSURER' ? t('Insured Risky Riders') : t('Risky riders')}
             actions={
               user?.role === 'INSURER' ? null : (
                 <Link
                   href="/riders"
                   className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                 >
-                  Riders <ArrowRight size={12} />
+                  {t('Riders')} <ArrowRight size={12} />
                 </Link>
               )
             }
           >
             <WatchlistSection
-              emptyLabel="No risky riders this week"
+              emptyLabel={t('No risky riders this week')}
               items={(report?.topRiskyRiders ?? []).slice(0, 5).map((rider) => ({
                 id: rider.riderId,
                 title: rider.fullName ?? `Rider ${rider.riderId.slice(0, 8)}`,
-                subtitle: `${rider.tripCount} trips`,
+                subtitle: `${rider.tripCount} ${t('trips')}`,
                 score: rider.avgScore,
               }))}
               loading={weeklyReportQuery.isLoading}
@@ -370,20 +372,20 @@ export default function OverviewPage() {
           </DashboardCard>
 
           {/* Quick actions */}
-          <DashboardCard eyebrow="Quick actions" title="Shortcuts">
+          <DashboardCard eyebrow={t('Quick actions')} title={t('Shortcuts')}>
             <div className="grid grid-cols-2 gap-2">
               {user?.role === 'INSURER' ? (
                 <>
-                  <QuickAction href="/bikes" icon={<Bike size={16} />} label="Bikes" />
-                  <QuickAction href="/reports" icon={<Activity size={16} />} label="Reports" />
-                  <QuickAction href="/settings?tab=apiCredentials" icon={<Settings size={16} />} label="API Credentials" />
+                  <QuickAction href="/bikes" icon={<Bike size={16} />} label={t('Bikes')} />
+                  <QuickAction href="/reports" icon={<Activity size={16} />} label={t('Reports')} />
+                  <QuickAction href="/settings?tab=apiCredentials" icon={<Settings size={16} />} label={t('API Credentials')} />
                 </>
               ) : (
                 <>
-                  <QuickAction href="/live" icon={<Gauge size={16} />} label="Live Map" />
-                  <QuickAction href="/incidents" icon={<Siren size={16} />} label="Incidents" />
-                  <QuickAction href="/bikes" icon={<Bike size={16} />} label="Fleet" />
-                  <QuickAction href="/reports" icon={<Activity size={16} />} label="Reports" />
+                  <QuickAction href="/live" icon={<Gauge size={16} />} label={t('Live Map')} />
+                  <QuickAction href="/incidents" icon={<Siren size={16} />} label={t('Incidents')} />
+                  <QuickAction href="/bikes" icon={<Bike size={16} />} label={t('Fleet')} />
+                  <QuickAction href="/reports" icon={<Activity size={16} />} label={t('Reports')} />
                 </>
               )}
             </div>
@@ -470,6 +472,8 @@ function WatchlistSection({
   }>;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -483,7 +487,7 @@ function WatchlistSection({
     return (
       <EmptyState
         title={emptyLabel}
-        description="Rankings populate once the weekly report has enough data."
+        description={t('Rankings populate once the weekly report has enough data.')}
       />
     );
   }
@@ -529,4 +533,3 @@ function ScorePill({ score }: { score: number }) {
     </span>
   );
 }
-

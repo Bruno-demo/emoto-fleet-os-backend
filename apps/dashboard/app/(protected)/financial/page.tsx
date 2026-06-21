@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 import {
   Banknote,
   Calendar,
@@ -68,6 +69,7 @@ interface FinancialSummary {
 }
 
 export default function FinancialsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -176,7 +178,7 @@ export default function FinancialsPage() {
       if (error instanceof ApiError) {
         setCollectError(error.message);
       } else {
-        setCollectError('Failed to record payment');
+        setCollectError(t('Failed to record payment'));
       }
     },
   });
@@ -276,12 +278,12 @@ export default function FinancialsPage() {
 
   const handleRecordPaymentSubmit = () => {
     if (!formRiderId) {
-      setCollectError('Please select a rider.');
+      setCollectError(t('Please select a rider.'));
       return;
     }
     const amountNum = parseFloat(formAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      setCollectError('Please input a valid amount greater than zero.');
+      setCollectError(t('Please input a valid amount greater than zero.'));
       return;
     }
     recordPaymentMutation.mutate({
@@ -299,7 +301,7 @@ export default function FinancialsPage() {
   const columns = useMemo<Array<DataTableColumn<PaymentRecord>>>(
     () => [
       {
-        header: 'Rider',
+        header: t('Rider'),
         render: (pay) => (
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent font-semibold text-xs">
@@ -307,13 +309,13 @@ export default function FinancialsPage() {
             </span>
             <div>
               <p className="font-semibold text-ink leading-none">{pay.riderName}</p>
-              <p className="text-[10px] text-ink-muted mt-0.5">{pay.riderPhone ?? 'No Phone'}</p>
+              <p className="text-[10px] text-ink-muted mt-0.5">{pay.riderPhone ?? t('No Phone')}</p>
             </div>
           </div>
         ),
       },
       {
-        header: 'Amount Collected',
+        header: t('Amount Collected'),
         render: (pay) => (
           <span className="font-mono text-sm font-bold text-ink-soft">
             {pay.amount.toLocaleString()} RWF
@@ -321,7 +323,7 @@ export default function FinancialsPage() {
         ),
       },
       {
-        header: 'Collection Date',
+        header: t('Collection Date'),
         render: (pay) => (
           <span className="text-xs text-ink-muted tabular-nums">
             {new Date(pay.paidAt).toLocaleDateString()} &middot;{' '}
@@ -330,7 +332,7 @@ export default function FinancialsPage() {
         ),
       },
       {
-        header: 'Payment Method',
+        header: t('Payment Method'),
         render: (pay) => (
           <div className="flex items-center gap-1 text-xs text-ink-soft">
             {pay.method === 'MOBILE_MONEY' && <Wallet size={12} className="text-emerald-400" />}
@@ -338,19 +340,19 @@ export default function FinancialsPage() {
             {pay.method === 'BANK_TRANSFER' && <CreditCard size={12} className="text-blue-400" />}
             {pay.method === 'OTHER' && <HelpCircle size={12} className="text-purple-400" />}
             <span>
-              {pay.method
+              {t(pay.method
                 .replace('_', ' ')
                 .toLowerCase()
-                .replace(/\b\w/g, (c) => c.toUpperCase())}
+                .replace(/\b\w/g, (c) => c.toUpperCase()))}
             </span>
           </div>
         ),
       },
       {
-        header: 'Status',
+        header: t('Status'),
         render: (pay) => (
           <Badge
-            label={pay.status}
+            label={t(pay.status)}
             tone={
               pay.status === 'PAID'
                 ? 'success'
@@ -364,13 +366,13 @@ export default function FinancialsPage() {
         ),
       },
       {
-        header: 'Reference Code',
+        header: t('Reference Code'),
         render: (pay) => (
           <span className="font-mono text-xs text-ink-faint">{pay.reference ?? '--'}</span>
         ),
       },
     ],
-    [],
+    [t],
   );
 
   // SVG Chart values
@@ -421,8 +423,8 @@ export default function FinancialsPage() {
       {/* Date selector header */}
       <section className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
-          <h2 className="font-display text-xl font-bold text-ink">Fleet Financials</h2>
-          <p className="text-xs text-ink-muted">Track rider daily rates, payments, and overall revenues.</p>
+          <h2 className="font-display text-xl font-bold text-ink">{t('Fleet Financials')}</h2>
+          <p className="text-xs text-ink-muted">{t('Track rider daily rates, payments, and overall revenues.')}</p>
         </div>
         <div className="flex items-center gap-3 bg-surface-muted border border-line rounded-2xl p-1.5 self-start sm:self-auto">
           <input
@@ -450,30 +452,30 @@ export default function FinancialsPage() {
         ) : (
           <>
             <MetricCard
-              title="Today's Collections"
+              title={t("Today's Collections")}
               value={summary ? `${summary.earnedToday.toLocaleString()} RWF` : '0 RWF'}
-              hint="Revenue recorded today"
+              hint={t("Revenue recorded today")}
               icon={<Coins size={18} />}
               tone="success"
             />
             <MetricCard
-              title="This Month"
+              title={t("This Month")}
               value={summary ? `${summary.earnedThisMonth.toLocaleString()} RWF` : '0 RWF'}
-              hint="Revenues collected this month"
+              hint={t("Revenues collected this month")}
               icon={<TrendingUp size={18} />}
               tone="info"
             />
             <MetricCard
-              title="Outstanding Debts"
+              title={t("Outstanding Debts")}
               value={summary ? `${summary.unpaidLogsSum.toLocaleString()} RWF` : '0 RWF'}
-              hint={`${summary?.overdueCount ?? 0} overdue payments pending`}
+              hint={t('{count} overdue payments pending').replace('{count}', String(summary?.overdueCount ?? 0))}
               icon={<Banknote size={18} />}
               tone={summary && summary.unpaidLogsSum > 0 ? 'warning' : 'neutral'}
             />
             <MetricCard
-              title="Collection Average"
+              title={t("Collection Average")}
               value={summary ? `${(summary.totalEarnedRange / Math.max(summary.activeRidersCount, 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })} RWF` : '0 RWF'}
-              hint="Avg rate collected per active rider"
+              hint={t("Avg rate collected per active rider")}
               icon={<Users size={18} />}
               tone="info"
             />
@@ -486,14 +488,14 @@ export default function FinancialsPage() {
         <div className="space-y-5">
           {/* Earning Graph */}
           <DashboardCard
-            eyebrow="Revenue Streams"
-            title="Earning progression"
+            eyebrow={t("Revenue Streams")}
+            title={t("Earning progression")}
             actions={
               <button
                 type="button"
                 onClick={() => void queryClient.invalidateQueries({ queryKey: ['financials-summary'] })}
                 className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition"
-                title="Refresh stats"
+                title={t("Refresh stats")}
               >
                 <RefreshCw size={12} />
               </button>
@@ -581,31 +583,31 @@ export default function FinancialsPage() {
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-ink-muted px-2">
                   <span>{new Date(startDate).toLocaleDateString()}</span>
-                  <span>Average collection trend active</span>
+                  <span>{t("Average collection trend active")}</span>
                   <span>{new Date(endDate).toLocaleDateString()}</span>
                 </div>
               </div>
             ) : (
               <EmptyState
                 icon={<TrendingUp size={18} />}
-                title="No revenue logged"
-                description="Collections data graphs will appear here once logs are entered."
+                title={t("No revenue logged")}
+                description={t("Collections data graphs will appear here once logs are entered.")}
               />
             )}
           </DashboardCard>
 
           {/* Interactive Matrix Grid */}
           <DashboardCard
-            eyebrow="Operational Tracker"
-            title="Interactive payment matrix"
-            description={`Weekly view for ${weekRangeLabel}`}
+            eyebrow={t("Operational Tracker")}
+            title={t("Interactive payment matrix")}
+            description={t('Weekly view for {range}').replace('{range}', weekRangeLabel)}
             actions={
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setWeekOffset((prev) => prev - 1)}
                   className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
-                  title="Previous week"
+                  title={t("Previous week")}
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -613,15 +615,15 @@ export default function FinancialsPage() {
                   type="button"
                   onClick={() => setWeekOffset(0)}
                   className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface hover:bg-surface-hover border border-line text-ink-soft hover:text-ink transition-colors cursor-pointer"
-                  title="Current week"
+                  title={t("Current week")}
                 >
-                  Current
+                  {t("Current")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setWeekOffset((prev) => prev + 1)}
                   className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
-                  title="Next week"
+                  title={t("Next week")}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -637,18 +639,18 @@ export default function FinancialsPage() {
             ) : ridersList.length === 0 ? (
               <EmptyState
                 icon={<Calendar size={18} />}
-                title="No riders registered"
-                description="Riders must be added to your registry to track daily lease matrix."
+                title={t("No riders registered")}
+                description={t("Riders must be added to your registry to track daily lease matrix.")}
               />
             ) : (
               <div className="overflow-x-auto dashboard-scrollbar">
                 <table className="w-full min-w-[500px] border-collapse text-left text-xs">
                   <thead>
                     <tr className="border-b border-line text-ink-faint">
-                      <th className="py-2.5 font-bold">Rider</th>
+                      <th className="py-2.5 font-bold">{t('Rider')}</th>
                       {weekDays.map((d) => (
                         <th key={d.dateString} className="py-2.5 text-center font-bold">
-                          <div>{d.dayLabel}</div>
+                          <div>{t(d.dayLabel)}</div>
                           <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
                         </th>
                       ))}
@@ -662,7 +664,7 @@ export default function FinancialsPage() {
                             {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
                           </span>
                           <span className="truncate max-w-[120px]">
-                            {rider.fullName ?? `Rider ${rider.id.slice(0, 8)}`}
+                            {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
                           </span>
                         </td>
                         {weekDays.map((day) => {
@@ -681,8 +683,8 @@ export default function FinancialsPage() {
                                 )}
                                 title={
                                   status === 'unpaid'
-                                    ? `Log rate for ${rider.fullName} on ${day.dayLabel}`
-                                    : `Status: ${status.toUpperCase()} (Click to log new)`
+                                    ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                    : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
                                 }
                               >
                                 {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
@@ -705,7 +707,7 @@ export default function FinancialsPage() {
         {/* Right side: Method pie/doughnut + quick record panel shortcut */}
         <div className="space-y-5">
           {/* Method Chart */}
-          <DashboardCard eyebrow="Financial Distribution" title="Collections by payment method">
+          <DashboardCard eyebrow={t("Financial Distribution")} title={t("Collections by payment method")}>
             {summaryQuery.isLoading ? (
               <div className="h-[140px] w-full bg-surface-hover rounded-xl animate-pulse" />
             ) : summary && summary.totalEarnedRange > 0 ? (
@@ -746,7 +748,7 @@ export default function FinancialsPage() {
                     })()}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Total</span>
+                    <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">{t("Total")}</span>
                     <span className="text-[11px] font-bold text-ink leading-none">{summary.totalEarnedRange.toLocaleString()} RWF</span>
                   </div>
                 </div>
@@ -763,7 +765,7 @@ export default function FinancialsPage() {
                       <div key={method} className="flex items-center gap-2">
                         <span className={cx('h-2 w-2 rounded-full shrink-0', dotColor)} />
                         <span className="font-semibold text-ink-soft min-w-[90px]">
-                          {method.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                          {t(method.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()))}
                         </span>
                         <span className="font-mono text-ink font-bold">{val.toLocaleString()} RWF</span>
                       </div>
@@ -774,16 +776,16 @@ export default function FinancialsPage() {
             ) : (
               <EmptyState
                 icon={<Coins size={18} />}
-                title="No distribution data"
-                description="Distribution analysis requires recorded transaction history."
+                title={t("No distribution data")}
+                description={t("Distribution analysis requires recorded transaction history.")}
               />
             )}
           </DashboardCard>
 
           {/* Quick Collection Panel shortcut */}
-          <DashboardCard eyebrow="Shortcuts" title="Cash collections console">
+          <DashboardCard eyebrow={t("Shortcuts")} title={t("Cash collections console")}>
             <p className="text-xs text-ink-muted mb-4">
-              Directly collect lease payments from riders, clear outstanding arrears, or log mobile transactions.
+              {t("Directly collect lease payments from riders, clear outstanding arrears, or log mobile transactions.")}
             </p>
             <button
               type="button"
@@ -795,7 +797,7 @@ export default function FinancialsPage() {
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold py-3 text-sm transition-all shadow-md shadow-accent/15 hover:opacity-90 hover:brightness-110"
             >
               <Plus size={14} />
-              Collect lease payment
+              {t("Collect lease payment")}
             </button>
           </DashboardCard>
         </div>
@@ -803,8 +805,8 @@ export default function FinancialsPage() {
 
       {/* History table */}
       <DashboardCard
-        eyebrow="Registry"
-        title="Collection Logs history"
+        eyebrow={t("Registry")}
+        title={t("Collection Logs history")}
         actions={
           <div className="flex items-center gap-2">
             <button
@@ -814,7 +816,7 @@ export default function FinancialsPage() {
               className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-muted hover:bg-surface-hover text-ink-soft hover:text-ink transition-all px-3 py-2 text-xs font-semibold disabled:opacity-50"
             >
               <Download size={12} />
-              Export CSV
+              {t("Export CSV")}
             </button>
           </div>
         }
@@ -828,8 +830,8 @@ export default function FinancialsPage() {
             emptyState={
               <EmptyState
                 icon={<Coins size={18} />}
-                title="No collections logged"
-                description="Create custom entries to see logs here."
+                title={t("No collections logged")}
+                description={t("Create custom entries to see logs here.")}
               />
             }
           />
@@ -854,7 +856,7 @@ export default function FinancialsPage() {
           >
             {/* Header: fixed height */}
             <div className="flex items-center justify-between border-b border-line p-5 shrink-0">
-              <h3 className="font-display text-lg font-bold text-ink">Collect daily lease rate</h3>
+              <h3 className="font-display text-lg font-bold text-ink">{t("Collect daily lease rate")}</h3>
               <button
                 type="button"
                 onClick={() => setShowCollectModal(false)}
@@ -869,14 +871,14 @@ export default function FinancialsPage() {
               {collectError && <InlineNotice message={collectError} tone="danger" />}
 
               <SelectField
-                label="Rider"
+                label={t("Rider")}
                 value={formRiderId}
                 onChange={(e) => setFormRiderId(e.target.value)}
               >
-                <option value="">-- Select Rider --</option>
+                <option value="">{t("-- Select Rider --")}</option>
                 {ridersList.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.fullName} ({r.phone ?? r.email ?? 'No contact info'})
+                    {r.fullName} ({r.phone ?? r.email ?? t('No contact info')})
                   </option>
                 ))}
               </SelectField>
@@ -884,13 +886,13 @@ export default function FinancialsPage() {
               {formRiderId && (
                 <div className="space-y-1">
                   {riderPaymentsQuery.isLoading ? (
-                    <p className="text-[10px] text-ink-muted animate-pulse">Calculating outstanding arrears...</p>
+                    <p className="text-[10px] text-ink-muted animate-pulse">{t("Calculating outstanding arrears...")}</p>
                   ) : (
                     <div className={cx(
                       "p-3 rounded-xl border text-xs flex justify-between items-center transition-all",
                       riderArrears > 0 ? "bg-danger-soft/10 border-danger-ink/20 text-danger-ink" : "bg-success-soft/10 border-success-ink/20 text-success-ink"
                     )}>
-                      <span className="font-semibold">Outstanding Arrears:</span>
+                      <span className="font-semibold">{t("Outstanding Arrears:")}</span>
                       <span className="font-mono font-bold text-sm">
                         {riderArrears.toLocaleString()} RWF
                       </span>
@@ -901,7 +903,7 @@ export default function FinancialsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <TextField
-                  label="Lease Rate Collected (RWF)"
+                  label={t("Lease Rate Collected (RWF)")}
                   type="number"
                   value={formAmount}
                   onChange={(e) => setFormAmount(e.target.value)}
@@ -909,7 +911,7 @@ export default function FinancialsPage() {
                   min="1"
                 />
                 <TextField
-                  label="Date & Time"
+                  label={t("Date & Time")}
                   type="datetime-local"
                   value={formPaidAt}
                   onChange={(e) => setFormPaidAt(e.target.value)}
@@ -918,39 +920,39 @@ export default function FinancialsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <SelectField
-                  label="Payment Method"
+                  label={t("Payment Method")}
                   value={formMethod}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormMethod(e.target.value as 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER')}
                 >
-                  <option value="CASH">Cash</option>
-                  <option value="MOBILE_MONEY">Mobile Money (MTN MoMo / Airtel)</option>
-                  <option value="BANK_TRANSFER">Bank Transfer</option>
-                  <option value="OTHER">Other</option>
+                  <option value="CASH">{t("Cash")}</option>
+                  <option value="MOBILE_MONEY">{t("Mobile Money (MTN MoMo / Airtel)")}</option>
+                  <option value="BANK_TRANSFER">{t("Bank Transfer")}</option>
+                  <option value="OTHER">{t("Other")}</option>
                 </SelectField>
 
                 <SelectField
-                  label="Rate Status"
+                  label={t("Rate Status")}
                   value={formStatus}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormStatus(e.target.value as 'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE')}
                 >
-                  <option value="PAID">Full Payment (Paid)</option>
-                  <option value="PARTIAL">Arrears/Partial</option>
-                  <option value="UNPAID">Unpaid</option>
-                  <option value="OVERDUE">Overdue Rate</option>
+                  <option value="PAID">{t("Full Payment (Paid)")}</option>
+                  <option value="PARTIAL">{t("Arrears/Partial")}</option>
+                  <option value="UNPAID">{t("Unpaid")}</option>
+                  <option value="OVERDUE">{t("Overdue Rate")}</option>
                 </SelectField>
               </div>
 
               <TextField
-                label="Transaction Reference Code (Optional)"
+                label={t("Transaction Reference Code (Optional)")}
                 type="text"
-                placeholder="e.g. Mobile Money ID or Bank Receipt number"
+                placeholder={t("e.g. Mobile Money ID or Bank Receipt number")}
                 value={formReference}
                 onChange={(e) => setFormReference(e.target.value)}
               />
 
               <TextAreaField
-                label="Operator Notes (Optional)"
-                placeholder="Remarks about the payment"
+                label={t("Operator Notes (Optional)")}
+                placeholder={t("Remarks about the payment")}
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
               />
@@ -963,7 +965,7 @@ export default function FinancialsPage() {
                 onClick={() => setShowCollectModal(false)}
                 className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink-soft hover:bg-surface-hover hover:text-ink transition"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -972,7 +974,7 @@ export default function FinancialsPage() {
                 style={{ backgroundColor: '#3B82F6', color: '#ffffff' }}
                 className="inline-flex items-center gap-1.5 rounded-xl font-semibold px-5 py-2.5 text-sm hover:opacity-90 hover:brightness-110 disabled:opacity-50 transition"
               >
-                {recordPaymentMutation.isPending ? 'Saving...' : 'Confirm Collection'}
+                {recordPaymentMutation.isPending ? t('Saving...') : t('Confirm Collection')}
               </button>
             </div>
           </div>

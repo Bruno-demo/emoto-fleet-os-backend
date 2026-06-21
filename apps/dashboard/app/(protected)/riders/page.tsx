@@ -30,10 +30,12 @@ import type { Assignment, PaginatedResponse, Rider } from '@/lib/types/dashboard
 import { cx, formatEnumLabel } from '@/lib/ui';
 import { compressImage } from '@/lib/image';
 import { Drawer } from '@/components/ui/drawer';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 const PAGE_SIZE = 20;
 
 export default function RidersPage() {
+  const { t } = useTranslation();
   const { data: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -91,7 +93,7 @@ export default function RidersPage() {
       if (error instanceof ApiError) {
         setInviteError(error.message);
       } else {
-        setInviteError('Failed to generate invite code');
+        setInviteError(t('Failed to generate invite code'));
       }
     } finally {
       setIsGeneratingInvite(false);
@@ -185,7 +187,7 @@ export default function RidersPage() {
       if (error instanceof ApiError) {
         setCreateError(error.message);
       } else {
-        setCreateError('Failed to create rider');
+        setCreateError(t('Failed to create rider'));
       }
     } finally {
       setIsCreating(false);
@@ -195,13 +197,13 @@ export default function RidersPage() {
   const columns = useMemo<Array<DataTableColumn<Rider>>>(
     () => [
       {
-        header: 'Rider',
+        header: t('Rider'),
         render: (rider) => (
           <div className="flex items-center gap-3">
             {rider.passportPhoto ? (
               <img
                 src={rider.passportPhoto}
-                alt={rider.fullName ?? 'Rider'}
+                alt={rider.fullName ?? t('Rider')}
                 className="h-9 w-9 rounded-xl object-cover border border-line"
               />
             ) : (
@@ -211,20 +213,20 @@ export default function RidersPage() {
             )}
             <div>
               <p className="font-semibold text-ink">
-                {rider.fullName ?? `Rider ${rider.id.slice(0, 8)}`}
+                {rider.fullName ?? `${t('Rider')} ${rider.id.slice(0, 8)}`}
               </p>
               <p className="text-xs text-ink-muted">
-                {rider.email ?? rider.phone ?? 'No contact'}
+                {rider.email ?? rider.phone ?? t('No contact')}
               </p>
             </div>
           </div>
         ),
       },
       {
-        header: 'Status',
+        header: t('Status'),
         render: (rider) => (
           <Badge
-            label={formatEnumLabel(rider.status)}
+            label={t(formatEnumLabel(rider.status))}
             tone={
               rider.status === 'ACTIVE'
                 ? 'success'
@@ -236,11 +238,11 @@ export default function RidersPage() {
         ),
       },
       {
-        header: 'Assigned Bike',
+        header: t('Assigned Bike'),
         render: (rider) => {
           const assignment = rider.activeAssignments?.[0];
           if (!assignment) {
-            return <span className="text-sm text-ink-muted">Unassigned</span>;
+            return <span className="text-sm text-ink-muted">{t('Unassigned')}</span>;
           }
           return (
             <div className="flex items-center gap-2">
@@ -251,7 +253,7 @@ export default function RidersPage() {
         },
       },
       {
-        header: 'Contact',
+        header: t('Contact'),
         render: (rider) => (
           <div className="space-y-1">
             {rider.phone && (
@@ -270,7 +272,7 @@ export default function RidersPage() {
         ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
@@ -287,30 +289,30 @@ export default function RidersPage() {
         ) : (
           <>
             <MetricCard
-              title="Total Riders"
+              title={t("Total Riders")}
               value={String(totalRiders)}
-              hint="All registered riders in this fleet"
+              hint={t("All registered riders in this fleet")}
               icon={<Users size={18} />}
               tone="info"
             />
             <MetricCard
-              title="Active"
+              title={t("Active")}
               value={String(activeCount)}
-              hint="Riders with active status"
+              hint={t("Riders with active status")}
               icon={<UserRound size={18} />}
               tone="success"
             />
             <MetricCard
-              title="Assigned"
+              title={t("Assigned")}
               value={String(assignedCount)}
-              hint="Riders with an active bike assignment"
+              hint={t("Riders with an active bike assignment")}
               icon={<Bike size={18} />}
               tone="info"
             />
             <MetricCard
-              title="Suspended"
+              title={t("Suspended")}
               value={String(suspendedCount)}
-              hint="Riders temporarily removed from operations"
+              hint={t("Riders temporarily removed from operations")}
               icon={<Shield size={18} />}
               tone={suspendedCount > 0 ? 'warning' : 'neutral'}
             />
@@ -320,8 +322,8 @@ export default function RidersPage() {
 
       {/* Rider registry */}
       <DashboardCard
-        eyebrow="Personnel"
-        title="Rider registry"
+        eyebrow={t("Personnel")}
+        title={t("Rider registry")}
         actions={
           <button
             type="button"
@@ -329,7 +331,7 @@ export default function RidersPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20"
           >
             <UserPlus size={14} />
-            Add rider
+            {t("Add rider")}
           </button>
         }
       >
@@ -337,7 +339,7 @@ export default function RidersPage() {
         {showCreateForm && (
           <div className="mb-6 rounded-2xl border border-line bg-surface-muted p-5 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-bold text-ink">Create new rider</h3>
+              <h3 className="font-display text-lg font-bold text-ink">{t("Create new rider")}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -368,7 +370,7 @@ export default function RidersPage() {
                 )}
               >
                 <UserRound size={14} />
-                Register Directly
+                {t("Register Directly")}
               </button>
               <button
                 type="button"
@@ -386,7 +388,7 @@ export default function RidersPage() {
                 )}
               >
                 <KeyRound size={14} />
-                Generate Invite Link
+                {t("Generate Invite Link")}
               </button>
             </div>
 
@@ -394,17 +396,17 @@ export default function RidersPage() {
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-medium text-ink">
-                    Full name
+                    {t("Full name")}
                     <input
                       type="text"
                       value={newFullName}
                       onChange={(e) => setNewFullName(e.target.value)}
-                      placeholder="John Doe"
+                      placeholder={t("John Doe")}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Phone
+                    {t("Phone")}
                     <input
                       type="tel"
                       value={newPhone}
@@ -414,7 +416,7 @@ export default function RidersPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Email
+                    {t("Email")}
                     <input
                       type="email"
                       value={newEmail}
@@ -424,17 +426,17 @@ export default function RidersPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Password
+                    {t("Password")}
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="At least 8 characters"
+                      placeholder={t("At least 8 characters")}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Driving Licence Number
+                    {t("Driving Licence Number")}
                     <input
                       type="text"
                       value={newLicenceNumber}
@@ -444,7 +446,7 @@ export default function RidersPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Identity Card Number
+                    {t("Identity Card Number")}
                     <input
                       type="text"
                       value={newIdentityNumber}
@@ -458,10 +460,10 @@ export default function RidersPage() {
                 <div className="grid gap-4 sm:grid-cols-3 mt-4">
                   {/* Passport Photo upload */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">Passport Photo</label>
+                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">{t("Passport Photo")}</label>
                     {newPassportPhoto ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
-                        <img src={newPassportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                        <img src={newPassportPhoto} alt={t("Passport")} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => setNewPassportPhoto('')}
@@ -474,7 +476,7 @@ export default function RidersPage() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-hover p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
                         <span className="text-xl mb-1">👤</span>
                         <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingPassport ? 'Compresing...' : 'Upload Passport Photo'}
+                          {isCompresingPassport ? t('Compresing...') : t('Upload Passport Photo')}
                         </span>
                         <input
                           type="file"
@@ -502,10 +504,10 @@ export default function RidersPage() {
 
                   {/* Licence Photo upload */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">Licence Photo</label>
+                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">{t("Licence Photo")}</label>
                     {newLicencePhoto ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
-                        <img src={newLicencePhoto} alt="Licence" className="w-full h-full object-cover" />
+                        <img src={newLicencePhoto} alt={t("Licence")} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => setNewLicencePhoto('')}
@@ -518,7 +520,7 @@ export default function RidersPage() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-hover p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
                         <span className="text-xl mb-1">💳</span>
                         <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingLicence ? 'Compresing...' : 'Upload Licence Photo'}
+                          {isCompresingLicence ? t('Compresing...') : t('Upload Licence Photo')}
                         </span>
                         <input
                           type="file"
@@ -546,10 +548,10 @@ export default function RidersPage() {
 
                   {/* Identity Card Photo upload */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">ID Card Photo</label>
+                    <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider">{t("ID Card Photo")}</label>
                     {newIdentityCardPhoto ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
-                        <img src={newIdentityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
+                        <img src={newIdentityCardPhoto} alt={t("ID Card")} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => setNewIdentityCardPhoto('')}
@@ -562,7 +564,7 @@ export default function RidersPage() {
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-hover p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
                         <span className="text-xl mb-1">📇</span>
                         <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingIdentity ? 'Compresing...' : 'Upload ID Card Photo'}
+                          {isCompresingIdentity ? t('Compresing...') : t('Upload ID Card Photo')}
                         </span>
                         <input
                           type="file"
@@ -593,7 +595,7 @@ export default function RidersPage() {
               <div className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <label className="block text-sm font-medium text-ink">
-                    Rider&apos;s email (optional constraint)
+                    {t("Rider's email (optional constraint)")}
                     <input
                       type="email"
                       value={newEmail}
@@ -603,7 +605,7 @@ export default function RidersPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Rider&apos;s phone (optional constraint)
+                    {t("Rider's phone (optional constraint)")}
                     <input
                       type="tel"
                       value={newPhone}
@@ -613,7 +615,7 @@ export default function RidersPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-ink">
-                    Expiry duration (hours)
+                    {t("Expiry duration (hours)")}
                     <input
                       type="number"
                       value={expiresInHours}
@@ -629,11 +631,11 @@ export default function RidersPage() {
                   <div className="mt-4 rounded-xl border border-success-ink/20 bg-success-soft/30 p-4 animate-scale-in">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-bold text-success-ink flex items-center gap-1.5">
-                        <Check size={16} /> Invite Code Generated Successfully!
+                        <Check size={16} /> {t("Invite Code Generated Successfully!")}
                       </h4>
                     </div>
                     <p className="text-xs text-success-ink/80 mb-3">
-                      Share this unique link with the rider. They can register their account directly.
+                      {t("Share this unique link with the rider. They can register their account directly.")}
                     </p>
                     <div className="flex items-center gap-2">
                       <input
@@ -649,7 +651,7 @@ export default function RidersPage() {
                         style={{ background: '#3B82F6', color: 'white' }}
                       >
                         {copiedInvite ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedInvite ? 'Copied' : 'Copy link'}
+                        {copiedInvite ? t('Copied') : t('Copy link')}
                       </button>
                     </div>
                   </div>
@@ -680,7 +682,7 @@ export default function RidersPage() {
                 }}
                 className="rounded-xl border border-line bg-surface-hover px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface-muted"
               >
-                Close
+                {t("Close")}
               </button>
               {formMode === 'direct' ? (
                 <button
@@ -690,7 +692,7 @@ export default function RidersPage() {
                   className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
-                  {isCreating ? 'Creating...' : 'Create rider'}
+                  {isCreating ? t('Creating...') : t('Create rider')}
                 </button>
               ) : (
                 <button
@@ -700,7 +702,7 @@ export default function RidersPage() {
                   className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
-                  {isGeneratingInvite ? 'Generating...' : 'Generate Invite Link'}
+                  {isGeneratingInvite ? t('Generating...') : t('Generate Invite Link')}
                 </button>
               )}
             </div>
@@ -717,7 +719,7 @@ export default function RidersPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, email, phone, status, or assigned bike..."
+              placeholder={t("Search name, email, phone, status, or assigned bike...")}
               className="w-full rounded-xl border border-line bg-surface-hover py-2.5 pl-10 pr-10 text-sm text-ink placeholder:text-ink-muted outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
             />
             {searchQuery && (
@@ -725,7 +727,7 @@ export default function RidersPage() {
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
-                aria-label="Clear search"
+                aria-label={t("Clear search")}
               >
                 <X size={14} />
               </button>
@@ -743,8 +745,8 @@ export default function RidersPage() {
             emptyState={
               <EmptyState
                 icon={<Users size={18} />}
-                title="No riders found"
-                description="Add riders to your fleet to manage assignments and track performance."
+                title={t("No riders found")}
+                description={t("Add riders to your fleet to manage assignments and track performance.")}
               />
             }
           />
@@ -759,8 +761,8 @@ export default function RidersPage() {
 
       <Drawer
         open={!!selectedRider}
-        title={selectedRider?.fullName ?? 'Rider Profile'}
-        description="Rider contact information, active bike assignment, and onboarding documents."
+        title={selectedRider?.fullName ?? t('Rider Profile')}
+        description={t("Rider contact information, active bike assignment, and onboarding documents.")}
         onClose={() => setSelectedRider(null)}
       >
         {!selectedRider ? null : (
@@ -769,7 +771,7 @@ export default function RidersPage() {
             <div className="flex justify-center">
               {selectedRider.passportPhoto ? (
                 <div className="relative rounded-2xl border border-line overflow-hidden w-28 h-28">
-                  <img src={selectedRider.passportPhoto} alt={selectedRider.fullName ?? 'Passport'} className="w-full h-full object-cover" />
+                  <img src={selectedRider.passportPhoto} alt={selectedRider.fullName ?? t('Passport')} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="flex items-center justify-center rounded-2xl border border-line bg-surface-muted w-28 h-28 text-3xl">
@@ -780,10 +782,10 @@ export default function RidersPage() {
 
             {/* Profile Grid */}
             <section className="grid gap-3 sm:grid-cols-2">
-              <KeyMetric label="Full Name" value={<span>{selectedRider.fullName ?? '—'}</span>} />
-              <KeyMetric label="Status" value={
+              <KeyMetric label={t("Full Name")} value={<span>{selectedRider.fullName ?? '—'}</span>} />
+              <KeyMetric label={t("Status")} value={
                 <Badge
-                  label={formatEnumLabel(selectedRider.status)}
+                  label={t(formatEnumLabel(selectedRider.status))}
                   tone={
                     selectedRider.status === 'ACTIVE'
                       ? 'success'
@@ -793,15 +795,15 @@ export default function RidersPage() {
                   }
                 />
               } />
-              <KeyMetric label="Phone" value={<span>{selectedRider.phone ?? '—'}</span>} />
-              <KeyMetric label="Email" value={<span>{selectedRider.email ?? '—'}</span>} />
-              <KeyMetric label="Licence Number" value={<span>{selectedRider.licenceNumber ?? '—'}</span>} />
-              <KeyMetric label="Identity Card Number" value={<span>{selectedRider.identityNumber ?? '—'}</span>} />
+              <KeyMetric label={t("Phone")} value={<span>{selectedRider.phone ?? '—'}</span>} />
+              <KeyMetric label={t("Email")} value={<span>{selectedRider.email ?? '—'}</span>} />
+              <KeyMetric label={t("Licence Number")} value={<span>{selectedRider.licenceNumber ?? '—'}</span>} />
+              <KeyMetric label={t("Identity Card Number")} value={<span>{selectedRider.identityNumber ?? '—'}</span>} />
               <KeyMetric
-                label="Assigned Bike"
+                label={t("Assigned Bike")}
                 value={
                   <span>
-                    {selectedRider.activeAssignments?.[0]?.bikeLabel ?? 'Unassigned'}
+                    {selectedRider.activeAssignments?.[0]?.bikeLabel ?? t('Unassigned')}
                   </span>
                 }
               />
@@ -809,29 +811,29 @@ export default function RidersPage() {
 
             {/* Documents Section */}
             <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Document Attachments</h3>
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">{t("Document Attachments")}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-ink-muted">Driving Licence</p>
+                  <p className="text-xs font-semibold text-ink-muted">{t("Driving Licence")}</p>
                   {selectedRider.licencePhoto ? (
                     <div className="rounded-xl border border-line bg-surface-muted overflow-hidden max-h-[160px] cursor-zoom-in" onClick={() => window.open(selectedRider.licencePhoto || undefined)}>
-                      <img src={selectedRider.licencePhoto} alt="Licence" className="w-full object-cover max-h-[160px]" />
+                      <img src={selectedRider.licencePhoto} alt={t("Licence")} className="w-full object-cover max-h-[160px]" />
                     </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-line bg-surface-muted p-4 text-center text-xs text-ink-faint">
-                      No Licence Photo Uploaded
+                      {t("No Licence Photo Uploaded")}
                     </div>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-ink-muted">Identity Card</p>
+                  <p className="text-xs font-semibold text-ink-muted">{t("Identity Card")}</p>
                   {selectedRider.identityCardPhoto ? (
                     <div className="rounded-xl border border-line bg-surface-muted overflow-hidden max-h-[160px] cursor-zoom-in" onClick={() => window.open(selectedRider.identityCardPhoto || undefined)}>
-                      <img src={selectedRider.identityCardPhoto} alt="Identity Card" className="w-full object-cover max-h-[160px]" />
+                      <img src={selectedRider.identityCardPhoto} alt={t("Identity Card")} className="w-full object-cover max-h-[160px]" />
                     </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-line bg-surface-muted p-4 text-center text-xs text-ink-faint">
-                      No Identity Card Photo Uploaded
+                      {t("No Identity Card Photo Uploaded")}
                     </div>
                   )}
                 </div>

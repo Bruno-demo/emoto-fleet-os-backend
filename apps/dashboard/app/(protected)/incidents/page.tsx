@@ -17,6 +17,7 @@ import { canUseFeature } from '@/lib/subscription';
 import type { Bike, FleetEvent, Incident, IncidentEvidencePack, IncidentStats, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { Drawer } from '@/components/ui/drawer';
@@ -29,6 +30,7 @@ type IncidentStatusFilter = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'FALSE_ALARM'
 type IncidentAction = 'acknowledge' | 'resolve' | 'false-alarm';
 
 export default function IncidentsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
@@ -118,8 +120,8 @@ export default function IncidentsPage() {
   };
 
   const timelineRows = useMemo(
-    () => buildIncidentTimeline(selectedIncident, incidentTimelineEventsQuery.data ?? [], bikeLabelById),
-    [bikeLabelById, incidentTimelineEventsQuery.data, selectedIncident],
+    () => buildIncidentTimeline(selectedIncident, incidentTimelineEventsQuery.data ?? [], bikeLabelById, t),
+    [bikeLabelById, incidentTimelineEventsQuery.data, selectedIncident, t],
   );
 
   // Clears transient evidence and form state whenever the operator opens a different incident.
@@ -151,7 +153,7 @@ export default function IncidentsPage() {
       if (error instanceof ApiError) {
         setActionError(error.message);
       } else {
-        setActionError('Unable to update incident status');
+        setActionError(t('Unable to update incident status'));
       }
     } finally {
       setIsSubmittingAction(false);
@@ -164,7 +166,7 @@ export default function IncidentsPage() {
       return;
     }
     if (!canGenerateEvidence) {
-      setActionError('Evidence packs are available on Operations Plus.');
+      setActionError(t('Evidence packs are available on Operations Plus.'));
       return;
     }
 
@@ -179,7 +181,7 @@ export default function IncidentsPage() {
       if (error instanceof ApiError) {
         setActionError(error.message);
       } else {
-        setActionError('Failed to generate evidence pack');
+        setActionError(t('Failed to generate evidence pack'));
       }
     } finally {
       setIsGeneratingEvidence(false);
@@ -188,37 +190,37 @@ export default function IncidentsPage() {
 
   const columns = useMemo<Array<DataTableColumn<Incident>>>(() => [
     {
-      header: 'Incident',
+      header: t('Incident'),
       render: (incident) => (
         <div>
           <p className="font-semibold text-ink">
-            {incident.eventType ? formatEnumLabel(incident.eventType) : maskIdentifier(incident.id)}
+            {incident.eventType ? t(formatEnumLabel(incident.eventType)) : maskIdentifier(incident.id)}
           </p>
           <p className="mt-1 text-xs leading-5 text-ink-soft">
-            Created {formatTimestamp(incident.createdAt)}
+            {t('Created')} {formatTimestamp(incident.createdAt)}
           </p>
         </div>
       ),
     },
     {
-      header: 'Bike',
+      header: t('Bike'),
       render: (incident) => (
         <div>
           <p className="font-semibold text-ink">
-            {incident.bikeId ? bikeLabelById.get(incident.bikeId) ?? maskIdentifier(incident.bikeId) : 'No bike linked'}
+            {incident.bikeId ? bikeLabelById.get(incident.bikeId) ?? maskIdentifier(incident.bikeId) : t('No bike linked')}
           </p>
           <p className="mt-1 text-xs leading-5 text-ink-soft">
-            Device {maskIdentifier(incident.deviceId)}
+            {t('Device')} {maskIdentifier(incident.deviceId)}
           </p>
         </div>
       ),
     },
     {
-      header: 'Status',
+      header: t('Status'),
       render: (incident) => <IncidentStatusBadge status={incident.status} />,
     },
     {
-      header: 'Updated',
+      header: t('Updated'),
       render: (incident) => (
         <div>
           <p className="font-semibold text-ink">{formatTimeAgo(incident.updatedAt)}</p>
@@ -227,7 +229,7 @@ export default function IncidentsPage() {
       ),
     },
     {
-      header: 'Action',
+      header: t('Action'),
       className: 'text-right',
       cellClassName: 'text-right',
       render: (incident) => (
@@ -236,46 +238,46 @@ export default function IncidentsPage() {
           onClick={() => setSelectedIncidentId(incident.id)}
           className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30"
         >
-          Open detail
+          {t('Open detail')}
         </button>
       ),
     },
-  ], [bikeLabelById]);
+  ], [bikeLabelById, t]);
 
   return (
     <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title="Open"
+          title={t("Open")}
           value={String(incidentStats.open)}
-          hint="Incidents waiting for the first dispatcher action."
+          hint={t("Incidents waiting for the first dispatcher action.")}
           icon={<AlertCircle size={18} />}
           tone="danger"
         />
         <MetricCard
-          title="Acknowledged"
+          title={t("Acknowledged")}
           value={String(incidentStats.acknowledged)}
-          hint="Incidents owned by dispatch but not yet closed."
+          hint={t("Incidents owned by dispatch but not yet closed.")}
           icon={<ShieldAlert size={18} />}
           tone="warning"
         />
         <MetricCard
-          title="Resolved"
+          title={t("Resolved")}
           value={String(incidentStats.resolved)}
-          hint="Incidents resolved in the current result set."
+          hint={t("Incidents resolved in the current result set.")}
           icon={<CheckCircle2 size={18} />}
           tone="success"
         />
         <MetricCard
-          title="False Alarm"
+          title={t("False Alarm")}
           value={String(incidentStats.falseAlarm)}
-          hint="Incidents closed as non-actionable."
+          hint={t("Incidents closed as non-actionable.")}
           icon={<Siren size={18} />}
           tone="info"
         />
       </section>
 
-      <DashboardCard eyebrow="Incident Queue" title="Dispatcher workflow" description="Use status tabs for fast triage, then open an incident drawer to acknowledge, resolve, or package evidence.">
+      <DashboardCard eyebrow={t("Incident Queue")} title={t("Dispatcher workflow")} description={t("Use status tabs for fast triage, then open an incident drawer to acknowledge, resolve, or package evidence.")}>
         <DataTableToolbar
           actions={
             <button
@@ -288,26 +290,26 @@ export default function IncidentsPage() {
               }}
               className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-muted"
             >
-              Reset to open queue
+              {t("Reset to open queue")}
             </button>
           }
         >
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <StatusTab label="All" active={status === ''} count={incidentsQuery.data?.total ?? 0} onClick={() => { setStatus(''); setPage(1); }} />
-              <StatusTab label="Open" active={status === 'OPEN'} count={incidentStats.open} tone="danger" onClick={() => { setStatus('OPEN'); setPage(1); }} />
-              <StatusTab label="Acknowledged" active={status === 'ACKNOWLEDGED'} count={incidentStats.acknowledged} tone="warning" onClick={() => { setStatus('ACKNOWLEDGED'); setPage(1); }} />
-              <StatusTab label="Resolved" active={status === 'RESOLVED'} count={incidentStats.resolved} tone="success" onClick={() => { setStatus('RESOLVED'); setPage(1); }} />
-              <StatusTab label="False Alarm" active={status === 'FALSE_ALARM'} count={incidentStats.falseAlarm} onClick={() => { setStatus('FALSE_ALARM'); setPage(1); }} />
+              <StatusTab label={t("All")} active={status === ''} count={incidentsQuery.data?.total ?? 0} onClick={() => { setStatus(''); setPage(1); }} />
+              <StatusTab label={t("Open")} active={status === 'OPEN'} count={incidentStats.open} tone="danger" onClick={() => { setStatus('OPEN'); setPage(1); }} />
+              <StatusTab label={t("Acknowledged")} active={status === 'ACKNOWLEDGED'} count={incidentStats.acknowledged} tone="warning" onClick={() => { setStatus('ACKNOWLEDGED'); setPage(1); }} />
+              <StatusTab label={t("Resolved")} active={status === 'RESOLVED'} count={incidentStats.resolved} tone="success" onClick={() => { setStatus('RESOLVED'); setPage(1); }} />
+              <StatusTab label={t("False Alarm")} active={status === 'FALSE_ALARM'} count={incidentStats.falseAlarm} onClick={() => { setStatus('FALSE_ALARM'); setPage(1); }} />
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <FilterField label="From" type="datetime-local" value={from} onChange={(value) => { setFrom(value); setPage(1); }} />
-              <FilterField label="To" type="datetime-local" value={to} onChange={(value) => { setTo(value); setPage(1); }} />
+              <FilterField label={t("From")} type="datetime-local" value={from} onChange={(value) => { setFrom(value); setPage(1); }} />
+              <FilterField label={t("To")} type="datetime-local" value={to} onChange={(value) => { setTo(value); setPage(1); }} />
               <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Queue size</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">{t("Queue size")}</p>
                 <p className="mt-2 font-display text-3xl font-semibold text-ink">{incidentsQuery.data?.total ?? 0}</p>
-                <p className="mt-2 text-sm leading-6 text-ink-soft">Rows matched by the current status and time filters.</p>
+                <p className="mt-2 text-sm leading-6 text-ink-soft">{t("Rows matched by the current status and time filters.")}</p>
               </div>
             </div>
           </div>
@@ -322,8 +324,8 @@ export default function IncidentsPage() {
             emptyState={
               <EmptyState
                 icon={<AlertCircle size={18} />}
-                title="No incidents in this queue"
-                description="Adjust the time filters or switch tabs to inspect other incident states."
+                title={t("No incidents in this queue")}
+                description={t("Adjust the time filters or switch tabs to inspect other incident states.")}
               />
             }
           />
@@ -340,10 +342,10 @@ export default function IncidentsPage() {
         open={!!selectedIncidentId}
         title={
           selectedIncident
-            ? `${selectedIncident.eventType ? formatEnumLabel(selectedIncident.eventType) : 'Incident'} Details`
-            : 'Incident detail'
+            ? `${selectedIncident.eventType ? t(formatEnumLabel(selectedIncident.eventType)) : t('Incident')} ${t('Details')}`
+            : t('Incident detail')
         }
-        description="Review timeline context, take the next workflow action, and manage evidence-pack output."
+        description={t("Review timeline context, take the next workflow action, and manage evidence-pack output.")}
         onClose={() => {
           setSelectedIncidentId(null);
           setPendingAction(null);
@@ -355,52 +357,52 @@ export default function IncidentsPage() {
         ) : !selectedIncident ? (
           <EmptyState
             icon={<AlertCircle size={18} />}
-            title="Incident detail unavailable"
-            description="This incident could not be loaded. Refresh the queue and try again."
+            title={t("Incident detail unavailable")}
+            description={t("This incident could not be loaded. Refresh the queue and try again.")}
           />
         ) : (
           <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-2">
-              <KeyMetric label="Status" value={<IncidentStatusBadge status={selectedIncident.status} />} />
-              <KeyMetric label="Created" value={<span>{formatTimestamp(selectedIncident.createdAt)}</span>} />
+              <KeyMetric label={t("Status")} value={<IncidentStatusBadge status={selectedIncident.status} />} />
+              <KeyMetric label={t("Created")} value={<span>{formatTimestamp(selectedIncident.createdAt)}</span>} />
               <KeyMetric
-                label="Bike"
-                value={<span>{selectedIncident.bikeId ? bikeLabelById.get(selectedIncident.bikeId) ?? maskIdentifier(selectedIncident.bikeId) : 'No bike linked'}</span>}
+                label={t("Bike")}
+                value={<span>{selectedIncident.bikeId ? bikeLabelById.get(selectedIncident.bikeId) ?? maskIdentifier(selectedIncident.bikeId) : t('No bike linked')}</span>}
               />
-              <KeyMetric label="Last updated" value={<span>{formatTimeAgo(selectedIncident.updatedAt)}</span>} />
+              <KeyMetric label={t("Last updated")} value={<span>{formatTimeAgo(selectedIncident.updatedAt)}</span>} />
             </section>
 
             {currentUser?.role !== 'INSURER' && (
-              <DashboardCard eyebrow="Actions" title="Primary workflow" description="Use notes for handoff context, then move the incident to its next operational state.">
+              <DashboardCard eyebrow={t("Actions")} title={t("Primary workflow")} description={t("Use notes for handoff context, then move the incident to its next operational state.")}>
                 <div className="space-y-4">
                   <label className="block text-sm font-medium text-ink">
-                    Notes
+                    {t("Notes")}
                     <textarea
                       value={notes}
                       onChange={(event) => setNotes(event.target.value)}
-                      placeholder="Optional resolution context, handoff details, or false-alarm reasoning."
+                      placeholder={t("Optional resolution context, handoff details, or false-alarm reasoning.")}
                       className="mt-2 min-h-28 w-full rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                     />
                   </label>
 
                   <div className="grid gap-3 sm:grid-cols-3">
                     <ActionCard
-                      label="Acknowledge"
-                      description="Claim the incident and remove it from the unowned queue."
+                      label={t("Acknowledge")}
+                      description={t("Claim the incident and remove it from the unowned queue.")}
                       disabled={selectedIncident.status !== 'OPEN' || isSubmittingAction}
                       tone="info"
                       onClick={() => setPendingAction('acknowledge')}
                     />
                     <ActionCard
-                      label="Resolve"
-                      description="Close the incident after the response workflow is complete."
+                      label={t("Resolve")}
+                      description={t("Close the incident after the response workflow is complete.")}
                       disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
                       tone="success"
                       onClick={() => setPendingAction('resolve')}
                     />
                     <ActionCard
-                      label="False Alarm"
-                      description="Close the incident as non-actionable without marking it resolved."
+                      label={t("False Alarm")}
+                      description={t("Close the incident as non-actionable without marking it resolved.")}
                       disabled={(selectedIncident.status !== 'OPEN' && selectedIncident.status !== 'ACKNOWLEDGED') || isSubmittingAction}
                       tone="warning"
                       onClick={() => setPendingAction('false-alarm')}
@@ -412,7 +414,7 @@ export default function IncidentsPage() {
               </DashboardCard>
             )}
 
-            <DashboardCard eyebrow="Evidence Pack" title="Crash artifacts" description="Generate a fresh evidence pack when the incident needs an exportable summary and telemetry window.">
+            <DashboardCard eyebrow={t("Evidence Pack")} title={t("Crash artifacts")} description={t("Generate a fresh evidence pack when the incident needs an exportable summary and telemetry window.")}>
               <div className="space-y-4">
                 <button
                   type="button"
@@ -423,10 +425,10 @@ export default function IncidentsPage() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-ink px-4 py-3 text-sm font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <FileArchive size={16} />
-                  {isGeneratingEvidence ? 'Generating evidence pack...' : 'Generate evidence pack'}
+                  {isGeneratingEvidence ? t('Generating evidence pack...') : t('Generate evidence pack')}
                 </button>
                 {!canGenerateEvidence ? (
-                  <InlineNotice message="Evidence packs are available on Operations Plus." />
+                  <InlineNotice message={t("Evidence packs are available on Operations Plus.")} />
                 ) : null}
 
                 {isGeneratingEvidence ? (
@@ -439,13 +441,13 @@ export default function IncidentsPage() {
                   <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-ink">Evidence pack ready</p>
+                        <p className="font-semibold text-ink">{t("Evidence pack ready")}</p>
                         <p className="mt-1 text-xs leading-5 text-ink-soft">
-                          Generated {formatTimeAgo(evidencePack.createdAt)} · expires in {Math.round(evidencePack.expiresInSeconds / 60)} min
+                          {t("Generated")} {formatTimeAgo(evidencePack.createdAt)} · {t("expires in")} {Math.round(evidencePack.expiresInSeconds / 60)} {t("min")}
                         </p>
                       </div>
                       <span className="rounded-full bg-success-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-success-ink">
-                        Fresh
+                        {t("Fresh")}
                       </span>
                     </div>
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -455,7 +457,7 @@ export default function IncidentsPage() {
                         rel="noreferrer"
                         className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                       >
-                        Download summary JSON
+                        {t("Download summary JSON")}
                       </a>
                       <a
                         href={evidencePack.telemetryCsvUrl}
@@ -463,21 +465,21 @@ export default function IncidentsPage() {
                         rel="noreferrer"
                         className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                       >
-                        Download telemetry CSV
+                        {t("Download telemetry CSV")}
                       </a>
                     </div>
                   </div>
                 ) : (
                   <EmptyState
                     icon={<FileArchive size={18} />}
-                    title="No evidence pack generated yet"
-                    description="Generate a pack to create short-lived links for the JSON summary and telemetry CSV window."
+                    title={t("No evidence pack generated yet")}
+                    description={t("Generate a pack to create short-lived links for the JSON summary and telemetry CSV window.")}
                   />
                 )}
               </div>
             </DashboardCard>
 
-            <DashboardCard eyebrow="Timeline" title="Incident context" description="Timeline rows blend the incident workflow with nearby bike events so dispatch can reconstruct what happened.">
+            <DashboardCard eyebrow={t("Timeline")} title={t("Incident context")} description={t("Timeline rows blend the incident workflow with nearby bike events so dispatch can reconstruct what happened.")}>
               {incidentTimelineEventsQuery.isLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-18 w-full rounded-[18px]" />
@@ -504,8 +506,8 @@ export default function IncidentsPage() {
               ) : (
                 <EmptyState
                   icon={<Clock3 size={18} />}
-                  title="No timeline events"
-                  description="This incident does not yet have nearby event context in the loaded time window."
+                  title={t("No timeline events")}
+                  description={t("This incident does not yet have nearby event context in the loaded time window.")}
                 />
               )}
             </DashboardCard>
@@ -515,9 +517,9 @@ export default function IncidentsPage() {
 
       <ConfirmModal
         open={!!pendingAction}
-        title={pendingAction ? actionTitle(pendingAction) : 'Confirm incident action'}
-        description={pendingAction ? actionDescription(pendingAction, selectedIncident) : ''}
-        confirmLabel={pendingAction ? actionConfirmLabel(pendingAction) : 'Confirm'}
+        title={pendingAction ? t(actionTitle(pendingAction)) : t('Confirm incident action')}
+        description={pendingAction ? actionDescription(pendingAction, selectedIncident, t) : ''}
+        confirmLabel={pendingAction ? t(actionConfirmLabel(pendingAction)) : t('Confirm')}
         tone={pendingAction === 'false-alarm' ? 'danger' : 'default'}
         isSubmitting={isSubmittingAction}
         onCancel={() => setPendingAction(null)}
@@ -646,6 +648,7 @@ function InlineNotice({ message }: { message: string }) {
 }
 
 function IncidentStatusBadge({ status }: { status: Incident['status'] }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -658,7 +661,7 @@ function IncidentStatusBadge({ status }: { status: Incident['status'] }) {
               : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
       }
     >
-      {formatEnumLabel(status)}
+      {t(status === 'FALSE_ALARM' ? 'False Alarm' : formatEnumLabel(status))}
     </span>
   );
 }
@@ -682,6 +685,7 @@ function buildIncidentTimeline(
   incident: Incident | null,
   events: FleetEvent[],
   bikeLabelById: Map<string, string>,
+  t: (key: string) => string,
 ) {
   if (!incident) {
     return [] as Array<{ id: string; ts: string; title: string; description?: string }>;
@@ -691,8 +695,8 @@ function buildIncidentTimeline(
     {
       id: `incident-created-${incident.id}`,
       ts: incident.createdAt,
-      title: 'Incident opened',
-      description: `Status ${formatEnumLabel(incident.status)}`,
+      title: t('Incident opened'),
+      description: `${t('Status')} ${t(formatEnumLabel(incident.status))}`,
     },
   ];
 
@@ -700,7 +704,7 @@ function buildIncidentTimeline(
     rows.push({
       id: `incident-ack-${incident.id}`,
       ts: incident.acknowledgedAt,
-      title: 'Incident acknowledged',
+      title: t('Incident acknowledged'),
       description: incident.notes ?? undefined,
     });
   }
@@ -709,7 +713,7 @@ function buildIncidentTimeline(
     rows.push({
       id: `incident-resolved-${incident.id}`,
       ts: incident.resolvedAt,
-      title: incident.status === 'FALSE_ALARM' ? 'Marked false alarm' : 'Incident resolved',
+      title: incident.status === 'FALSE_ALARM' ? t('Marked false alarm') : t('Incident resolved'),
       description: incident.notes ?? undefined,
     });
   }
@@ -718,9 +722,9 @@ function buildIncidentTimeline(
     rows.push({
       id: `event-${event.id}`,
       ts: event.ts,
-      title: `${formatEnumLabel(event.type)} (${event.severity})`,
+      title: `${t(formatEnumLabel(event.type))} (${t(event.severity)})`,
       description: event.bikeId
-        ? bikeLabelById.get(event.bikeId) ?? `Bike ${maskIdentifier(event.bikeId)}`
+        ? bikeLabelById.get(event.bikeId) ?? `${t('Bike')} ${maskIdentifier(event.bikeId)}`
         : undefined,
     });
   }
@@ -748,19 +752,19 @@ function actionConfirmLabel(action: IncidentAction) {
   return 'Confirm false alarm';
 }
 
-function actionDescription(action: IncidentAction, incident: Incident | null) {
+function actionDescription(action: IncidentAction, incident: Incident | null, t: (key: string) => string) {
   const incidentLabel = incident
     ? incident.eventType
-      ? `${formatEnumLabel(incident.eventType)} incident`
+      ? `${t(formatEnumLabel(incident.eventType))} ${t('incident')}`
       : maskIdentifier(incident.id)
-    : 'this incident';
+    : t('this incident');
   if (action === 'acknowledge') {
-    return `Move ${incidentLabel} into the acknowledged queue and assign ownership to the current operator.`;
+    return t('Move {incidentLabel} into the acknowledged queue and assign ownership to the current operator.').replace('{incidentLabel}', incidentLabel);
   }
   if (action === 'resolve') {
-    return `Close ${incidentLabel} as resolved. Add notes first if the response needs handoff context.`;
+    return t('Close {incidentLabel} as resolved. Add notes first if the response needs handoff context.').replace('{incidentLabel}', incidentLabel);
   }
-  return `Close ${incidentLabel} as a false alarm. Use notes to explain why dispatch dismissed it.`;
+  return t('Close {incidentLabel} as a false alarm. Use notes to explain why dispatch dismissed it.').replace('{incidentLabel}', incidentLabel);
 }
 
 function maskIdentifier(value: string | null | undefined) {

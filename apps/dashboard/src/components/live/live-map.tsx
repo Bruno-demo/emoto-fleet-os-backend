@@ -28,6 +28,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from '../i18n/LanguageProvider';
 import {
   CircleMarker,
   MapContainer,
@@ -101,6 +102,7 @@ type MapViewport = {
 };
 
 export function LiveMapPanel() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const { data: currentUser } = useCurrentUser();
   const { resolvedTheme } = useTheme();
@@ -255,8 +257,8 @@ export function LiveMapPanel() {
     (event) => event.severity === 'HIGH' || event.severity === 'CRITICAL',
   ).length;
 
-  const lockRule = evaluateLockRule(selectedState);
-  const unlockRule = evaluateUnlockRule(selectedState);
+  const lockRule = evaluateLockRule(selectedState, t);
+  const unlockRule = evaluateUnlockRule(selectedState, t);
 
   const mapCenter = useMemo<[number, number]>(() => {
     if (selectedState) {
@@ -333,7 +335,7 @@ export function LiveMapPanel() {
         return;
       }
 
-      const toast = buildGroupedEventToast(batch);
+      const toast = buildGroupedEventToast(batch, t);
       setToasts((currentToasts) => [toast, ...currentToasts].slice(0, 4));
 
       const dismissTimer = window.setTimeout(() => {
@@ -401,7 +403,7 @@ export function LiveMapPanel() {
         if (error instanceof ApiError) {
           setRequestError(error.message);
         } else {
-          setRequestError('Failed to send command');
+          setRequestError(t('Failed to send command'));
         }
       } finally {
         setIsSendingCommand(false);
@@ -429,8 +431,8 @@ export function LiveMapPanel() {
 
   return (
     <PageShell
-      title="Live Command Center"
-      description="Monitor active bikes, triage new alerts, and dispatch lock or unlock commands without leaving the realtime map surface."
+      title={t("Live Command Center")}
+      description={t("Monitor active bikes, triage new alerts, and dispatch lock or unlock commands without leaving the realtime map surface.")}
     >
       <ToastStack items={toasts} />
       <section className="relative w-full">
@@ -454,8 +456,8 @@ export function LiveMapPanel() {
                 <Layers size={16} />
               </div>
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-ink">Fleet Map</h2>
-                <p className="text-[11px] text-ink-muted">Real-time vehicle tracking</p>
+                <h2 className="text-sm font-bold tracking-tight text-ink">{t("Fleet Map")}</h2>
+                <p className="text-[11px] text-ink-muted">{t("Real-time vehicle tracking")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -475,16 +477,16 @@ export function LiveMapPanel() {
                     ? 'border-accent bg-accent/10 text-accent hover:bg-accent/20'
                     : 'border-line bg-surface-muted text-ink-muted hover:bg-surface-hover hover:text-ink',
                 )}
-                title={isFeedCollapsed ? 'Show triage feed' : 'Hide triage feed'}
+                title={isFeedCollapsed ? t('Show triage feed') : t('Hide triage feed')}
               >
                 <Radio size={13} />
-                <span>{isFeedCollapsed ? 'Show Feed' : 'Hide Feed'}</span>
+                <span>{isFeedCollapsed ? t('Show Feed') : t('Hide Feed')}</span>
               </button>
               <button
                 type="button"
                 onClick={toggleFullscreen}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface-muted text-ink-muted transition hover:bg-surface-hover hover:text-ink"
-                title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand map'}
+                title={isFullscreen ? t('Exit fullscreen (Esc)') : t('Expand map')}
               >
                 {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
               </button>
@@ -572,7 +574,7 @@ export function LiveMapPanel() {
                 <div className="absolute top-4 left-16 z-[500] pointer-events-auto">
                   <div className="flex items-center gap-3 rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 shadow-sm backdrop-blur-md">
                     <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted flex items-center gap-1.5 border-r border-line pr-2.5">
-                      <Layers size={12} className="text-accent" /> Layers
+                      <Layers size={12} className="text-accent" /> {t("Layers")}
                     </span>
                     
                     {/* Map Style Selector Buttons */}
@@ -587,7 +589,7 @@ export function LiveMapPanel() {
                             : 'text-ink-soft hover:text-ink hover:bg-surface-hover'
                         )}
                       >
-                        Map
+                        {t("Map")}
                       </button>
                       <button
                         type="button"
@@ -599,7 +601,7 @@ export function LiveMapPanel() {
                             : 'text-ink-soft hover:text-ink hover:bg-surface-hover'
                         )}
                       >
-                        Satellite
+                        {t("Satellite")}
                       </button>
                       <button
                         type="button"
@@ -611,7 +613,7 @@ export function LiveMapPanel() {
                             : 'text-ink-soft hover:text-ink hover:bg-surface-hover'
                         )}
                       >
-                        Hybrid
+                        {t("Hybrid")}
                       </button>
                     </div>
 
@@ -622,7 +624,7 @@ export function LiveMapPanel() {
                         onChange={(e) => setShowHelpPoints(e.target.checked)}
                         className="h-3.5 w-3.5 rounded border-line bg-surface-strong text-accent focus:ring-accent"
                       />
-                      <span>Help Points</span>
+                      <span>{t("Help Points")}</span>
                     </label>
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink hover:text-white transition-colors">
                       <input
@@ -631,7 +633,7 @@ export function LiveMapPanel() {
                         onChange={(e) => setShowRoadFeatures(e.target.checked)}
                         className="h-3.5 w-3.5 rounded border-line bg-surface-strong text-accent focus:ring-accent"
                       />
-                      <span>Road Context</span>
+                      <span>{t("Road Context")}</span>
                     </label>
                   </div>
                 </div>
@@ -650,7 +652,7 @@ export function LiveMapPanel() {
                 {isFullscreen && (
                   <div className="absolute left-4 top-20 z-[500]">
                     <div className="rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 text-[11px] font-semibold text-ink-muted shadow-sm backdrop-blur-md">
-                      Press <kbd className="mx-1 rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-ink-soft">Esc</kbd> to exit
+                      {t("Press")} <kbd className="mx-1 rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-ink-soft">Esc</kbd> {t("to exit")}
                     </div>
                   </div>
                 )}
@@ -668,14 +670,14 @@ export function LiveMapPanel() {
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-line pb-3 mb-3 shrink-0">
                       <div>
-                        <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Triage Feed</h4>
-                        <h3 className="font-display text-sm font-bold text-ink mt-0.5">Live queue</h3>
+                        <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">{t("Triage Feed")}</h4>
+                        <h3 className="font-display text-sm font-bold text-ink mt-0.5">{t("Live queue")}</h3>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsFeedCollapsed(true)}
                         className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-ink-faint hover:bg-surface-hover hover:text-ink transition-colors"
-                        title="Hide feed"
+                        title={t("Hide feed")}
                       >
                         <X size={12} />
                       </button>
@@ -686,13 +688,13 @@ export function LiveMapPanel() {
                       <section>
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <h3 className="font-display text-sm font-bold text-ink">Recent alerts</h3>
+                            <h3 className="font-display text-sm font-bold text-ink">{t("Recent alerts")}</h3>
                             <p className="mt-0.5 text-xs text-ink-soft">
-                              Click an alert to open bike context.
+                              {t("Click an alert to open bike context.")}
                             </p>
                           </div>
                           <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                            Realtime
+                            {t("Realtime")}
                           </span>
                         </div>
 
@@ -710,9 +712,9 @@ export function LiveMapPanel() {
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-xs font-bold text-ink truncate">{formatEnumLabel(event.type)}</p>
+                                      <p className="text-xs font-bold text-ink truncate">{t(formatEnumLabel(event.type))}</p>
                                       <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
-                                        {linkedBike?.label ?? maskIdentifier(event.bikeId) ?? 'Fleet event'}
+                                        {linkedBike?.label ?? maskIdentifier(event.bikeId) ?? t('Fleet event')}
                                         {' · '}
                                         {formatTimeAgo(event.ts)}
                                       </p>
@@ -730,8 +732,8 @@ export function LiveMapPanel() {
                           ) : (
                             <InlineEmptyCard
                               icon={<AlertTriangle size={14} />}
-                              title="No recent alerts"
-                              description="New events will appear here as they arrive."
+                              title={t("No recent alerts")}
+                              description={t("New events will appear here as they arrive.")}
                             />
                           )}
                         </div>
@@ -740,13 +742,13 @@ export function LiveMapPanel() {
                       <section>
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <h3 className="font-display text-sm font-bold text-ink">Command stream</h3>
+                            <h3 className="font-display text-sm font-bold text-ink">{t("Command stream")}</h3>
                             <p className="mt-0.5 text-xs text-ink-soft">
-                              Recent locks/unlocks across the fleet.
+                              {t("Recent locks/unlocks across the fleet.")}
                             </p>
                           </div>
                           <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                            Last {Math.min(commandStream.length, 6)}
+                            {t("Last")} {Math.min(commandStream.length, 6)}
                           </span>
                         </div>
 
@@ -759,9 +761,9 @@ export function LiveMapPanel() {
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-bold text-ink truncate">{status.action ?? 'Command'}</p>
+                                    <p className="text-xs font-bold text-ink truncate">{status.action ?? t('Command')}</p>
                                     <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
-                                      {maskIdentifier(status.bikeId) || 'Fleet command'} {' · '}
+                                      {maskIdentifier(status.bikeId) || t('Fleet command')} {' · '}
                                       {formatTimeAgo(status.ts)}
                                     </p>
                                   </div>
@@ -775,8 +777,8 @@ export function LiveMapPanel() {
                           ) : (
                             <InlineEmptyCard
                               icon={<Lock size={14} />}
-                              title="No activity yet"
-                              description="Command updates will appear here."
+                              title={t("No activity yet")}
+                              description={t("Command updates will appear here.")}
                             />
                           )}
                         </ul>
@@ -798,8 +800,8 @@ export function LiveMapPanel() {
 
       <Drawer
         open={!!selectedBikeId}
-        title={selectedBike?.label ?? 'Bike detail'}
-        description="Live bike context, rider assignment, recent events, and safe command controls."
+        title={selectedBike?.label ?? t('Bike detail')}
+        description={t("Live bike context, rider assignment, recent events, and safe command controls.")}
         onClose={() => {
           setSelectedBikeId(null);
           setDrawerDismissed(true);
@@ -812,47 +814,47 @@ export function LiveMapPanel() {
         ) : !selectedBike && !selectedState ? (
           <EmptyState
             icon={<Bike size={18} />}
-            title="Bike context unavailable"
-            description="This bike is no longer present in the loaded map or live-state cache."
+            title={t("Bike context unavailable")}
+            description={t("This bike is no longer present in the loaded map or live-state cache.")}
           />
         ) : (
           <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-2">
               <KeyMetric
-                label="Current speed"
-                value={selectedState ? `${selectedState.speedKph.toFixed(1)} kph` : '--'}
+                label={t("Current speed")}
+                value={selectedState ? `${selectedState.speedKph.toFixed(1)} ${t('kph')}` : '--'}
               />
               <KeyMetric
-                label="Battery"
+                label={t("Battery")}
                 value={selectedState?.batteryV !== undefined ? `${selectedState.batteryV.toFixed(1)} V` : '--'}
               />
               <KeyMetric
-                label="Last seen"
-                value={selectedState ? formatTimeAgo(selectedState.ts) : 'No live state'}
+                label={t("Last seen")}
+                value={selectedState ? formatTimeAgo(selectedState.ts) : t('No live state')}
               />
               <KeyMetric
-                label="Ignition"
+                label={t("Ignition")}
                 value={
                   selectedState?.ignition === undefined
                     ? '--'
                     : selectedState.ignition
-                      ? 'On'
-                      : 'Off'
+                      ? t('On')
+                      : t('Off')
                 }
               />
               <KeyMetric
-                label="Assigned rider"
+                label={t("Assigned rider")}
                 value={
                   selectedAssignment?.riderFullName ??
-                  (assignmentsEnabled ? 'Unassigned' : 'Access limited')
+                  (assignmentsEnabled ? t('Unassigned') : t('Access limited'))
                 }
               />
             </section>
 
             <DashboardCard
-              eyebrow="Control"
-              title="Bike actions"
-              description="The UI mirrors backend safety rules before a command is sent."
+              eyebrow={t("Control")}
+              title={t("Bike actions")}
+              description={t("The UI mirrors backend safety rules before a command is sent.")}
               actions={
                 <button
                   type="button"
@@ -861,22 +863,22 @@ export function LiveMapPanel() {
                   className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Crosshair size={16} />
-                  Center on map
+                  {t("Center on map")}
                 </button>
               }
             >
               <div className="space-y-3">
                 <ActionButton
                   icon={<Lock size={16} />}
-                  label={isSendingCommand && commandIntent === 'LOCK' ? 'Sending lock...' : 'Lock bike'}
+                  label={isSendingCommand && commandIntent === 'LOCK' ? t('Sending lock...') : t('Lock bike')}
                   tone="danger"
                   disabled={!canSendCommands || !lockRule.allowed || isSendingCommand}
                   onClick={() => setCommandIntent('LOCK')}
                 />
                 {!commandFeatureEnabled ? (
-                  <ActionNotice message="Remote lock and unlock controls are available on Operations Plus." tone="warning" />
+                  <ActionNotice message={t("Remote lock and unlock controls are available on Operations Plus.")} tone="warning" />
                 ) : !canSendCommands ? (
-                  <ActionNotice message="Your role cannot send device commands." tone="warning" />
+                  <ActionNotice message={t("Your role cannot send device commands.")} tone="warning" />
                 ) : !lockRule.allowed && lockRule.reason ? (
                   <ActionNotice message={lockRule.reason} tone="warning" />
                 ) : null}
@@ -885,8 +887,8 @@ export function LiveMapPanel() {
                   icon={<Unlock size={16} />}
                   label={
                     isSendingCommand && commandIntent === 'UNLOCK'
-                      ? 'Sending unlock...'
-                      : 'Unlock bike'
+                      ? t('Sending unlock...')
+                      : t('Unlock bike')
                   }
                   tone="default"
                   disabled={!canSendCommands || !unlockRule.allowed || isSendingCommand}
@@ -901,9 +903,9 @@ export function LiveMapPanel() {
             </DashboardCard>
 
             <DashboardCard
-              eyebrow="Bike Feed"
-              title="Last 5 events"
-              description="Recent alerts and scoring events tied to this bike."
+              eyebrow={t("Bike Feed")}
+              title={t("Last 5 events")}
+              description={t("Recent alerts and scoring events tied to this bike.")}
             >
               {selectedBikeEventsQuery.isLoading ? (
                 <div className="space-y-2">
@@ -919,7 +921,7 @@ export function LiveMapPanel() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-ink">{formatEnumLabel(event.type)}</p>
+                          <p className="font-semibold text-ink">{t(formatEnumLabel(event.type))}</p>
                           <p className="mt-1 text-xs leading-5 text-ink-soft">
                             {formatTimestamp(event.ts)}
                           </p>
@@ -932,16 +934,16 @@ export function LiveMapPanel() {
               ) : (
                 <EmptyState
                   icon={<ShieldAlert size={18} />}
-                  title="No recent bike events"
-                  description="This bike has no recent alerts in the current backend event window."
+                  title={t("No recent bike events")}
+                  description={t("This bike has no recent alerts in the current backend event window.")}
                 />
               )}
             </DashboardCard>
 
             <DashboardCard
-              eyebrow="Acknowledgements"
-              title="Command history"
-              description="Recent command status transitions for the selected bike."
+              eyebrow={t("Acknowledgements")}
+              title={t("Command history")}
+              description={t("Recent command status transitions for the selected bike.")}
             >
               {selectedCommandStream.length ? (
                 <ul className="space-y-2">
@@ -952,7 +954,7 @@ export function LiveMapPanel() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-ink">{status.action ?? 'Command'}</p>
+                          <p className="font-semibold text-ink">{status.action ?? t('Command')}</p>
                           <p className="mt-1 text-xs leading-5 text-ink-soft">
                             {formatTimeAgo(status.ts)}
                           </p>
@@ -968,8 +970,8 @@ export function LiveMapPanel() {
               ) : (
                 <InlineEmptyCard
                   icon={<Radio size={16} />}
-                  title="No bike-specific commands yet"
-                  description="Command acknowledgements for this bike will appear after the first lock or unlock request."
+                  title={t("No bike-specific commands yet")}
+                  description={t("Command acknowledgements for this bike will appear after the first lock or unlock request.")}
                 />
               )}
             </DashboardCard>
@@ -979,13 +981,13 @@ export function LiveMapPanel() {
 
       <ConfirmModal
         open={!!commandIntent}
-        title={commandIntent === 'LOCK' ? 'Confirm bike lock' : 'Confirm bike unlock'}
+        title={commandIntent === 'LOCK' ? t('Confirm bike lock') : t('Confirm bike unlock')}
         description={
           commandIntent === 'LOCK'
-            ? `Lock ${selectedBikeLabel}? The bike must be stopped for 15 seconds and have a fresh live state.`
-            : `Unlock ${selectedBikeLabel}? This will dispatch an unlock request to the assigned device.`
+            ? t("Lock {label}? The bike must be stopped for 15 seconds and have a fresh live state.").replace('{label}', selectedBikeLabel || '')
+            : t("Unlock {label}? This will dispatch an unlock request to the assigned device.").replace('{label}', selectedBikeLabel || '')
         }
-        confirmLabel={commandIntent === 'LOCK' ? 'Send lock request' : 'Send unlock request'}
+        confirmLabel={commandIntent === 'LOCK' ? t('Send lock request') : t('Send unlock request')}
         tone={commandIntent === 'LOCK' ? 'danger' : 'default'}
         isSubmitting={isSendingCommand}
         onCancel={() => setCommandIntent(null)}
@@ -1016,6 +1018,7 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
   selected: boolean;
   onSelect: (bikeId: string, shouldCenter?: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const icon = useMemo(
     () =>
       createBikeMarkerIcon({
@@ -1039,8 +1042,8 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
       <Popup>
         <div className="space-y-1">
           <p className="font-semibold text-ink">{label}</p>
-          <p className="text-sm text-ink-soft">Speed {state.speedKph.toFixed(1)} kph</p>
-          <p className="text-sm text-ink-soft">Last seen {formatTimestamp(state.ts)}</p>
+          <p className="text-sm text-ink-soft">{t("Speed")} {state.speedKph.toFixed(1)} {t("kph")}</p>
+          <p className="text-sm text-ink-soft">{t("Last seen")} {formatTimestamp(state.ts)}</p>
         </div>
       </Popup>
     </Marker>
@@ -1083,13 +1086,14 @@ function MapSizeController() {
 // Custom zoom controls rendered inside the MapContainer so useMap() works.
 function MapZoomControls() {
   const map = useMap();
+  const { t } = useTranslation();
   return (
     <div className="absolute left-4 top-4 z-[1000] flex flex-col gap-1">
       <button
         type="button"
         onClick={() => map.zoomIn()}
         className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-[var(--background-strong)]/90 text-ink-soft shadow-sm backdrop-blur-md transition hover:bg-surface-hover hover:text-ink"
-        aria-label="Zoom in"
+        aria-label={t("Zoom in")}
       >
         <span className="text-base font-bold leading-none">+</span>
       </button>
@@ -1097,7 +1101,7 @@ function MapZoomControls() {
         type="button"
         onClick={() => map.zoomOut()}
         className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-[var(--background-strong)]/90 text-ink-soft shadow-sm backdrop-blur-md transition hover:bg-surface-hover hover:text-ink"
-        aria-label="Zoom out"
+        aria-label={t("Zoom out")}
       >
         <span className="text-base font-bold leading-none">−</span>
       </button>
@@ -1154,6 +1158,7 @@ function MapBoundsTracker({
 
 // Renders road and safety features with lightweight markers.
 function RoadFeatureLayer({ features }: { features: RoadFeature[] }) {
+  const { t } = useTranslation();
   if (!features.length) {
     return null;
   }
@@ -1176,12 +1181,12 @@ function RoadFeatureLayer({ features }: { features: RoadFeature[] }) {
           >
             <Popup>
               <div className="space-y-1">
-                <p className="font-semibold text-ink">{style.label}</p>
+                <p className="font-semibold text-ink">{t(style.label)}</p>
                 {feature.name ? (
                   <p className="text-sm text-ink-soft">{feature.name}</p>
                 ) : null}
                 {feature.speedLimitKph ? (
-                  <p className="text-sm text-ink-soft">Limit {feature.speedLimitKph} kph</p>
+                  <p className="text-sm text-ink-soft">{t("Limit")} {feature.speedLimitKph} {t("kph")}</p>
                 ) : null}
               </div>
             </Popup>
@@ -1200,10 +1205,11 @@ function RoadLegend({
   zoom: number;
   featureCount: number;
 }) {
+  const { t } = useTranslation();
   if (zoom < ROAD_LAYER_MIN_ZOOM) {
     return (
       <div className="rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-2 text-xs font-semibold text-ink-muted shadow-sm backdrop-blur-md">
-        Zoom in to view road safety layers.
+        {t("Zoom in to view road safety layers.")}
       </div>
     );
   }
@@ -1212,16 +1218,16 @@ function RoadLegend({
     <div className="max-w-[240px] rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-2 text-xs text-ink-soft shadow-sm backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-          Road context
+          {t("Road context")}
         </span>
-        <span className="text-[11px] font-semibold text-ink">{featureCount} points</span>
+        <span className="text-[11px] font-semibold text-ink">{featureCount} {t("points")}</span>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-ink-soft">
-        <LegendItem label="School" tone="school" />
-        <LegendItem label="Hospital" tone="hospital" />
-        <LegendItem label="Market" tone="market" />
-        <LegendItem label="Signs" tone="sign" />
-        <LegendItem label="Speed limit" tone="speed" />
+        <LegendItem label={t("School")} tone="school" />
+        <LegendItem label={t("Hospital")} tone="hospital" />
+        <LegendItem label={t("Market")} tone="market" />
+        <LegendItem label={t("Signs")} tone="sign" />
+        <LegendItem label={t("Speed limit")} tone="speed" />
       </div>
     </div>
   );
@@ -1312,11 +1318,12 @@ function MapStatusBar({
   centerDisabled: boolean;
   onCenter: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <MapChip label={`${onlineCount} online`} tone="success" />
-      <MapChip label={`${movingCount} moving`} tone="info" />
-      <MapChip label={`${highPriorityCount} alerts`} tone="danger" />
+      <MapChip label={`${onlineCount} ${t('online')}`} tone="success" />
+      <MapChip label={`${movingCount} ${t('moving')}`} tone="info" />
+      <MapChip label={`${highPriorityCount} ${t('alerts')}`} tone="danger" />
       <button
         type="button"
         onClick={onCenter}
@@ -1324,7 +1331,7 @@ function MapStatusBar({
         className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Crosshair size={13} />
-        Center
+        {t("Center")}
       </button>
     </div>
   );
@@ -1353,14 +1360,15 @@ function InlineEmptyCard({
 
 // Renders a small banner for when no live bike telemetry is available.
 function MapEmptyBanner() {
+  const { t } = useTranslation();
   return (
     <div className="pointer-events-auto w-full max-w-lg rounded-xl border border-line bg-[var(--background-strong)]/90 px-4 py-3 text-center shadow-sm backdrop-blur-md">
       <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
         <Bike size={16} />
       </div>
-      <p className="mt-2 text-sm font-semibold text-ink">No live bike states yet</p>
+      <p className="mt-2 text-sm font-semibold text-ink">{t("No live bike states yet")}</p>
       <p className="mt-1 text-xs leading-5 text-ink-muted">
-        The basemap is ready. Bike markers appear as soon as telemetry updates arrive.
+        {t("The basemap is ready. Bike markers appear as soon as telemetry updates arrive.")}
       </p>
     </div>
   );
@@ -1388,6 +1396,7 @@ function ActionNotice({
 }
 
 function SeverityBadge({ severity }: { severity: FleetEvent['severity'] }) {
+  const { t } = useTranslation();
   return (
     <span
       className={cx(
@@ -1401,7 +1410,7 @@ function SeverityBadge({ severity }: { severity: FleetEvent['severity'] }) {
               : 'bg-low-soft text-low-ink',
       )}
     >
-      {severity}
+      {severity ? t(severity) : ''}
     </span>
   );
 }
@@ -1434,6 +1443,7 @@ function LegendItem({
 }
 
 function CommandBadge({ status }: { status: CommandStatusEvent['status'] }) {
+  const { t } = useTranslation();
   return (
     <span
       className={cx(
@@ -1445,7 +1455,7 @@ function CommandBadge({ status }: { status: CommandStatusEvent['status'] }) {
             : 'bg-accent-soft text-accent',
       )}
     >
-      {formatEnumLabel(status)}
+      {status ? t(formatEnumLabel(status)) : ''}
     </span>
   );
 }
@@ -1511,7 +1521,7 @@ function useThrottledValue<T>(value: T, delayMs: number) {
 }
 
 // Builds a grouped toast summary from a burst of realtime events.
-function buildGroupedEventToast(events: FleetEvent[]): ToastItem {
+function buildGroupedEventToast(events: FleetEvent[], t: (key: string) => string): ToastItem {
   const sortedEvents = [...events].sort((left, right) => right.ts.localeCompare(left.ts));
   const latestEvent = sortedEvents[0];
   const labels = Array.from(
@@ -1523,49 +1533,51 @@ function buildGroupedEventToast(events: FleetEvent[]): ToastItem {
     id: `toast-${latestEvent.id}-${latestEvent.ts}`,
     title:
       sortedEvents.length > 1
-        ? `${sortedEvents.length} new live alerts`
-        : `${formatEnumLabel(latestEvent.type)} detected`,
+        ? t("{count} new live alerts").replace("{count}", sortedEvents.length.toString())
+        : t("{type} detected").replace("{type}", t(formatEnumLabel(latestEvent.type))),
     message:
       sortedEvents.length > 1
-        ? `${labels.join(', ')}${sortedEvents.length > labels.length ? ', and more' : ''}`
-        : `${latestEvent.severity} severity at ${new Date(latestEvent.ts).toLocaleTimeString()}`,
+        ? `${labels.map(l => t(l)).join(', ')}${sortedEvents.length > labels.length ? t(", and more") : ''}`
+        : t("{severity} severity at {time}")
+            .replace("{severity}", t(latestEvent.severity))
+            .replace("{time}", new Date(latestEvent.ts).toLocaleTimeString()),
     tone: criticalPresent ? 'danger' : 'warning',
     count: sortedEvents.length,
   };
 }
 
 // Mirrors backend command freshness checks so disabled actions explain themselves.
-function evaluateUnlockRule(state: LiveBikeState | null) {
+function evaluateUnlockRule(state: LiveBikeState | null, t: (key: string) => string) {
   if (!state) {
-    return { allowed: false, reason: 'No live state available for this bike.' };
+    return { allowed: false, reason: t('No live state available for this bike.') };
   }
 
   const ageMs = Date.now() - Date.parse(state.ts);
   if (ageMs > 30_000) {
-    return { allowed: false, reason: 'No recent live state under 30 seconds.' };
+    return { allowed: false, reason: t('No recent live state under 30 seconds.') };
   }
 
   return { allowed: true, reason: null };
 }
 
 // Mirrors backend lock safety rules so the UI can explain why locking is currently blocked.
-function evaluateLockRule(state: LiveBikeState | null) {
-  const unlockRule = evaluateUnlockRule(state);
+function evaluateLockRule(state: LiveBikeState | null, t: (key: string) => string) {
+  const unlockRule = evaluateUnlockRule(state, t);
   if (!unlockRule.allowed) {
     return unlockRule;
   }
 
   if (!state) {
-    return { allowed: false, reason: 'No live state available for this bike.' };
+    return { allowed: false, reason: t('No live state available for this bike.') };
   }
 
   if (Math.abs(state.speedKph) > 0.01) {
-    return { allowed: false, reason: 'Bike must be stopped for 15s before locking.' };
+    return { allowed: false, reason: t('Bike must be stopped for 15s before locking.') };
   }
 
   const stationaryMs = Date.now() - Date.parse(state.ts);
   if (stationaryMs < 15_000) {
-    return { allowed: false, reason: 'Bike must be stopped for 15s before locking.' };
+    return { allowed: false, reason: t('Bike must be stopped for 15s before locking.') };
   }
 
   return { allowed: true, reason: null };
@@ -1691,6 +1703,7 @@ function getRoadFeatureStyle(feature: RoadFeature): {
 
 // Renders a Point of Interest (POI) marker with a premium dark-themed popup.
 const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
+  const { t } = useTranslation();
   const icon = useMemo(() => createPoiMarkerIcon(poi.type), [poi.type]);
 
   const typeColor = (t: string) => {
@@ -1712,13 +1725,13 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
           </div>
           {poi.address && (
             <div className="text-xs text-ink-soft">
-              <span className="block font-medium text-ink-muted uppercase tracking-wider text-[9px] mb-0.5">Address</span>
+              <span className="block font-medium text-ink-muted uppercase tracking-wider text-[9px] mb-0.5">{t("Address")}</span>
               <p className="leading-normal">{poi.address}</p>
             </div>
           )}
           {poi.phone && (
             <div className="text-xs">
-              <span className="block font-medium text-ink-muted uppercase tracking-wider text-[9px] mb-0.5">Contact</span>
+              <span className="block font-medium text-ink-muted uppercase tracking-wider text-[9px] mb-0.5">{t("Contact")}</span>
               <a href={`tel:${poi.phone}`} className="inline-flex items-center gap-1 text-accent hover:underline font-semibold">
                 <Phone size={10} />
                 {poi.phone}
@@ -1726,8 +1739,8 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
             </div>
           )}
           <div className="text-[10px] text-ink-muted font-mono pt-0.5 flex justify-between border-t border-line">
-            <span>Lat: {poi.lat.toFixed(5)}</span>
-            <span>Lng: {poi.lng.toFixed(5)}</span>
+            <span>{t("Lat:")} {poi.lat.toFixed(5)}</span>
+            <span>{t("Lng:")} {poi.lng.toFixed(5)}</span>
           </div>
         </div>
       </Popup>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { useRealtime } from '@/components/realtime/realtime-provider';
 import { Badge } from '@/components/ui/badge';
 import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
@@ -54,6 +55,7 @@ type CommandIntent = 'LOCK' | 'UNLOCK';
 const RWANDAN_INSURERS = ['Radiant', 'Prime', 'Sanlam', 'Sonarwa', 'Britam', 'Mayfair', 'Cogear', 'Phoenix'];
 
 export default function BikesPage() {
+  const { t } = useTranslation();
   const { data: currentUser } = useCurrentUser();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -90,7 +92,7 @@ export default function BikesPage() {
 
   const handleCreateBike = async () => {
     if (!createBikeForm.label.trim()) {
-      setCreateBikeError('Label is required');
+      setCreateBikeError(t('Label is required'));
       return;
     }
     setCreateBikeError(null);
@@ -115,7 +117,7 @@ export default function BikesPage() {
       if (error instanceof ApiError) {
         setCreateBikeError(error.message);
       } else {
-        setCreateBikeError('Failed to create bike');
+        setCreateBikeError(t('Failed to create bike'));
       }
     } finally {
       setIsCreatingBike(false);
@@ -125,7 +127,7 @@ export default function BikesPage() {
   const handleEditBike = async () => {
     if (!selectedBikeId || selectedBikeId === 'null') return;
     if (!editBikeForm.label.trim()) {
-      setEditBikeError('Label is required');
+      setEditBikeError(t('Label is required'));
       return;
     }
     setEditBikeError(null);
@@ -150,7 +152,7 @@ export default function BikesPage() {
       if (error instanceof ApiError) {
         setEditBikeError(error.message);
       } else {
-        setEditBikeError('Failed to update bike');
+        setEditBikeError(t('Failed to update bike'));
       }
     } finally {
       setIsUpdatingBike(false);
@@ -172,7 +174,7 @@ export default function BikesPage() {
       if (error instanceof ApiError) {
         setDeleteBikeError(error.message);
       } else {
-        setDeleteBikeError('Failed to delete bike');
+        setDeleteBikeError(t('Failed to delete bike'));
       }
     } finally {
       setIsDeletingBike(false);
@@ -223,7 +225,7 @@ export default function BikesPage() {
       setAssignRiderId('');
     } catch (error: unknown) {
       if (error instanceof ApiError) setAssignRiderError(error.message);
-      else setAssignRiderError('Failed to assign rider');
+      else setAssignRiderError(t('Failed to assign rider'));
     } finally {
       setIsAssigningRider(false);
     }
@@ -244,7 +246,7 @@ export default function BikesPage() {
       setAssignInsurerName('');
     } catch (error: unknown) {
       if (error instanceof ApiError) setAssignInsurerError(error.message);
-      else setAssignInsurerError('Failed to assign insurer');
+      else setAssignInsurerError(t('Failed to assign insurer'));
     } finally {
       setIsAssigningInsurer(false);
     }
@@ -391,7 +393,7 @@ export default function BikesPage() {
       if (error instanceof ApiError) {
         setCommandError(error.message);
       } else {
-        setCommandError('Command request failed');
+        setCommandError(t('Command request failed'));
       }
     } finally {
       setIsSendingCommand(false);
@@ -436,7 +438,7 @@ export default function BikesPage() {
   const columns = useMemo<Array<DataTableColumn<FleetBike>>>(
     () => [
       {
-        header: 'Bike',
+        header: t('Bike'),
         render: (bike) => {
           const lockStatus = getBikeLockStatus(bike.id);
           return (
@@ -446,25 +448,25 @@ export default function BikesPage() {
                 {lockStatus === 'LOCKED' && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[10px] font-semibold text-danger-ink border border-danger-ink/10 shadow-sm animate-pulse">
                     <Lock size={10} className="text-danger-ink" />
-                    Locked
+                    {t('Locked')}
                   </span>
                 )}
                 {lockStatus === 'LOCKING' && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning-ink border border-warning-ink/10 shadow-sm animate-pulse">
                     <Lock size={10} className="text-warning-ink animate-bounce" />
-                    Locking
+                    {t('Locking')}
                   </span>
                 )}
                 {lockStatus === 'UNLOCKING' && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent border border-accent/10 shadow-sm animate-pulse">
                     <Unlock size={10} className="text-accent animate-bounce" />
-                    Unlocking
+                    {t('Unlocking')}
                   </span>
                 )}
                 {lockStatus === 'UNLOCKED' && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success-ink border border-success-ink/10 shadow-sm">
                     <Unlock size={10} className="text-success-ink" />
-                    Unlocked
+                    {t('Unlocked')}
                   </span>
                 )}
               </div>
@@ -476,19 +478,19 @@ export default function BikesPage() {
         },
       },
       {
-        header: 'Status',
+        header: t('Status'),
         render: (bike) => <BikeStatusBadge status={bike.status} />,
       },
       {
-        header: 'Device',
+        header: t('Device'),
         render: (bike) => (
           <span className="text-sm text-ink-soft">
-            {deviceByBikeId.get(bike.id)?.deviceUid ?? 'Unassigned'}
+            {deviceByBikeId.get(bike.id)?.deviceUid ?? t('Unassigned')}
           </span>
         ),
       },
       {
-        header: 'Insurer',
+        header: t('Insurer'),
         render: (bike) => (
           <span className="text-sm text-ink-soft">
             {bike.insurerName ?? '—'}
@@ -496,15 +498,15 @@ export default function BikesPage() {
         ),
       },
       {
-        header: 'Rider',
+        header: t('Rider'),
         render: (bike) => (
           <span className="text-sm text-ink-soft">
-            {assignmentByBikeId.get(bike.id)?.riderFullName ?? 'Unassigned'}
+            {assignmentByBikeId.get(bike.id)?.riderFullName ?? t('Unassigned')}
           </span>
         ),
       },
       {
-        header: 'Action',
+        header: t('Action'),
         className: 'text-right',
         cellClassName: 'text-right',
         render: (bike) => (
@@ -513,12 +515,12 @@ export default function BikesPage() {
             className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30"
             onClick={() => setSelectedBikeId(bike.id)}
           >
-            View detail
+            {t('View detail')}
           </button>
         ),
       },
     ],
-    [assignmentByBikeId, deviceByBikeId, getBikeLockStatus],
+    [assignmentByBikeId, deviceByBikeId, getBikeLockStatus, t],
   );
 
   return (
@@ -532,51 +534,51 @@ export default function BikesPage() {
             style={{ background: '#3B82F6', color: 'white' }}
           >
             <Plus size={16} strokeWidth={3} />
-            Add Bike
+            {t('Add Bike')}
           </button>
         </div>
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title="Fleet Bikes"
+          title={t('Fleet Bikes')}
           value={String(bikesQuery.data?.total ?? 0)}
-          hint="Total registered bikes in the current fleet scope."
+          hint={t('Total registered bikes in the current fleet scope.')}
           icon={<Bike size={18} />}
           tone="info"
         />
         <MetricCard
-          title="Assigned Devices"
+          title={t('Assigned Devices')}
           value={String(totalAssignedDevices)}
-          hint="Bikes currently paired to an active telemetry device."
+          hint={t('Bikes currently paired to an active telemetry device.')}
           icon={<Cpu size={18} />}
           tone="success"
         />
         <MetricCard
-          title="Assigned Riders"
+          title={t('Assigned Riders')}
           value={String(totalAssignedRiders)}
-          hint="Bikes with an active rider assignment."
+          hint={t('Bikes with an active rider assignment.')}
           icon={<UserRound size={18} />}
           tone="info"
         />
         <MetricCard
-          title="Maintenance Queue"
+          title={t('Maintenance Queue')}
           value={String(maintenanceCount)}
-          hint="Bikes flagged for maintenance and unavailable for trips."
+          hint={t('Bikes flagged for maintenance and unavailable for trips.')}
           icon={<ShieldAlert size={18} />}
           tone="warning"
         />
       </section>
 
       <DashboardCard
-        eyebrow="Fleet Registry"
-        title="Bike inventory"
-        description="Search bike, rider, and device context from one standardized fleet registry."
+        eyebrow={t('Fleet Registry')}
+        title={t('Bike inventory')}
+        description={t('Search bike, rider, and device context from one standardized fleet registry.')}
       >
         <DataTableToolbar>
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-ink">Search</label>
+              <label className="text-sm font-medium text-ink">{t('Search')}</label>
               <div className="relative flex-1">
                 <Search
                   size={14}
@@ -584,7 +586,7 @@ export default function BikesPage() {
                 />
                 <input
                   type="text"
-                  placeholder="Search bike label, plate, model, serial, status, rider, device UID, or insurer..."
+                  placeholder={t('Search bike label, plate, model, serial, status, rider, device UID, or insurer...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 pl-10 pr-10 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
@@ -594,7 +596,7 @@ export default function BikesPage() {
                     type="button"
                     onClick={() => setSearchQuery('')}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
-                    aria-label="Clear search"
+                    aria-label={t('Clear search')}
                   >
                     <X size={14} />
                   </button>
@@ -603,13 +605,13 @@ export default function BikesPage() {
             </div>
             <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-                Visible bikes
+                {t('Visible bikes')}
               </p>
               <p className="mt-2 font-display text-3xl font-semibold text-ink">
                 {filteredBikes.length}
               </p>
               <p className="mt-2 text-sm leading-6 text-ink-soft">
-                Matching bikes on the current page.
+                {t('Matching bikes on the current page.')}
               </p>
             </div>
           </div>
@@ -624,8 +626,8 @@ export default function BikesPage() {
             emptyState={
               <EmptyState
                 icon={<Bike size={18} />}
-                title="No bikes match this search"
-                description="Adjust the query or page through the fleet registry to find another bike."
+                title={t('No bikes match this search')}
+                description={t('Adjust the query or page through the fleet registry to find another bike.')}
               />
             }
           />
@@ -640,8 +642,8 @@ export default function BikesPage() {
 
       <Drawer
         open={!!selectedBikeId}
-        title={activeBike?.label ?? 'Bike detail'}
-        description="Recent trips, recent events, and remote control history for the selected bike."
+        title={activeBike?.label ?? t('Bike detail')}
+        description={t('Recent trips, recent events, and remote control history for the selected bike.')}
         onClose={() => {
           setSelectedBikeId(null);
           setCommandIntent(null);
@@ -653,8 +655,8 @@ export default function BikesPage() {
         ) : !activeBike ? (
           <EmptyState
             icon={<Bike size={18} />}
-            title="Bike detail unavailable"
-            description="This bike could not be loaded from the current fleet scope."
+            title={t('Bike detail unavailable')}
+            description={t('This bike could not be loaded from the current fleet scope.')}
           />
         ) : (
           <div className="space-y-5">
@@ -664,10 +666,10 @@ export default function BikesPage() {
               </div>
             )}
             <section className="grid gap-3 sm:grid-cols-2">
-              <KeyMetric label="Bike status" value={<BikeStatusBadge status={activeBike.status} />} />
-              <KeyMetric label="Bike type" value={<span>{activeBike.type ?? '—'}</span>} />
+              <KeyMetric label={t('Bike status')} value={<BikeStatusBadge status={activeBike.status} />} />
+              <KeyMetric label={t('Bike type')} value={<span>{activeBike.type ?? '—'}</span>} />
               <KeyMetric
-                label="Security state"
+                label={t('Security state')}
                 value={
                   <div className="flex items-center gap-2">
                     {(() => {
@@ -677,28 +679,28 @@ export default function BikesPage() {
                           return (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger-ink border border-danger-ink/10 shadow-sm animate-pulse">
                               <Lock size={12} className="text-danger-ink" />
-                              Locked
+                              {t('Locked')}
                             </span>
                           );
                         case 'LOCKING':
                           return (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning-ink border border-warning-ink/10 shadow-sm animate-pulse">
                               <Lock size={12} className="text-warning-ink animate-bounce" />
-                              Locking...
+                              {t('Locking...')}
                             </span>
                           );
                         case 'UNLOCKING':
                           return (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent border border-accent/10 shadow-sm animate-pulse">
                               <Unlock size={12} className="text-accent animate-bounce" />
-                              Unlocking...
+                              {t('Unlocking...')}
                             </span>
                           );
                         default:
                           return (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-ink border border-success-ink/10 shadow-sm">
                               <Unlock size={12} className="text-success-ink" />
-                              Unlocked
+                              {t('Unlocked')}
                             </span>
                           );
                       }
@@ -707,15 +709,15 @@ export default function BikesPage() {
                 }
               />
               <KeyMetric
-                label="Assigned device"
-                value={<span>{deviceByBikeId.get(activeBike.id)?.deviceUid ?? 'Unassigned'}</span>}
+                label={t('Assigned device')}
+                value={<span>{deviceByBikeId.get(activeBike.id)?.deviceUid ?? t('Unassigned')}</span>}
               />
               <KeyMetric
-                label="Assigned rider"
-                value={<span>{assignmentByBikeId.get(activeBike.id)?.riderFullName ?? 'Unassigned'}</span>}
+                label={t('Assigned rider')}
+                value={<span>{assignmentByBikeId.get(activeBike.id)?.riderFullName ?? t('Unassigned')}</span>}
               />
               <KeyMetric
-                label="Assigned insurer"
+                label={t('Assigned insurer')}
                 value={
                   <span>
                     {activeBike.insurerName
@@ -723,18 +725,18 @@ export default function BikesPage() {
                       : activeBike.insurer
                       ? activeBike.insurer.riderProfile?.fullName
                         ? `${activeBike.insurer.riderProfile.fullName} (${activeBike.insurer.email ?? activeBike.insurer.phone})`
-                        : (activeBike.insurer.email ?? activeBike.insurer.phone ?? 'Assigned')
-                      : 'Unassigned'}
+                        : (activeBike.insurer.email ?? activeBike.insurer.phone ?? t('Assigned'))
+                      : t('Unassigned')}
                   </span>
                 }
               />
               <KeyMetric
-                label="Latest trip"
+                label={t('Latest trip')}
                 value={
                   <span>
                     {bikeTripsQuery.data?.data?.[0]?.startTs
                       ? formatTimestamp(bikeTripsQuery.data.data[0].startTs)
-                      : 'No trips yet'}
+                      : t('No trips yet')}
                   </span>
                 }
               />
@@ -742,7 +744,7 @@ export default function BikesPage() {
 
             {/* Assignment Actions */}
             {canCreateBikes && (
-              <DashboardCard eyebrow="Assignments" title="Bike assignments" description="Manage rider and insurer assignments for this bike.">
+              <DashboardCard eyebrow={t('Assignments')} title={t('Bike assignments')} description={t('Manage rider and insurer assignments for this bike.')}>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
@@ -750,7 +752,7 @@ export default function BikesPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/20"
                   >
                     <UserCheck size={16} />
-                    {assignmentByBikeId.get(activeBike.id) ? 'Reassign Rider' : 'Assign Rider'}
+                    {assignmentByBikeId.get(activeBike.id) ? t('Reassign Rider') : t('Assign Rider')}
                   </button>                  <button
                     type="button"
                     onClick={() => {
@@ -761,7 +763,7 @@ export default function BikesPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                   >
                     <Shield size={16} />
-                    Assign Insurer
+                    {t('Assign Insurer')}
                   </button>
                 </div>
 
@@ -769,7 +771,7 @@ export default function BikesPage() {
                 {showAssignRider && (
                   <div className="mt-4 rounded-2xl border border-line bg-surface-muted p-4 space-y-3 animate-scale-in">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-ink">Select a rider</h4>
+                      <h4 className="text-sm font-bold text-ink">{t('Select a rider')}</h4>
                       <button type="button" onClick={() => setShowAssignRider(false)} className="p-1 text-ink-muted hover:text-ink"><X size={14} /></button>
                     </div>
                     <select
@@ -777,7 +779,7 @@ export default function BikesPage() {
                       onChange={(e) => setAssignRiderId(e.target.value)}
                       className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-accent cursor-pointer"
                     >
-                      <option value="">— Select rider —</option>
+                      <option value="">{t('— Select rider —')}</option>
                       {(ridersQuery.data?.data ?? []).map((rider) => (
                         <option key={rider.id} value={rider.id}>{rider.fullName ?? rider.email ?? rider.phone ?? rider.id.slice(0,8)}</option>
                       ))}
@@ -790,7 +792,7 @@ export default function BikesPage() {
                       className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
-                      {isAssigningRider ? 'Assigning...' : 'Confirm Assignment'}
+                      {isAssigningRider ? t('Assigning...') : t('Confirm Assignment')}
                     </button>
                   </div>
                 )}
@@ -799,7 +801,7 @@ export default function BikesPage() {
                 {showAssignInsurer && (
                   <div className="mt-4 rounded-2xl border border-line bg-surface-muted p-4 space-y-3 animate-scale-in">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-ink">Select an insurer</h4>
+                      <h4 className="text-sm font-bold text-ink">{t('Select an insurer')}</h4>
                       <button type="button" onClick={() => setShowAssignInsurer(false)} className="p-1 text-ink-muted hover:text-ink"><X size={14} /></button>
                     </div>
                     <select
@@ -807,7 +809,7 @@ export default function BikesPage() {
                       onChange={(e) => setAssignInsurerName(e.target.value)}
                       className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-accent cursor-pointer"
                     >
-                      <option value="none">No Insurer (Unassign)</option>
+                      <option value="none">{t('No Insurer (Unassign)')}</option>
                       {RWANDAN_INSURERS.map((name) => (
                         <option key={name} value={name}>
                           {name}
@@ -822,7 +824,7 @@ export default function BikesPage() {
                       className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
-                      {isAssigningInsurer ? 'Assigning...' : 'Confirm Insurer'}
+                      {isAssigningInsurer ? t('Assigning...') : t('Confirm Insurer')}
                     </button>
                   </div>
                 )}
@@ -831,7 +833,7 @@ export default function BikesPage() {
 
             {/* Bike Management Actions */}
             {canCreateBikes && (
-              <DashboardCard eyebrow="Management" title="Bike settings" description="Edit bike properties or remove this bike from the fleet registry.">
+              <DashboardCard eyebrow={t('Management')} title={t('Bike settings')} description={t('Edit bike properties or remove this bike from the fleet registry.')}>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
@@ -851,7 +853,7 @@ export default function BikesPage() {
                     }}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
                   >
-                    Edit Bike Info
+                    {t('Edit Bike Info')}
                   </button>
                   <button
                     type="button"
@@ -861,7 +863,7 @@ export default function BikesPage() {
                     }}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-danger-ink/30 bg-danger-soft/10 px-4 py-3 text-sm font-semibold text-danger-ink transition hover:bg-danger-soft/20"
                   >
-                    Delete Bike
+                    {t('Delete Bike')}
                   </button>
                 </div>
               </DashboardCard>
@@ -869,9 +871,9 @@ export default function BikesPage() {
 
             {currentUser?.role !== 'INSURER' && (
               <DashboardCard
-                eyebrow="Remote Control"
-                title="Command actions"
-                description="Send a lock or unlock request to the assigned device. Use the command history below to confirm acknowledgements."
+                eyebrow={t('Remote Control')}
+                title={t('Command actions')}
+                description={t('Send a lock or unlock request to the assigned device. Use the command history below to confirm acknowledgements.')}
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
@@ -882,7 +884,7 @@ export default function BikesPage() {
                     style={{ background: '#EF4444', color: 'white' }}
                   >
                     <Lock size={16} />
-                    Lock bike
+                    {t('Lock bike')}
                   </button>
                   <button
                     type="button"
@@ -891,12 +893,12 @@ export default function BikesPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Unlock size={16} />
-                    Unlock bike
+                    {t('Unlock bike')}
                   </button>
                 </div>
 
                 {!canUseFeature(currentUser, 'commands') ? (
-                  <InlineNotice message="Remote lock and unlock controls are available on Operations Plus." />
+                  <InlineNotice message={t('Remote lock and unlock controls are available on Operations Plus.')} />
                 ) : null}
                 {commandError ? <InlineNotice message={commandError} /> : null}
               </DashboardCard>
@@ -904,9 +906,9 @@ export default function BikesPage() {
 
             <section className="flex flex-col gap-4">
               <DetailPanel
-                title="Recent trips"
+                title={t('Recent trips')}
                 icon={<Gauge size={16} className="text-accent" />}
-                emptyLabel="No trips recorded for this bike yet."
+                emptyLabel={t('No trips recorded for this bike yet.')}
                 loading={bikeTripsQuery.isLoading}
               >
                 {(bikeTripsQuery.data?.data ?? []).map((trip) => (
@@ -923,9 +925,9 @@ export default function BikesPage() {
               </DetailPanel>
 
               <DetailPanel
-                title="Recent events"
+                title={t('Recent events')}
                 icon={<ShieldAlert size={16} className="text-accent" />}
-                emptyLabel="No recent events linked to this bike."
+                emptyLabel={t('No recent events linked to this bike.')}
                 loading={bikeEventsQuery.isLoading}
               >
                 {(bikeEventsQuery.data?.data ?? []).map((event) => (
@@ -940,9 +942,9 @@ export default function BikesPage() {
               </DetailPanel>
 
               <DetailPanel
-                title="Command history"
+                title={t('Command history')}
                 icon={<Activity size={16} className="text-accent" />}
-                emptyLabel="No command activity for the selected bike."
+                emptyLabel={t('No command activity for the selected bike.')}
                 loading={false}
               >
                 {bikeCommandStatuses.slice(0, 10).map((status) => (
@@ -951,7 +953,7 @@ export default function BikesPage() {
                     className="rounded-[18px] border border-line bg-surface-muted px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-semibold text-ink">{status.action ?? 'Command'}</p>
+                      <p className="font-semibold text-ink">{status.action ? t(status.action) : t('Command')}</p>
                       <CommandStatusBadge status={status.status} />
                     </div>
                     <p className="mt-1 text-xs leading-5 text-ink-soft">{formatTimestamp(status.ts)}</p>
@@ -968,13 +970,13 @@ export default function BikesPage() {
 
       <ConfirmModal
         open={!!commandIntent}
-        title={commandIntent === 'LOCK' ? 'Confirm bike lock' : 'Confirm bike unlock'}
+        title={commandIntent === 'LOCK' ? t('Confirm bike lock') : t('Confirm bike unlock')}
         description={
           commandIntent === 'LOCK'
-            ? `Send a lock command for ${activeBike?.label ?? 'this bike'}?`
-            : `Send an unlock command for ${activeBike?.label ?? 'this bike'}?`
+            ? t('Send a lock command for {label}?', 'Send a lock command for {label}?').replace('{label}', activeBike?.label ?? t('this bike'))
+            : t('Send an unlock command for {label}?', 'Send an unlock command for {label}?').replace('{label}', activeBike?.label ?? t('this bike'))
         }
-        confirmLabel={commandIntent === 'LOCK' ? 'Send lock request' : 'Send unlock request'}
+        confirmLabel={commandIntent === 'LOCK' ? t('Send lock request') : t('Send unlock request')}
         tone={commandIntent === 'LOCK' ? 'danger' : 'default'}
         isSubmitting={isSendingCommand}
         onCancel={() => setCommandIntent(null)}
@@ -987,9 +989,9 @@ export default function BikesPage() {
 
       <ConfirmModal
         open={showDeleteConfirm}
-        title="Delete Bike"
-        description={`Are you sure you want to permanently delete ${activeBike?.label ?? 'this bike'}? This action cannot be undone.`}
-        confirmLabel={isDeletingBike ? 'Deleting...' : 'Delete Bike'}
+        title={t('Delete Bike')}
+        description={t('Are you sure you want to permanently delete {label}? This action cannot be undone.').replace('{label}', activeBike?.label ?? t('this bike'))}
+        confirmLabel={isDeletingBike ? t('Deleting...') : t('Delete Bike')}
         tone="danger"
         isSubmitting={isDeletingBike}
         onCancel={() => setShowDeleteConfirm(false)}
@@ -1004,15 +1006,15 @@ export default function BikesPage() {
               <X size={18} />
             </button>
             <div className="flex-shrink-0 pr-6">
-              <h2 className="text-lg font-bold text-ink">Add New Bike</h2>
-              <p className="mt-1 text-sm text-ink-muted">Register a new bike in your fleet inventory.</p>
+              <h2 className="text-lg font-bold text-ink">{t('Add New Bike')}</h2>
+              <p className="mt-1 text-sm text-ink-muted">{t('Register a new bike in your fleet inventory.')}</p>
             </div>
             <div className="mt-5 space-y-3 overflow-y-auto flex-1 pr-1">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Label *</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Label')} *</label>
                 <input
                   type="text"
-                  placeholder="e.g. Bike-001"
+                  placeholder={t('e.g. Bike-001')}
                   value={createBikeForm.label}
                   onChange={(e) => setCreateBikeForm(f => ({ ...f, label: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
@@ -1020,20 +1022,20 @@ export default function BikesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Plate</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Plate')}</label>
                   <input
                     type="text"
-                    placeholder="RAB123C"
+                    placeholder={t('RAB123C')}
                     value={createBikeForm.plate}
                     onChange={(e) => setCreateBikeForm(f => ({ ...f, plate: e.target.value }))}
                     className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Serial</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Serial')}</label>
                   <input
                     type="text"
-                    placeholder="SER-000001"
+                    placeholder={t('SER-000001')}
                     value={createBikeForm.serial}
                     onChange={(e) => setCreateBikeForm(f => ({ ...f, serial: e.target.value }))}
                     className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
@@ -1041,23 +1043,23 @@ export default function BikesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Model</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Model')}</label>
                 <input
                   type="text"
-                  placeholder="eMoto-X2"
+                  placeholder={t('eMoto-X2')}
                   value={createBikeForm.model}
                   onChange={(e) => setCreateBikeForm(f => ({ ...f, model: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Insurer</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Insurer')}</label>
                 <select
                   value={createBikeForm.insurerName}
                   onChange={(e) => setCreateBikeForm(f => ({ ...f, insurerName: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
                 >
-                  <option value="">No Insurer</option>
+                  <option value="">{t('No Insurer')}</option>
                   {RWANDAN_INSURERS.map((name) => (
                     <option key={name} value={name}>
                       {name}
@@ -1067,7 +1069,7 @@ export default function BikesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Type *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Bike Type')} *</label>
                   <select
                     value={createBikeForm.type}
                     onChange={(e) => setCreateBikeForm(f => ({ ...f, type: e.target.value }))}
@@ -1079,11 +1081,11 @@ export default function BikesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Image</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Bike Image')}</label>
                   <div className="flex flex-col gap-2">
                     {createBikeForm.imageUrl ? (
                       <div className="relative group rounded-xl border border-line overflow-hidden max-h-[80px]">
-                        <img src={createBikeForm.imageUrl} alt="Preview" className="w-full object-cover max-h-[80px]" />
+                        <img src={createBikeForm.imageUrl} alt={t('Preview')} className="w-full object-cover max-h-[80px]" />
                         <button
                           type="button"
                           onClick={() => setCreateBikeForm(f => ({ ...f, imageUrl: '' }))}
@@ -1094,7 +1096,7 @@ export default function BikesPage() {
                       </div>
                     ) : (
                       <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-2 cursor-pointer hover:border-accent/40 transition max-h-[80px]">
-                        <span className="text-xs font-semibold text-accent">Upload Image</span>
+                        <span className="text-xs font-semibold text-accent">{t('Upload Image')}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1120,7 +1122,7 @@ export default function BikesPage() {
             </div>
             <div className="flex gap-3 pt-4 mt-4 border-t border-line flex-shrink-0">
               <button type="button" onClick={() => setShowCreateBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 type="button"
@@ -1129,7 +1131,7 @@ export default function BikesPage() {
                 className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
                 style={{ background: '#3B82F6', color: 'white' }}
               >
-                {isCreatingBike ? 'Creating...' : 'Create Bike'}
+                {isCreatingBike ? t('Creating...') : t('Create Bike')}
               </button>
             </div>
           </div>
@@ -1144,15 +1146,15 @@ export default function BikesPage() {
               <X size={18} />
             </button>
             <div className="flex-shrink-0 pr-6">
-              <h2 className="text-lg font-bold text-ink">Edit Bike Info</h2>
-              <p className="mt-1 text-sm text-ink-muted">Modify bike details and status in the registry.</p>
+              <h2 className="text-lg font-bold text-ink">{t('Edit Bike Info')}</h2>
+              <p className="mt-1 text-sm text-ink-muted">{t('Modify bike details and status in the registry.')}</p>
             </div>
             <div className="mt-5 space-y-3 overflow-y-auto flex-1 pr-1">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Label *</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Label')} *</label>
                 <input
                   type="text"
-                  placeholder="e.g. Bike-001"
+                  placeholder={t('e.g. Bike-001')}
                   value={editBikeForm.label}
                   onChange={(e) => setEditBikeForm(f => ({ ...f, label: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
@@ -1160,20 +1162,20 @@ export default function BikesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Plate</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Plate')}</label>
                   <input
                     type="text"
-                    placeholder="RAB123C"
+                    placeholder={t('RAB123C')}
                     value={editBikeForm.plate}
                     onChange={(e) => setEditBikeForm(f => ({ ...f, plate: e.target.value }))}
                     className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Serial</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Serial')}</label>
                   <input
                     type="text"
-                    placeholder="SER-000001"
+                    placeholder={t('SER-000001')}
                     value={editBikeForm.serial}
                     onChange={(e) => setEditBikeForm(f => ({ ...f, serial: e.target.value }))}
                     className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
@@ -1181,23 +1183,23 @@ export default function BikesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Model</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Model')}</label>
                 <input
                   type="text"
-                  placeholder="eMoto-X2"
+                  placeholder={t('eMoto-X2')}
                   value={editBikeForm.model}
                   onChange={(e) => setEditBikeForm(f => ({ ...f, model: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Insurer</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Insurer')}</label>
                 <select
                   value={editBikeForm.insurerName || ''}
                   onChange={(e) => setEditBikeForm(f => ({ ...f, insurerName: e.target.value }))}
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
                 >
-                  <option value="">No Insurer</option>
+                  <option value="">{t('No Insurer')}</option>
                   {RWANDAN_INSURERS.map((name) => (
                     <option key={name} value={name}>
                       {name}
@@ -1207,7 +1209,7 @@ export default function BikesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Type *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Bike Type')} *</label>
                   <select
                     value={editBikeForm.type}
                     onChange={(e) => setEditBikeForm(f => ({ ...f, type: e.target.value }))}
@@ -1219,24 +1221,24 @@ export default function BikesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Status *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Status')} *</label>
                   <select
                     value={editBikeForm.status}
                     onChange={(e) => setEditBikeForm(f => ({ ...f, status: e.target.value }))}
                     className="w-full rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:bg-surface cursor-pointer"
                   >
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="MAINTENANCE">MAINTENANCE</option>
-                    <option value="RETIRED">RETIRED</option>
+                    <option value="ACTIVE">{t('ACTIVE')}</option>
+                    <option value="MAINTENANCE">{t('MAINTENANCE')}</option>
+                    <option value="RETIRED">{t('RETIRED')}</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Bike Image</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">{t('Bike Image')}</label>
                 <div className="flex flex-col gap-2">
                   {editBikeForm.imageUrl ? (
                     <div className="relative group rounded-xl border border-line overflow-hidden max-h-[80px]">
-                      <img src={editBikeForm.imageUrl} alt="Preview" className="w-full object-cover max-h-[80px]" />
+                      <img src={editBikeForm.imageUrl} alt={t('Preview')} className="w-full object-cover max-h-[80px]" />
                       <button
                         type="button"
                         onClick={() => setEditBikeForm(f => ({ ...f, imageUrl: '' }))}
@@ -1247,7 +1249,7 @@ export default function BikesPage() {
                     </div>
                   ) : (
                     <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-2 cursor-pointer hover:border-accent/40 transition max-h-[80px]">
-                      <span className="text-xs font-semibold text-accent">Upload Image</span>
+                      <span className="text-xs font-semibold text-accent">{t('Upload Image')}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1272,7 +1274,7 @@ export default function BikesPage() {
             </div>
             <div className="flex gap-3 pt-4 mt-4 border-t border-line flex-shrink-0">
               <button type="button" onClick={() => setShowEditBike(false)} className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover">
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 type="button"
@@ -1281,7 +1283,7 @@ export default function BikesPage() {
                 className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
                 style={{ background: '#3B82F6', color: 'white' }}
               >
-                {isUpdatingBike ? 'Saving...' : 'Save Changes'}
+                {isUpdatingBike ? t('Saving...') : t('Save Changes')}
               </button>
             </div>
           </div>
@@ -1316,6 +1318,7 @@ function DetailPanel({
   children: React.ReactNode;
 }) {
   const items = Array.isArray(children) ? children.filter(Boolean) : [children].filter(Boolean);
+  const { t } = useTranslation();
 
   return (
     <DashboardCard eyebrow={title} title={title} description="" className="h-full">
@@ -1325,13 +1328,14 @@ function DetailPanel({
       ) : items.length ? (
         <ul className="space-y-2">{children}</ul>
       ) : (
-        <EmptyState title={emptyLabel} description="This panel updates as soon as related backend data becomes available." />
+        <EmptyState title={emptyLabel} description={t("This panel updates as soon as related backend data becomes available.")} />
       )}
     </DashboardCard>
   );
 }
 
 function BikeStatusBadge({ status }: { status: FleetBike['status'] }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -1342,12 +1346,13 @@ function BikeStatusBadge({ status }: { status: FleetBike['status'] }) {
             : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
       }
     >
-      {formatEnumLabel(status)}
+      {t(formatEnumLabel(status))}
     </span>
   );
 }
 
 function EventSeverityBadge({ severity }: { severity: FleetEvent['severity'] }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -1360,12 +1365,13 @@ function EventSeverityBadge({ severity }: { severity: FleetEvent['severity'] }) 
               : 'inline-flex rounded-full bg-low-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-low-ink'
       }
     >
-      {severity}
+      {t(severity)}
     </span>
   );
 }
 
 function CommandStatusBadge({ status }: { status: CommandStatusEvent['status'] }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -1376,12 +1382,13 @@ function CommandStatusBadge({ status }: { status: CommandStatusEvent['status'] }
             : 'inline-flex rounded-full bg-accent-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent'
       }
     >
-      {formatEnumLabel(status)}
+      {t(formatEnumLabel(status))}
     </span>
   );
 }
 
 function ScoreBadge({ score }: { score: number }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -1392,7 +1399,7 @@ function ScoreBadge({ score }: { score: number }) {
             : 'rounded-full bg-danger-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-danger-ink'
       }
     >
-      Score {score.toFixed(1)}
+      {t('Score')} {score.toFixed(1)}
     </span>
   );
 }

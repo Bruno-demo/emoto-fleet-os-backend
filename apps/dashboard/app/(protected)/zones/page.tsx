@@ -17,16 +17,22 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineNotice, SelectField, TextAreaField, TextField } from '@/components/ui/form-controls';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
+
+function LoadingDrawingCanvas() {
+  const { t } = useTranslation();
+  return (
+    <div className="h-72 w-full rounded-xl border border-line bg-surface-muted flex items-center justify-center text-xs text-ink-soft">
+      {t('Loading drawing canvas...')}
+    </div>
+  );
+}
 
 const ZoneDrawMap = dynamic(
   () => import('@/components/zones/zone-draw-map'),
   {
     ssr: false,
-    loading: () => (
-      <div className="h-72 w-full rounded-xl border border-line bg-surface-muted flex items-center justify-center text-xs text-ink-soft">
-        Loading drawing canvas...
-      </div>
-    ),
+    loading: () => <LoadingDrawingCanvas />,
   },
 );
 
@@ -65,6 +71,7 @@ const defaultPoints: Array<[number, number]> = [
 ];
 
 export default function ZonesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
@@ -170,7 +177,7 @@ export default function ZonesPage() {
     const maybeSpeedLimit =
       speedLimitKph.trim().length === 0 ? null : Number(speedLimitKph.trim());
     if (maybeSpeedLimit !== null && Number.isNaN(maybeSpeedLimit)) {
-      setFormError('Speed limit must be a valid number');
+      setFormError(t('Speed limit must be a valid number'));
       return;
     }
 
@@ -182,7 +189,7 @@ export default function ZonesPage() {
       geojsonPolygon,
     });
     if (!parsedForm.success) {
-      setFormError(parsedForm.error.issues[0]?.message ?? 'Invalid form');
+      setFormError(t(parsedForm.error.issues[0]?.message ?? 'Invalid form'));
       return;
     }
 
@@ -190,12 +197,12 @@ export default function ZonesPage() {
     try {
       parsedPolygon = JSON.parse(parsedForm.data.geojsonPolygon);
     } catch {
-      setFormError('GeoJSON must be valid JSON');
+      setFormError(t('GeoJSON must be valid JSON'));
       return;
     }
 
     if (parsedForm.data.type === 'SLOW' && (!maybeSpeedLimit || maybeSpeedLimit <= 0)) {
-      setFormError('Slow-speed zones require a positive speed limit.');
+      setFormError(t('Slow-speed zones require a positive speed limit.'));
       return;
     }
 
@@ -225,9 +232,9 @@ export default function ZonesPage() {
       resetForm();
     } catch (error: unknown) {
       if (error instanceof ApiError) {
-        setFormError(error.message);
+        setFormError(t(error.message));
       } else {
-        setFormError('Unable to save zone');
+        setFormError(t('Unable to save zone'));
       }
     } finally {
       setIsSubmitting(false);
@@ -248,9 +255,9 @@ export default function ZonesPage() {
       setDeleteTarget(null);
     } catch (error: unknown) {
       if (error instanceof ApiError) {
-        setFormError(error.message);
+        setFormError(t(error.message));
       } else {
-        setFormError('Unable to delete zone');
+        setFormError(t('Unable to delete zone'));
       }
     }
   };
@@ -258,16 +265,16 @@ export default function ZonesPage() {
   const columns = useMemo<Array<DataTableColumn<Zone>>>(
     () => [
       {
-        header: 'Zone',
+        header: t('Zone'),
         render: (zone) => (
           <div>
             <p className="font-semibold text-ink">{zone.name}</p>
-            <p className="mt-1 text-xs leading-5 text-ink-soft">{formatEnumLabel(zone.type)}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">{t(formatEnumLabel(zone.type))}</p>
           </div>
         ),
       },
       {
-        header: 'Status',
+        header: t('Status'),
         render: (zone) => (
           <span
             className={
@@ -276,20 +283,20 @@ export default function ZonesPage() {
                 : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
             }
           >
-            {zone.active ? 'Active' : 'Inactive'}
+            {zone.active ? t('Active') : t('Inactive')}
           </span>
         ),
       },
       {
-        header: 'Speed limit',
+        header: t('Speed limit'),
         render: (zone) => (
           <span className="text-sm text-ink-soft">
-            {zone.type === 'SLOW' ? `${zone.speedLimitKph ?? '--'} kph` : 'N/A'}
+            {zone.type === 'SLOW' ? `${zone.speedLimitKph ?? '--'} ${t('kph')}` : 'N/A'}
           </span>
         ),
       },
       {
-        header: 'Action',
+        header: t('Action'),
         className: 'text-right',
         cellClassName: 'text-right',
         render: (zone) => (
@@ -299,30 +306,30 @@ export default function ZonesPage() {
               onClick={() => beginEditing(zone)}
               className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-hover"
             >
-              Edit
+              {t('Edit')}
             </button>
             <button
               type="button"
               onClick={() => setDeleteTarget(zone)}
               className="rounded-[var(--radius-control)] bg-danger-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-danger-strong"
             >
-              Delete
+              {t('Delete')}
             </button>
           </div>
         ),
       },
     ],
-    [],
+    [t],
   );
 
   if (currentUser && !isAdmin) {
     return (
       <div className="space-y-6">
-        <DashboardCard eyebrow="Access" title="Zone management is restricted" description="This account cannot create, edit, or delete geofence policy boundaries.">
+        <DashboardCard eyebrow={t('Access')} title={t('Zone management is restricted')} description={t('This account cannot create, edit, or delete geofence policy boundaries.')}>
           <EmptyState
             icon={<ShieldCheck size={18} />}
-            title="No zone-management access"
-            description="Switch to an admin account to manage slow, no-go, or parking boundaries."
+            title={t('No zone-management access')}
+            description={t('Switch to an admin account to manage slow, no-go, or parking boundaries.')}
           />
         </DashboardCard>
       </div>
@@ -333,37 +340,37 @@ export default function ZonesPage() {
     <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title="Total Zones"
+          title={t('Total Zones')}
           value={String(zoneStats.total)}
-          hint="All geofence zones registered for the fleet."
+          hint={t('All geofence zones registered for the fleet.')}
           icon={<MapPin size={18} />}
           tone="info"
         />
         <MetricCard
-          title="Active"
+          title={t('Active')}
           value={String(zoneStats.active)}
-          hint="Zones currently enforcing backend rules."
+          hint={t('Zones currently enforcing backend rules.')}
           icon={<ShieldCheck size={18} />}
           tone="success"
         />
         <MetricCard
-          title="Slow Zones"
+          title={t('Slow Zones')}
           value={String(zoneStats.slow)}
-          hint="Zones with an enforced speed limit."
+          hint={t('Zones with an enforced speed limit.')}
           icon={<Plus size={18} />}
           tone="warning"
         />
         <MetricCard
-          title="No-Go"
+          title={t('No-Go')}
           value={String(zoneStats.restricted)}
-          hint="Restricted areas intended to trigger high-priority events."
+          hint={t('Restricted areas intended to trigger high-priority events.')}
           icon={<Trash2 size={18} />}
           tone="danger"
         />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <DashboardCard eyebrow="Zone Registry" title="Geofence list" description="Edit fleet boundaries with safer inline actions and a clearer GeoJSON fallback view.">
+        <DashboardCard eyebrow={t('Zone Registry')} title={t('Geofence list')} description={t('Edit fleet boundaries with safer inline actions and a clearer GeoJSON fallback view.')}>
           <div className="mt-1">
             <DataTable
               data={zonesQuery.data?.data ?? []}
@@ -373,8 +380,8 @@ export default function ZonesPage() {
               emptyState={
                 <EmptyState
                   icon={<MapPin size={18} />}
-                  title="No zones yet"
-                  description="Create your first zone to begin enforcing slow, no-go, or park rules."
+                  title={t('No zones yet')}
+                  description={t('Create your first zone to begin enforcing slow, no-go, or park rules.')}
                 />
               }
             />
@@ -388,32 +395,32 @@ export default function ZonesPage() {
         </DashboardCard>
 
         <DashboardCard
-          eyebrow="Zone Editor"
-          title={editingZone ? `Editing ${editingZone.name}` : 'Create a zone'}
-          description="Use the GeoJSON fallback editor for now. SLOW zones require a positive speed limit."
+          eyebrow={t('Zone Editor')}
+          title={editingZone ? t('Editing {name}').replace('{name}', editingZone.name) : t('Create a zone')}
+          description={t('Use the GeoJSON fallback editor for now. SLOW zones require a positive speed limit.')}
         >
           <form className="space-y-4" onSubmit={submitForm}>
             <TextField
-              label="Zone name"
-              placeholder="Downtown slow zone"
+              label={t('Zone name')}
+              placeholder={t('Downtown slow zone')}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
 
             <div className="grid gap-3 md:grid-cols-2">
               <SelectField
-                label="Zone type"
+                label={t('Zone type')}
                 value={type}
                 onChange={(event) => setType(event.target.value as 'SLOW' | 'NO_GO' | 'PARK')}
               >
-                <option value="SLOW">Slow</option>
-                <option value="NO_GO">No-go</option>
-                <option value="PARK">Park</option>
+                <option value="SLOW">{t('Slow')}</option>
+                <option value="NO_GO">{t('No-go')}</option>
+                <option value="PARK">{t('Park')}</option>
               </SelectField>
 
               <TextField
-                label="Speed limit kph"
-                placeholder={type === 'SLOW' ? '20' : 'Not required'}
+                label={t('Speed limit kph')}
+                placeholder={type === 'SLOW' ? '20' : t('Not required')}
                 value={speedLimitKph}
                 onChange={(event) => setSpeedLimitKph(event.target.value)}
                 disabled={type !== 'SLOW'}
@@ -427,13 +434,13 @@ export default function ZonesPage() {
                 onChange={(event) => setActive(event.target.checked)}
                 className="h-4 w-4 rounded border-line text-accent"
               />
-              Zone is active
+              {t('Zone is active')}
             </label>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-zinc-400">Map Boundary Editor</label>
+              <label className="text-xs font-semibold text-zinc-400">{t('Map Boundary Editor')}</label>
               <div className="text-[11px] text-zinc-500 mb-1 leading-relaxed">
-                Click on the map below to define geofence boundary corners. Connect at least 3 points to form a closed shape.
+                {t('Click on the map below to define geofence boundary corners. Connect at least 3 points to form a closed shape.')}
               </div>
               <ZoneDrawMap
                 points={points}
@@ -444,14 +451,14 @@ export default function ZonesPage() {
 
             <details className="group border border-line bg-surface-muted rounded-xl">
               <summary className="flex items-center justify-between cursor-pointer px-4 py-3 text-xs font-semibold text-zinc-400 select-none">
-                <span>Advanced: Raw GeoJSON Coordinates</span>
-                <span className="text-[10px] text-zinc-500 group-open:hidden">Show</span>
-                <span className="text-[10px] text-zinc-500 hidden group-open:inline">Hide</span>
+                <span>{t('Advanced: Raw GeoJSON Coordinates')}</span>
+                <span className="text-[10px] text-zinc-500 group-open:hidden">{t('Show')}</span>
+                <span className="text-[10px] text-zinc-500 hidden group-open:inline">{t('Hide')}</span>
               </summary>
               <div className="px-4 pb-4 border-t border-line/5 pt-3">
                 <TextAreaField
                   label=""
-                  hint="GeoJSON Polygon string"
+                  hint={t('GeoJSON Polygon string')}
                   value={geojsonPolygon}
                   onChange={(event) => {
                     setGeojsonPolygon(event.target.value);
@@ -478,7 +485,7 @@ export default function ZonesPage() {
                 onClick={resetForm}
                 className="rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-hover"
               >
-                Reset form
+                {t('Reset form')}
               </button>
               <button
                 type="submit"
@@ -487,11 +494,11 @@ export default function ZonesPage() {
               >
                 {isSubmitting
                   ? editingZone
-                    ? 'Saving zone...'
-                    : 'Creating zone...'
+                    ? t('Saving zone...')
+                    : t('Creating zone...')
                   : editingZone
-                    ? 'Save zone changes'
-                    : 'Create zone'}
+                    ? t('Save zone changes')
+                    : t('Create zone')}
               </button>
             </div>
           </form>
@@ -500,13 +507,13 @@ export default function ZonesPage() {
 
       <ConfirmModal
         open={!!deleteTarget}
-        title="Delete zone"
+        title={t('Delete zone')}
         description={
           deleteTarget
-            ? `Delete ${deleteTarget.name}? This removes the zone from fleet policy enforcement.`
+            ? t('Delete {name}? This removes the zone from fleet policy enforcement.').replace('{name}', deleteTarget.name)
             : ''
         }
-        confirmLabel="Delete zone"
+        confirmLabel={t('Delete zone')}
         tone="danger"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {

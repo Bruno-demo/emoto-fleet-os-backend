@@ -10,6 +10,7 @@ import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api/client';
 import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 function getDefaultRange() {
   const to = new Date();
@@ -22,6 +23,7 @@ function getDefaultRange() {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState(getDefaultRange);
 
   const reportQuery = useQuery({
@@ -87,7 +89,7 @@ export default function ReportsPage() {
           className="flex items-center justify-center gap-2 rounded-lg border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-strong hover:text-white transition disabled:opacity-50"
         >
           <Download size={16} />
-          Export CSV
+          {t('Export CSV')}
         </button>
       </div>
 
@@ -103,37 +105,37 @@ export default function ReportsPage() {
         ) : (
           <>
             <MetricCard
-              title="Average Score"
+              title={t('Average Score')}
               value={report ? report.avgScore.toFixed(1) : '--'}
-              hint="Fleet-wide trip score across the current weekly range."
+              hint={t('Fleet-wide trip score across the current weekly range.')}
               icon={<TrendingUp size={18} />}
               tone="info"
             />
             <MetricCard
-              title="Trip Count"
+              title={t('Trip Count')}
               value={report ? String(report.tripCount) : '--'}
-              hint="Trips included in the current weekly summary window."
+              hint={t('Trips included in the current weekly summary window.')}
               icon={<Activity size={18} />}
               tone="success"
             />
             <MetricCard
-              title="Overspeed Events"
+              title={t('Overspeed Events')}
               value={report ? String(report.eventCounts.OVERSPEED ?? 0) : '--'}
-              hint="Overspeed rule hits recorded during the same range."
+              hint={t('Overspeed rule hits recorded during the same range.')}
               icon={<AlertTriangle size={18} />}
               tone="warning"
             />
             <MetricCard
-              title="Traffic fines"
+              title={t('Traffic fines')}
               value={report ? String(trafficFineCount) : '--'}
-              hint="Speed and road-safety violations that can translate into fines."
+              hint={t('Speed and road-safety violations that can translate into fines.')}
               icon={<AlertTriangle size={18} />}
               tone="warning"
             />
             <MetricCard
-              title="Crash / SOS"
+              title={t('Crash / SOS')}
               value={report ? String(crashAndSosCount) : '--'}
-              hint="High-priority safety incidents requiring rapid dispatcher review."
+              hint={t('High-priority safety incidents requiring rapid dispatcher review.')}
               icon={<AlertCircle size={18} />}
               tone="danger"
             />
@@ -157,9 +159,9 @@ export default function ReportsPage() {
 
       <section className="grid gap-4 xl:grid-cols-2">
         <DashboardCard
-          eyebrow="Risk Ranking"
-          title="Top risky bikes"
-          description="Bikes with the weakest scores and the highest event counts in the current weekly range."
+          eyebrow={t('Risk Ranking')}
+          title={t('Top risky bikes')}
+          description={t('Bikes with the weakest scores and the highest event counts in the current weekly range.')}
         >
           {reportQuery.isLoading ? (
             <div className="space-y-3">
@@ -184,7 +186,7 @@ export default function ReportsPage() {
                         <ScorePill score={bike.avgScore} />
                       </div>
                       <p className="mt-1 text-xs leading-5 text-ink-soft">
-                        {bike.tripCount} trips · {bike.eventCount} events
+                        {bike.tripCount} {t('trips')} · {bike.eventCount} {t('events')}
                       </p>
                       <ScoreBar score={bike.avgScore} />
                     </div>
@@ -195,16 +197,16 @@ export default function ReportsPage() {
           ) : (
             <EmptyState
               icon={<Activity size={18} />}
-              title="No bike risk data yet"
-              description="Weekly bike risk rankings will appear once trips and events are available."
+              title={t('No bike risk data yet')}
+              description={t('Weekly bike risk rankings will appear once trips and events are available.')}
             />
           )}
         </DashboardCard>
 
         <DashboardCard
-          eyebrow="Rider Ranking"
-          title="Top risky riders"
-          description="Rider aggregates from the weekly summary, useful for coaching and insurer review."
+          eyebrow={t('Rider Ranking')}
+          title={t('Top risky riders')}
+          description={t('Rider aggregates from the weekly summary, useful for coaching and insurer review.')}
         >
           {reportQuery.isLoading ? (
             <div className="space-y-3">
@@ -226,12 +228,12 @@ export default function ReportsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
                         <p className="truncate font-semibold text-ink">
-                          Rider {rider.riderId.slice(0, 8)}
+                          {t('Rider')} {rider.riderId.slice(0, 8)}
                         </p>
                         <ScorePill score={rider.avgScore} />
                       </div>
                       <p className="mt-1 text-xs leading-5 text-ink-soft">
-                        {rider.tripCount} trips
+                        {rider.tripCount} {t('trips')}
                       </p>
                       <ScoreBar score={rider.avgScore} />
                     </div>
@@ -242,17 +244,17 @@ export default function ReportsPage() {
           ) : (
             <EmptyState
               icon={<TrendingUp size={18} />}
-              title="No rider risk data yet"
-              description="Weekly rider rankings will appear once rider-linked trips are generated."
+              title={t('No rider risk data yet')}
+              description={t('Weekly rider rankings will appear once rider-linked trips are generated.')}
             />
           )}
         </DashboardCard>
       </section>
 
       <DashboardCard
-        eyebrow="Event Breakdown"
-        title="Weekly incident mix"
-        description="A quick view of the event composition behind the fleet score and incident counts."
+        eyebrow={t('Event Breakdown')}
+        title={t('Weekly incident mix')}
+        description={t('A quick view of the event composition behind the fleet score and incident counts.')}
       >
         {reportQuery.isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -268,7 +270,7 @@ export default function ReportsPage() {
                 key={type}
                 className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
               >
-                <p className="text-sm font-semibold text-ink">{formatEnumLabel(type)}</p>
+                <p className="text-sm font-semibold text-ink">{t(formatEnumLabel(type))}</p>
                 <p className="mt-3 font-display text-3xl font-semibold text-ink">{count}</p>
               </div>
             ))}
@@ -276,8 +278,8 @@ export default function ReportsPage() {
         ) : (
           <EmptyState
             icon={<AlertCircle size={18} />}
-            title="No event counts for this range"
-            description="Weekly event totals will appear here once fleet activity is available."
+            title={t('No event counts for this range')}
+            description={t('Weekly event totals will appear here once fleet activity is available.')}
           />
         )}
       </DashboardCard>
@@ -291,6 +293,7 @@ interface TrendPoint {
 }
 
 function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to: string }) {
+  const { t } = useTranslation();
   const fromDate = new Date(from);
   const toDate = new Date(to);
   const daysDiff = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -324,9 +327,9 @@ function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to
 
   return (
     <DashboardCard
-      eyebrow="Trend Analysis"
-      title="Safety score timeline"
-      description="Daily fleet-wide safety score trend lines for the selected range."
+      eyebrow={t('Trend Analysis')}
+      title={t('Safety score timeline')}
+      description={t('Daily fleet-wide safety score trend lines for the selected range.')}
     >
       <div className="relative w-full">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
@@ -391,19 +394,20 @@ function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to
 }
 
 function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, number> }) {
+  const { t } = useTranslation();
   const entries = Object.entries(eventCounts).filter(([, count]) => count > 0);
   
   if (entries.length === 0) {
     return (
       <DashboardCard
-        eyebrow="Incident Proportions"
-        title="Incident mix chart"
-        description="Proportional breakdown of safety alerts and rule violation counts."
+        eyebrow={t('Incident Proportions')}
+        title={t('Incident mix chart')}
+        description={t('Proportional breakdown of safety alerts and rule violation counts.')}
       >
         <EmptyState
           icon={<Activity size={18} />}
-          title="No incidents logged"
-          description="No events to display in the chart distribution for this range."
+          title={t('No incidents logged')}
+          description={t('No events to display in the chart distribution for this range.')}
         />
       </DashboardCard>
     );
@@ -425,9 +429,9 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
 
   return (
     <DashboardCard
-      eyebrow="Incident Proportions"
-      title="Incident mix chart"
-      description="Proportional breakdown of safety alerts and rule violation counts."
+      eyebrow={t('Incident Proportions')}
+      title={t('Incident mix chart')}
+      description={t('Proportional breakdown of safety alerts and rule violation counts.')}
     >
       <div className="relative w-full">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
@@ -453,7 +457,7 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
                   textAnchor="end"
                   className="fill-zinc-400 font-sans text-[8px] font-semibold"
                 >
-                  {formatEnumLabel(type)}
+                  {t(formatEnumLabel(type))}
                 </text>
                 <rect
                   x={paddingLeft}
@@ -489,6 +493,7 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
 }
 
 function TrafficFinesCard() {
+  const { t } = useTranslation();
   const [showMock, setShowMock] = useState(false);
 
   const mockFines = [
@@ -499,9 +504,9 @@ function TrafficFinesCard() {
 
   return (
     <DashboardCard
-      eyebrow="Compliance"
-      title="Traffic fines"
-      description="Irembo fines will stream here in real time once the integration is enabled."
+      eyebrow={t('Compliance')}
+      title={t('Traffic fines')}
+      description={t('Irembo fines will stream here in real time once the integration is enabled.')}
     >
       <div className="flex justify-end mb-3">
         <button
@@ -509,27 +514,27 @@ function TrafficFinesCard() {
           onClick={() => setShowMock(!showMock)}
           className="text-[10px] uppercase font-bold text-accent hover:underline flex items-center gap-1"
         >
-          {showMock ? '🔌 Disable Demo Feed' : '⚡ Simulate Live Irembo Feed'}
+          {showMock ? t('🔌 Disable Demo Feed') : t('⚡ Simulate Live Irembo Feed')}
         </button>
       </div>
 
       <div className="rounded-[20px] border border-line bg-surface-muted px-4 py-4 overflow-x-auto">
         <div className="min-w-[600px]">
           <div className="grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-muted border-b border-white/[0.04] pb-2">
-            <span>Vehicle</span>
-            <span>Reason</span>
-            <span>Amount</span>
-            <span>Status</span>
-            <span>Issued</span>
+            <span>{t('Vehicle')}</span>
+            <span>{t('Reason')}</span>
+            <span>{t('Amount')}</span>
+            <span>{t('Status')}</span>
+            <span>{t('Issued')}</span>
           </div>
 
           {!showMock ? (
             <div className="mt-3 grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-sm text-ink-soft">
               <span className="font-semibold text-ink">--</span>
-              <span>Awaiting Irembo feed</span>
+              <span>{t('Awaiting Irembo feed')}</span>
               <span>--</span>
               <span className="inline-flex max-w-max rounded-full bg-white/[0.02] border border-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
-                Pending
+                {t('Pending')}
               </span>
               <span>--</span>
             </div>
@@ -538,7 +543,7 @@ function TrafficFinesCard() {
               {mockFines.map((fine, idx) => (
                 <div key={idx} className="grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-sm text-ink-soft py-2.5 items-center">
                   <span className="font-semibold text-ink">{fine.vehicle}</span>
-                  <span>{fine.reason}</span>
+                  <span>{t(fine.reason)}</span>
                   <span className="font-mono">{fine.amount}</span>
                   <span>
                     <span className={cx(
@@ -547,7 +552,7 @@ function TrafficFinesCard() {
                         ? 'bg-success-soft text-success-ink' 
                         : 'bg-warning-soft text-warning-ink'
                     )}>
-                      {fine.status}
+                      {t(fine.status)}
                     </span>
                   </span>
                   <span className="font-mono text-xs">{fine.issued}</span>
@@ -558,13 +563,14 @@ function TrafficFinesCard() {
         </div>
       </div>
       <p className="mt-3 text-xs text-ink-muted">
-        Ready to map Irembo fines by plate or device UID once credentials are provided.
+        {t('Ready to map Irembo fines by plate or device UID once credentials are provided.')}
       </p>
     </DashboardCard>
   );
 }
 
 function ScorePill({ score }: { score: number }) {
+  const { t } = useTranslation();
   return (
     <span
       className={
@@ -575,7 +581,7 @@ function ScorePill({ score }: { score: number }) {
             : 'rounded-full bg-danger-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-danger-ink'
       }
     >
-      Score {score.toFixed(1)}
+      {t('Score')} {score.toFixed(1)}
     </span>
   );
 }

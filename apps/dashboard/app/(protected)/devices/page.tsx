@@ -11,10 +11,12 @@ import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 const PAGE_SIZE = 20;
 
 export default function DevicesPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [currentTime, setCurrentTime] = useState<number>(0);
 
@@ -52,7 +54,7 @@ export default function DevicesPage() {
   const columns = useMemo<Array<DataTableColumn<Device>>>(
     () => [
       {
-        header: 'Device',
+        header: t('Device'),
         render: (device) => (
           <div>
             <p className="font-semibold text-ink">{device.deviceUid}</p>
@@ -63,7 +65,7 @@ export default function DevicesPage() {
         ),
       },
       {
-        header: 'Status',
+        header: t('Status'),
         render: (device) => (
           <span
             className={
@@ -72,61 +74,61 @@ export default function DevicesPage() {
                 : 'inline-flex rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft'
             }
           >
-            {device.status}
+            {t(device.status)}
           </span>
         ),
       },
       {
-        header: 'Bike',
-        render: (device) => <span className="text-sm text-ink-soft">{device.bike?.label ?? 'Unassigned'}</span>,
+        header: t('Bike'),
+        render: (device) => <span className="text-sm text-ink-soft">{device.bike?.label ?? t('Unassigned')}</span>,
       },
       {
-        header: 'Last seen',
+        header: t('Last seen'),
         render: (device) => (
           <span className="text-sm text-ink-soft">
-            {device.lastSeenAt ? formatTimestamp(device.lastSeenAt) : 'Never'}
+            {device.lastSeenAt ? formatTimestamp(device.lastSeenAt) : t('Never')}
           </span>
         ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title="Registered Devices"
+          title={t('Registered Devices')}
           value={String(deviceStats.total)}
-          hint="Total devices visible in the current fleet."
+          hint={t('Total devices visible in the current fleet.')}
           icon={<Cpu size={18} />}
           tone="info"
         />
         <MetricCard
-          title="Active"
+          title={t('Active')}
           value={String(deviceStats.active)}
-          hint="Devices marked active and eligible for telemetry ingest."
+          hint={t('Devices marked active and eligible for telemetry ingest.')}
           icon={<ShieldCheck size={18} />}
           tone="success"
         />
         <MetricCard
-          title="Assigned"
+          title={t('Assigned')}
           value={String(deviceStats.assigned)}
-          hint="Devices currently attached to a bike record."
+          hint={t('Devices currently attached to a bike record.')}
           icon={<Link2 size={18} />}
           tone="info"
         />
         <MetricCard
-          title="Seen < 10 Min"
+          title={t('Seen < 10 Min')}
           value={String(deviceStats.recentlySeen)}
-          hint="Devices with a fresh heartbeat in the recent window."
+          hint={t('Devices with a fresh heartbeat in the recent window.')}
           icon={<Radio size={18} />}
           tone="warning"
         />
       </section>
 
       <section className="w-full">
-        <DashboardCard eyebrow="Device Registry" title="Provisioned hardware" description="Review assignment health and last-seen activity without leaving the dashboard.">
+        <DashboardCard eyebrow={t('Device Registry')} title={t('Provisioned hardware')} description={t('Review assignment health and last-seen activity without leaving the dashboard.')}>
           <DataTable
             data={devicesQuery.data?.data ?? []}
             columns={columns}
@@ -135,8 +137,8 @@ export default function DevicesPage() {
             emptyState={
               <EmptyState
                 icon={<Smartphone size={18} />}
-                title="No devices provisioned yet"
-                description="No devices found in the current fleet registry."
+                title={t('No devices provisioned yet')}
+                description={t('No devices found in the current fleet registry.')}
               />
             }
           />

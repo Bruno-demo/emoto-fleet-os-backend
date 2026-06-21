@@ -99,7 +99,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-muted mt-0.5">
               <span className="truncate">{fleetLabel}</span>
               <span className="text-ink-faint">&middot;</span>
-              <span className="truncate">{user?.role ?? 'Operator'}</span>
+              <span className="truncate">{user?.role ? t(`role_${user.role.toLowerCase()}`, user.role.charAt(0) + user.role.slice(1).toLowerCase()) : t('Operator')}</span>
               {user && (
                 <>
                   <span className="text-ink-faint">&middot;</span>
@@ -113,7 +113,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                         : 'bg-danger-soft text-danger-ink ring-danger-ink/20'
                     )}
                   >
-                    {entitlements.planLabel} &middot; {entitlements.statusLabel}
+                    {t(entitlements.planLabel)} &middot; {t(entitlements.statusLabel)}
                   </span>
                 </>
               )}
@@ -129,7 +129,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             className="flex w-full max-w-md items-center gap-2.5 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm text-ink-muted hover:bg-surface-hover hover:border-line-strong transition-all"
           >
             <Search size={14} />
-            <span className="flex-1 text-left">Search bikes, riders, events...</span>
+            <span className="flex-1 text-left">{t('Search bikes, riders, events...')}</span>
             <kbd className="hidden rounded-md border border-line bg-surface-muted px-1.5 py-0.5 text-[10px] font-mono text-ink-faint lg:inline-block">
               Ctrl+K
             </kbd>
@@ -173,13 +173,13 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
               {notifOpen && (
                 <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-line bg-overlay-bg backdrop-blur-2xl shadow-2xl animate-scale-in overflow-hidden">
                   <div className="flex items-center justify-between border-b border-line px-4 py-3">
-                    <p className="text-sm font-bold text-ink">Open incidents</p>
+                    <p className="text-sm font-bold text-ink">{t('Open incidents')}</p>
                     <Badge label={`${openCount}`} tone="danger" />
                   </div>
                   <div className="dashboard-scrollbar max-h-72 overflow-y-auto">
                     {openIncidents.length === 0 ? (
                       <div className="px-4 py-8 text-center">
-                        <p className="text-sm text-ink-muted">No open incidents</p>
+                        <p className="text-sm text-ink-muted">{t('No open incidents')}</p>
                       </div>
                     ) : (
                       openIncidents.map((inc) => (
@@ -194,10 +194,10 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                           </span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium text-ink">
-                              Incident &middot; {inc.status}
+                              {t('Incident')} &middot; {t(inc.status)}
                             </p>
                             <p className="mt-0.5 text-xs text-ink-muted">
-                              {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}
+                              {inc.createdAt ? formatTimeAgo(inc.createdAt) : t('Recently')}
                             </p>
                           </div>
                         </a>
@@ -210,7 +210,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
                       className="flex items-center justify-center border-t border-line px-4 py-2.5 text-xs font-semibold text-accent hover:bg-surface-hover"
                       onClick={() => setNotifOpen(false)}
                     >
-                      View all incidents &rarr;
+                      {t('View all incidents')} &rarr;
                     </a>
                   )}
                 </div>
@@ -222,7 +222,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
           {user?.role !== 'INSURER' && (
             <div className="hidden xl:block">
               <Badge
-                label={`${openCount} open`}
+                label={t('{count} open').replace('{count}', String(openCount))}
                 icon={<Siren size={12} />}
                 tone={openCount > 0 ? 'danger' : 'neutral'}
               />
@@ -303,6 +303,7 @@ function SearchOverlay({
   onClose: () => void;
   onNavigate: (href: string) => void;
 }) {
+  const { t } = useTranslation();
   const debouncedQuery = useDebounce(query, 250);
   const [selectedIdx, setSelectedIdx] = useState(0);
 
@@ -349,7 +350,7 @@ function SearchOverlay({
             autoFocus
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search bikes, riders, events, incidents..."
+            placeholder={t('Search bikes, riders, events, incidents...')}
             className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-muted focus:outline-none"
           />
           <button
@@ -364,19 +365,19 @@ function SearchOverlay({
         <div className="dashboard-scrollbar max-h-80 overflow-y-auto">
           {debouncedQuery.length < 2 ? (
             <div className="px-5 py-8 text-center">
-              <p className="text-sm text-ink-muted">Start typing to search across your fleet...</p>
+              <p className="text-sm text-ink-muted">{t('Start typing to search across your fleet...')}</p>
               <p className="mt-1 text-xs text-ink-faint">
-                Bikes, riders, events, incidents, devices, zones
+                {t('Bikes, riders, events, incidents, devices, zones')}
               </p>
             </div>
           ) : isLoading ? (
             <div className="px-5 py-8 text-center">
-              <p className="text-sm text-ink-muted">Searching...</p>
+              <p className="text-sm text-ink-muted">{t('Searching...')}</p>
             </div>
           ) : results.length === 0 ? (
             <div className="px-5 py-8 text-center">
               <p className="text-sm text-ink-muted">
-                No results for &ldquo;{debouncedQuery}&rdquo;
+                {t('No results for "{query}"').replace('{query}', debouncedQuery)}
               </p>
             </div>
           ) : (
@@ -400,7 +401,7 @@ function SearchOverlay({
                   <p className="truncate text-xs text-ink-muted">{result.sublabel}</p>
                 </div>
                 <span className="shrink-0 rounded-md bg-surface-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                  {result.type}
+                  {t(result.type)}
                 </span>
               </button>
             ))

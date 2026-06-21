@@ -30,15 +30,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const t = (key: string, fallback?: string): string => {
     const dict = translations[locale] as Record<string, string>;
-    const value = dict[key];
+    
+    // 1. Try exact key lookup
+    let value = dict[key];
+    if (value) return value;
+
+    // 2. Try slugified key lookup for natural text translation
+    const slugKey = key.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    value = dict[slugKey];
     if (value) return value;
 
     // Fallback to English
     const enDict = translations.en as Record<string, string>;
-    const enValue = enDict[key];
+    const enValue = enDict[key] || enDict[slugKey];
     if (enValue) return enValue;
 
-    return fallback || key;
+    return fallback !== undefined ? fallback : key;
   };
 
   return (

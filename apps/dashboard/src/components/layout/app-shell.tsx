@@ -10,6 +10,7 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { canUseFeature, getSubscriptionEntitlements } from '@/lib/subscription';
 import type { Incident, IncidentStats, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx } from '@/lib/ui';
+import { useTranslation } from '../i18n/LanguageProvider';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -86,6 +87,7 @@ function SubscriptionNotice({
   planLabel: string;
   statusLabel: string;
 }) {
+  const { t } = useTranslation();
   if (isPremium && isActive) {
     return null;
   }
@@ -103,13 +105,13 @@ function SubscriptionNotice({
         <div>
           <p className="font-semibold">
             {isActive
-              ? `${planLabel} plan: core dashboard features are active.`
-              : `Subscription ${statusLabel.toLowerCase()}: operational features are paused.`}
+              ? t('{plan} plan: core dashboard features are active.').replace('{plan}', planLabel)
+              : t('Subscription {status}: operational features are paused.').replace('{status}', statusLabel.toLowerCase())}
           </p>
           <p className={cx('mt-1 text-xs leading-5', isActive ? 'text-ink-muted' : 'text-danger-ink')}>
             {isActive
-              ? 'Upgrade to Operations Plus for device provisioning, zones, reports, audit logs, evidence packs, and remote commands.'
-              : 'Open settings to review the fleet subscription before continuing operations.'}
+              ? t('Upgrade to Operations Plus for device provisioning, zones, reports, audit logs, evidence packs, and remote commands.')
+              : t('Open settings to review the fleet subscription before continuing operations.')}
           </p>
         </div>
         <a
@@ -122,7 +124,7 @@ function SubscriptionNotice({
           )}
           style={{ background: isActive ? '#3B82F6' : '#EF4444', color: 'white' }}
         >
-          {isActive ? 'Upgrade' : 'Review subscription'}
+          {isActive ? t('Upgrade') : t('Review subscription')}
         </a>
       </div>
     </div>

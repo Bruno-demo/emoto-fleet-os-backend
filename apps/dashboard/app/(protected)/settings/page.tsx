@@ -33,6 +33,7 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { getSubscriptionEntitlements } from '@/lib/subscription';
 import { cx, formatEnumLabel } from '@/lib/ui';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 interface BillingCycleData {
   id: string;
@@ -73,6 +74,7 @@ const DEFAULT_NOTIF_PREFS = {
 };
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { data: user } = useCurrentUser();
   const queryClient = useQueryClient();
   const entitlements = getSubscriptionEntitlements(user);
@@ -223,7 +225,7 @@ export default function SettingsPage() {
             )}
           >
             {tab.icon}
-            <span>{tab.label}</span>
+            <span>{t(tab.label)}</span>
           </button>
         ))}
       </div>
@@ -231,7 +233,7 @@ export default function SettingsPage() {
       {/* Profile */}
       {activeTab === 'profile' && (
         <div className="space-y-5 animate-fade-in">
-          <DashboardCard eyebrow="Account" title="Profile information">
+          <DashboardCard eyebrow={t("Account")} title={t("Profile information")}>
             <div className="space-y-5">
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/15 text-accent text-2xl font-bold">
@@ -242,40 +244,40 @@ export default function SettingsPage() {
                     {user?.email ?? 'Unknown user'}
                   </p>
                   <p className="text-sm text-ink-muted">
-                    {user?.role ? formatEnumLabel(user.role) : 'Operator'} &middot;{' '}
-                    {user?.status ? formatEnumLabel(user.status) : 'Active'}
+                    {user?.role ? t(formatEnumLabel(user.role)) : t('Operator')} &middot;{' '}
+                    {user?.status ? t(formatEnumLabel(user.status)) : t('Active')}
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <SettingsField label="Email" value={user?.email ?? 'Not set'} />
-                <SettingsField label="Phone" value={user?.phone ?? 'Not set'} />
+                <SettingsField label={t("Email")} value={user?.email ?? 'Not set'} />
+                <SettingsField label={t("Phone")} value={user?.phone ?? 'Not set'} />
                 <SettingsField
-                  label="Role"
-                  value={user?.role ? formatEnumLabel(user.role) : 'Unknown'}
+                  label={t("Role")}
+                  value={user?.role ? t(formatEnumLabel(user.role)) : t('Unknown')}
                 />
                 <SettingsField
-                  label="Status"
-                  value={user?.status ? formatEnumLabel(user.status) : 'Unknown'}
+                  label={t("Status")}
+                  value={user?.status ? t(formatEnumLabel(user.status)) : t('Unknown')}
                 />
               </div>
             </div>
           </DashboardCard>
 
-          <DashboardCard eyebrow="Preferences" title="Display settings">
+          <DashboardCard eyebrow={t("Preferences")} title={t("Display settings")}>
             <div className="space-y-4">
               <SettingsToggle
                 icon={isDark ? <Moon size={15} /> : <Sun size={15} />}
-                label="Dark mode"
-                description={isDark ? 'Using the dark interface theme' : 'Using the light interface theme'}
+                label={t("Dark mode")}
+                description={isDark ? t('Using the dark interface theme') : t('Using the light interface theme')}
                 checked={isDark}
                 onChange={() => setTheme(isDark ? 'light' : 'dark')}
               />
               <SettingsToggle
                 icon={<Globe size={15} />}
-                label="Timezone"
-                description="Dates display in your browser's local timezone"
+                label={t("Timezone")}
+                description={t("Dates display in your browser's local timezone")}
                 checked={useLocalTimezone}
                 onChange={() => {
                   setUseLocalTimezone((v) => {
@@ -292,29 +294,29 @@ export default function SettingsPage() {
       {/* Fleet */}
       {activeTab === 'fleet' && (
         <div className="space-y-5 animate-fade-in">
-          <DashboardCard eyebrow="Organization" title="Fleet details">
+          <DashboardCard eyebrow={t("Organization")} title={t("Fleet details")}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <SettingsField label="Fleet ID" value={user?.fleetId ?? 'Unknown'} mono />
+              <SettingsField label={t("Fleet ID")} value={user?.fleetId ?? 'Unknown'} mono />
               <SettingsField
-                label="Fleet name"
+                label={t("Fleet name")}
                 value={user?.fleetName ?? 'Unnamed fleet'}
               />
               <SettingsField
-                label="Plan"
-                value={entitlements.planLabel}
+                label={t("Plan")}
+                value={t(entitlements.planLabel)}
               />
               <SettingsField
-                label="Subscription"
-                value={entitlements.statusLabel}
+                label={t("Subscription")}
+                value={t(entitlements.statusLabel)}
               />
             </div>
           </DashboardCard>
 
           <DashboardCard
             id="billing"
-            eyebrow="Billing"
-            title="Billing & Subscription Summary"
-            description="Operational billing overview based on your active fleet size and plan."
+            eyebrow={t("Billing")}
+            title={t("Billing & Subscription Summary")}
+            description={t("Operational billing overview based on your active fleet size and plan.")}
           >
             {(() => {
               const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? premiumMonthlyRate : user?.fleetPlan === 'INSURANCE' ? 0 : coreMonthlyRate);

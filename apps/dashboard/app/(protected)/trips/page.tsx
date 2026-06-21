@@ -33,22 +33,29 @@ import type { FleetTrip, PaginatedResponse } from '@/lib/types/dashboard';
 import { formatEnumLabel, formatTimestamp } from '@/lib/ui';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { getSubscriptionEntitlements } from '@/lib/subscription';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
+
+function LoadingReplayMap() {
+  const { t } = useTranslation();
+  return (
+    <div className="h-72 w-full flex items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm text-ink-soft animate-pulse">
+      {t('Loading route replay map...')}
+    </div>
+  );
+}
 
 const TripReplayMap = dynamic(
   () => import('@/components/trips/trip-replay-map').then((mod) => mod.TripReplayMap),
   {
     ssr: false,
-    loading: () => (
-      <div className="h-72 w-full flex items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm text-ink-soft animate-pulse">
-        Loading route replay map...
-      </div>
-    ),
+    loading: () => <LoadingReplayMap />,
   },
 );
 
 const PAGE_SIZE = 20;
 
 export default function TripsPage() {
+  const { t } = useTranslation();
   const { data: user } = useCurrentUser();
   const entitlements = useMemo(() => getSubscriptionEntitlements(user), [user]);
 
@@ -144,24 +151,24 @@ export default function TripsPage() {
   const columns = useMemo<Array<DataTableColumn<FleetTrip>>>(
     () => [
       {
-        header: 'Trip & Actor',
+        header: t('Trip & Actor'),
         render: (trip) => (
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent">
                 <Bike size={13} />
               </span>
-              <span className="font-semibold text-ink">{trip.bikeLabel ?? 'Unknown Bike'}</span>
+              <span className="font-semibold text-ink">{trip.bikeLabel ?? t('Unknown Bike')}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-ink-soft">
               <User size={11} className="text-ink-muted" />
-              <span>{trip.riderName ?? 'Unassigned Rider'}</span>
+              <span>{trip.riderName ?? t('Unassigned Rider')}</span>
             </div>
           </div>
         ),
       },
       {
-        header: 'Start Date & Time',
+        header: t('Start Date & Time'),
         render: (trip) => (
           <div>
             <p className="font-medium text-ink">{formatTimestamp(trip.startTs)}</p>
@@ -170,7 +177,7 @@ export default function TripsPage() {
         ),
       },
       {
-        header: 'Telematics',
+        header: t('Telematics'),
         render: (trip) => (
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-sm font-semibold text-ink">
@@ -185,7 +192,7 @@ export default function TripsPage() {
         ),
       },
       {
-        header: 'Battery & Power Usage',
+        header: t('Battery & Power Usage'),
         render: (trip) => {
           const powerUsed = trip.powerUsedPct;
           const startPct = trip.startBatteryPct;
@@ -193,7 +200,7 @@ export default function TripsPage() {
 
           if (startPct === null || endPct === null) {
             return (
-              <span className="text-xs text-ink-muted italic">No telemetry</span>
+              <span className="text-xs text-ink-muted italic">{t('No telemetry')}</span>
             );
           }
 
@@ -215,7 +222,7 @@ export default function TripsPage() {
               {powerUsed !== null && (
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${colorClass}`}>
                   <Battery size={10} className="fill-current" />
-                  {powerUsed > 0 ? `-${powerUsed.toFixed(1)}%` : `+${Math.abs(powerUsed).toFixed(1)}%`} used
+                  {t('{pct} used').replace('{pct}', powerUsed > 0 ? `-${powerUsed.toFixed(1)}%` : `+${Math.abs(powerUsed).toFixed(1)}%`)}
                 </span>
               )}
             </div>
@@ -223,7 +230,7 @@ export default function TripsPage() {
         },
       },
       {
-        header: 'Safety Score',
+        header: t('Safety Score'),
         render: (trip) => {
           const score = trip.score;
           const colorClass =
@@ -242,7 +249,7 @@ export default function TripsPage() {
         },
       },
       {
-        header: 'Action',
+        header: t('Action'),
         className: 'text-right',
         cellClassName: 'text-right',
         render: (trip) => (
@@ -251,12 +258,12 @@ export default function TripsPage() {
             className="rounded-xl border border-line bg-surface-hover px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-surface-muted hover:border-accent/30"
             onClick={() => setSelectedTripId(trip.id)}
           >
-            View detail
+            {t('View detail')}
           </button>
         ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
@@ -264,30 +271,30 @@ export default function TripsPage() {
       {/* Metrics Section */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          title="Total Journeys"
+          title={t('Total Journeys')}
           value={String(metrics.total)}
-          hint="Total journeys recorded inside fleet database scope."
+          hint={t('Total journeys recorded inside fleet database scope.')}
           icon={<Route size={18} />}
           tone="info"
         />
         <MetricCard
-          title="Active Page Dist."
+          title={t('Active Page Dist.')}
           value={`${metrics.totalDistanceKm.toFixed(1)} km`}
-          hint="Aggregated distance calculated from currently loaded page."
+          hint={t('Aggregated distance calculated from currently loaded page.')}
           icon={<Milestone size={18} />}
           tone="success"
         />
         <MetricCard
-          title="Avg Safety Score"
+          title={t('Avg Safety Score')}
           value={`${metrics.avgScore} / 100`}
-          hint="Historical driver safety evaluation aggregate."
+          hint={t('Historical driver safety evaluation aggregate.')}
           icon={<ShieldCheck size={18} />}
           tone={metrics.avgScore >= 80 ? 'success' : metrics.avgScore >= 60 ? 'warning' : 'danger'}
         />
         <MetricCard
-          title="Avg Battery Cost"
-          value={metrics.avgBatteryDrop !== null ? `-${metrics.avgBatteryDrop}% / trip` : 'N/A'}
-          hint="Average battery capacity cost consumed per completed trip."
+          title={t('Avg Battery Cost')}
+          value={metrics.avgBatteryDrop !== null ? `-${metrics.avgBatteryDrop}% / ${t('trip')}` : 'N/A'}
+          hint={t('Average battery capacity cost consumed per completed trip.')}
           icon={<Battery size={18} />}
           tone={metrics.avgBatteryDrop !== null && metrics.avgBatteryDrop > 25 ? 'warning' : 'info'}
         />
@@ -295,9 +302,9 @@ export default function TripsPage() {
 
       {/* Filter and Table Section */}
       <DashboardCard
-        eyebrow="Fleet Telemetry"
-        title="Trips History"
-        description="Inspect telemetry records, battery drops, and driving profiles across your vehicle fleet."
+        eyebrow={t('Fleet Telemetry')}
+        title={t('Trips History')}
+        description={t('Inspect telemetry records, battery drops, and driving profiles across your vehicle fleet.')}
       >
         <DataTableToolbar
           actions={
@@ -312,19 +319,19 @@ export default function TripsPage() {
               }}
               className="rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface-muted"
             >
-              Reset filters
+              {t('Reset filters')}
             </button>
           }
         >
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {/* Search Input */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-ink">Search Context</label>
+              <label className="text-sm font-medium text-ink">{t('Search Context')}</label>
               <div className="relative">
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
                 <input
                   type="text"
-                  placeholder="Search bike label, rider name, or ID..."
+                  placeholder={t('Search bike label, rider name, or ID...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 pl-10 pr-10 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
@@ -343,12 +350,12 @@ export default function TripsPage() {
 
             {/* Min Safety Score */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-ink">Min Safety Score</label>
+              <label className="text-sm font-medium text-ink">{t('Min Safety Score')}</label>
               <input
                 type="number"
                 min="0"
                 max="100"
-                placeholder="e.g. 70"
+                placeholder={t('e.g. 70')}
                 value={minScore}
                 onChange={(e) => { setMinScore(e.target.value); setPage(1); }}
                 className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 px-4 text-sm text-ink outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
@@ -357,7 +364,7 @@ export default function TripsPage() {
 
             {/* Start date from */}
             <TextField
-              label="Start Date From"
+              label={t('Start Date From')}
               type="datetime-local"
               value={from}
               onChange={(e) => { setFrom(e.target.value); setPage(1); }}
@@ -365,7 +372,7 @@ export default function TripsPage() {
 
             {/* Start date to */}
             <TextField
-              label="Start Date To"
+              label={t('Start Date To')}
               type="datetime-local"
               value={to}
               onChange={(e) => { setTo(e.target.value); setPage(1); }}
@@ -383,8 +390,8 @@ export default function TripsPage() {
             emptyState={
               <EmptyState
                 icon={<Route size={18} />}
-                title="No journeys found"
-                description="No historical journeys recorded match the current filters."
+                title={t('No journeys found')}
+                description={t('No historical journeys recorded match the current filters.')}
               />
             }
           />
@@ -401,8 +408,8 @@ export default function TripsPage() {
       {/* Slide-out details drawer */}
       <Drawer
         open={!!selectedTripId}
-        title={selectedTrip ? `Trip detail: ${selectedTrip.bikeLabel ?? 'Bike'}` : 'Trip detail'}
-        description="Comprehensive vehicle metrics, battery power consumption, and safety violations recorded."
+        title={selectedTrip ? t('Trip detail: {bike}').replace('{bike}', selectedTrip.bikeLabel ?? t('Bike')) : t('Trip detail')}
+        description={t('Comprehensive vehicle metrics, battery power consumption, and safety violations recorded.')}
         onClose={() => setSelectedTripId(null)}
       >
         {selectedTrip && (
@@ -410,29 +417,29 @@ export default function TripsPage() {
             {/* Quick Summary Section */}
             <section className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Linked Asset</span>
-                <p className="mt-1 font-display text-base font-bold text-ink">{selectedTrip.bikeLabel ?? 'Unknown'}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{t('Linked Asset')}</span>
+                <p className="mt-1 font-display text-base font-bold text-ink">{selectedTrip.bikeLabel ?? t('Unknown')}</p>
                 <div className="mt-2 flex gap-2">
                   <Link
                     href={`/bikes?bikeId=${selectedTrip.bikeId}`}
                     className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
                   >
                     <Bike size={11} />
-                    Open asset
+                    {t('Open asset')}
                   </Link>
                   <Link
                     href={`/live?bikeId=${selectedTrip.bikeId}`}
                     className="inline-flex items-center gap-1 text-xs text-ink hover:underline"
                   >
                     <Map size={11} />
-                    View Live
+                    {t('View Live')}
                   </Link>
                 </div>
               </div>
 
               <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Rider / Operator</span>
-                <p className="mt-1 font-display text-base font-bold text-ink">{selectedTrip.riderName ?? 'Unassigned'}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{t('Rider / Operator')}</span>
+                <p className="mt-1 font-display text-base font-bold text-ink">{selectedTrip.riderName ?? t('Unassigned')}</p>
                 <span className="mt-2 block text-xs text-ink-muted">
                   ID: {selectedTrip.riderId ? selectedTrip.riderId.slice(0, 12) : 'N/A'}
                 </span>
@@ -441,9 +448,9 @@ export default function TripsPage() {
 
             {/* Route Analysis Map Section */}
             <DashboardCard
-              eyebrow="Route Analysis"
-              title="Interactive Journey Replay"
-              description="Play back the historical telemetry path and vehicle status on the map."
+              eyebrow={t('Route Analysis')}
+              title={t('Interactive Journey Replay')}
+              description={t('Play back the historical telemetry path and vehicle status on the map.')}
             >
               {entitlements.isPremium ? (
                 <TripRouteReplay tripId={selectedTrip.id} />
@@ -452,15 +459,15 @@ export default function TripsPage() {
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent mb-3">
                     <Map size={18} />
                   </span>
-                  <h4 className="text-sm font-bold text-white mb-1">Route Replay Locked</h4>
+                  <h4 className="text-sm font-bold text-white mb-1">{t('Route Replay Locked')}</h4>
                   <p className="text-xs text-zinc-400 max-w-xs mb-4">
-                    Trip map playback and speed telemetry replays are premium features. Upgrade to Operations Plus to unlock.
+                    {t('Trip map playback and speed telemetry replays are premium features. Upgrade to Operations Plus to unlock.')}
                   </p>
                   <Link
                     href="/checkout?plan=operations-plus"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:bg-accent-strong"
                   >
-                    Upgrade plan
+                    {t('Upgrade plan')}
                   </Link>
                 </div>
               )}
@@ -468,9 +475,9 @@ export default function TripsPage() {
 
             {/* Battery Power Profiler */}
             <DashboardCard
-              eyebrow="Energy Analysis"
-              title="Power & Battery Profile"
-              description="Battery capacity telemetry recorded during this trip lifecycle."
+              eyebrow={t('Energy Analysis')}
+              title={t('Power & Battery Profile')}
+              description={t('Battery capacity telemetry recorded during this trip lifecycle.')}
             >
               {selectedTrip.startBatteryPct !== null && selectedTrip.endBatteryPct !== null ? (
                 <div className="space-y-4">
@@ -479,11 +486,11 @@ export default function TripsPage() {
                     <div className="flex justify-between text-xs font-semibold text-ink mb-1.5">
                       <span className="flex items-center gap-1">
                         <Battery size={13} className="text-emerald-400 fill-current" />
-                        Start: {selectedTrip.startBatteryPct}%
+                        {t('Start: {pct}%').replace('{pct}', String(selectedTrip.startBatteryPct))}
                       </span>
                       <span className="flex items-center gap-1">
                         <BatteryCharging size={13} className="text-blue-400" />
-                        End: {selectedTrip.endBatteryPct}%
+                        {t('End: {pct}%').replace('{pct}', String(selectedTrip.endBatteryPct))}
                       </span>
                     </div>
 
@@ -498,19 +505,19 @@ export default function TripsPage() {
 
                   <div className="grid gap-3 grid-cols-2 text-center mt-2">
                     <div className="rounded-xl bg-surface-hover px-3 py-2 border border-line">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Energy Cost</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Energy Cost')}</p>
                       <p className="mt-1 text-lg font-bold text-rose-400">
                         {selectedTrip.powerUsedPct !== null
-                          ? `${selectedTrip.powerUsedPct.toFixed(1)}% drop`
-                          : `${(selectedTrip.startBatteryPct - selectedTrip.endBatteryPct).toFixed(1)}% drop`}
+                          ? t('{pct} drop').replace('{pct}', `${selectedTrip.powerUsedPct.toFixed(1)}%`)
+                          : t('{pct} drop').replace('{pct}', `${(selectedTrip.startBatteryPct - selectedTrip.endBatteryPct).toFixed(1)}%`)}
                       </p>
                     </div>
 
                     <div className="rounded-xl bg-surface-hover px-3 py-2 border border-line">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Average Rate</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Average Rate')}</p>
                       <p className="mt-1 text-lg font-bold text-ink">
                         {selectedTrip.distanceKm > 0 && selectedTrip.powerUsedPct !== null
-                          ? `${(selectedTrip.powerUsedPct / selectedTrip.distanceKm).toFixed(2)}% / km`
+                          ? t('{rate}% / km').replace('{rate}', (selectedTrip.powerUsedPct / selectedTrip.distanceKm).toFixed(2))
                           : 'N/A'}
                       </p>
                     </div>
@@ -519,31 +526,31 @@ export default function TripsPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                   <BatteryCharging size={24} className="text-ink-muted animate-pulse" />
-                  <p className="mt-2 text-xs text-ink-soft">Telemetry missing battery logs for this period.</p>
+                  <p className="mt-2 text-xs text-ink-soft">{t('Telemetry missing battery logs for this period.')}</p>
                 </div>
               )}
             </DashboardCard>
 
             {/* Journey Stats */}
             <DashboardCard
-              eyebrow="Telematics Details"
-              title="Journey Analytics"
-              description="Basic speed, distance, and duration telemetry statistics."
+              eyebrow={t('Telematics Details')}
+              title={t('Journey Analytics')}
+              description={t('Basic speed, distance, and duration telemetry statistics.')}
             >
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-center">
-                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Distance</span>
+                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">{t('Distance')}</span>
                   <p className="mt-1 font-display text-lg font-bold text-ink">{selectedTrip.distanceKm.toFixed(2)} km</p>
                 </div>
                 <div className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-center">
-                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Duration</span>
+                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">{t('Duration')}</span>
                   <p className="mt-1 font-display text-lg font-bold text-ink">{formatDuration(selectedTrip.durationSec)}</p>
                 </div>
                 <div className="rounded-xl border border-line bg-surface-hover px-3 py-2 text-center">
-                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Avg Speed</span>
+                  <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">{t('Avg Speed')}</span>
                   <p className="mt-1 font-display text-lg font-bold text-ink">
                     {selectedTrip.durationSec > 0
-                      ? `${((selectedTrip.distanceKm / (selectedTrip.durationSec / 3600))).toFixed(1)} km/h`
+                      ? t('{speed} km/h').replace('{speed}', ((selectedTrip.distanceKm / (selectedTrip.durationSec / 3600))).toFixed(1))
                       : 'N/A'}
                   </p>
                 </div>
@@ -552,14 +559,14 @@ export default function TripsPage() {
 
             {/* Safety Score / Incidents */}
             <DashboardCard
-              eyebrow="Safety Monitor"
-              title="Driving Profile"
-              description="Safety score and driving anomalies logged by stream processors."
+              eyebrow={t('Safety Monitor')}
+              title={t('Driving Profile')}
+              description={t('Safety score and driving anomalies logged by stream processors.')}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-xl bg-surface-hover p-4 border border-line">
                   <div className="space-y-1">
-                    <span className="text-xs text-ink-soft">Driver Safety Index</span>
+                    <span className="text-xs text-ink-soft">{t('Driver Safety Index')}</span>
                     <p className="text-xl font-bold text-ink">{selectedTrip.score} / 100</p>
                   </div>
                   <span
@@ -571,13 +578,13 @@ export default function TripsPage() {
                         : 'bg-rose-400/10 text-rose-400 border-rose-400/20'
                     }`}
                   >
-                    {selectedTrip.score >= 90 ? 'Excellent' : selectedTrip.score >= 70 ? 'Satisfactory' : 'Needs Review'}
+                    {selectedTrip.score >= 90 ? t('Excellent') : selectedTrip.score >= 70 ? t('Satisfactory') : t('Needs Review')}
                   </span>
                 </div>
 
                 {/* Event breakdowns */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">Safety Events Breakdown</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">{t('Safety Events Breakdown')}</h4>
                   {(() => {
                     const nonZeroEvents = Object.entries(selectedTrip.eventCounts || {}).filter(
                       ([_, count]) => (count as number) > 0,
@@ -586,7 +593,7 @@ export default function TripsPage() {
                       return (
                         <div className="flex items-center gap-2 rounded-xl bg-emerald-400/5 px-4 py-3 text-xs text-emerald-400 border border-emerald-400/10">
                           <ShieldCheck size={14} />
-                          <span>Perfect journey: Zero harsh actions or speed violations recorded!</span>
+                          <span>{t('Perfect journey: Zero harsh actions or speed violations recorded!')}</span>
                         </div>
                       );
                     }
@@ -599,7 +606,7 @@ export default function TripsPage() {
                           >
                             <span className="flex items-center gap-1.5 text-ink-soft">
                               <AlertTriangle size={12} className="text-rose-400" />
-                              {formatEnumLabel(event)}
+                              {t(formatEnumLabel(event))}
                             </span>
                             <span className="font-bold text-ink">{count}</span>
                           </div>
@@ -627,6 +634,7 @@ interface TripRoutePoint {
 }
 
 function TripRouteReplay({ tripId }: { tripId: string }) {
+  const { t } = useTranslation();
   const routeQuery = useQuery({
     queryKey: ['trips', tripId, 'route'],
     queryFn: () => apiFetch<TripRoutePoint[]>(`/trips/${tripId}/route`),
@@ -636,7 +644,7 @@ function TripRouteReplay({ tripId }: { tripId: string }) {
   if (routeQuery.isLoading) {
     return (
       <div className="h-72 w-full flex items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm text-ink-soft animate-pulse">
-        Loading route replay map...
+        {t('Loading route replay map...')}
       </div>
     );
   }
@@ -644,7 +652,7 @@ function TripRouteReplay({ tripId }: { tripId: string }) {
   if (routeQuery.isError) {
     return (
       <div className="flex h-64 items-center justify-center rounded-2xl border border-line bg-surface-hover text-sm text-ink-soft">
-        Error loading route telemetry: {String(routeQuery.error)}
+        {t('Error loading route telemetry: {error}').replace('{error}', String(routeQuery.error))}
       </div>
     );
   }
