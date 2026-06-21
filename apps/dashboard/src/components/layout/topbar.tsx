@@ -19,7 +19,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ onOpenSidebar }: TopbarProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const { data: user } = useCurrentUser();
@@ -130,7 +130,10 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="flex w-full max-w-md items-center gap-2.5 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm text-ink-muted hover:bg-surface-hover hover:border-line-strong transition-all min-w-0"
+            className={cx(
+              "flex w-full items-center gap-2.5 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm text-ink-muted hover:bg-surface-hover hover:border-line-strong transition-all min-w-0",
+              locale === 'rw' ? 'max-w-xs' : 'max-w-md'
+            )}
           >
             <Search size={14} className="shrink-0" />
             <span className="flex-1 text-left truncate min-w-0">{t('Search bikes, riders, events...')}</span>
