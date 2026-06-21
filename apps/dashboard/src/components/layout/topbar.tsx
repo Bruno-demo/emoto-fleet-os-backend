@@ -99,14 +99,20 @@ export function Topbar({ onOpenSidebar, sidebarCollapsed = false }: TopbarProps)
             </div>
             <div className="flex items-center gap-x-2 text-xs text-ink-muted mt-0.5 min-w-0">
               <span className="truncate max-w-[120px] shrink-0">{fleetLabel}</span>
-              <div className="hidden lg:flex items-center gap-1.5 min-w-0">
+              <div className={cx(
+                "hidden items-center gap-1.5 min-w-0",
+                sidebarCollapsed ? "lg:flex" : "xl:flex"
+              )}>
                 <span className="text-ink-faint shrink-0">&middot;</span>
                 <span className="truncate max-w-[100px]">
                   {user?.role ? t(`role_${user.role.toLowerCase()}`, user.role.charAt(0) + user.role.slice(1).toLowerCase()) : t('Operator')}
                 </span>
               </div>
               {user && (
-                <div className="hidden xl:flex items-center gap-1.5 min-w-0">
+                <div className={cx(
+                  "hidden items-center gap-1.5 min-w-0",
+                  sidebarCollapsed ? "xl:flex" : "2xl:flex"
+                )}>
                   <span className="text-ink-faint shrink-0">&middot;</span>
                   <span
                     className={cx(
