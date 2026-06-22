@@ -145,6 +145,7 @@ export class HqController {
       serial?: string;
       model?: string;
       status?: any;
+      leaseToOwn?: boolean;
     },
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -162,6 +163,7 @@ export class HqController {
       serial?: string;
       model?: string;
       status?: any;
+      leaseToOwn?: boolean;
     },
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -288,6 +290,9 @@ export class HqController {
       identityNumber?: string;
       licencePhoto?: string;
       identityCardPhoto?: string;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
     },
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -310,6 +315,9 @@ export class HqController {
       identityNumber?: string;
       licencePhoto?: string;
       identityCardPhoto?: string;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
     },
     @CurrentUser() user: AuthenticatedUser,
   ) {

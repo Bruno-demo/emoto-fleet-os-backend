@@ -157,8 +157,74 @@ export default function RidersPage() {
     (r) => r.activeAssignments && r.activeAssignments.length > 0,
   ).length;
 
+  const isDirectFormInvalid = useMemo(() => {
+    if (!newFullName || !newPassword || newPassword.length < 8) return true;
+    if (!newPhone && !newEmail) return true;
+    if (!newLicenceNumber || !newIdentityNumber) return true;
+    if (!newPassportPhoto || !newLicencePhoto || !newIdentityCardPhoto) return true;
+    if (leaseToOwn) {
+      if (!leasePrincipal || !leaseDailyRate) return true;
+    }
+    return false;
+  }, [
+    newFullName,
+    newPassword,
+    newPhone,
+    newEmail,
+    leaseToOwn,
+    newLicenceNumber,
+    newIdentityNumber,
+    newPassportPhoto,
+    newLicencePhoto,
+    newIdentityCardPhoto,
+    leasePrincipal,
+    leaseDailyRate,
+  ]);
+
   const handleCreateRider = async () => {
     setCreateError(null);
+    if (!newFullName) {
+      setCreateError(t('Full name is required.'));
+      return;
+    }
+    if (!newPhone && !newEmail) {
+      setCreateError(t('Phone or email is required.'));
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setCreateError(t('Password must be at least 8 characters.'));
+      return;
+    }
+    if (!newLicenceNumber) {
+      setCreateError(t('Licence number is required.'));
+      return;
+    }
+    if (!newIdentityNumber) {
+      setCreateError(t('Identity card number is required.'));
+      return;
+    }
+    if (!newPassportPhoto) {
+      setCreateError(t('Passport photo is required.'));
+      return;
+    }
+    if (!newLicencePhoto) {
+      setCreateError(t('Licence photo is required.'));
+      return;
+    }
+    if (!newIdentityCardPhoto) {
+      setCreateError(t('Identity card photo is required.'));
+      return;
+    }
+    if (leaseToOwn) {
+      if (!leasePrincipal || parseFloat(leasePrincipal) <= 0) {
+        setCreateError(t('Lease principal must be a positive number.'));
+        return;
+      }
+      if (!leaseDailyRate || parseFloat(leaseDailyRate) <= 0) {
+        setCreateError(t('Lease daily rate must be a positive number.'));
+        return;
+      }
+    }
     try {
       setIsCreating(true);
       await apiFetch('/riders', {
@@ -729,7 +795,7 @@ export default function RidersPage() {
               {formMode === 'direct' ? (
                 <button
                   type="button"
-                  disabled={isCreating || (!newPhone && !newEmail) || !newPassword || newPassword.length < 8}
+                  disabled={isCreating || isDirectFormInvalid}
                   onClick={() => void handleCreateRider()}
                   className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: '#3B82F6', color: 'white' }}

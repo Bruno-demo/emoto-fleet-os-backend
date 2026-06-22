@@ -105,13 +105,12 @@ export default function FinancialsPage() {
     const activeLeases = leases.filter(l => l.status === 'ACTIVE' || l.status === 'DELINQUENT').length;
     const totalAssetValue = leases.reduce((sum, l) => sum + l.totalPrincipal, 0);
     const totalPaid = leases.reduce((sum, l) => sum + l.totalPaid, 0);
-    const overallEquity = totalAssetValue > 0 ? Math.round((totalPaid / totalAssetValue) * 100) : 0;
-    const totalArrears = leases.reduce((sum, l) => sum + l.arrears, 0);
+    const overallEquity = totalAssetValue > 0 ? Math.min(100, Math.max(0, Math.round((totalPaid / totalAssetValue) * 100))) : 0;
     return {
       activeLeases,
       totalAssetValue,
       overallEquity,
-      totalArrears
+      totalArrears: leases.reduce((sum, l) => sum + l.arrears, 0)
     };
   }, [leases]);
 
@@ -279,6 +278,15 @@ export default function FinancialsPage() {
   const paymentsList = paymentsQuery.data?.data ?? [];
   const summary = summaryQuery.data;
 
+  const selectedRider = useMemo(() => {
+    return ridersList.find((r) => r.id === formRiderId);
+  }, [ridersList, formRiderId]);
+
+  const isRiderUnassignedLease = useMemo(() => {
+    if (!selectedRider) return false;
+    return selectedRider.leaseToOwn && (!selectedRider.activeAssignments || selectedRider.activeAssignments.length === 0);
+  }, [selectedRider]);
+
   // Compute current week calendar matrix with offset support
   const weekDays = useMemo(() => {
     const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -362,13 +370,15 @@ export default function FinancialsPage() {
       setCollectError(t('Please select a rider.'));
       return;
     }
+    if (isRiderUnassignedLease) {
+      setCollectError(t('Cannot collect lease fees for a rider who is not assigned to a bike.'));
+      return;
+    }
     const amountNum = parseFloat(formAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
       setCollectError(t('Please input a valid amount greater than zero.'));
       return;
     }
-
-
 
     recordPaymentMutation.mutate({
       riderId: formRiderId,
@@ -1060,7 +1070,7 @@ export default function FinancialsPage() {
                       </td>
                       <td className="py-3">
                         {(() => {
-                          const pct = Math.round((lease.totalPaid / lease.totalPrincipal) * 100);
+                          const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
                           return (
                             <div className="min-w-[120px] max-w-[160px] text-xs">
                               <div className="flex justify-between items-center mb-1">
@@ -1073,6 +1083,10 @@ export default function FinancialsPage() {
                                 <div
                                   className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                                   style={{ width: `${pct}%` }}
+                                  role="progressbar"
+                                  aria-valuenow={pct}
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
                                 />
                               </div>
                             </div>
@@ -1190,6 +1204,13 @@ export default function FinancialsPage() {
                 ))}
               </SelectField>
 
+              {isRiderUnassignedLease && (
+                <InlineNotice
+                  message={t("This rider is registered under a Lease-to-Own plan but currently has no active bike assigned. Lease fees cannot be collected until a bike is assigned.")}
+                  tone="warning"
+                />
+              )}
+
               {formRiderId && (
                 <div className="space-y-1">
                   {riderPaymentsQuery.isLoading ? (
@@ -1276,10 +1297,10 @@ export default function FinancialsPage() {
               </button>
               <button
                 type="button"
-                disabled={recordPaymentMutation.isPending}
+                disabled={recordPaymentMutation.isPending || isRiderUnassignedLease}
                 onClick={handleRecordPaymentSubmit}
                 style={{ backgroundColor: '#3B82F6', color: '#ffffff' }}
-                className="inline-flex items-center gap-1.5 rounded-xl font-semibold px-5 py-2.5 text-sm hover:opacity-90 hover:brightness-110 disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1.5 rounded-xl font-semibold px-5 py-2.5 text-sm hover:opacity-90 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {recordPaymentMutation.isPending ? t('Saving...') : t('Confirm Collection')}
               </button>

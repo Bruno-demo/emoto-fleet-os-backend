@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import {
   AuditActionType,
   PaymentMethod,
@@ -38,6 +38,18 @@ export class FinancialsService {
 
     if (!rider) {
       throw new NotFoundException('Rider not found in this fleet');
+    }
+
+    if (rider.riderProfile?.leaseToOwn) {
+      const activeAssignment = await this.prisma.bikeAssignment.findFirst({
+        where: {
+          riderUserId: dto.riderId,
+          active: true,
+        },
+      });
+      if (!activeAssignment) {
+        throw new BadRequestException('Cannot collect lease fees for a rider who is not assigned to a bike');
+      }
     }
 
     const paidAtDate = new Date(dto.paidAt);

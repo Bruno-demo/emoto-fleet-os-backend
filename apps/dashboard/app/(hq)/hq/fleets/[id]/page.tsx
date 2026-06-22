@@ -55,7 +55,10 @@ const fleetDetailSchema = z.object({
           identityNumber: z.string().nullable().optional(),
           passportPhoto: z.string().nullable().optional(),
           licencePhoto: z.string().nullable().optional(),
-          identityCardPhoto: z.string().nullable().optional()
+          identityCardPhoto: z.string().nullable().optional(),
+          leaseToOwn: z.boolean().optional(),
+          leasePrincipal: z.number().optional(),
+          leaseDailyRate: z.number().optional()
         })
         .nullable()
         .optional()
@@ -71,6 +74,7 @@ const fleetDetailSchema = z.object({
       status: z.string(),
       type: z.string().nullable().optional(),
       imageUrl: z.string().nullable().optional(),
+      leaseToOwn: z.boolean().optional(),
       devices: z
         .array(
           z.object({
@@ -185,6 +189,7 @@ export default function FleetDetailPage() {
       serial?: string;
       model?: string;
       status: string;
+      leaseToOwn?: boolean;
     }) =>
       apiFetch(`/hq/fleets/${id}/bikes`, {
         method: 'POST',
@@ -209,6 +214,7 @@ export default function FleetDetailPage() {
       serial?: string;
       model?: string;
       status: string;
+      leaseToOwn?: boolean;
     }) =>
       apiFetch(`/hq/bikes/${bikeId}`, {
         method: 'PUT',
@@ -243,6 +249,9 @@ export default function FleetDetailPage() {
       identityNumber?: string;
       licencePhoto?: string;
       identityCardPhoto?: string;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
     }) =>
       apiFetch(`/hq/fleets/${id}/users`, {
         method: 'POST',
@@ -272,6 +281,9 @@ export default function FleetDetailPage() {
       identityNumber?: string;
       licencePhoto?: string;
       identityCardPhoto?: string;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
     }) =>
       apiFetch(`/hq/users/${userId}`, {
         method: 'PUT',
@@ -361,6 +373,7 @@ export default function FleetDetailPage() {
   const [bikeStatus, setBikeStatus] = useState('ACTIVE');
   const [bikeType, setBikeType] = useState('SPIRO');
   const [bikeImageUrl, setBikeImageUrl] = useState('');
+  const [bikeLeaseToOwn, setBikeLeaseToOwn] = useState(false);
   const [isCompresingBike, setIsCompresingBike] = useState(false);
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -377,6 +390,9 @@ export default function FleetDetailPage() {
   const [userPassportPhoto, setUserPassportPhoto] = useState('');
   const [userLicencePhoto, setUserLicencePhoto] = useState('');
   const [userIdentityCardPhoto, setUserIdentityCardPhoto] = useState('');
+  const [userLeaseToOwn, setUserLeaseToOwn] = useState(false);
+  const [userLeasePrincipal, setUserLeasePrincipal] = useState('2500000');
+  const [userLeaseDailyRate, setUserLeaseDailyRate] = useState('15000');
   const [isCompresingPassport, setIsCompresingPassport] = useState(false);
   const [isCompresingLicence, setIsCompresingLicence] = useState(false);
   const [isCompresingIdCard, setIsCompresingIdCard] = useState(false);
@@ -396,6 +412,7 @@ export default function FleetDetailPage() {
     setBikeStatus('ACTIVE');
     setBikeType('SPIRO');
     setBikeImageUrl('');
+    setBikeLeaseToOwn(false);
     setSelectedBikeId(null);
   };
 
@@ -411,6 +428,9 @@ export default function FleetDetailPage() {
     setUserPassportPhoto('');
     setUserLicencePhoto('');
     setUserIdentityCardPhoto('');
+    setUserLeaseToOwn(false);
+    setUserLeasePrincipal('2500000');
+    setUserLeaseDailyRate('15000');
     setSelectedUserId(null);
   };
 
@@ -429,6 +449,7 @@ export default function FleetDetailPage() {
     setBikeStatus(bike.status);
     setBikeType(bike.type || 'SPIRO');
     setBikeImageUrl(bike.imageUrl || '');
+    setBikeLeaseToOwn(bike.leaseToOwn ?? false);
     setBikeEditMode(true);
     setIsBikeModalOpen(true);
   };
@@ -452,6 +473,9 @@ export default function FleetDetailPage() {
     setUserPassportPhoto(user.riderProfile?.passportPhoto || '');
     setUserLicencePhoto(user.riderProfile?.licencePhoto || '');
     setUserIdentityCardPhoto(user.riderProfile?.identityCardPhoto || '');
+    setUserLeaseToOwn(user.riderProfile?.leaseToOwn ?? false);
+    setUserLeasePrincipal(String(user.riderProfile?.leasePrincipal ?? 2500000));
+    setUserLeaseDailyRate(String(user.riderProfile?.leaseDailyRate ?? 15000));
     setUserEditMode(true);
     setIsUserModalOpen(true);
   };
@@ -466,6 +490,7 @@ export default function FleetDetailPage() {
       status: bikeStatus,
       type: bikeType || undefined,
       imageUrl: bikeImageUrl || undefined,
+      leaseToOwn: bikeLeaseToOwn,
     };
 
     if (bikeEditMode && selectedBikeId) {
@@ -488,6 +513,9 @@ export default function FleetDetailPage() {
       passportPhoto: userPassportPhoto || undefined,
       licencePhoto: userLicencePhoto || undefined,
       identityCardPhoto: userIdentityCardPhoto || undefined,
+      leaseToOwn: userRole === 'RIDER' ? userLeaseToOwn : undefined,
+      leasePrincipal: userRole === 'RIDER' && userLeaseToOwn ? Number(userLeasePrincipal) : undefined,
+      leaseDailyRate: userRole === 'RIDER' && userLeaseToOwn ? Number(userLeaseDailyRate) : undefined,
     };
 
     if (userEditMode && selectedUserId) {
@@ -1158,6 +1186,18 @@ export default function FleetDetailPage() {
               </div>
 
               <div>
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2 cursor-pointer col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={bikeLeaseToOwn}
+                    onChange={(e) => setBikeLeaseToOwn(e.target.checked)}
+                    className="rounded border-zinc-700 bg-zinc-950 text-accent focus:ring-accent"
+                  />
+                  <span>Lease-to-Own Plan Eligible</span>
+                </label>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
                   Bike Image
                 </label>
@@ -1391,8 +1431,51 @@ export default function FleetDetailPage() {
               {userRole === 'RIDER' && (
                 <div className="space-y-4 pt-4 border-t border-line">
                   <h4 className="text-xs font-bold text-accent uppercase tracking-wider">
-                    Rider Documents
+                    Rider Documents & Plan
                   </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                        Payment Plan
+                      </label>
+                      <select
+                        value={userLeaseToOwn ? 'lease' : 'collect'}
+                        onChange={(e) => setUserLeaseToOwn(e.target.value === 'lease')}
+                        className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white focus:border-accent focus:outline-none"
+                      >
+                        <option value="collect">Daily Collection</option>
+                        <option value="lease">Lease-to-Own</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {userLeaseToOwn && (
+                    <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                          Lease Principal (RWF)
+                        </label>
+                        <input
+                          type="number"
+                          value={userLeasePrincipal}
+                          onChange={(e) => setUserLeasePrincipal(e.target.value)}
+                          className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                          Lease Daily Rate (RWF)
+                        </label>
+                        <input
+                          type="number"
+                          value={userLeaseDailyRate}
+                          onChange={(e) => setUserLeaseDailyRate(e.target.value)}
+                          className="w-full rounded-xl border border-line bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
@@ -1685,6 +1768,46 @@ export default function FleetDetailPage() {
                   {selectedOperator.riderProfile?.identityNumber ?? '—'}
                 </div>
               </div>
+
+              {selectedOperator.riderProfile?.leaseToOwn && (
+                <>
+                  <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      Payment Plan
+                    </p>
+                    <div className="mt-2 text-sm font-semibold text-emerald-400">
+                      Lease-to-Own
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      Lease Principal
+                    </p>
+                    <div className="mt-2 text-sm font-semibold text-white">
+                      {(selectedOperator.riderProfile?.leasePrincipal ?? 0).toLocaleString()} RWF
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      Lease Daily Rate
+                    </p>
+                    <div className="mt-2 text-sm font-semibold text-white">
+                      {(selectedOperator.riderProfile?.leaseDailyRate ?? 0).toLocaleString()} RWF
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!selectedOperator.riderProfile?.leaseToOwn && selectedOperator.role === 'RIDER' && (
+                <div className="rounded-[18px] border border-line bg-white/5 px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    Payment Plan
+                  </p>
+                  <div className="mt-2 text-sm font-semibold text-white">
+                    Daily Collection
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Documents Section */}

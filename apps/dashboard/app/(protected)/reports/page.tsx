@@ -1,12 +1,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3 } from 'lucide-react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
 import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
@@ -25,10 +26,12 @@ function getDefaultRange() {
 export default function ReportsPage() {
   const { t } = useTranslation();
   const [dateRange, setDateRange] = useState(getDefaultRange);
+  const [activeTab, setActiveTab] = useState<'safety' | 'leases'>('safety');
 
   const reportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
     queryFn: () => apiFetch<WeeklyReport>(`/reports/weekly?from=${dateRange.from}&to=${dateRange.to}`),
+    enabled: activeTab === 'safety',
   });
 
   const report = reportQuery.data;
@@ -42,6 +45,28 @@ export default function ReportsPage() {
   const totalEvents = report
     ? Object.values(report.eventCounts).reduce((s, v) => s + v, 0)
     : 0;
+
+  const leasesQuery = useQuery({
+    queryKey: ['leases', 'reporting'],
+    queryFn: () => apiFetch<any[]>('/financials/leases'),
+    enabled: activeTab === 'leases',
+  });
+  const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
+
+  const leaseMetrics = useMemo(() => {
+    const totalLeases = leases.length;
+    const totalPrincipal = leases.reduce((sum, l) => sum + l.totalPrincipal, 0);
+    const totalPaid = leases.reduce((sum, l) => sum + l.totalPaid, 0);
+    const totalArrears = leases.reduce((sum, l) => sum + l.arrears, 0);
+    const overallEquity = totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((totalPaid / totalPrincipal) * 100))) : 0;
+    return {
+      totalLeases,
+      totalPrincipal,
+      totalPaid,
+      totalArrears,
+      overallEquity
+    };
+  }, [leases]);
 
   const handleExport = () => {
     if (!report) return;
@@ -74,215 +99,383 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header filter & actions bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <DateRangePicker
-          from={dateRange.from}
-          to={dateRange.to}
-          onChange={setDateRange}
-        />
+    <div className="space-y-6 animate-fade-in">
+      {/* Tab Switcher */}
+      <div className="flex border-b border-line gap-2">
         <button
           type="button"
-          onClick={handleExport}
-          disabled={!report || reportQuery.isLoading}
-          className="flex items-center justify-center gap-2 rounded-lg border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-strong hover:text-white transition disabled:opacity-50"
+          onClick={() => setActiveTab('safety')}
+          className={cx(
+            "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
+            activeTab === 'safety'
+              ? "border-accent text-ink"
+              : "border-transparent text-ink-muted hover:text-ink"
+          )}
         >
-          <Download size={16} />
-          {t('Export CSV')}
+          <BarChart3 size={16} />
+          {t('Operations & Safety')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('leases')}
+          className={cx(
+            "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
+            activeTab === 'leases'
+              ? "border-accent text-ink"
+              : "border-transparent text-ink-muted hover:text-ink"
+          )}
+        >
+          <Coins size={16} />
+          {t('Lease Repayments')}
         </button>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {reportQuery.isLoading ? (
-          <>
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-          </>
-        ) : (
-          <>
-            <MetricCard
-              title={t('Average Score')}
-              value={report ? report.avgScore.toFixed(1) : '--'}
-              hint={t('Fleet-wide trip score across the current weekly range.')}
-              icon={<TrendingUp size={18} />}
-              tone="info"
+      {activeTab === 'safety' ? (
+        <>
+          {/* Header filter & actions bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <DateRangePicker
+              from={dateRange.from}
+              to={dateRange.to}
+              onChange={setDateRange}
             />
-            <MetricCard
-              title={t('Trip Count')}
-              value={report ? String(report.tripCount) : '--'}
-              hint={t('Trips included in the current weekly summary window.')}
-              icon={<Activity size={18} />}
-              tone="success"
-            />
-            <MetricCard
-              title={t('Overspeed Events')}
-              value={report ? String(report.eventCounts.OVERSPEED ?? 0) : '--'}
-              hint={t('Overspeed rule hits recorded during the same range.')}
-              icon={<AlertTriangle size={18} />}
-              tone="warning"
-            />
-            <MetricCard
-              title={t('Traffic fines')}
-              value={report ? String(trafficFineCount) : '--'}
-              hint={t('Speed and road-safety violations that can translate into fines.')}
-              icon={<AlertTriangle size={18} />}
-              tone="warning"
-            />
-            <MetricCard
-              title={t('Crash / SOS')}
-              value={report ? String(crashAndSosCount) : '--'}
-              hint={t('High-priority safety incidents requiring rapid dispatcher review.')}
-              icon={<AlertCircle size={18} />}
-              tone="danger"
-            />
-          </>
-        )}
-      </section>
-
-      {/* Visual Analytics Charts */}
-      {!reportQuery.isLoading && report && (
-        <section className="grid gap-4 xl:grid-cols-2">
-          <TrendChart
-            avgScore={report.avgScore}
-            from={dateRange.from}
-            to={dateRange.to}
-          />
-          <EventDistributionChart eventCounts={report.eventCounts} />
-        </section>
-      )}
-
-      <TrafficFinesCard />
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <DashboardCard
-          eyebrow={t('Risk Ranking')}
-          title={t('Top risky bikes')}
-          description={t('Bikes with the weakest scores and the highest event counts in the current weekly range.')}
-        >
-          {reportQuery.isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-20 w-full rounded-[20px]" />
-              <Skeleton className="h-20 w-full rounded-[20px]" />
-              <Skeleton className="h-20 w-full rounded-[20px]" />
-            </div>
-          ) : (report?.topRiskyBikes ?? []).length ? (
-            <ul className="space-y-3">
-              {(report?.topRiskyBikes ?? []).map((bike, index) => (
-                <li
-                  key={bike.bikeId}
-                  className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-ink-soft">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="truncate font-semibold text-ink">{bike.label}</p>
-                        <ScorePill score={bike.avgScore} />
-                      </div>
-                      <p className="mt-1 text-xs leading-5 text-ink-soft">
-                        {bike.tripCount} {t('trips')} · {bike.eventCount} {t('events')}
-                      </p>
-                      <ScoreBar score={bike.avgScore} />
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              icon={<Activity size={18} />}
-              title={t('No bike risk data yet')}
-              description={t('Weekly bike risk rankings will appear once trips and events are available.')}
-            />
-          )}
-        </DashboardCard>
-
-        <DashboardCard
-          eyebrow={t('Rider Ranking')}
-          title={t('Top risky riders')}
-          description={t('Rider aggregates from the weekly summary, useful for coaching and insurer review.')}
-        >
-          {reportQuery.isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-20 w-full rounded-[20px]" />
-              <Skeleton className="h-20 w-full rounded-[20px]" />
-              <Skeleton className="h-20 w-full rounded-[20px]" />
-            </div>
-          ) : (report?.topRiskyRiders ?? []).length ? (
-            <ul className="space-y-3">
-              {(report?.topRiskyRiders ?? []).map((rider, index) => (
-                <li
-                  key={rider.riderId}
-                  className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-ink-soft">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="truncate font-semibold text-ink">
-                          {t('Rider')} {rider.riderId.slice(0, 8)}
-                        </p>
-                        <ScorePill score={rider.avgScore} />
-                      </div>
-                      <p className="mt-1 text-xs leading-5 text-ink-soft">
-                        {rider.tripCount} {t('trips')}
-                      </p>
-                      <ScoreBar score={rider.avgScore} />
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              icon={<TrendingUp size={18} />}
-              title={t('No rider risk data yet')}
-              description={t('Weekly rider rankings will appear once rider-linked trips are generated.')}
-            />
-          )}
-        </DashboardCard>
-      </section>
-
-      <DashboardCard
-        eyebrow={t('Event Breakdown')}
-        title={t('Weekly incident mix')}
-        description={t('A quick view of the event composition behind the fleet score and incident counts.')}
-      >
-        {reportQuery.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Skeleton className="h-28 w-full rounded-[20px]" />
-            <Skeleton className="h-28 w-full rounded-[20px]" />
-            <Skeleton className="h-28 w-full rounded-[20px]" />
-            <Skeleton className="h-28 w-full rounded-[20px]" />
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={!report || reportQuery.isLoading}
+              className="flex items-center justify-center gap-2 rounded-lg border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-strong hover:text-white transition disabled:opacity-50"
+            >
+              <Download size={16} />
+              {t('Export CSV')}
+            </button>
           </div>
-        ) : report && totalEvents > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Object.entries(report.eventCounts).map(([type, count]) => (
-              <div
-                key={type}
-                className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
-              >
-                <p className="text-sm font-semibold text-ink">{t(formatEnumLabel(type))}</p>
-                <p className="mt-3 font-display text-3xl font-semibold text-ink">{count}</p>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {reportQuery.isLoading ? (
+              <>
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+              </>
+            ) : (
+              <>
+                <MetricCard
+                  title={t('Average Score')}
+                  value={report ? report.avgScore.toFixed(1) : '--'}
+                  hint={t('Fleet-wide trip score across the current weekly range.')}
+                  icon={<TrendingUp size={18} />}
+                  tone="info"
+                />
+                <MetricCard
+                  title={t('Trip Count')}
+                  value={report ? String(report.tripCount) : '--'}
+                  hint={t('Trips included in the current weekly summary window.')}
+                  icon={<Activity size={18} />}
+                  tone="success"
+                />
+                <MetricCard
+                  title={t('Overspeed Events')}
+                  value={report ? String(report.eventCounts.OVERSPEED ?? 0) : '--'}
+                  hint={t('Overspeed rule hits recorded during the same range.')}
+                  icon={<AlertTriangle size={18} />}
+                  tone="warning"
+                />
+                <MetricCard
+                  title={t('Traffic fines')}
+                  value={report ? String(trafficFineCount) : '--'}
+                  hint={t('Speed and road-safety violations that can translate into fines.')}
+                  icon={<AlertTriangle size={18} />}
+                  tone="warning"
+                />
+                <MetricCard
+                  title={t('Crash / SOS')}
+                  value={report ? String(crashAndSosCount) : '--'}
+                  hint={t('High-priority safety incidents requiring rapid dispatcher review.')}
+                  icon={<AlertCircle size={18} />}
+                  tone="danger"
+                />
+              </>
+            )}
+          </section>
+
+          {/* Visual Analytics Charts */}
+          {!reportQuery.isLoading && report && (
+            <section className="grid gap-4 xl:grid-cols-2">
+              <TrendChart
+                avgScore={report.avgScore}
+                from={dateRange.from}
+                to={dateRange.to}
+              />
+              <EventDistributionChart eventCounts={report.eventCounts} />
+            </section>
+          )}
+
+          <TrafficFinesCard />
+
+          <section className="grid gap-4 xl:grid-cols-2">
+            <DashboardCard
+              eyebrow={t('Risk Ranking')}
+              title={t('Top risky bikes')}
+              description={t('Bikes with the weakest scores and the highest event counts in the current weekly range.')}
+            >
+              {reportQuery.isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 w-full rounded-[20px]" />
+                  <Skeleton className="h-20 w-full rounded-[20px]" />
+                  <Skeleton className="h-20 w-full rounded-[20px]" />
+                </div>
+              ) : (report?.topRiskyBikes ?? []).length ? (
+                <ul className="space-y-3">
+                  {(report?.topRiskyBikes ?? []).map((bike, index) => (
+                    <li
+                      key={bike.bikeId}
+                      className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-ink-soft">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate font-semibold text-ink">{bike.label}</p>
+                            <ScorePill score={bike.avgScore} />
+                          </div>
+                          <p className="mt-1 text-xs leading-5 text-ink-soft">
+                            {bike.tripCount} {t('trips')} · {bike.eventCount} {t('events')}
+                          </p>
+                          <ScoreBar score={bike.avgScore} />
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon={<Activity size={18} />}
+                  title={t('No bike risk data yet')}
+                  description={t('Weekly bike risk rankings will appear once trips and events are available.')}
+                />
+              )}
+            </DashboardCard>
+
+            <DashboardCard
+              eyebrow={t('Rider Ranking')}
+              title={t('Top risky riders')}
+              description={t('Rider aggregates from the weekly summary, useful for coaching and insurer review.')}
+            >
+              {reportQuery.isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 w-full rounded-[20px]" />
+                  <Skeleton className="h-20 w-full rounded-[20px]" />
+                  <Skeleton className="h-20 w-full rounded-[20px]" />
+                </div>
+              ) : (report?.topRiskyRiders ?? []).length ? (
+                <ul className="space-y-3">
+                  {(report?.topRiskyRiders ?? []).map((rider, index) => (
+                    <li
+                      key={rider.riderId}
+                      className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-ink-soft">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate font-semibold text-ink">
+                              {t('Rider')} {rider.riderId.slice(0, 8)}
+                            </p>
+                            <ScorePill score={rider.avgScore} />
+                          </div>
+                          <p className="mt-1 text-xs leading-5 text-ink-soft">
+                            {rider.tripCount} {t('trips')}
+                          </p>
+                          <ScoreBar score={rider.avgScore} />
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon={<TrendingUp size={18} />}
+                  title={t('No rider risk data yet')}
+                  description={t('Weekly rider rankings will appear once rider-linked trips are generated.')}
+                />
+              )}
+            </DashboardCard>
+          </section>
+
+          <DashboardCard
+            eyebrow={t('Event Breakdown')}
+            title={t('Weekly incident mix')}
+            description={t('A quick view of the event composition behind the fleet score and incident counts.')}
+          >
+            {reportQuery.isLoading ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <Skeleton className="h-28 w-full rounded-[20px]" />
+                <Skeleton className="h-28 w-full rounded-[20px]" />
+                <Skeleton className="h-28 w-full rounded-[20px]" />
+                <Skeleton className="h-28 w-full rounded-[20px]" />
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={<AlertCircle size={18} />}
-            title={t('No event counts for this range')}
-            description={t('Weekly event totals will appear here once fleet activity is available.')}
-          />
-        )}
-      </DashboardCard>
+            ) : report && totalEvents > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {Object.entries(report.eventCounts).map(([type, count]) => (
+                  <div
+                    key={type}
+                    className="rounded-[20px] border border-line bg-surface-muted px-4 py-4"
+                  >
+                    <p className="text-sm font-semibold text-ink">{t(formatEnumLabel(type))}</p>
+                    <p className="mt-3 font-display text-3xl font-semibold text-ink">{count}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<AlertCircle size={18} />}
+                title={t('No event counts for this range')}
+                description={t('Weekly event totals will appear here once fleet activity is available.')}
+              />
+            )}
+          </DashboardCard>
+        </>
+      ) : (
+        <>
+          {/* Lease Repayments Tab */}
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {leasesQuery.isLoading ? (
+              <>
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+              </>
+            ) : (
+              <>
+                <MetricCard
+                  title={t('Active Contracts')}
+                  value={String(leaseMetrics.totalLeases)}
+                  hint={t('Total lease-to-own agreements globally in the fleet.')}
+                  icon={<Users size={18} />}
+                  tone="info"
+                />
+                <MetricCard
+                  title={t('Asset Finance Value')}
+                  value={`${leaseMetrics.totalPrincipal.toLocaleString()} RWF`}
+                  hint={t('Sum of all principal lease amounts.')}
+                  icon={<TrendingUp size={18} />}
+                  tone="info"
+                />
+                <MetricCard
+                  title={t('Rider Equity')}
+                  value={`${leaseMetrics.overallEquity}%`}
+                  hint={t('Average paid ownership equity across portfolio.')}
+                  icon={<Wallet size={18} />}
+                  tone="success"
+                />
+                <MetricCard
+                  title={t('Overdue Arrears')}
+                  value={`${leaseMetrics.totalArrears.toLocaleString()} RWF`}
+                  hint={t('Accumulated unpaid arrears balance.')}
+                  icon={<Coins size={18} />}
+                  tone={leaseMetrics.totalArrears > 0 ? 'warning' : 'neutral'}
+                />
+              </>
+            )}
+          </section>
+
+          <DashboardCard
+            eyebrow={t('Financing Reports')}
+            title={t('Buy-to-own portfolio summary')}
+            description={t('Track asset ownership payments, overdue balances, and driver equity milestones.')}
+          >
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full min-w-[700px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-line text-ink-faint">
+                    <th className="py-2.5 font-bold">{t('Rider')}</th>
+                    <th className="py-2.5 font-bold">{t('Bike details')}</th>
+                    <th className="py-2.5 font-bold">{t('Ownership Equity')}</th>
+                    <th className="py-2.5 font-bold">{t('Daily Rate')}</th>
+                    <th className="py-2.5 font-bold">{t('Total Arrears')}</th>
+                    <th className="py-2.5 font-bold text-right">{t('Status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leasesQuery.isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-ink-muted">
+                        {t('Loading leases report...')}
+                      </td>
+                    </tr>
+                  ) : leases.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-ink-muted">
+                        {t('No lease contracts registered')}
+                      </td>
+                    </tr>
+                  ) : (
+                    leases.map((lease: any) => {
+                      const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
+                      return (
+                        <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
+                          <td className="py-3 font-semibold text-ink">
+                            <p className="font-semibold text-ink">{lease.riderName}</p>
+                            <p className="text-[10px] text-ink-muted mt-0.5">{lease.riderPhone}</p>
+                          </td>
+                          <td className="py-3 text-xs text-ink-soft">
+                            <p className="font-semibold">{lease.bikeLabel}</p>
+                            <p className="text-[10px] text-ink-muted">{lease.bikePlate}</p>
+                          </td>
+                          <td className="py-3">
+                            <div className="min-w-[120px] max-w-[160px] text-xs">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold text-ink-soft">{pct}%</span>
+                                <span className="text-[10px] text-ink-muted tabular-nums">
+                                  {lease.totalPaid.toLocaleString()} / {lease.totalPrincipal.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden border border-line">
+                                <div
+                                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 font-mono text-ink-soft">{lease.dailyRate.toLocaleString()} RWF</td>
+                          <td className="py-3">
+                            <span className={cx(
+                              "font-mono font-bold text-xs px-2 py-0.5 rounded",
+                              lease.arrears > 0 ? "text-danger-ink bg-danger-soft/20" : "text-ink-soft"
+                            )}>
+                              {lease.arrears.toLocaleString()} RWF
+                            </span>
+                          </td>
+                          <td className="py-3 text-right">
+                            <Badge
+                              label={t(lease.status === 'PAID_OFF' ? 'Paid Off' : lease.status === 'ACTIVE' ? 'Active' : 'Delinquent')}
+                              tone={
+                                lease.status === 'PAID_OFF'
+                                  ? 'success'
+                                  : lease.status === 'ACTIVE'
+                                    ? 'info'
+                                    : 'danger'
+                              }
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </DashboardCard>
+        </>
+      )}
     </div>
   );
 }

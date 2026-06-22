@@ -165,6 +165,30 @@ export class RidersService {
     actor: AuthenticatedUser,
     dto: CreateRiderDto,
   ): Promise<RiderSummary> {
+    if (dto.leaseToOwn) {
+      if (!dto.licenceNumber) {
+        throw new BadRequestException('Licence number is required for lease-to-own riders');
+      }
+      if (!dto.identityNumber) {
+        throw new BadRequestException('Identity card number is required for lease-to-own riders');
+      }
+      if (!dto.passportPhoto) {
+        throw new BadRequestException('Passport photo is required for lease-to-own riders');
+      }
+      if (!dto.licencePhoto) {
+        throw new BadRequestException('Licence photo is required for lease-to-own riders');
+      }
+      if (!dto.identityCardPhoto) {
+        throw new BadRequestException('Identity card photo is required for lease-to-own riders');
+      }
+      if (dto.leasePrincipal === undefined || dto.leasePrincipal <= 0) {
+        throw new BadRequestException('Lease principal must be a positive number');
+      }
+      if (dto.leaseDailyRate === undefined || dto.leaseDailyRate <= 0) {
+        throw new BadRequestException('Lease daily rate must be a positive number');
+      }
+    }
+
     const normalizedEmail = dto.email?.toLowerCase() ?? null;
 
     // Check global uniqueness for email and phone number

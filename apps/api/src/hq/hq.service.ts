@@ -1661,6 +1661,7 @@ export class HqService {
       status?: BikeStatus;
       type?: string;
       imageUrl?: string;
+      leaseToOwn?: boolean;
     },
     actor: AuthenticatedUser,
   ) {
@@ -1681,6 +1682,7 @@ export class HqService {
             status: dto.status ?? 'ACTIVE',
             type: dto.type || null,
             imageUrl: dto.imageUrl || null,
+            leaseToOwn: dto.leaseToOwn ?? false,
           },
         });
 
@@ -1749,6 +1751,7 @@ export class HqService {
       status?: BikeStatus;
       type?: string;
       imageUrl?: string;
+      leaseToOwn?: boolean;
     },
     actor: AuthenticatedUser,
   ) {
@@ -1767,6 +1770,7 @@ export class HqService {
           type: dto.type !== undefined ? dto.type || null : undefined,
           imageUrl:
             dto.imageUrl !== undefined ? dto.imageUrl || null : undefined,
+          leaseToOwn: dto.leaseToOwn,
         },
       });
 
@@ -1831,6 +1835,9 @@ export class HqService {
       passportPhoto?: string;
       licencePhoto?: string;
       identityCardPhoto?: string;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
     },
     actor: AuthenticatedUser,
   ) {
@@ -1881,7 +1888,10 @@ export class HqService {
         body.identityNumber ||
         body.passportPhoto ||
         body.licencePhoto ||
-        body.identityCardPhoto
+        body.identityCardPhoto ||
+        body.leaseToOwn !== undefined ||
+        body.leasePrincipal !== undefined ||
+        body.leaseDailyRate !== undefined
       ) {
         await tx.riderProfile.create({
           data: {
@@ -1892,6 +1902,9 @@ export class HqService {
             passportPhoto: body.passportPhoto || null,
             licencePhoto: body.licencePhoto || null,
             identityCardPhoto: body.identityCardPhoto || null,
+            leaseToOwn: body.leaseToOwn ?? false,
+            leasePrincipal: body.leasePrincipal ?? 2500000,
+            leaseDailyRate: body.leaseDailyRate ?? 15000,
           },
         });
       }
@@ -1938,6 +1951,9 @@ export class HqService {
       passportPhoto?: string;
       licencePhoto?: string;
       identityCardPhoto?: string;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
     },
     actor: AuthenticatedUser,
   ) {
@@ -1985,7 +2001,10 @@ export class HqService {
         body.identityNumber !== undefined ||
         body.passportPhoto !== undefined ||
         body.licencePhoto !== undefined ||
-        body.identityCardPhoto !== undefined;
+        body.identityCardPhoto !== undefined ||
+        body.leaseToOwn !== undefined ||
+        body.leasePrincipal !== undefined ||
+        body.leaseDailyRate !== undefined;
 
       if (hasProfileUpdate) {
         const updateData: {
@@ -1995,6 +2014,9 @@ export class HqService {
           passportPhoto?: string | null;
           licencePhoto?: string | null;
           identityCardPhoto?: string | null;
+          leaseToOwn?: boolean;
+          leasePrincipal?: number;
+          leaseDailyRate?: number;
         } = {};
         if (body.fullName !== undefined) updateData.fullName = body.fullName;
         if (body.licenceNumber !== undefined)
@@ -2007,6 +2029,9 @@ export class HqService {
           updateData.licencePhoto = body.licencePhoto || null;
         if (body.identityCardPhoto !== undefined)
           updateData.identityCardPhoto = body.identityCardPhoto || null;
+        if (body.leaseToOwn !== undefined) updateData.leaseToOwn = body.leaseToOwn;
+        if (body.leasePrincipal !== undefined) updateData.leasePrincipal = body.leasePrincipal;
+        if (body.leaseDailyRate !== undefined) updateData.leaseDailyRate = body.leaseDailyRate;
 
         if (user.riderProfile) {
           await tx.riderProfile.update({
