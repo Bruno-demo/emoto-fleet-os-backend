@@ -2029,9 +2029,12 @@ export class HqService {
           updateData.licencePhoto = body.licencePhoto || null;
         if (body.identityCardPhoto !== undefined)
           updateData.identityCardPhoto = body.identityCardPhoto || null;
-        if (body.leaseToOwn !== undefined) updateData.leaseToOwn = body.leaseToOwn;
-        if (body.leasePrincipal !== undefined) updateData.leasePrincipal = body.leasePrincipal;
-        if (body.leaseDailyRate !== undefined) updateData.leaseDailyRate = body.leaseDailyRate;
+        if (body.leaseToOwn !== undefined)
+          updateData.leaseToOwn = body.leaseToOwn;
+        if (body.leasePrincipal !== undefined)
+          updateData.leasePrincipal = body.leasePrincipal;
+        if (body.leaseDailyRate !== undefined)
+          updateData.leaseDailyRate = body.leaseDailyRate;
 
         if (user.riderProfile) {
           await tx.riderProfile.update({

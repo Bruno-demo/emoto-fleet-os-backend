@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import {
   AuditActionType,
   PaymentMethod,
@@ -48,7 +52,9 @@ export class FinancialsService {
         },
       });
       if (!activeAssignment) {
-        throw new BadRequestException('Cannot collect lease fees for a rider who is not assigned to a bike');
+        throw new BadRequestException(
+          'Cannot collect lease fees for a rider who is not assigned to a bike',
+        );
       }
     }
 

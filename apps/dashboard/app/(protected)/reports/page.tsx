@@ -13,6 +13,21 @@ import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 
+interface LeaseContract {
+  id: string;
+  riderName: string;
+  riderPhone: string;
+  bikeLabel: string;
+  bikePlate: string;
+  totalPrincipal: number;
+  totalPaid: number;
+  dailyRate: number;
+  arrears: number;
+  status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
+  lockState: 'LOCKED' | 'UNLOCKED';
+  bikeId: string | null;
+}
+
 function getDefaultRange() {
   const to = new Date();
   const from = new Date();
@@ -48,7 +63,7 @@ export default function ReportsPage() {
 
   const leasesQuery = useQuery({
     queryKey: ['leases', 'reporting'],
-    queryFn: () => apiFetch<any[]>('/financials/leases'),
+    queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
     enabled: activeTab === 'leases',
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
@@ -417,7 +432,7 @@ export default function ReportsPage() {
                       </td>
                     </tr>
                   ) : (
-                    leases.map((lease: any) => {
+                    leases.map((lease: LeaseContract) => {
                       const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
                       return (
                         <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
