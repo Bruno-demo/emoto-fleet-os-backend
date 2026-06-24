@@ -989,7 +989,7 @@ export default function HqRidersPage() {
             <div className="flex justify-center py-2">
               {selectedRider.riderProfile?.passportPhoto ? (
                 <img
-                  src={selectedRider.riderProfile.passportPhoto}
+                  src={selectedRider.riderProfile?.passportPhoto || undefined}
                   alt="Passport"
                   className="h-28 w-28 rounded-2xl object-cover border-2 border-line shadow-lg"
                 />
@@ -1037,7 +1037,7 @@ export default function HqRidersPage() {
                     <div>
                       <p className="font-semibold text-ink">{t('Lease-to-Own')}</p>
                       <p className="text-[10px] text-ink-muted mt-0.5">
-                        {t('Principal')}: {selectedRider.riderProfile.leasePrincipal?.toLocaleString()} RWF | {t('Daily')}: {selectedRider.riderProfile.leaseDailyRate?.toLocaleString()} RWF
+                        {t('Principal')}: {selectedRider.riderProfile?.leasePrincipal?.toLocaleString()} RWF | {t('Daily')}: {selectedRider.riderProfile?.leaseDailyRate?.toLocaleString()} RWF
                       </p>
                     </div>
                   ) : (
@@ -1056,9 +1056,9 @@ export default function HqRidersPage() {
                   {selectedRider.riderProfile?.licencePhoto ? (
                     <div 
                       className="rounded-xl border border-line bg-surface-muted overflow-hidden max-h-[140px] cursor-zoom-in group relative" 
-                      onClick={() => window.open(selectedRider.riderProfile.licencePhoto || undefined)}
+                      onClick={() => window.open(selectedRider.riderProfile?.licencePhoto || undefined)}
                     >
-                      <img src={selectedRider.riderProfile.licencePhoto} alt="Licence" className="w-full object-cover max-h-[140px] group-hover:scale-105 transition duration-300" />
+                      <img src={selectedRider.riderProfile?.licencePhoto || undefined} alt="Licence" className="w-full object-cover max-h-[140px] group-hover:scale-105 transition duration-300" />
                     </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-line bg-surface-muted p-4 text-center text-xs text-ink-faint">
@@ -1072,9 +1072,9 @@ export default function HqRidersPage() {
                   {selectedRider.riderProfile?.identityCardPhoto ? (
                     <div 
                       className="rounded-xl border border-line bg-surface-muted overflow-hidden max-h-[140px] cursor-zoom-in group relative" 
-                      onClick={() => window.open(selectedRider.riderProfile.identityCardPhoto || undefined)}
+                      onClick={() => window.open(selectedRider.riderProfile?.identityCardPhoto || undefined)}
                     >
-                      <img src={selectedRider.riderProfile.identityCardPhoto} alt="Identity Card" className="w-full object-cover max-h-[140px] group-hover:scale-105 transition duration-300" />
+                      <img src={selectedRider.riderProfile?.identityCardPhoto || undefined} alt="Identity Card" className="w-full object-cover max-h-[140px] group-hover:scale-105 transition duration-300" />
                     </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-line bg-surface-muted p-4 text-center text-xs text-ink-faint">
