@@ -49,6 +49,8 @@ const devicesResponseSchema = z.object({
   totalPages: z.number(),
 });
 
+type HqDevice = z.infer<typeof devicesResponseSchema>['data'][number];
+
 const fleetsListSchema = z.array(
   z.object({ id: z.string(), name: z.string() })
 );
@@ -79,7 +81,7 @@ export default function HqDevicesPage() {
   const [page, setPage] = useState(1);
 
   // Detail drawer state
-  const [selectedDevice, setSelectedDevice] = useState<any | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<HqDevice | null>(null);
 
   // Assign modal state
   const [assignDeviceId, setAssignDeviceId] = useState<string | null>(null);
@@ -141,20 +143,23 @@ export default function HqDevicesPage() {
 
   const assignMutation = useMutation({
     mutationFn: ({ deviceId, bikeId }: { deviceId: string; bikeId: string }) =>
-      apiFetch(`/hq/devices/${deviceId}/assign-bike`, {
+      apiFetch<{ bikeId: string; bike: { id: string; label: string } | null }>(`/hq/devices/${deviceId}/assign-bike`, {
         method: 'POST',
         body: JSON.stringify({ bikeId }),
         headers: { 'Content-Type': 'application/json' },
       }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
       // Update local state if the drawer is open for this device
       if (selectedDevice && selectedDevice.id === assignDeviceId) {
-        setSelectedDevice((prev: any) => ({
-          ...prev,
-          bikeId: res.bikeId || assignBikeId,
-          bike: res.bike || { id: assignBikeId, label: fleetDetail?.bikes.find(b => b.id === assignBikeId)?.label ?? 'Bike' }
-        }));
+        setSelectedDevice((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            bikeId: res.bikeId || assignBikeId,
+            bike: res.bike || { id: assignBikeId, label: fleetDetail?.bikes.find(b => b.id === assignBikeId)?.label ?? 'Bike' }
+          };
+        });
       }
       setAssignDeviceId(null);
       setAssignFleetId(null);
@@ -173,11 +178,14 @@ export default function HqDevicesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
       if (selectedDevice && selectedDevice.id === unassignTargetId) {
-        setSelectedDevice((prev: any) => ({
-          ...prev,
-          bikeId: null,
-          bike: null
-        }));
+        setSelectedDevice((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            bikeId: null,
+            bike: null
+          };
+        });
       }
       setUnassignConfirmOpen(false);
       setUnassignTargetId(null);
@@ -240,7 +248,7 @@ export default function HqDevicesPage() {
     return { total, active, inactive, assigned };
   }, [data?.total, devicesList]);
 
-  const columns: Array<DataTableColumn<any>> = [
+  const columns: Array<DataTableColumn<HqDevice>> = [
     {
       header: t('Device UID'),
       render: (row) => <span className="font-bold text-ink">{row.deviceUid}</span>,

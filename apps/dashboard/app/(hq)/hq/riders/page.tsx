@@ -34,6 +34,30 @@ import { buildQueryString } from '@/lib/api/query-string';
 import { cx, formatEnumLabel } from '@/lib/ui';
 import { compressImage } from '@/lib/image';
 
+interface HqRider {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  status: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED' | 'PENDING_SETUP';
+  fleet?: { id: string; name: string } | null;
+  bikeAssignments?: Array<{
+    id: string;
+    bike: { id: string; label: string } | null;
+  }> | null;
+  riderProfile?: {
+    fullName?: string | null;
+    passportPhoto?: string | null;
+    licenceNumber?: string | null;
+    identityNumber?: string | null;
+    leaseToOwn?: boolean | null;
+    leasePrincipal?: number | null;
+    leaseDailyRate?: number | null;
+    licencePhoto?: string | null;
+    identityCardPhoto?: string | null;
+  } | null;
+}
+
 const PAGE_SIZE = 25;
 
 export default function HqRidersPage() {
@@ -47,7 +71,7 @@ export default function HqRidersPage() {
   const [filterStatus, setFilterStatus] = useState('');
 
   // Sidebar / Drawer / modal states
-  const [selectedRider, setSelectedRider] = useState<any | null>(null);
+  const [selectedRider, setSelectedRider] = useState<HqRider | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formMode, setFormMode] = useState<'direct' | 'invite'>('direct');
 
@@ -109,25 +133,28 @@ export default function HqRidersPage() {
         status: filterStatus || undefined,
         fleetId: filterFleetId || undefined,
       });
-      return apiFetch<any>(`/hq/users${queryStr}`, {});
+      return apiFetch<{ data: HqRider[]; total: number; page: number; totalPages: number }>(`/hq/users${queryStr}`, {});
     },
   });
 
   // Mutations
   const statusMutation = useMutation({
     mutationFn: ({ userId, status }: { userId: string; status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED' }) =>
-      apiFetch(`/hq/users/${userId}/status`, {
+      apiFetch<{ status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED' }>(`/hq/users/${userId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
         headers: { 'Content-Type': 'application/json' },
       }),
-    onSuccess: (res: any) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'riders'] });
       if (selectedRider && selectedRider.id === statusTargetId) {
-        setSelectedRider((prev: any) => ({
-          ...prev,
-          status: statusTargetNext
-        }));
+        setSelectedRider((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            status: statusTargetNext
+          };
+        });
       }
       setStatusConfirmOpen(false);
       setStatusTargetId(null);
@@ -291,9 +318,9 @@ export default function HqRidersPage() {
   const totalRidersCount = data?.total ?? 0;
 
   const metrics = useMemo(() => {
-    const active = ridersList.filter((r: any) => r.status === 'ACTIVE').length;
-    const suspended = ridersList.filter((r: any) => r.status === 'SUSPENDED').length;
-    const assigned = ridersList.filter((r: any) => r.bikeAssignments && r.bikeAssignments.length > 0).length;
+    const active = ridersList.filter((r: HqRider) => r.status === 'ACTIVE').length;
+    const suspended = ridersList.filter((r: HqRider) => r.status === 'SUSPENDED').length;
+    const assigned = ridersList.filter((r: HqRider) => r.bikeAssignments && r.bikeAssignments.length > 0).length;
     return { active, suspended, assigned };
   }, [ridersList]);
 
@@ -322,7 +349,7 @@ export default function HqRidersPage() {
     leaseDailyRate,
   ]);
 
-  const columns: Array<DataTableColumn<any>> = [
+  const columns: Array<DataTableColumn<HqRider>> = [
     {
       header: t('Rider'),
       render: (rider) => {
