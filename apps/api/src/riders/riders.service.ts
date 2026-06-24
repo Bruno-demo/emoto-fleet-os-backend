@@ -36,6 +36,7 @@ import { haversineDistanceKm } from '../trips/trip-scoring.util';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { CreatePoiDto } from './dto/create-poi.dto';
 import { CreateRiderDto } from './dto/create-rider.dto';
+import { UpdateRiderDto } from './dto/update-rider.dto';
 import { ListAssignmentsDto } from './dto/list-assignments.dto';
 import { ListPoiDto } from './dto/list-poi.dto';
 import { ListRidersDto } from './dto/list-riders.dto';
@@ -379,6 +380,170 @@ export class RidersService {
       pagination.page,
       pagination.pageSize,
     );
+  }
+
+  // Updates one rider profile details scope to caller fleet scope.
+  async updateRiderForUser(
+    actor: AuthenticatedUser,
+    riderId: string,
+    dto: UpdateRiderDto,
+  ): Promise<RiderSummary> {
+    const rider = await this.loadRiderIdentityOrThrow(riderId, actor.fleetId);
+
+    const normalizedEmail = dto.email?.toLowerCase() ?? undefined;
+
+    // Check email/phone uniqueness if changed
+    const OR: Prisma.UserWhereInput[] = [];
+    if (normalizedEmail && normalizedEmail !== rider.email) {
+      OR.push({ email: normalizedEmail.trim() });
+    }
+    if (dto.phone && dto.phone !== rider.phone) {
+      OR.push({ phone: dto.phone.trim() });
+    }
+    if (OR.length > 0) {
+      const existingUser = await this.prismaService.user.findFirst({
+        where: { OR },
+      });
+      if (existingUser) {
+        if (
+          normalizedEmail &&
+          existingUser.email?.toLowerCase() === normalizedEmail.trim()
+        ) {
+          throw new ConflictException(
+            'Email is already in use by another account',
+          );
+        }
+        if (dto.phone && existingUser.phone === dto.phone.trim()) {
+          throw new ConflictException(
+            'Phone number is already in use by another account',
+          );
+        }
+      }
+    }
+
+    const passwordHash = dto.password
+      ? await this.hashPassword(dto.password)
+      : undefined;
+
+    return this.prismaService.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: riderId },
+        data: {
+          phone: dto.phone,
+          email: normalizedEmail,
+          passwordHash,
+        },
+      });
+
+      const profileData: Prisma.RiderProfileUpdateInput = {};
+      if (dto.fullName !== undefined) profileData.fullName = dto.fullName;
+      if (dto.licenceNumber !== undefined)
+        profileData.licenceNumber = dto.licenceNumber;
+      if (dto.identityNumber !== undefined)
+        profileData.identityNumber = dto.identityNumber;
+      if (dto.passportPhoto !== undefined)
+        profileData.passportPhoto = dto.passportPhoto;
+      if (dto.licencePhoto !== undefined)
+        profileData.licencePhoto = dto.licencePhoto;
+      if (dto.identityCardPhoto !== undefined)
+        profileData.identityCardPhoto = dto.identityCardPhoto;
+      if (dto.leaseToOwn !== undefined) profileData.leaseToOwn = dto.leaseToOwn;
+      if (dto.leasePrincipal !== undefined)
+        profileData.leasePrincipal = dto.leasePrincipal;
+      if (dto.leaseDailyRate !== undefined)
+        profileData.leaseDailyRate = dto.leaseDailyRate;
+
+      if (Object.keys(profileData).length > 0) {
+        await tx.riderProfile.update({
+          where: { userId: riderId },
+          data: profileData,
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          fleetId: actor.fleetId,
+          actorUserId: actor.id,
+          actionType: AuditActionType.USER_ROLE_CHANGED,
+          targetType: 'User',
+          targetId: riderId,
+          metaJson: {
+            updatedFields: Object.keys(dto),
+          },
+        },
+      });
+
+      const updatedRider = await this.loadRiderIdentityTx(
+        tx,
+        riderId,
+        actor.fleetId,
+      );
+      return this.toRiderSummary(updatedRider);
+    });
+  }
+
+  // Deletes one rider profile scope to caller fleet scope.
+  async deleteRiderForUser(
+    actor: AuthenticatedUser,
+    riderId: string,
+  ): Promise<{ deleted: true; id: string }> {
+    const rider = await this.loadRiderIdentityOrThrow(riderId, actor.fleetId);
+    await this.prismaService.user.delete({
+      where: { id: riderId },
+    });
+
+    await this.prismaService.auditLog.create({
+      data: {
+        fleetId: actor.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.USER_ROLE_CHANGED,
+        targetType: 'User',
+        targetId: riderId,
+        metaJson: {
+          deletedRiderId: riderId,
+          phone: rider.phone,
+        },
+      },
+    });
+
+    return {
+      deleted: true,
+      id: riderId,
+    };
+  }
+
+  // Updates status of one rider profile scope to caller fleet scope.
+  async updateRiderStatusForUser(
+    actor: AuthenticatedUser,
+    riderId: string,
+    status: UserStatus,
+  ): Promise<RiderSummary> {
+    const rider = await this.loadRiderIdentityOrThrow(riderId, actor.fleetId);
+
+    await this.prismaService.user.update({
+      where: { id: riderId },
+      data: { status },
+    });
+
+    await this.prismaService.auditLog.create({
+      data: {
+        fleetId: actor.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.USER_ROLE_CHANGED,
+        targetType: 'User',
+        targetId: riderId,
+        metaJson: {
+          oldStatus: rider.status,
+          newStatus: status,
+        },
+      },
+    });
+
+    const updatedIdentity = await this.loadRiderIdentity(
+      riderId,
+      actor.fleetId,
+    );
+    return this.toRiderSummary(updatedIdentity!);
   }
 
   // Lists bike assignment history records with optional bike/rider/activity filters.

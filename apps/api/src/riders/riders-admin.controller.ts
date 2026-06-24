@@ -10,7 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
@@ -23,6 +23,7 @@ import { ListPoiDto } from './dto/list-poi.dto';
 import { ListRidersDto } from './dto/list-riders.dto';
 import { PoiNearQueryDto } from './dto/poi-near-query.dto';
 import { UpdatePoiDto } from './dto/update-poi.dto';
+import { UpdateRiderDto } from './dto/update-rider.dto';
 import type {
   AssignmentSummary,
   NearbyPoiSummary,
@@ -159,5 +160,37 @@ export class RidersAdminController {
     @Param('id', ParseUUIDPipe) poiId: string,
   ): Promise<{ deleted: true; id: string }> {
     return this.ridersService.deletePoiForUser(user, poiId);
+  }
+
+  @Patch('riders/:id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({ summary: 'Update rider details' })
+  async updateRider(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateRiderDto,
+  ): Promise<RiderSummary> {
+    return this.ridersService.updateRiderForUser(user, id, dto);
+  }
+
+  @Delete('riders/:id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({ summary: 'Delete rider by ID' })
+  async deleteRider(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ deleted: true; id: string }> {
+    return this.ridersService.deleteRiderForUser(user, id);
+  }
+
+  @Patch('riders/:id/status')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
+  @ApiOperation({ summary: 'Update rider status (active, suspended, etc.)' })
+  async updateRiderStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { status: UserStatus },
+  ): Promise<RiderSummary> {
+    return this.ridersService.updateRiderStatusForUser(user, id, body.status);
   }
 }

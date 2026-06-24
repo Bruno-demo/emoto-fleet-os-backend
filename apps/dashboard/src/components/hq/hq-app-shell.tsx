@@ -16,7 +16,8 @@ import {
   Zap,
   Globe,
   MapPin,
-  Banknote
+  Banknote,
+  Bike
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -32,6 +33,7 @@ const HQ_NAV_LINKS = [
   { href: '/hq/fleets', label: 'Fleets', icon: Building2 },
   { href: '/hq/billing', label: 'Billing & Subscriptions', icon: Banknote },
   { href: '/hq/users', label: 'Users', icon: Users },
+  { href: '/hq/riders', label: 'Riders', icon: Bike },
   { href: '/hq/devices', label: 'Devices', icon: Cpu },
   { href: '/hq/pending-setups', label: 'Pending Setups', icon: UserPlus },
   { href: '/hq/incidents', label: 'Incidents', icon: AlertTriangle },

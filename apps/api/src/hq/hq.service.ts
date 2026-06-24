@@ -430,7 +430,33 @@ export class HqService {
           status: true,
           createdAt: true,
           fleet: { select: { id: true, name: true } },
-          riderProfile: { select: { fullName: true } },
+          riderProfile: {
+            select: {
+              fullName: true,
+              licenceNumber: true,
+              identityNumber: true,
+              passportPhoto: true,
+              licencePhoto: true,
+              identityCardPhoto: true,
+              leaseToOwn: true,
+              leasePrincipal: true,
+              leaseDailyRate: true,
+            },
+          },
+          bikeAssignments: {
+            where: { active: true },
+            select: {
+              id: true,
+              bikeId: true,
+              bike: {
+                select: {
+                  id: true,
+                  label: true,
+                  status: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),

@@ -3,8 +3,31 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Cpu, Search, Bike, X, Link2, Unlink, KeyRound, Plus, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { 
+  Cpu, 
+  Search, 
+  Bike, 
+  X, 
+  Link2, 
+  Unlink, 
+  KeyRound, 
+  Plus, 
+  Copy, 
+  Check, 
+  CheckCircle2, 
+  AlertCircle 
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
+import { MetricCardSkeleton } from '@/components/ui/skeleton';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { Badge } from '@/components/ui/badge';
+import { Drawer } from '@/components/ui/drawer';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { buildQueryString } from '@/lib/api/query-string';
+import { cx, formatTimeAgo, formatTimestamp } from '@/lib/ui';
 
 const devicesResponseSchema = z.object({
   data: z.array(
@@ -44,14 +67,19 @@ const fleetDetailSchema = z.object({
 });
 
 const STATUSES = ['ACTIVE', 'INACTIVE', 'RETIRED'];
+const PAGE_SIZE = 25;
 
 export default function HqDevicesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterFleetId, setFilterFleetId] = useState('');
   const [filterAssigned, setFilterAssigned] = useState('');
   const [page, setPage] = useState(1);
+
+  // Detail drawer state
+  const [selectedDevice, setSelectedDevice] = useState<any | null>(null);
 
   // Assign modal state
   const [assignDeviceId, setAssignDeviceId] = useState<string | null>(null);
@@ -71,17 +99,29 @@ export default function HqDevicesPage() {
   const [oneTimeSecretDeviceUid, setOneTimeSecretDeviceUid] = useState<string | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
 
-  const queryParams = new URLSearchParams();
-  queryParams.set('page', String(page));
-  queryParams.set('pageSize', '25');
-  if (search) queryParams.set('search', search);
-  if (filterStatus) queryParams.set('status', filterStatus);
-  if (filterFleetId) queryParams.set('fleetId', filterFleetId);
-  if (filterAssigned) queryParams.set('assigned', filterAssigned);
+  // ConfirmModals states
+  const [rotateConfirmOpen, setRotateConfirmOpen] = useState(false);
+  const [rotateTargetId, setRotateTargetId] = useState<string | null>(null);
+  const [rotateTargetUid, setRotateTargetUid] = useState<string | null>(null);
+
+  const [unassignConfirmOpen, setUnassignConfirmOpen] = useState(false);
+  const [unassignTargetId, setUnassignTargetId] = useState<string | null>(null);
+  const [unassignTargetUid, setUnassignTargetUid] = useState<string | null>(null);
+  const [unassignTargetBikeLabel, setUnassignTargetBikeLabel] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['hq', 'devices', page, search, filterStatus, filterFleetId, filterAssigned],
-    queryFn: () => apiFetch(`/hq/devices?${queryParams.toString()}`, {}, { schema: devicesResponseSchema }),
+    queryFn: () => {
+      const queryStr = buildQueryString({
+        page,
+        pageSize: PAGE_SIZE,
+        search: search || undefined,
+        status: filterStatus || undefined,
+        fleetId: filterFleetId || undefined,
+        assigned: filterAssigned || undefined,
+      });
+      return apiFetch(`/hq/devices${queryStr}`, {}, { schema: devicesResponseSchema });
+    },
   });
 
   const { data: fleetsList } = useQuery({
@@ -106,8 +146,16 @@ export default function HqDevicesPage() {
         body: JSON.stringify({ bikeId }),
         headers: { 'Content-Type': 'application/json' },
       }),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      // Update local state if the drawer is open for this device
+      if (selectedDevice && selectedDevice.id === assignDeviceId) {
+        setSelectedDevice((prev: any) => ({
+          ...prev,
+          bikeId: res.bikeId || assignBikeId,
+          bike: res.bike || { id: assignBikeId, label: fleetDetail?.bikes.find(b => b.id === assignBikeId)?.label ?? 'Bike' }
+        }));
+      }
       setAssignDeviceId(null);
       setAssignFleetId(null);
       setAssignBikeId('');
@@ -115,7 +163,7 @@ export default function HqDevicesPage() {
     },
     onError: (err: unknown) => {
       const error = err as { message?: string };
-      setAssignError(error?.message ?? 'Failed to assign device');
+      setAssignError(error?.message ?? t('Failed to assign device'));
     },
   });
 
@@ -124,6 +172,17 @@ export default function HqDevicesPage() {
       apiFetch(`/hq/devices/${deviceId}/unassign-bike`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      if (selectedDevice && selectedDevice.id === unassignTargetId) {
+        setSelectedDevice((prev: any) => ({
+          ...prev,
+          bikeId: null,
+          bike: null
+        }));
+      }
+      setUnassignConfirmOpen(false);
+      setUnassignTargetId(null);
+      setUnassignTargetUid(null);
+      setUnassignTargetBikeLabel(null);
     },
   });
 
@@ -147,7 +206,7 @@ export default function HqDevicesPage() {
     },
     onError: (err: unknown) => {
       const error = err as { message?: string };
-      setAddError(error?.message ?? 'Failed to provision device');
+      setAddError(error?.message ?? t('Failed to provision device'));
     },
   });
 
@@ -159,228 +218,337 @@ export default function HqDevicesPage() {
     onSuccess: (res: unknown) => {
       const result = res as { deviceSecret: string; deviceUid: string };
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setRotateConfirmOpen(false);
+      setRotateTargetId(null);
+      setRotateTargetUid(null);
       setOneTimeSecret(result.deviceSecret);
       setOneTimeSecretDeviceUid(result.deviceUid);
     },
     onError: (err: unknown) => {
       const error = err as { message?: string };
-      alert(error?.message ?? 'Failed to rotate device secret');
+      alert(error?.message ?? t('Failed to rotate device secret'));
     },
   });
 
-  const statusColor = (s: string) => {
-    if (s === 'ACTIVE') return 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20';
-    if (s === 'INACTIVE') return 'bg-amber-400/15 text-amber-400 border-amber-400/20';
-    if (s === 'RETIRED') return 'bg-rose-400/15 text-rose-400 border-rose-400/20';
-    return 'bg-white/5 text-zinc-400 border-line';
-  };
+  // Calculate client side metrics from current page
+  const devicesList = data?.data ?? [];
+  const metrics = useMemo(() => {
+    const total = data?.total ?? 0;
+    const active = devicesList.filter(d => d.status === 'ACTIVE').length;
+    const inactive = devicesList.filter(d => d.status === 'INACTIVE').length;
+    const assigned = devicesList.filter(d => d.bikeId !== null).length;
+    return { total, active, inactive, assigned };
+  }, [data?.total, devicesList]);
+
+  const columns: Array<DataTableColumn<any>> = [
+    {
+      header: t('Device UID'),
+      render: (row) => <span className="font-bold text-ink">{row.deviceUid}</span>,
+    },
+    {
+      header: t('IMEI'),
+      render: (row) => <span className="font-mono text-xs text-ink-muted">{row.imei ?? '—'}</span>,
+    },
+    {
+      header: t('Fleet'),
+      render: (row) => <span className="text-xs text-ink-soft">{row.fleet.name}</span>,
+    },
+    {
+      header: t('Assigned Bike'),
+      render: (row) => row.bike ? (
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
+          <Bike size={12} />
+          {row.bike.label}
+        </span>
+      ) : (
+        <span className="text-xs text-ink-faint">{t('Unassigned')}</span>
+      ),
+    },
+    {
+      header: t('Status'),
+      render: (row) => {
+        const tone = row.status === 'ACTIVE' ? 'success' : row.status === 'INACTIVE' ? 'warning' : 'danger';
+        return <Badge tone={tone} label={row.status} />;
+      },
+    },
+    {
+      header: t('Last Seen'),
+      render: (row) => <span className="text-xs text-ink-soft">{row.lastSeenAt ? formatTimeAgo(row.lastSeenAt) : t('Never')}</span>,
+    },
+    {
+      header: t('FW Version'),
+      render: (row) => <span className="font-mono text-xs text-ink-muted">{row.fwVersion ?? '—'}</span>,
+    },
+    {
+      header: t('Actions'),
+      className: 'text-right',
+      cellClassName: 'text-right',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => {
+              setRotateTargetId(row.id);
+              setRotateTargetUid(row.deviceUid);
+              setRotateConfirmOpen(true);
+            }}
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 text-[11px] font-bold text-ink-soft hover:bg-surface-hover transition-all"
+            title={t('Rotate Secret')}
+          >
+            <KeyRound size={12} />
+            {t('Rotate')}
+          </button>
+          {row.bike ? (
+            <button
+              onClick={() => {
+                setUnassignTargetId(row.id);
+                setUnassignTargetUid(row.deviceUid);
+                setUnassignTargetBikeLabel(row.bike?.label ?? 'Bike');
+                setUnassignConfirmOpen(true);
+              }}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 text-[11px] font-bold text-warning-ink hover:bg-warning-soft transition-all"
+              title={t('Unassign')}
+            >
+              <Unlink size={12} />
+              {t('Unassign')}
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setAssignDeviceId(row.id);
+                setAssignFleetId(row.fleet.id);
+                setAssignBikeId('');
+                setAssignError(null);
+              }}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/10 px-2.5 text-[11px] font-bold text-accent hover:bg-accent/20 transition-all"
+              title={t('Assign Bike')}
+            >
+              <Link2 size={12} />
+              {t('Assign')}
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white">Global Devices</h1>
-          <p className="mt-1 text-zinc-400">View and manage all IoT tracker units across every fleet.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="space-y-6">
+      {/* Metrics Section */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <MetricCardSkeleton key={i} />)
+        ) : (
+          <>
+            <MetricCard
+              title={t('Total Devices')}
+              value={metrics.total.toLocaleString()}
+              hint={t('Registered tracking units')}
+              icon={<Cpu size={20} />}
+              tone="info"
+            />
+            <MetricCard
+              title={t('Active')}
+              value={metrics.active.toLocaleString()}
+              hint={t('Devices reporting telemetry')}
+              icon={<CheckCircle2 size={20} />}
+              tone="success"
+            />
+            <MetricCard
+              title={t('Inactive')}
+              value={metrics.inactive.toLocaleString()}
+              hint={t('Devices currently offline')}
+              icon={<AlertCircle size={20} />}
+              tone="warning"
+            />
+            <MetricCard
+              title={t('Assigned to Bike')}
+              value={metrics.assigned.toLocaleString()}
+              hint={t('Linked to physical bikes')}
+              icon={<Bike size={20} />}
+              tone="info"
+            />
+          </>
+        )}
+      </div>
+
+      {/* Main Registry */}
+      <DashboardCard
+        eyebrow={t('Hardware')}
+        title={t('Device Registry')}
+        actions={
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/10"
+            className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-bold text-white hover:brightness-115 transition-all shadow-md shadow-accent/15"
           >
-            <Plus size={16} />
-            Add Device
+            <Plus size={14} />
+            {t('Add Device')}
           </button>
-          <div className="text-sm font-bold text-zinc-500 self-center">
-            {data ? `${data.total.toLocaleString()} total devices` : '…'}
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <div className="space-y-4">
+          <DataTableToolbar>
+            <div className="flex flex-col gap-3 w-full">
+              <div className="relative group max-w-md w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint group-focus-within:text-accent transition-colors" size={15} />
+                <input
+                  type="text"
+                  placeholder={t('Search by device UID or IMEI...')}
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  className="h-10 w-full rounded-xl border border-line bg-surface pl-10 pr-9 text-sm text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                />
+                {search && (
+                  <button
+                    onClick={() => { setSearch(''); setPage(1); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative group flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-accent transition-colors" size={16} />
-          <input
-            type="text"
-            placeholder="Search by device UID or IMEI…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="h-10 w-full rounded-xl border border-line bg-surface-strong pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={filterFleetId}
+                  onChange={(e) => { setFilterFleetId(e.target.value); setPage(1); }}
+                  className="h-9 rounded-lg border border-line bg-surface px-3 text-xs text-ink-soft focus:border-accent focus:outline-none cursor-pointer hover:bg-surface-hover transition"
+                >
+                  <option value="">{t('All fleets')}</option>
+                  {(fleetsList ?? []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+                  className="h-9 rounded-lg border border-line bg-surface px-3 text-xs text-ink-soft focus:border-accent focus:outline-none cursor-pointer hover:bg-surface-hover transition"
+                >
+                  <option value="">{t('All statuses')}</option>
+                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select
+                  value={filterAssigned}
+                  onChange={(e) => { setFilterAssigned(e.target.value); setPage(1); }}
+                  className="h-9 rounded-lg border border-line bg-surface px-3 text-xs text-ink-soft focus:border-accent focus:outline-none cursor-pointer hover:bg-surface-hover transition"
+                >
+                  <option value="">{t('All assignments')}</option>
+                  <option value="true">{t('Assigned')}</option>
+                  <option value="false">{t('Unassigned')}</option>
+                </select>
+              </div>
+            </div>
+          </DataTableToolbar>
+
+          {/* Device Table */}
+          <DataTable
+            data={devicesList}
+            columns={columns}
+            keyExtractor={(row) => row.id}
+            loading={isLoading}
+            onRowClick={(row) => setSelectedDevice(row)}
           />
-        </div>
-        <select
-          value={filterFleetId}
-          onChange={(e) => { setFilterFleetId(e.target.value); setPage(1); }}
-          className="h-10 rounded-xl border border-line bg-surface-strong px-3 text-sm text-ink-soft focus:border-accent focus:outline-none"
-        >
-          <option value="">All fleets</option>
-          {(fleetsList ?? []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-          className="h-10 rounded-xl border border-line bg-surface-strong px-3 text-sm text-ink-soft focus:border-accent focus:outline-none"
-        >
-          <option value="">All statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select
-          value={filterAssigned}
-          onChange={(e) => { setFilterAssigned(e.target.value); setPage(1); }}
-          className="h-10 rounded-xl border border-line bg-surface-strong px-3 text-sm text-ink-soft focus:border-accent focus:outline-none"
-        >
-          <option value="">All assignment</option>
-          <option value="true">Assigned</option>
-          <option value="false">Unassigned</option>
-        </select>
-      </div>
 
-      {/* Table */}
-      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-line bg-white/[0.02]">
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Device UID</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">IMEI</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Assigned Bike</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Status</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Last Seen</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">FW Version</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={8} className="px-6 py-6">
-                      <div className="h-4 w-full rounded bg-white/5" />
-                    </td>
-                  </tr>
-                ))
-              ) : data?.data.length === 0 ? (
-                <tr key="empty">
-                  <td colSpan={8} className="px-6 py-16 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
-                      <Cpu size={20} />
-                    </div>
-                    <p className="mt-4 text-sm font-medium text-zinc-400">No devices found</p>
-                    <p className="mt-1 text-xs text-zinc-600">Adjust your filters or provision new devices.</p>
-                  </td>
-                </tr>
-              ) : (
-                data?.data.map((device) => (
-                  <tr key={device.id} className="group transition-colors hover:bg-white/[0.02]">
-                    <td className="px-6 py-5">
-                      <p className="text-sm font-bold text-white">{device.deviceUid}</p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="text-xs text-zinc-400 font-mono">{device.imei ?? '—'}</span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="text-xs font-medium text-ink-soft">{device.fleet.name}</span>
-                    </td>
-                    <td className="px-6 py-5">
-                      {device.bike ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-                          <Bike size={12} />
-                          {device.bike.label}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-zinc-600">Unassigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-bold ${statusColor(device.status)}`}>
-                        {device.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="text-xs text-zinc-500">
-                        {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : 'Never'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="text-xs text-zinc-400 font-mono">{device.fwVersion ?? '—'}</span>
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            if (confirm(`Are you sure you want to rotate the secret for device "${device.deviceUid}"? The existing secret will be immediately invalidated.`)) {
-                              rotateSecretMutation.mutate(device.id);
-                            }
-                          }}
-                          disabled={rotateSecretMutation.isPending}
-                          className="flex h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 text-[11px] font-bold text-zinc-300 hover:bg-white/10 transition-all disabled:opacity-50"
-                          title="Rotate device secret"
-                        >
-                          <KeyRound size={12} />
-                          Rotate Secret
-                        </button>
-                        {device.bike ? (
-                          <button
-                            onClick={() => {
-                              if (confirm(`Unassign device "${device.deviceUid}" from bike "${device.bike?.label}"?`)) {
-                                unassignMutation.mutate(device.id);
-                              }
-                            }}
-                            disabled={unassignMutation.isPending}
-                            className="flex h-8 items-center gap-1.5 rounded-lg border border-line bg-white/5 px-3 text-[11px] font-bold text-amber-400 hover:bg-amber-400/10 transition-all disabled:opacity-50"
-                            title="Unassign bike"
-                          >
-                            <Unlink size={12} />
-                            Unassign
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setAssignDeviceId(device.id);
-                              setAssignFleetId(device.fleet.id);
-                              setAssignBikeId('');
-                              setAssignError(null);
-                            }}
-                            className="flex h-8 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 text-[11px] font-bold text-accent hover:bg-accent/20 transition-all"
-                            title="Assign to bike"
-                          >
-                            <Link2 size={12} />
-                            Assign
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          {/* Pagination */}
+          {data && data.totalPages > 1 && (
+            <div className="pt-2">
+              <PaginationControls
+                page={page}
+                totalPages={data.totalPages}
+                onPageChange={(p) => setPage(p)}
+              />
+            </div>
+          )}
         </div>
-      </div>
+      </DashboardCard>
 
-      {/* Pagination */}
-      {data && data.totalPages > 1 && (
-        <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
-          >
-            Previous
-          </button>
-          <span className="text-xs text-zinc-500">
-            Page {data.page} of {data.totalPages}
-          </span>
-          <button
-            onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-            disabled={page >= data.totalPages}
-            className="rounded-xl border border-line bg-surface-strong px-4 py-2 text-xs font-bold text-zinc-400 disabled:opacity-40 hover:bg-white/5 transition-all"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      {/* Device Detail Drawer */}
+      <Drawer
+        open={!!selectedDevice}
+        title={selectedDevice ? selectedDevice.deviceUid : ''}
+        description={t('Device Hardware Profile')}
+        onClose={() => setSelectedDevice(null)}
+      >
+        {selectedDevice && (
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <KeyMetric label={t('Device UID')} value={selectedDevice.deviceUid} />
+              <KeyMetric
+                label={t('Status')}
+                value={
+                  <Badge 
+                    tone={selectedDevice.status === 'ACTIVE' ? 'success' : selectedDevice.status === 'INACTIVE' ? 'warning' : 'danger'}
+                    label={selectedDevice.status}
+                  />
+                }
+              />
+              <KeyMetric label={t('IMEI')} value={selectedDevice.imei ?? t('Not set')} />
+              <KeyMetric label={t('FW Version')} value={selectedDevice.fwVersion ?? t('Not set')} />
+              <KeyMetric label={t('Fleet')} value={selectedDevice.fleet.name} />
+              <KeyMetric
+                label={t('Assigned Bike')}
+                value={
+                  selectedDevice.bike ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-accent">
+                      <Bike size={13} />
+                      {selectedDevice.bike.label}
+                    </span>
+                  ) : (
+                    <span className="text-ink-faint">{t('Unassigned')}</span>
+                  )
+                }
+              />
+              <KeyMetric
+                label={t('Last Seen')}
+                value={selectedDevice.lastSeenAt ? formatTimestamp(selectedDevice.lastSeenAt) : t('Never')}
+              />
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">{t('Hardware Administration')}</h3>
+              <div className="flex flex-wrap gap-2.5">
+                <button
+                  onClick={() => {
+                    setRotateTargetId(selectedDevice.id);
+                    setRotateTargetUid(selectedDevice.deviceUid);
+                    setRotateConfirmOpen(true);
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-surface border border-line px-4 py-2.5 text-xs font-semibold text-ink-soft hover:bg-surface-hover transition-colors"
+                >
+                  <KeyRound size={14} />
+                  {t('Rotate Credentials')}
+                </button>
+                {selectedDevice.bike ? (
+                  <button
+                    onClick={() => {
+                      setUnassignTargetId(selectedDevice.id);
+                      setUnassignTargetUid(selectedDevice.deviceUid);
+                      setUnassignTargetBikeLabel(selectedDevice.bike?.label ?? 'Bike');
+                      setUnassignConfirmOpen(true);
+                    }}
+                    className="flex items-center gap-2 rounded-xl bg-surface border border-line px-4 py-2.5 text-xs font-semibold text-warning-ink hover:bg-warning-soft transition-colors"
+                  >
+                    <Unlink size={14} />
+                    {t('Unassign Bike')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setAssignDeviceId(selectedDevice.id);
+                      setAssignFleetId(selectedDevice.fleet.id);
+                      setAssignBikeId('');
+                      setAssignError(null);
+                    }}
+                    className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/10"
+                  >
+                    <Link2 size={14} />
+                    {t('Assign Bike')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       {/* Provision Device Modal */}
       {isAddModalOpen && (
@@ -389,29 +557,29 @@ export default function HqDevicesPage() {
           <div
             role="dialog"
             aria-modal="true"
-            className="relative w-full max-w-md rounded-2xl border border-line bg-[#09090b] p-6 shadow-xl"
+            className="relative w-full max-w-md rounded-[var(--radius-panel)] border border-line bg-background p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsAddModalOpen(false)}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-500 hover:text-white transition-colors"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-ink-faint hover:text-ink transition-colors"
               aria-label="Close"
             >
               <X size={16} />
             </button>
-            <h2 className="text-lg font-bold text-white">Provision New Device</h2>
-            <p className="mt-1 text-sm text-zinc-400">Register a new IoT tracker unit to a specific fleet.</p>
+            <h2 className="text-lg font-bold text-ink">{t('Provision New Device')}</h2>
+            <p className="mt-1 text-xs text-ink-soft">{t('Register a new IoT tracker unit to a specific fleet.')}</p>
             
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!newDeviceUid.trim()) {
-                  setAddError('Device UID is required');
+                  setAddError(t('Device UID is required'));
                   return;
                 }
                 if (!newFleetId) {
-                  setAddError('Fleet assignment is required');
+                  setAddError(t('Fleet assignment is required'));
                   return;
                 }
                 createDeviceMutation.mutate({
@@ -423,35 +591,35 @@ export default function HqDevicesPage() {
               className="mt-5 space-y-4"
             >
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Device UID</label>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('Device UID')}</label>
                 <input
                   type="text"
                   placeholder="e.g. EMOTO-DEV-201"
                   value={newDeviceUid}
                   onChange={(e) => setNewDeviceUid(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white outline-none transition focus:border-accent"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 />
               </div>
               
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">IMEI (Optional)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('IMEI (Optional)')}</label>
                 <input
                   type="text"
                   placeholder="e.g. 863219041234567"
                   value={newImei}
                   onChange={(e) => setNewImei(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white outline-none transition focus:border-accent"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 />
               </div>
               
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Select Fleet</label>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('Select Fleet')}</label>
                 <select
                   value={newFleetId}
                   onChange={(e) => setNewFleetId(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white outline-none transition focus:border-accent cursor-pointer"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent cursor-pointer"
                 >
-                  <option value="">— Select a fleet —</option>
+                  <option value="">— {t('Select a fleet')} —</option>
                   {(fleetsList ?? []).map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name}
@@ -461,23 +629,23 @@ export default function HqDevicesPage() {
               </div>
               
               {addError && (
-                <p className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">{addError}</p>
+                <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-2.5 text-xs text-danger-ink">{addError}</p>
               )}
               
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-white/10"
+                  className="flex-1 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink-soft transition hover:bg-surface-muted"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={createDeviceMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
                 >
-                  {createDeviceMutation.isPending ? 'Provisioning…' : 'Provision'}
+                  {createDeviceMutation.isPending ? t('Provisioning...') : t('Provision')}
                 </button>
               </div>
             </form>
@@ -492,27 +660,27 @@ export default function HqDevicesPage() {
           <div
             role="dialog"
             aria-modal="true"
-            className="relative w-full max-w-md rounded-3xl border border-amber-500/20 bg-[#09090b] p-6 shadow-2xl"
+            className="relative w-full max-w-md rounded-[var(--radius-panel)] border border-warning-ink/20 bg-background p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 mb-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-warning-soft text-warning-ink mb-4">
               <KeyRound size={24} />
             </div>
             
-            <h2 className="text-lg font-bold text-center text-white">One-Time Device Secret</h2>
-            <p className="mt-2 text-center text-xs text-zinc-400 leading-relaxed">
-              Successfully generated secret for <strong className="text-zinc-200">{oneTimeSecretDeviceUid}</strong>.
+            <h2 className="text-lg font-bold text-center text-ink">{t('One-Time Device Secret')}</h2>
+            <p className="mt-2 text-center text-xs text-ink-muted leading-relaxed">
+              {t('Successfully generated secret for')} <strong className="text-ink-soft">{oneTimeSecretDeviceUid}</strong>.
             </p>
             
             <div className="mt-5 space-y-4">
-              <div className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-4 font-mono text-sm text-center text-amber-400 break-all select-all">
+              <div className="relative rounded-2xl border border-line bg-surface-muted p-4 font-mono text-sm text-center text-warning-ink break-all select-all">
                 {oneTimeSecret}
               </div>
               
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-400 leading-relaxed space-y-1">
-                <p className="font-bold">⚠️ CRITICAL SECURITY WARNING:</p>
-                <p>This secret is cryptographically salted and hashed. It is never stored in plain text and **cannot be retrieved or viewed again**.</p>
-                <p className="mt-1">Copy it now for hardware provisioning. If lost, a new secret rotation will be required.</p>
+              <div className="rounded-2xl border border-warning-ink/20 bg-warning-soft/30 p-4 text-xs text-warning-ink leading-relaxed space-y-1.5">
+                <p className="font-bold">⚠️ {t('CRITICAL SECURITY WARNING:')}</p>
+                <p>{t('This secret is cryptographically salted and hashed. It is never stored in plain text and cannot be retrieved or viewed again.')}</p>
+                <p className="mt-1">{t('Copy it now for hardware provisioning. If lost, a new secret rotation will be required.')}</p>
               </div>
               
               <div className="flex flex-col gap-2 pt-2">
@@ -523,18 +691,18 @@ export default function HqDevicesPage() {
                     setCopiedSecret(true);
                     setTimeout(() => setCopiedSecret(false), 2000);
                   }}
-                  className="flex w-full h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:brightness-110 shadow-lg shadow-amber-500/10"
+                  className="flex w-full h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:brightness-110 shadow-lg shadow-warning-ink/10"
                   style={{ backgroundColor: '#f59e0b', color: '#09090b' }}
                 >
                   {copiedSecret ? (
                     <>
                       <Check size={16} />
-                      Copied!
+                      {t('Copied!')}
                     </>
                   ) : (
                     <>
                       <Copy size={16} />
-                      Copy to Clipboard
+                      {t('Copy to Clipboard')}
                     </>
                   )}
                 </button>
@@ -544,9 +712,9 @@ export default function HqDevicesPage() {
                     setOneTimeSecret(null);
                     setOneTimeSecretDeviceUid(null);
                   }}
-                  className="w-full h-12 rounded-xl border border-line bg-white/5 text-sm font-semibold text-zinc-400 transition hover:bg-white/10"
+                  className="w-full h-12 rounded-xl border border-line bg-surface-hover text-sm font-semibold text-ink-soft transition hover:bg-surface-muted"
                 >
-                  I have saved this secret
+                  {t('I have saved this secret')}
                 </button>
               </div>
             </div>
@@ -561,28 +729,28 @@ export default function HqDevicesPage() {
           <div
             role="dialog"
             aria-modal="true"
-            className="relative w-full max-w-md rounded-2xl border border-line bg-[#09090b] p-6 shadow-xl"
+            className="relative w-full max-w-md rounded-[var(--radius-panel)] border border-line bg-background p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => { setAssignDeviceId(null); setAssignFleetId(null); }}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-500 hover:text-white transition-colors"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-ink-faint hover:text-ink transition-colors"
               aria-label="Close"
             >
               <X size={16} />
             </button>
-            <h2 className="text-lg font-bold text-white">Assign Device to Bike</h2>
-            <p className="mt-1 text-sm text-zinc-400">Select a bike from the same fleet to link this device.</p>
+            <h2 className="text-lg font-bold text-ink">{t('Assign Device to Bike')}</h2>
+            <p className="mt-1 text-xs text-ink-soft">{t('Select a bike from the same fleet to link this device.')}</p>
             <div className="mt-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Select Bike</label>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('Select Bike')}</label>
                 <select
                   value={assignBikeId}
                   onChange={(e) => setAssignBikeId(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface-strong px-4 py-3 text-sm text-white outline-none transition focus:border-accent cursor-pointer"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent cursor-pointer"
                 >
-                  <option value="">— Select a bike —</option>
+                  <option value="">— {t('Select a bike')} —</option>
                   {(fleetDetail?.bikes ?? []).map((bike) => (
                     <option key={bike.id} value={bike.id}>
                       {bike.label}{bike.plate ? ` (${bike.plate})` : ''} — {bike.status}
@@ -591,15 +759,15 @@ export default function HqDevicesPage() {
                 </select>
               </div>
               {assignError && (
-                <p className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">{assignError}</p>
+                <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-4 py-2.5 text-xs text-danger-ink">{assignError}</p>
               )}
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => { setAssignDeviceId(null); setAssignFleetId(null); }}
-                  className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-white/10"
+                  className="flex-1 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink-soft transition hover:bg-surface-muted"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="button"
@@ -609,15 +777,62 @@ export default function HqDevicesPage() {
                     }
                   }}
                   disabled={assignMutation.isPending || !assignBikeId}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
                 >
-                  {assignMutation.isPending ? 'Assigning…' : 'Assign'}
+                  {assignMutation.isPending ? t('Assigning...') : t('Assign')}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Confirm modals */}
+      <ConfirmModal
+        open={rotateConfirmOpen}
+        title={t('Rotate Device Secret')}
+        description={`${t('Are you sure you want to rotate the secret for device')} "${rotateTargetUid}"? ${t('The existing secret will be immediately invalidated and cannot be retrieved again.')}`}
+        confirmLabel={t('Rotate Secret')}
+        tone="danger"
+        isSubmitting={rotateSecretMutation.isPending}
+        onConfirm={() => {
+          if (rotateTargetId) rotateSecretMutation.mutate(rotateTargetId);
+        }}
+        onCancel={() => {
+          setRotateConfirmOpen(false);
+          setRotateTargetId(null);
+          setRotateTargetUid(null);
+        }}
+      />
+
+      <ConfirmModal
+        open={unassignConfirmOpen}
+        title={t('Unassign Bike')}
+        description={`${t('Unassign device')} "${unassignTargetUid}" ${t('from bike')} "${unassignTargetBikeLabel}"?`}
+        confirmLabel={t('Unassign')}
+        tone="default"
+        isSubmitting={unassignMutation.isPending}
+        onConfirm={() => {
+          if (unassignTargetId) unassignMutation.mutate(unassignTargetId);
+        }}
+        onCancel={() => {
+          setUnassignConfirmOpen(false);
+          setUnassignTargetId(null);
+          setUnassignTargetUid(null);
+          setUnassignTargetBikeLabel(null);
+        }}
+      />
+    </div>
+  );
+}
+
+function KeyMetric({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-muted">
+        {label}
+      </p>
+      <div className="mt-2 text-sm font-semibold text-ink">{value}</div>
     </div>
   );
 }
