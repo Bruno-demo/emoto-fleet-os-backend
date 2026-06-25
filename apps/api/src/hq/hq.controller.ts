@@ -407,6 +407,15 @@ export class HqController {
     return this.hqService.deleteWebhook(webhookId, user);
   }
 
+  @Delete('partners/:id/permanent')
+  @ApiOperation({ summary: 'Permanently delete a partner and all its data' })
+  deletePartnerPermanently(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.permanentDeletePartner(id, user);
+  }
+
   // ── Audit Log ─────────────────────────────────────────────────────
 
   @Get('audit')
@@ -578,6 +587,17 @@ export class HqController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.hqService.unassignBikeFromInsurer(id, bikeId, user);
+  }
+
+  @Delete('insurers/:id/permanent')
+  @ApiOperation({
+    summary: 'Permanently delete an insurer and unassign all bikes',
+  })
+  deleteInsurerPermanently(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.permanentDeleteInsurer(id, user);
   }
 
   // ── Monitoring ────────────────────────────────────────────────────

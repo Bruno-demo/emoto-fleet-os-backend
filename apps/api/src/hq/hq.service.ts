@@ -789,6 +789,73 @@ export class HqService {
     };
   }
 
+  async permanentDeletePartner(partnerId: string, actor: AuthenticatedUser) {
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+    });
+    if (!partner) throw new NotFoundException('Partner not found');
+
+    // All child records (PartnerClient, PartnerFleetAccess, PartnerWebhook) have onDelete: Cascade
+    await this.prisma.partner.delete({ where: { id: partnerId } });
+
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.PARTNER_DELETED,
+      targetType: 'PARTNER',
+      targetId: partnerId,
+      metaJson: {
+        permanentDelete: true,
+        name: partner.name,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Partner "${partner.name}" has been permanently deleted.`,
+    };
+  }
+
+  async permanentDeleteInsurer(insurerId: string, actor: AuthenticatedUser) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: insurerId },
+      include: { fleet: true, riderProfile: true },
+    });
+    if (!user) throw new NotFoundException('Insurer not found');
+    if (user.role !== 'INSURER')
+      throw new BadRequestException('User is not an insurer');
+
+    // Clear insurerName from any bikes this insurer covers
+    if (user.fleet?.insurerName) {
+      await this.prisma.bike.updateMany({
+        where: { insurerName: user.fleet.insurerName },
+        data: { insurerName: null },
+      });
+    }
+
+    await this.prisma.user.delete({ where: { id: insurerId } });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.INSURER_DELETED,
+      targetType: 'USER',
+      targetId: insurerId,
+      metaJson: {
+        permanentDelete: true,
+        email: user.email,
+        phone: user.phone,
+        role: 'INSURER',
+        name: user.riderProfile?.fullName ?? user.email,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Insurer has been permanently deleted.`,
+    };
+  }
+
   async deletePartnerCredential(
     partnerId: string,
     credentialId: string,

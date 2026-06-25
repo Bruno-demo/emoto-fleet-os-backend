@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { ShieldCheck, Search, Plus, ChevronDown, ChevronRight, Bike, X } from 'lucide-react';
+import { ShieldCheck, Search, Plus, ChevronDown, ChevronRight, Bike, X, Trash2 } from 'lucide-react';
 import { useState, Fragment } from 'react';
 
 const insurersResponseSchema = z.object({
@@ -54,6 +54,17 @@ export default function HqInsurersPage() {
     fleetId: '',
   });
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (insurerId: string) =>
+      apiFetch(`/hq/insurers/${insurerId}/permanent`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'insurers'] });
+      setDeleteTarget(null);
+    },
+  });
 
 
 
@@ -148,20 +159,21 @@ export default function HqInsurersPage() {
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Covered Bikes</th>
                 <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Status</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={6} className="px-6 py-6">
+                    <td colSpan={7} className="px-6 py-6">
                       <div className="h-4 w-full rounded bg-white/5" />
                     </td>
                   </tr>
                 ))
               ) : data?.data.length === 0 ? (
                 <tr key="empty">
-                  <td colSpan={6} className="px-6 py-16 text-center">
+                  <td colSpan={7} className="px-6 py-16 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
                       <ShieldCheck size={20} />
                     </div>
@@ -202,10 +214,25 @@ export default function HqInsurersPage() {
                             {insurer.status}
                           </span>
                         </td>
+                        <td className="px-6 py-5 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({
+                                id: insurer.id,
+                                name: insurer.riderProfile?.fullName ?? insurer.email ?? 'Unknown',
+                              });
+                            }}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-all"
+                            title="Delete Insurer Permanently"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${insurer.id}-detail`}>
-                          <td colSpan={6} className="bg-white/[0.01] px-6 py-4">
+                          <td colSpan={7} className="bg-white/[0.01] px-6 py-4">
                             <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
                               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
                                 Covered Bikes ({bikes.length})
@@ -369,6 +396,39 @@ export default function HqInsurersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Permanent Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="relative w-full max-w-sm rounded-2xl border border-rose-500/20 bg-[#09090b] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-white">Delete Insurer</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Are you sure you want to permanently delete <span className="font-bold text-rose-400">{deleteTarget.name}</span>? All bike assignments will be unlinked. This action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(deleteTarget.id)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-500 disabled:opacity-60"
+              >
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete Permanently'}
+              </button>
+            </div>
           </div>
         </div>
       )}

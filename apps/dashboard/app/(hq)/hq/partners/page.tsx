@@ -1,10 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Globe, Shield, Plus, Settings } from 'lucide-react';
+import { Globe, Shield, Plus, Settings, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 const partnersSchema = z.array(
   z.object({
@@ -24,6 +25,18 @@ export default function HqPartnersPage() {
   const { data: partners, isLoading } = useQuery({
     queryKey: ['hq', 'partners'],
     queryFn: () => apiFetch('/hq/partners', {}, { schema: partnersSchema }),
+  });
+
+  const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (partnerId: string) =>
+      apiFetch(`/hq/partners/${partnerId}/permanent`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'partners'] });
+      setDeleteTarget(null);
+    },
   });
 
   return (
@@ -120,6 +133,13 @@ export default function HqPartnersPage() {
                         >
                           <Settings size={16} />
                         </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: partner.id, name: partner.name }); }}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-all"
+                          title="Delete Partner Permanently"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -129,6 +149,39 @@ export default function HqPartnersPage() {
           </table>
         </div>
       </div>
+
+      {/* Permanent Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="relative w-full max-w-sm rounded-2xl border border-rose-500/20 bg-[#09090b] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-white">Delete Partner</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Are you sure you want to permanently delete <span className="font-bold text-rose-400">{deleteTarget.name}</span>? This will remove all API credentials, webhooks, and fleet access. This action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(deleteTarget.id)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-500 disabled:opacity-60"
+              >
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
