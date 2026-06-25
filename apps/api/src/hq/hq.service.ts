@@ -342,8 +342,19 @@ export class HqService {
       },
     });
 
-    await this.prisma.fleet.delete({
-      where: { id: fleetId },
+    // Use a transaction to delete dependent records that may lack DB-level cascades
+    await this.prisma.$transaction(async (tx) => {
+      // Delete billing payments first (references billingCycle + fleet)
+      await tx.billingPayment.deleteMany({ where: { fleetId } });
+      // Delete billing cycles (references fleet)
+      await tx.billingCycle.deleteMany({ where: { fleetId } });
+      // Nullify fleet reference on discounts (optional FK)
+      await tx.discount.updateMany({
+        where: { fleetId },
+        data: { fleetId: null },
+      });
+      // Delete the fleet itself (cascades to users, bikes, devices, events, etc.)
+      await tx.fleet.delete({ where: { id: fleetId } });
     });
 
     return {

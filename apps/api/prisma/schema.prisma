@@ -813,7 +813,7 @@ model Discount {
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime       @updatedAt @db.Timestamptz(6)
-  fleet         Fleet?         @relation("FleetDiscount", fields: [fleetId], references: [id])
+  fleet         Fleet?         @relation("FleetDiscount", fields: [fleetId], references: [id], onDelete: SetNull)
   billingCycles BillingCycle[]
 }
 
@@ -851,7 +851,7 @@ model BillingCycle {
   notes           String?
   createdAt       DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime           @updatedAt @db.Timestamptz(6)
-  fleet           Fleet              @relation(fields: [fleetId], references: [id])
+  fleet           Fleet              @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   discount        Discount?          @relation(fields: [discountId], references: [id])
   payments        BillingPayment[]
 
@@ -869,8 +869,8 @@ model BillingPayment {
   recordedById   String        @db.Uuid
   paidAt         DateTime      @db.Timestamptz(6)
   createdAt      DateTime      @default(now()) @db.Timestamptz(6)
-  billingCycle   BillingCycle  @relation(fields: [billingCycleId], references: [id])
-  fleet          Fleet         @relation(fields: [fleetId], references: [id])
+  billingCycle   BillingCycle  @relation(fields: [billingCycleId], references: [id], onDelete: Cascade)
+  fleet          Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   recordedBy     User          @relation(fields: [recordedById], references: [id])
 }
 
