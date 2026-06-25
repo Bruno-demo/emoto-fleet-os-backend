@@ -206,7 +206,7 @@ export default function HqPoisPage() {
   };
 
   // Client-side search filtering
-  const filteredPois = data?.data.filter((poi) => {
+  const filteredPois = (data?.data ?? []).filter((poi) => {
     if (!search) return true;
     const query = search.toLowerCase();
     return (
@@ -218,9 +218,9 @@ export default function HqPoisPage() {
 
   const stats = {
     total: data?.total ?? 0,
-    garages: data?.data.filter(p => p.type === 'GARAGE').length ?? 0,
-    swaps: data?.data.filter(p => p.type === 'SWAP').length ?? 0,
-    clinics: data?.data.filter(p => p.type === 'CLINIC').length ?? 0,
+    garages: (data?.data ?? []).filter(p => p.type === 'GARAGE').length ?? 0,
+    swaps: (data?.data ?? []).filter(p => p.type === 'SWAP').length ?? 0,
+    clinics: (data?.data ?? []).filter(p => p.type === 'CLINIC').length ?? 0,
   };
 
   const typeColor = (t: string) => {

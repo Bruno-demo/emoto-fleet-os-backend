@@ -106,7 +106,7 @@ export function LiveMapPanel() {
   const searchParams = useSearchParams();
   const { data: currentUser } = useCurrentUser();
   const { resolvedTheme } = useTheme();
-  const { bikeStates, recentEvents, commandStatuses, recordCommandStatus } = useRealtime();
+  const { bikeStates, recentEvents, commandStatuses = [], recordCommandStatus } = useRealtime();
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [isSendingCommand, setIsSendingCommand] = useState(false);
@@ -1495,7 +1495,7 @@ function mergeCommandStatuses(
   realtimeStatuses: CommandStatusEvent[],
 ): CommandStatusEvent[] {
   const merged = new Map<string, CommandStatusEvent>();
-  for (const status of [...localStatuses, ...realtimeStatuses]) {
+  for (const status of [...(localStatuses ?? []), ...(realtimeStatuses ?? [])]) {
     const dedupeKey = `${status.commandId}-${status.status}-${status.ts}`;
     merged.set(dedupeKey, status);
   }

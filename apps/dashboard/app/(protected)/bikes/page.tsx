@@ -59,7 +59,7 @@ export default function BikesPage() {
   const { data: currentUser } = useCurrentUser();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { commandStatuses, recordCommandStatus } = useRealtime();
+  const { commandStatuses = [], recordCommandStatus } = useRealtime();
   const [page, setPage] = useState(1);
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
