@@ -320,13 +320,46 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const dateStr = parts[11]; // ddmmyy
     const statusHex = parts[12]; // 8-character hex status
 
-    // If validity is Void, we don't process coordinates since they're inaccurate.
-    // We update keep-alive instead.
+    // If validity is Void, we don't save telemetry in PG DB or evaluate rules/trips to prevent database pollution.
+    // However, we parse the last-known coordinate and write it to Redis so it stays visible on the map.
     if (validity !== 'A') {
       this.logger.debug(
-        `Device IMEI=${parts[1]} reported invalid GPS fix (V). Updating keep-alive.`,
+        `Device IMEI=${parts[1]} reported invalid GPS fix (V). Caching position to Redis and updating keep-alive.`,
       );
-      await this.processHeartbeatPacket(device);
+      try {
+        const { lat, lng } = this.parseCoordinates(latStr, latHem, lngStr, lngHem);
+        const speedKnots = parseFloat(speedStr);
+        const speedKph = isNaN(speedKnots) ? 0 : speedKnots * 1.852;
+        const heading = parseFloat(headingStr);
+        const ts = this.parseDateTime(dateStr, timeStr);
+
+        // Update last seen in DB
+        await this.prismaService.device.update({
+          where: { id: device.id },
+          data: { lastSeenAt: ts },
+        });
+
+        // Cache state in Redis so the bike stays visible on the map
+        if (device.bikeId && lat !== 0 && lng !== 0) {
+          const latestState: LiveBikeState = {
+            fleetId: device.fleetId,
+            bikeId: device.bikeId,
+            deviceId: device.id,
+            deviceUid: device.deviceUid,
+            ts: ts.toISOString(),
+            lat,
+            lng,
+            speedKph,
+            heading: isNaN(heading) ? undefined : heading,
+            ignition: false, // Assume ignition off or unknown in void state
+          };
+          await this.liveStateService.setLatestBikeState(latestState);
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'unknown';
+        this.logger.warn(`Failed to process void GPS telemetry for caching: ${msg}`);
+        await this.processHeartbeatPacket(device);
+      }
       return;
     }
 
