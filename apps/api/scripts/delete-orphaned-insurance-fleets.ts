@@ -25,6 +25,16 @@ async function main() {
 
   for (const fleet of orphanedFleets) {
     console.log(`Deleting orphaned fleet: "${fleet.name}" (ID: ${fleet.id})...`);
+    
+    // Clean up child billing records to bypass database-level RESTRICT constraints
+    await prisma.billingPayment.deleteMany({
+      where: { fleetId: fleet.id },
+    });
+    await prisma.billingCycle.deleteMany({
+      where: { fleetId: fleet.id },
+    });
+    
+    // Delete the fleet
     await prisma.fleet.delete({
       where: { id: fleet.id },
     });
