@@ -44,7 +44,7 @@ export class HqService {
       totalInsurers,
       unassignedDevices,
     ] = await Promise.all([
-      this.prisma.fleet.count(),
+      this.prisma.fleet.count({ where: { plan: { not: 'INSURANCE' } } }),
       this.prisma.bike.count(),
       this.prisma.user.count({ where: { role: 'RIDER' } }),
       this.prisma.device.count(),
@@ -130,6 +130,7 @@ export class HqService {
 
   async getFleets() {
     return this.prisma.fleet.findMany({
+      where: { plan: { not: 'INSURANCE' } },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -833,7 +834,11 @@ export class HqService {
       });
     }
 
-    await this.prisma.user.delete({ where: { id: insurerId } });
+    if (user.fleetId) {
+      await this.prisma.fleet.delete({ where: { id: user.fleetId } });
+    } else {
+      await this.prisma.user.delete({ where: { id: insurerId } });
+    }
 
     await this.auditService.createAuditLog({
       fleetId: user.fleetId,
