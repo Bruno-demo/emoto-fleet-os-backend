@@ -297,7 +297,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       this.activeConnections.set(device.deviceUid, { socket, imei });
       (socket as SinoTrackSocket).deviceUid = device.deviceUid;
 
-      if (command === 'V1') {
+      if (command === 'V1' || command === 'V8') {
         await this.processTelemetryPacket(device, parts);
       } else {
         await this.processHeartbeatPacket(device);
