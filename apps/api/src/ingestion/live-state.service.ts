@@ -7,6 +7,7 @@ import {
 } from '../common/pagination';
 import { EventsGateway } from '../events/events.gateway';
 import { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { LiveBikeState } from './ingestion.types';
 
 const LIVE_STATE_TTL_SECONDS = 60 * 60;
@@ -18,6 +19,7 @@ export class LiveStateService {
   constructor(
     private readonly redisService: RedisService,
     private readonly eventsGateway: EventsGateway,
+    private readonly prismaService: PrismaService,
   ) {}
 
   // Stores the latest bike state in Redis with fleet-scoped key and expiration.
@@ -44,38 +46,73 @@ export class LiveStateService {
     return this.parseState(value);
   }
 
-  // Loads all latest bike states for a fleet from Redis cache.
+  // Loads all latest bike states for a fleet, falling back to database telemetry if Redis is missing/expired.
   async getFleetBikeStates(
     fleetId: string,
     query: PaginationQueryDto,
   ): Promise<PaginatedResponse<LiveBikeState>> {
     const pagination = getPaginationParams(query);
-    const keys = await this.redisService.keys(
-      this.buildFleetBikeKeyPattern(fleetId),
-    );
-    if (keys.length === 0) {
-      return createPaginatedResponse(
-        [],
-        0,
-        pagination.page,
-        pagination.pageSize,
-      );
-    }
 
-    const values = await this.redisService.mget(keys);
+    // Fetch all active bikes in this fleet with their active devices and the latest telemetry point for each
+    const bikes = await this.prismaService.bike.findMany({
+      where: {
+        fleetId,
+        status: 'ACTIVE',
+      },
+      include: {
+        devices: {
+          where: {
+            status: 'ACTIVE',
+          },
+          include: {
+            telemetry: {
+              orderBy: {
+                ts: 'desc',
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
     const parsedStates: LiveBikeState[] = [];
 
-    for (const value of values) {
-      if (!value) {
+    for (const bike of bikes) {
+      const activeDevice = bike.devices[0];
+      if (!activeDevice) {
         continue;
       }
 
-      const parsedState = this.parseState(value);
-      if (parsedState) {
-        parsedStates.push(parsedState);
+      // 1. Try to load from Redis first
+      const cachedState = await this.getBikeState(fleetId, bike.id);
+      if (cachedState) {
+        parsedStates.push(cachedState);
+        continue;
+      }
+
+      // 2. Fall back to the latest telemetry point in the database
+      const latestTelemetry = activeDevice.telemetry[0];
+      if (latestTelemetry) {
+        const fallbackState: LiveBikeState = {
+          fleetId,
+          bikeId: bike.id,
+          deviceId: activeDevice.id,
+          deviceUid: activeDevice.deviceUid,
+          ts: latestTelemetry.ts.toISOString(),
+          lat: Number(latestTelemetry.lat),
+          lng: Number(latestTelemetry.lng),
+          speedKph: Number(latestTelemetry.speedKph),
+          heading: latestTelemetry.heading ? Number(latestTelemetry.heading) : undefined,
+          batteryV: latestTelemetry.batteryV ? Number(latestTelemetry.batteryV) : undefined,
+          batteryPct: latestTelemetry.batteryPct ? Number(latestTelemetry.batteryPct) : undefined,
+          ignition: latestTelemetry.ignition ?? undefined,
+        };
+        parsedStates.push(fallbackState);
       }
     }
 
+    // Sort by timestamp desc (ISO date strings compare alphabetically)
     const sortedStates = parsedStates.sort((left, right) =>
       right.ts.localeCompare(left.ts),
     );
