@@ -503,19 +503,29 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     lngStr: string,
     lngHem: string,
   ): { lat: number; lng: number } {
-    if (!latStr || !lngStr || latStr.length < 4 || lngStr.length < 5) {
-      throw new Error(
-        `Invalid coordinate length (lat: ${latStr?.length}, lng: ${lngStr?.length})`,
-      );
+    if (!latStr || !lngStr) {
+      throw new Error('Coordinates strings are empty');
     }
 
-    const latDeg = parseFloat(latStr.substring(0, 2));
-    const latMin = parseFloat(latStr.substring(2));
+    // Parse Latitude by locating the decimal point
+    const latDecimalIdx = latStr.indexOf('.');
+    if (latDecimalIdx < 2) {
+      throw new Error(`Malformed latitude string: ${latStr}`);
+    }
+    const latSplitIdx = latDecimalIdx - 2;
+    const latDeg = parseFloat(latStr.substring(0, latSplitIdx));
+    const latMin = parseFloat(latStr.substring(latSplitIdx));
     let lat = latDeg + latMin / 60;
     if (latHem === 'S') lat = -lat;
 
-    const lngDeg = parseFloat(lngStr.substring(0, 3));
-    const lngMin = parseFloat(lngStr.substring(3));
+    // Parse Longitude by locating the decimal point
+    const lngDecimalIdx = lngStr.indexOf('.');
+    if (lngDecimalIdx < 2) {
+      throw new Error(`Malformed longitude string: ${lngStr}`);
+    }
+    const lngSplitIdx = lngDecimalIdx - 2;
+    const lngDeg = parseFloat(lngStr.substring(0, lngSplitIdx));
+    const lngMin = parseFloat(lngStr.substring(lngSplitIdx));
     let lng = lngDeg + lngMin / 60;
     if (lngHem === 'W') lng = -lng;
 
