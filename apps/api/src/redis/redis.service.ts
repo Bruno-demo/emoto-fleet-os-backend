@@ -170,6 +170,41 @@ export class RedisService implements OnModuleDestroy {
     return this.client!.xadd(streamKey, '*', ...entries);
   }
 
+  // Pushes a value to a list and trims it to a maximum length.
+  async lpushAndTrim(key: string, value: string, maxLen: number): Promise<void> {
+    if (this.useInMemoryStore) {
+      const existing = this.memoryStore.get(key)?.value
+        ? (JSON.parse(this.memoryStore.get(key)!.value) as string[])
+        : [];
+      existing.unshift(value);
+      if (existing.length > maxLen) {
+        existing.splice(maxLen);
+      }
+      this.memoryStore.set(key, {
+        value: JSON.stringify(existing),
+        expiresAt: null,
+      });
+      return;
+    }
+
+    await this.ensureConnected();
+    await this.client!.lpush(key, value);
+    await this.client!.ltrim(key, 0, maxLen - 1);
+  }
+
+  // Reads list values by range.
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    if (this.useInMemoryStore) {
+      const existing = this.memoryStore.get(key)?.value
+        ? (JSON.parse(this.memoryStore.get(key)!.value) as string[])
+        : [];
+      return existing.slice(start, stop + 1);
+    }
+
+    await this.ensureConnected();
+    return this.client!.lrange(key, start, stop);
+  }
+
   // Closes the Redis connection during app shutdown.
   async onModuleDestroy(): Promise<void> {
     if (this.useInMemoryStore) {

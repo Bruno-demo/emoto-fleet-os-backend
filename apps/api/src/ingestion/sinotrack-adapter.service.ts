@@ -241,6 +241,23 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     socket: net.Socket,
   ): Promise<void> {
     const trimmed = rawPacket.trim();
+
+    // Log the raw GPRS packet into Redis list for diagnostics
+    try {
+      const logEntry = JSON.stringify({
+        ts: new Date().toISOString(),
+        packet: trimmed,
+        remoteAddress: `${socket.remoteAddress}:${socket.remotePort}`,
+      });
+      await this.redisService.lpushAndTrim('sinotrack:raw_packets', logEntry, 20);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to log raw packet to Redis: ${
+          err instanceof Error ? err.message : 'unknown'
+        }`,
+      );
+    }
+
     if (!trimmed.startsWith('*HQ')) {
       this.logger.warn(
         `Ignoring malformed packet (invalid header): "${trimmed}"`,
