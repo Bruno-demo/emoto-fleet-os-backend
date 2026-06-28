@@ -17,6 +17,7 @@ interface TripRuntimeState {
   activeStartTs?: string;
   candidateStartTs?: string;
   idleSinceTs?: string;
+  lastProcessedTs?: string;
 }
 
 interface TripPoint {
@@ -124,6 +125,19 @@ export class TripBuilderService {
 
     const state = await this.loadState(device.id);
     const nowMs = Date.parse(payload.ts);
+
+    // Out-of-order protection: discard packets that arrived out of chronological order
+    if (state.lastProcessedTs && nowMs < Date.parse(state.lastProcessedTs)) {
+      this.logger.debug(
+        `Discarding out-of-order telemetry for trip builder for device ${this.truncateDeviceUid(
+          device.deviceUid,
+        )} (incoming: ${payload.ts}, last processed: ${state.lastProcessedTs})`,
+      );
+      return;
+    }
+
+    state.lastProcessedTs = payload.ts;
+
     const movingForStart = payload.speedKph >= this.startSpeedKph;
     const movingForEnd = payload.speedKph >= this.endSpeedKph;
     const noMovement = !movingForEnd;
