@@ -250,6 +250,32 @@ export function LiveMapPanel() {
     [commandStream, selectedBikeId],
   );
 
+  const selectedBikeLockStatus = useMemo(() => {
+    if (selectedCommandStream.length === 0) return 'UNLOCKED';
+    const latest = selectedCommandStream[0];
+    if (latest.action === 'LOCK') {
+      if (latest.status === 'ACKED') return 'LOCKED';
+      if (
+        latest.status === 'PENDING' ||
+        latest.status === 'SENT' ||
+        latest.status === 'QUEUED'
+      ) {
+        return 'LOCKING';
+      }
+      return 'UNLOCKED';
+    } else {
+      if (latest.status === 'ACKED') return 'UNLOCKED';
+      if (
+        latest.status === 'PENDING' ||
+        latest.status === 'SENT' ||
+        latest.status === 'QUEUED'
+      ) {
+        return 'UNLOCKING';
+      }
+      return 'LOCKED';
+    }
+  }, [selectedCommandStream]);
+
   const onlineCount = throttledStates.filter((state) => isFreshState(state.ts)).length;
   const movingCount = throttledStates.filter((state) => state.speedKph >= 5).length;
   const criticalCount = feedEvents.filter((event) => event.severity === 'CRITICAL').length;
@@ -872,7 +898,13 @@ export function LiveMapPanel() {
                   icon={<Lock size={16} />}
                   label={isSendingCommand && commandIntent === 'LOCK' ? t('Sending lock...') : t('Lock bike')}
                   tone="danger"
-                  disabled={!canSendCommands || !lockRule.allowed || isSendingCommand}
+                  disabled={
+                    !canSendCommands ||
+                    !lockRule.allowed ||
+                    isSendingCommand ||
+                    selectedBikeLockStatus === 'LOCKED' ||
+                    selectedBikeLockStatus === 'LOCKING'
+                  }
                   onClick={() => setCommandIntent('LOCK')}
                 />
                 {!commandFeatureEnabled ? (
@@ -891,7 +923,13 @@ export function LiveMapPanel() {
                       : t('Unlock bike')
                   }
                   tone="default"
-                  disabled={!canSendCommands || !unlockRule.allowed || isSendingCommand}
+                  disabled={
+                    !canSendCommands ||
+                    !unlockRule.allowed ||
+                    isSendingCommand ||
+                    selectedBikeLockStatus === 'UNLOCKED' ||
+                    selectedBikeLockStatus === 'UNLOCKING'
+                  }
                   onClick={() => setCommandIntent('UNLOCK')}
                 />
                 {!canSendCommands ? null : !unlockRule.allowed && unlockRule.reason ? (
@@ -1290,12 +1328,12 @@ function ActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cx(
-        'inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed',
+        'inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition border disabled:cursor-not-allowed',
         disabled
-          ? 'bg-zinc-200 text-zinc-500 border border-zinc-300 dark:bg-zinc-800/80 dark:text-zinc-400 dark:border-zinc-700/50'
+          ? 'bg-zinc-100 text-zinc-400 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-600 dark:border-zinc-800/50'
           : tone === 'danger'
-            ? 'bg-danger-ink text-white hover:brightness-110'
-            : 'border border-line bg-surface-muted text-ink hover:bg-surface-hover',
+            ? 'bg-rose-600 text-white border-rose-700 hover:bg-rose-500 dark:bg-rose-700/80 dark:border-rose-600/50 dark:hover:bg-rose-600'
+            : 'bg-zinc-50 text-zinc-900 border-zinc-200 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800',
       )}
     >
       {icon}

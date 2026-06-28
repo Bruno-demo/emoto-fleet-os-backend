@@ -230,7 +230,57 @@ export class HqService {
     });
 
     if (!fleet) throw new NotFoundException(`Fleet ${fleetId} not found`);
-    return fleet;
+
+    const bikesWithLockState = await Promise.all(
+      fleet.bikes.map(async (bike) => {
+        const lastCommand = await this.prisma.deviceCommand.findFirst({
+          where: {
+            deviceId: { in: bike.devices.map((d) => d.id) },
+            type: { in: ['LOCK', 'UNLOCK'] },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        let lockState: 'LOCKED' | 'UNLOCKED' | 'LOCKING' | 'UNLOCKING' = 'UNLOCKED';
+        if (lastCommand) {
+          if (lastCommand.type === 'LOCK') {
+            if (lastCommand.status === 'ACKED') {
+              lockState = 'LOCKED';
+            } else if (
+              lastCommand.status === 'PENDING' ||
+              lastCommand.status === 'SENT'
+            ) {
+              lockState = 'LOCKING';
+            } else {
+              lockState = 'UNLOCKED';
+            }
+          } else if (lastCommand.type === 'UNLOCK') {
+            if (lastCommand.status === 'ACKED') {
+              lockState = 'UNLOCKED';
+            } else if (
+              lastCommand.status === 'PENDING' ||
+              lastCommand.status === 'SENT'
+            ) {
+              lockState = 'UNLOCKING';
+            } else {
+              lockState = 'LOCKED';
+            }
+          }
+        }
+
+        return {
+          ...bike,
+          lockState,
+        };
+      })
+    );
+
+    return {
+      ...fleet,
+      bikes: bikesWithLockState,
+    };
   }
 
   async updateFleetPlan(

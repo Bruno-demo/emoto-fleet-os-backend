@@ -1023,9 +1023,14 @@ export default function FleetDetailPage() {
                                 lockMutation.mutate({ bikeId: bike.id, action: 'lock' });
                               }
                             }}
-                            disabled={lockingBikeId === bike.id || bike.status !== 'ACTIVE'}
+                            disabled={
+                              lockingBikeId === bike.id ||
+                              bike.status !== 'ACTIVE' ||
+                              (bike as any).lockState === 'LOCKED' ||
+                              (bike as any).lockState === 'LOCKING'
+                            }
                             title="Lock bike"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-400 transition-all hover:bg-amber-500/15 hover:border-amber-500/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition-all hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             {lockingBikeId === bike.id ? (
                               <Loader2 size={14} className="animate-spin" />
@@ -1037,9 +1042,14 @@ export default function FleetDetailPage() {
                             onClick={() =>
                               lockMutation.mutate({ bikeId: bike.id, action: 'unlock' })
                             }
-                            disabled={lockingBikeId === bike.id || bike.status !== 'ACTIVE'}
+                            disabled={
+                              lockingBikeId === bike.id ||
+                              bike.status !== 'ACTIVE' ||
+                              (bike as any).lockState === 'UNLOCKED' ||
+                              (bike as any).lockState === 'UNLOCKING'
+                            }
                             title="Unlock bike"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 transition-all hover:bg-emerald-500/15 hover:border-emerald-500/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             {lockingBikeId === bike.id ? (
                               <Loader2 size={14} className="animate-spin" />
