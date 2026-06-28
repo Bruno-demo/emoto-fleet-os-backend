@@ -198,6 +198,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     });
 
     let buffer = '';
+    let processingQueue = Promise.resolve();
 
     socket.on('data', (chunk) => {
       // Memory protection: Cap byte accumulator size at 2048 bytes to defend against heap overflow
@@ -216,7 +217,18 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       while ((boundaryIndex = buffer.indexOf('#')) !== -1) {
         const rawPacket = buffer.substring(0, boundaryIndex + 1);
         buffer = buffer.substring(boundaryIndex + 1);
-        void this.processRawPacket(rawPacket, socket);
+        
+        // Chain the processing on the promise queue to ensure strict sequential order
+        processingQueue = processingQueue.then(async () => {
+          try {
+            await this.processRawPacket(rawPacket, socket);
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'unknown error';
+            this.logger.error(
+              `Error processing SinoTrack GPRS packet: ${message}`,
+            );
+          }
+        });
       }
     });
 
