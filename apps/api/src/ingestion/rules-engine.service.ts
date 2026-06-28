@@ -289,7 +289,6 @@ export class RulesEngineService {
               speedDeltaKph: Number(speedDeltaKph.toFixed(2)),
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
               threshold: SOFTWARE_BRAKE_G_THRESHOLD,
-              isGpsFallback: true,
             } as Prisma.InputJsonValue,
           },
         );
@@ -311,7 +310,6 @@ export class RulesEngineService {
               speedDeltaKph: Number(speedDeltaKph.toFixed(2)),
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
               threshold: SOFTWARE_ACCEL_G_THRESHOLD,
-              isGpsFallback: true,
             } as Prisma.InputJsonValue,
           },
         );
@@ -383,6 +381,43 @@ export class RulesEngineService {
     payload: TelemetryPayload,
   ): Promise<void> {
     if (!payload.accel) {
+      const previousState = await this.loadPreviousSpeed(device.id);
+      if (!previousState) {
+        return;
+      }
+
+      const timeDeltaMs = Date.parse(payload.ts) - Date.parse(previousState.ts);
+      if (timeDeltaMs <= 0 || timeDeltaMs > 5000) {
+        return;
+      }
+
+      const speedDropKph = previousState.speedKph - payload.speedKph;
+      const speedDropMs = speedDropKph / 3.6;
+      const timeDeltaSeconds = timeDeltaMs / 1000;
+      const deceleration = speedDropMs / timeDeltaSeconds;
+      const gForce = deceleration / 9.81;
+
+      const SOFTWARE_CRASH_G_THRESHOLD = 1.0;
+
+      if (gForce >= SOFTWARE_CRASH_G_THRESHOLD) {
+        await this.emitWithCooldown(
+          this.eventCooldownKey(device.id, 'CRASH'),
+          CRASH_EVENT_COOLDOWN_SECONDS,
+          {
+            fleetId: device.fleetId,
+            bikeId: device.bikeId,
+            deviceId: device.id,
+            ts: new Date(payload.ts),
+            type: 'CRASH',
+            severity: EventSeverity.CRITICAL,
+            metaJson: {
+              gForce: Number(gForce.toFixed(3)),
+              speedDropKph: Number(speedDropKph.toFixed(2)),
+              timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
+            } as Prisma.InputJsonValue,
+          },
+        );
+      }
       return;
     }
 
