@@ -581,7 +581,7 @@ export default function BikesPage() {
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-ink">{t('Search')}</label>
-              <div className="relative flex-1">
+              <div className="relative w-full">
                 <Search
                   size={14}
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
