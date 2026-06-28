@@ -360,21 +360,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         const speedKnots = parseFloat(speedStr);
         const speedKph = isNaN(speedKnots) ? 0 : speedKnots * 1.852;
         const heading = parseFloat(headingStr);
-        let ts = new Date();
-        try {
-          const parsedTs = this.parseDateTime(dateStr, timeStr);
-          const diffMs = Math.abs(Date.now() - parsedTs.getTime());
-          if (diffMs <= 5 * 60 * 1000) {
-            ts = parsedTs;
-          }
-        } catch {
-          // Fallback to server timestamp if parsing fails
-        }
+        const ts = this.parseDateTime(dateStr, timeStr);
 
-        // Update last seen in DB
+        // Update last seen in DB with current receipt time
         await this.prismaService.device.update({
           where: { id: device.id },
-          data: { lastSeenAt: ts },
+          data: { lastSeenAt: new Date() },
         });
 
         // Cache state in Redis so the bike stays visible on the map
@@ -415,23 +406,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const heading = parseFloat(headingStr);
 
     // Parse UTC Date and Time
-    let ts = new Date();
-    try {
-      const parsedTs = this.parseDateTime(dateStr, timeStr);
-      const diffMs = Math.abs(Date.now() - parsedTs.getTime());
-      if (diffMs <= 5 * 60 * 1000) {
-        ts = parsedTs;
-      } else {
-        this.logger.debug(
-          `SinoTrack clock offset too large (${Math.round(diffMs / 1000)}s). Using server timestamp instead of tracker date="${dateStr}" time="${timeStr}"`,
-        );
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'unknown error';
-      this.logger.warn(
-        `Failed to parse tracker date/time, using server time: ${message}`,
-      );
-    }
+    const ts = this.parseDateTime(dateStr, timeStr);
 
     // Parse Ignition status (ACC) from status hex (active-low negative logic on the 3rd byte)
     let ignition = true;
@@ -471,7 +446,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       this.prismaService.device.update({
         where: { id: device.id },
         data: {
-          lastSeenAt: ts,
+          lastSeenAt: new Date(),
         },
       }),
     ]);

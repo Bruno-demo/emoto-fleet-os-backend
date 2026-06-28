@@ -25,6 +25,16 @@ export class LiveStateService {
   // Stores the latest bike state in Redis with fleet-scoped key and expiration.
   async setLatestBikeState(state: LiveBikeState): Promise<void> {
     const key = this.buildBikeStateKey(state.fleetId, state.bikeId);
+
+    // Safety check: Don't let older packets overwrite a newer cached position in Redis
+    const existing = await this.getBikeState(state.fleetId, state.bikeId);
+    if (existing && existing.ts.localeCompare(state.ts) > 0) {
+      this.logger.debug(
+        `Discarding out-of-order Redis live state write for bike ${state.bikeId} (incoming ts: ${state.ts} is older than cached ts: ${existing.ts})`,
+      );
+      return;
+    }
+
     await this.redisService.set(
       key,
       JSON.stringify(state),
