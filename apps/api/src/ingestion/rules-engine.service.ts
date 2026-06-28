@@ -254,6 +254,68 @@ export class RulesEngineService {
     payload: TelemetryPayload,
   ): Promise<void> {
     if (!payload.accel) {
+      const prev = await this.loadPreviousSpeed(device.id);
+      if (!prev) {
+        return;
+      }
+
+      const timeDeltaMs = Date.parse(payload.ts) - Date.parse(prev.ts);
+      if (timeDeltaMs <= 0 || timeDeltaMs > 5000) {
+        return;
+      }
+
+      const speedDeltaKph = payload.speedKph - prev.speedKph;
+      const speedDeltaMs = speedDeltaKph / 3.6;
+      const timeDeltaSeconds = timeDeltaMs / 1000;
+      const acceleration = speedDeltaMs / timeDeltaSeconds;
+      const gForce = acceleration / 9.81;
+
+      const SOFTWARE_BRAKE_G_THRESHOLD = -0.35;
+      const SOFTWARE_ACCEL_G_THRESHOLD = 0.25;
+
+      if (gForce <= SOFTWARE_BRAKE_G_THRESHOLD) {
+        await this.emitWithCooldown(
+          this.eventCooldownKey(device.id, 'HARSH_BRAKE'),
+          HARSH_EVENT_COOLDOWN_SECONDS,
+          {
+            fleetId: device.fleetId,
+            bikeId: device.bikeId,
+            deviceId: device.id,
+            ts: new Date(payload.ts),
+            type: 'HARSH_BRAKE',
+            severity: EventSeverity.MEDIUM,
+            metaJson: {
+              gpsGForce: Number(gForce.toFixed(3)),
+              speedDeltaKph: Number(speedDeltaKph.toFixed(2)),
+              timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
+              threshold: SOFTWARE_BRAKE_G_THRESHOLD,
+              isGpsFallback: true,
+            } as Prisma.InputJsonValue,
+          },
+        );
+      }
+
+      if (gForce >= SOFTWARE_ACCEL_G_THRESHOLD) {
+        await this.emitWithCooldown(
+          this.eventCooldownKey(device.id, 'HARSH_ACCEL'),
+          HARSH_EVENT_COOLDOWN_SECONDS,
+          {
+            fleetId: device.fleetId,
+            bikeId: device.bikeId,
+            deviceId: device.id,
+            ts: new Date(payload.ts),
+            type: 'HARSH_ACCEL',
+            severity: EventSeverity.MEDIUM,
+            metaJson: {
+              gpsGForce: Number(gForce.toFixed(3)),
+              speedDeltaKph: Number(speedDeltaKph.toFixed(2)),
+              timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
+              threshold: SOFTWARE_ACCEL_G_THRESHOLD,
+              isGpsFallback: true,
+            } as Prisma.InputJsonValue,
+          },
+        );
+      }
       return;
     }
 
