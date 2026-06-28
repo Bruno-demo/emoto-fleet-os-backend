@@ -1719,4 +1719,69 @@ export class RidersService {
 
     return normalized;
   }
+
+  // Gets 30-day driving score for a rider
+  async getRiderSafetyScore(riderId: string, user: AuthenticatedUser) {
+    const rider = await this.prismaService.user.findFirst({
+      where: {
+        id: riderId,
+        role: 'RIDER',
+      },
+      include: {
+        riderProfile: true,
+      },
+    });
+    if (!rider) throw new NotFoundException('Rider not found');
+
+    if (user.fleetPlan === 'INSURANCE') {
+      const assignedBike = await this.prismaService.bike.findFirst({
+        where: {
+          insurerName: user.insurerName,
+          assignments: {
+            some: {
+              riderUserId: rider.id,
+              active: true,
+            },
+          },
+        },
+      });
+      if (!assignedBike) {
+        throw new ForbiddenException('Access to this rider score is denied');
+      }
+    } else {
+      if (rider.fleetId !== user.fleetId) {
+        throw new ForbiddenException('Rider fleet access violation');
+      }
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trips = await this.prismaService.trip.findMany({
+      where: {
+        riderId: rider.id,
+        startTs: { gte: thirtyDaysAgo },
+      },
+      select: {
+        score: true,
+      },
+    });
+
+    const scores = trips
+      .map((t) => Number(t.score))
+      .filter((s) => !isNaN(s));
+      
+    const avgScore = scores.length > 0
+      ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+      : 100;
+
+    return {
+      riderId: rider.id,
+      riderName: rider.riderProfile?.fullName ?? rider.email,
+      avgScore,
+      tripCount: trips.length,
+      periodStart: thirtyDaysAgo.toISOString(),
+      periodEnd: new Date().toISOString(),
+    };
+  }
 }

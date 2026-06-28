@@ -697,6 +697,135 @@ export class PartnerService {
   }
 
   // Records partner route access in fleet-scoped audit logs without sensitive fields.
+  async getRiderSafetyScore(
+    partner: AuthenticatedPartner,
+    riderId: string,
+  ) {
+    this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
+
+    // 1. Find the rider and their profile
+    const rider = await this.prismaService.user.findFirst({
+      where: {
+        id: riderId,
+        role: 'RIDER',
+      },
+      include: {
+        riderProfile: true,
+      },
+    });
+    if (!rider) throw new NotFoundException('Rider not found');
+
+    // 2. If caller is an insurer, verify they insure the rider's bike
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    if (isInsurer) {
+      const user = await this.prismaService.user.findFirst({
+        where: { id: partner.partnerId },
+        include: { fleet: true },
+      });
+      const insurerName = user?.fleet?.insurerName;
+      // Get rider's active bike assignment
+      const assignedBike = await this.prismaService.bike.findFirst({
+        where: {
+          insurerName: insurerName,
+          assignments: {
+            some: {
+              riderUserId: rider.id,
+              active: true,
+            },
+          },
+        },
+      });
+      if (!assignedBike) {
+        throw new ForbiddenException('Access to this rider score is denied');
+      }
+    }
+
+    // 3. Query the last 30 days of trips for this rider
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trips = await this.prismaService.trip.findMany({
+      where: {
+        riderId: rider.id,
+        startTs: { gte: thirtyDaysAgo },
+      },
+      select: {
+        score: true,
+      },
+    });
+
+    const scores = trips
+      .map((t) => Number(t.score))
+      .filter((s) => !isNaN(s));
+      
+    const avgScore = scores.length > 0
+      ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+      : 100; // Default to 100 if no trips recorded
+
+    return {
+      riderId: rider.id,
+      riderName: rider.riderProfile?.fullName ?? rider.email,
+      avgScore,
+      tripCount: trips.length,
+      periodStart: thirtyDaysAgo.toISOString(),
+      periodEnd: new Date().toISOString(),
+    };
+  }
+
+  async getBikeWeeklyMileage(
+    partner: AuthenticatedPartner,
+    bikeId: string,
+  ) {
+    this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
+
+    // 1. Find the bike
+    const bike = await this.prismaService.bike.findUnique({
+      where: { id: bikeId },
+    });
+    if (!bike) throw new NotFoundException('Bike not found');
+
+    // 2. If caller is an insurer, verify they insure this bike
+    const isInsurer = await this.isInsurerPartner(partner.partnerId);
+    if (isInsurer) {
+      const user = await this.prismaService.user.findFirst({
+        where: { id: partner.partnerId },
+        include: { fleet: true },
+      });
+      const insurerName = user?.fleet?.insurerName;
+      if (bike.insurerName !== insurerName) {
+        throw new ForbiddenException('Access to this bike mileage is denied');
+      }
+    }
+
+    // 3. Query trips in the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trips = await this.prismaService.trip.findMany({
+      where: {
+        bikeId: bike.id,
+        startTs: { gte: sevenDaysAgo },
+      },
+      select: {
+        distanceKm: true,
+      },
+    });
+
+    const weeklyMileageKm = trips.reduce(
+      (sum, trip) => sum + Number(trip.distanceKm || 0),
+      0,
+    );
+
+    return {
+      bikeId: bike.id,
+      bikeLabel: bike.label,
+      weeklyMileageKm: Math.round(weeklyMileageKm * 100) / 100,
+      tripCount: trips.length,
+      periodStart: sevenDaysAgo.toISOString(),
+      periodEnd: new Date().toISOString(),
+    };
+  }
+
   private async auditPartnerApiAccess(
     partner: AuthenticatedPartner,
     fleetId: string,

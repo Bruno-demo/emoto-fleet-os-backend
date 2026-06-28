@@ -100,6 +100,28 @@ export class PartnerController {
     return this.partnerService.listBikesForPartner(partner, query);
   }
 
+  @Get('rider-score/:id')
+  @ApiOperation({
+    summary: 'Get 30-day safety score for a specific rider',
+  })
+  async getRiderScore(
+    @CurrentPartner() partner: AuthenticatedPartner,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.partnerService.getRiderSafetyScore(partner, id);
+  }
+
+  @Get('mileage/:id')
+  @ApiOperation({
+    summary: 'Get 7-day mileage total for a specific bike',
+  })
+  async getMileage(
+    @CurrentPartner() partner: AuthenticatedPartner,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.partnerService.getBikeWeeklyMileage(partner, id);
+  }
+
   @Post('webhooks')
   @ApiOperation({
     summary: 'Register partner webhook callback endpoint',

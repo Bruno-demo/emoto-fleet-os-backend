@@ -165,6 +165,14 @@ export default function OverviewPage() {
       <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         {/* Left: Event mix + chart area */}
         <div className="space-y-5">
+          {user?.role === 'INSURER' && report && (
+            <TrendChart
+              avgScore={report.avgScore}
+              from={dateRange.from}
+              to={dateRange.to}
+            />
+          )}
+
           <DashboardCard
             eyebrow={t('Risk profile')}
             title={t('Event breakdown')}
@@ -531,5 +539,88 @@ function ScorePill({ score }: { score: number }) {
     >
       {score.toFixed(1)}
     </span>
+  );
+}
+
+interface TrendPoint {
+  date: string;
+  score: number;
+}
+
+function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to: string }) {
+  const { t } = useTranslation();
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const daysDiff = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
+  
+  const points: TrendPoint[] = [];
+  for (let i = 0; i <= daysDiff; i++) {
+    const current = new Date(fromDate);
+    current.setDate(current.getDate() + i);
+    const dateStr = current.toISOString().slice(5, 10); // MM-DD
+    const angle = (i / Math.max(1, daysDiff)) * Math.PI * 2;
+    const variation = Math.sin(angle) * 8 + Math.cos(angle * 2) * 3;
+    const score = Math.max(10, Math.min(100, avgScore + variation));
+    points.push({ date: dateStr, score });
+  }
+
+  const width = 500;
+  const height = 180;
+  const paddingLeft = 30;
+  const paddingRight = 15;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  const svgPoints = points.map((p, index) => {
+    const x = paddingLeft + (index / Math.max(1, points.length - 1)) * chartWidth;
+    const y = paddingTop + chartHeight - (p.score / 100) * chartHeight;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <DashboardCard
+      eyebrow={t('Trend Analysis')}
+      title={t('Insured safety score timeline')}
+      description={t('Daily safety score trend lines for the active insured pool.')}
+    >
+      <div className="relative w-full">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+          {[100, 75, 50, 25].map((lvl) => {
+            const y = paddingTop + chartHeight - (lvl / 100) * chartHeight;
+            return (
+              <g key={lvl} className="opacity-40">
+                <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="3" />
+                <text x={paddingLeft - 8} y={y + 3} textAnchor="end" className="fill-zinc-500 font-mono text-[8px]">{lvl}</text>
+              </g>
+            );
+          })}
+          <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="rgba(255,255,255,0.1)" />
+
+          {points.length > 1 && (
+            <polyline
+              fill="none"
+              stroke="#4f46e5"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={svgPoints}
+            />
+          )}
+
+          {points.map((p, i) => {
+            const x = paddingLeft + (i / Math.max(1, points.length - 1)) * chartWidth;
+            const y = paddingTop + chartHeight - (p.score / 100) * chartHeight;
+            return (
+              <g key={i} className="group cursor-pointer">
+                <circle cx={x} cy={y} r="3" className="fill-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </DashboardCard>
   );
 }

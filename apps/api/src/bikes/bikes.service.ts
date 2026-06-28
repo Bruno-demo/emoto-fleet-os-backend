@@ -282,4 +282,43 @@ export class BikesService {
       throw new ForbiddenException('Fleet access violation');
     }
   }
+
+  // Gets 7-day weekly mileage for the bike
+  async getWeeklyMileage(id: string, user: AuthenticatedUser) {
+    const bike = await this.loadBikeOrThrow(id);
+    if (user.fleetPlan === 'INSURANCE') {
+      if (bike.insurerName !== user.insurerName) {
+        throw new ForbiddenException('Access to this bike is denied');
+      }
+    } else {
+      this.assertFleetAccess(bike.fleetId, user);
+    }
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trips = await this.prismaService.trip.findMany({
+      where: {
+        bikeId: bike.id,
+        startTs: { gte: sevenDaysAgo },
+      },
+      select: {
+        distanceKm: true,
+      },
+    });
+
+    const weeklyMileageKm = trips.reduce(
+      (sum, trip) => sum + Number(trip.distanceKm || 0),
+      0,
+    );
+
+    return {
+      bikeId: bike.id,
+      bikeLabel: bike.label,
+      weeklyMileageKm: Math.round(weeklyMileageKm * 100) / 100,
+      tripCount: trips.length,
+      periodStart: sevenDaysAgo.toISOString(),
+      periodEnd: new Date().toISOString(),
+    };
+  }
 }

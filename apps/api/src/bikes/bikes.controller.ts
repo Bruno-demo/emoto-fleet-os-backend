@@ -106,4 +106,20 @@ export class BikesController {
   ): Promise<{ queued: false; message: string }> {
     return this.bikesService.requestBikeLockAction(id, dto, user);
   }
+
+  @Get(':id/weekly-mileage')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+  )
+  @ApiOperation({ summary: 'Get 7-day weekly mileage for a specific bike' })
+  async getWeeklyMileage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.bikesService.getWeeklyMileage(id, user);
+  }
 }

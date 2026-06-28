@@ -18,6 +18,7 @@ import {
   MapPin,
   Radio,
   Route,
+  Search,
   Settings,
   Shield,
   Users,
@@ -53,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Operations',
     links: [
       { href: '/overview', label: 'Overview', icon: Gauge, feature: 'overview' },
+      { href: '/insurer/lookup', label: 'Lookup', icon: Search, feature: 'overview' },
       { href: '/live', label: 'Live Map', icon: Map, feature: 'live' },
       { href: '/incidents', label: 'Incidents', icon: AlertCircle, feature: 'incidents' },
       { href: '/events', label: 'Events', icon: Radio, feature: 'events' },
@@ -121,7 +123,7 @@ export function DashboardNav({
 
   const isLinkVisible = (link: NavLink) => {
     if (user?.role === 'INSURER') {
-      const allowedPaths = ['/overview', '/bikes', '/events', '/incidents', '/trips', '/reports', '/settings'];
+      const allowedPaths = ['/overview', '/bikes', '/events', '/incidents', '/trips', '/reports', '/settings', '/insurer/lookup'];
       return allowedPaths.includes(link.href);
     }
     if (link.requiresAdmin && user && !canManageZones(user.role)) return false;

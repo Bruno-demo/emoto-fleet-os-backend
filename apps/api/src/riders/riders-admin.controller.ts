@@ -193,4 +193,20 @@ export class RidersAdminController {
   ): Promise<RiderSummary> {
     return this.ridersService.updateRiderStatusForUser(user, id, body.status);
   }
+
+  @Get('riders/:id/score')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+  )
+  @ApiOperation({ summary: 'Get 30-day safety score for a specific rider' })
+  async getRiderScore(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ridersService.getRiderSafetyScore(id, user);
+  }
 }
