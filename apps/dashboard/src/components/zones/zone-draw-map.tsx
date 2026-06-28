@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Polygon, Polyline, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { useTheme } from 'next-themes';
+import { Layers, Globe, Navigation, Trash2 } from 'lucide-react';
 
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
   useMapEvents({
@@ -35,6 +36,7 @@ export default function ZoneDrawMap({
   center?: [number, number] | null;
 }) {
   const { resolvedTheme } = useTheme();
+  const [mapType, setMapType] = useState<'road' | 'satellite'>('satellite');
 
   const handleMapClick = (latlng: L.LatLng) => {
     // GeoJSON uses [longitude, latitude] order
@@ -58,12 +60,19 @@ export default function ZoneDrawMap({
         zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url={resolvedTheme === 'light'
-            ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'}
-        />
+        {mapType === 'satellite' ? (
+          <TileLayer
+            attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          />
+        ) : (
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url={resolvedTheme === 'light'
+              ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'}
+          />
+        )}
 
         <MapEvents onMapClick={handleMapClick} />
         <MapRecenter target={mapCenter} />
@@ -84,27 +93,62 @@ export default function ZoneDrawMap({
           />
         )}
 
-        {/* Render Vertex markers (CircleMarkers are lightweight and avoid asset path resolution errors in Next.js) */}
+        {/* Draggable Markers for Vertices */}
         {points.map((p, index) => (
-          <CircleMarker
+          <Marker
             key={index}
-            center={[p[1], p[0]]}
-            radius={6}
-            pathOptions={{
-              color: '#1d4ed8',
-              fillColor: '#3b82f6',
-              fillOpacity: 1,
-              weight: 2,
-            }}
+            position={[p[1], p[0]]}
+            draggable={true}
+            icon={L.divIcon({
+              className: 'custom-draggable-vertex',
+              html: `<div class="h-3.5 w-3.5 rounded-full bg-blue-500 hover:bg-blue-400 border-2 border-white shadow-md cursor-grab active:cursor-grabbing transition-all hover:scale-110"></div>`,
+              iconSize: [14, 14],
+              iconAnchor: [7, 7]
+            })}
             eventHandlers={{
-              click: (e) => {
+              dragend: (e: any) => {
+                const marker = e.target;
+                const position = marker.getLatLng();
+                const updatedPoints = [...points];
+                updatedPoints[index] = [position.lng, position.lat];
+                onChange(updatedPoints);
+              },
+              click: (e: any) => {
                 L.DomEvent.stopPropagation(e);
                 removePoint(index);
-              },
+              }
             }}
           />
         ))}
       </MapContainer>
+
+      {/* Map Style Selector */}
+      <div className="absolute top-3 right-3 z-[500] flex gap-1 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-0.5 shadow-md">
+        <button
+          type="button"
+          onClick={() => setMapType('road')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-md transition ${
+            mapType === 'road'
+              ? 'bg-white/10 text-white'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Navigation size={10} />
+          Road
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapType('satellite')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-md transition ${
+            mapType === 'satellite'
+              ? 'bg-white/10 text-white'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Globe size={10} />
+          Satellite
+        </button>
+      </div>
 
       {/* Control Overlay */}
       <div className="absolute bottom-3 left-3 z-[500] pointer-events-auto bg-[#09090b]/90 backdrop-blur border border-line rounded-lg px-2.5 py-1.5 text-[10px] text-zinc-400 leading-tight">
@@ -112,16 +156,17 @@ export default function ZoneDrawMap({
           <span>Click on the map above to start placing boundary corners.</span>
         ) : (
           <div className="flex items-center gap-2">
-            <span>{points.length} corners placed. Click a corner marker to remove it.</span>
+            <span>{points.length} corners placed. Drag points to adjust or click to delete.</span>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange([]);
               }}
-              className="text-red-400 hover:text-red-300 font-bold ml-1 border-l border-line pl-2"
+              className="flex items-center gap-1 text-rose-400 hover:text-rose-300 font-bold ml-1 border-l border-line pl-2"
             >
-              Clear
+              <Trash2 size={10} />
+              Clear & Start New
             </button>
           </div>
         )}
