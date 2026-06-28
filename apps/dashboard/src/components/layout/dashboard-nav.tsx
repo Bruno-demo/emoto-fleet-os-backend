@@ -126,6 +126,9 @@ export function DashboardNav({
       const allowedPaths = ['/overview', '/bikes', '/events', '/incidents', '/trips', '/reports', '/settings', '/insurer/lookup'];
       return allowedPaths.includes(link.href);
     }
+    if (link.href === '/insurer/lookup') {
+      return false;
+    }
     if (link.requiresAdmin && user && !canManageZones(user.role)) return false;
     return true;
   };

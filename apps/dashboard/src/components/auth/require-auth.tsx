@@ -33,23 +33,33 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }, [isLoading]);
 
   useEffect(() => {
-    if (data?.role === 'RIDER') {
+    if (isLoading) return;
+
+    if (isError) {
+      clearAuthToken();
+      router.replace(`/login?expired=true&next=${encodeURIComponent(nextPath)}`);
+      return;
+    }
+
+    if (!data) return;
+
+    if (data.role === 'RIDER') {
       clearAuthToken();
       apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
       router.replace('/login?error=rider');
       return;
     }
 
-    if (data?.status === 'PENDING_SETUP') {
+    if (data.status === 'PENDING_SETUP') {
       clearAuthToken();
-      const successUrl = data?.role === 'INSURER'
+      const successUrl = data.role === 'INSURER'
         ? '/registration-success?type=insurance'
         : '/registration-success';
       router.replace(successUrl);
       return;
     }
 
-    if (data?.role === 'INSURER') {
+    if (data.role === 'INSURER') {
       const isAllowed =
         pathname === '/' ||
         pathname === '/overview' || pathname.startsWith('/overview/') ||
@@ -59,19 +69,20 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
         pathname.startsWith('/trips') ||
         pathname.startsWith('/reports') ||
         pathname.startsWith('/settings') ||
+        pathname.startsWith('/insurer') ||
         pathname === '/forbidden';
 
       if (!isAllowed) {
         router.replace('/forbidden');
         return;
       }
+    } else {
+      if (pathname.startsWith('/insurer')) {
+        router.replace('/forbidden');
+        return;
+      }
     }
-
-    if (isError) {
-      clearAuthToken();
-      router.replace(`/login?expired=true&next=${encodeURIComponent(nextPath)}`);
-    }
-  }, [isError, data?.status, data?.role, nextPath, pathname, router]);
+  }, [isLoading, isError, data, nextPath, pathname, router]);
 
   if (!hasWindow || (isLoading && !isError)) {
     return (
