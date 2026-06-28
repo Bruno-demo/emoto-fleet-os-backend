@@ -12,6 +12,7 @@ import { apiFetch } from '@/lib/api/client';
 import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 interface LeaseContract {
   id: string;
@@ -40,13 +41,14 @@ function getDefaultRange() {
 
 export default function ReportsPage() {
   const { t } = useTranslation();
+  const { data: user } = useCurrentUser();
   const [dateRange, setDateRange] = useState(getDefaultRange);
   const [activeTab, setActiveTab] = useState<'safety' | 'leases'>('safety');
 
   const reportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
     queryFn: () => apiFetch<WeeklyReport>(`/reports/weekly?from=${dateRange.from}&to=${dateRange.to}`),
-    enabled: activeTab === 'safety',
+    enabled: activeTab === 'safety' || user?.role === 'INSURER',
   });
 
   const report = reportQuery.data;
@@ -64,7 +66,7 @@ export default function ReportsPage() {
   const leasesQuery = useQuery({
     queryKey: ['leases', 'reporting'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
-    enabled: activeTab === 'leases',
+    enabled: activeTab === 'leases' && user?.role !== 'INSURER',
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
 
@@ -122,7 +124,7 @@ export default function ReportsPage() {
           onClick={() => setActiveTab('safety')}
           className={cx(
             "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
-            activeTab === 'safety'
+            activeTab === 'safety' || user?.role === 'INSURER'
               ? "border-accent text-ink"
               : "border-transparent text-ink-muted hover:text-ink"
           )}
@@ -130,22 +132,24 @@ export default function ReportsPage() {
           <BarChart3 size={16} />
           {t('Operations & Safety')}
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('leases')}
-          className={cx(
-            "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
-            activeTab === 'leases'
-              ? "border-accent text-ink"
-              : "border-transparent text-ink-muted hover:text-ink"
-          )}
-        >
-          <Coins size={16} />
-          {t('Lease Repayments')}
-        </button>
+        {user?.role !== 'INSURER' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('leases')}
+            className={cx(
+              "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
+              activeTab === 'leases'
+                ? "border-accent text-ink"
+                : "border-transparent text-ink-muted hover:text-ink"
+            )}
+          >
+            <Coins size={16} />
+            {t('Lease Repayments')}
+          </button>
+        )}
       </div>
 
-      {activeTab === 'safety' ? (
+      {activeTab === 'safety' || user?.role === 'INSURER' ? (
         <>
           {/* Header filter & actions bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
