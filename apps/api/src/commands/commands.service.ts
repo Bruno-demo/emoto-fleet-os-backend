@@ -36,7 +36,7 @@ import { EventsGateway } from '../events/events.gateway';
 import { MetricsService } from '../metrics/metrics.service';
 import { FleetDeviceCommand } from './commands.types';
 
-const LIVE_STATE_MAX_AGE_MS = 30_000;
+const LIVE_STATE_MAX_AGE_MS = 86_400_000; // 24 hours
 const LOCK_MIN_STATIONARY_MS = 15_000;
 const MQTT_PUBLISH_TIMEOUT_MS = 10_000;
 
@@ -503,7 +503,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
     const stationaryMs = lastMovingPoint
       ? Date.now() - lastMovingPoint.ts.getTime()
-      : Date.now() - Date.parse(state.ts); // fallback if it was never moving
+      : Infinity; // fallback if it was never moving
 
     if (stationaryMs < LOCK_MIN_STATIONARY_MS) {
       throw new BadRequestException(

@@ -1553,8 +1553,8 @@ function evaluateUnlockRule(state: LiveBikeState | null, t: (key: string) => str
   }
 
   const ageMs = Date.now() - Date.parse(state.ts);
-  if (ageMs > 30_000) {
-    return { allowed: false, reason: t('No recent live state under 30 seconds.') };
+  if (ageMs > 86_400_000) {
+    return { allowed: false, reason: t('No recent live state under 24 hours.') };
   }
 
   return { allowed: true, reason: null };
@@ -1571,13 +1571,8 @@ function evaluateLockRule(state: LiveBikeState | null, t: (key: string) => strin
     return { allowed: false, reason: t('No live state available for this bike.') };
   }
 
-  if (Math.abs(state.speedKph) > 0.01) {
-    return { allowed: false, reason: t('Bike must be stopped for 15s before locking.') };
-  }
-
-  const stationaryMs = Date.now() - Date.parse(state.ts);
-  if (stationaryMs < 15_000) {
-    return { allowed: false, reason: t('Bike must be stopped for 15s before locking.') };
+  if (Math.abs(state.speedKph) > 0.1) {
+    return { allowed: false, reason: t('Cannot lock while bike is moving') };
   }
 
   return { allowed: true, reason: null };
