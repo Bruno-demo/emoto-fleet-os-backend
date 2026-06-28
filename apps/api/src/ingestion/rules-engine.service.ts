@@ -435,19 +435,17 @@ export class RulesEngineService {
       payload.lng,
       this.roadSpeedLimitRadiusMeters,
     );
-    if (!nearest || nearest.speedLimitKph === null) {
-      return;
-    }
 
-    if (
-      payload.speedKph <=
-      nearest.speedLimitKph + this.roadSpeedToleranceKph
-    ) {
+    // Default national speed limit fallback is 60 km/h
+    const speedLimit = nearest?.speedLimitKph ?? 60;
+    const featureId = nearest?.id ?? 'default_national_limit';
+
+    if (payload.speedKph <= speedLimit + this.roadSpeedToleranceKph) {
       return;
     }
 
     await this.emitWithCooldown(
-      this.eventCooldownKey(device.id, `SPEED_LIMIT_${nearest.id}`),
+      this.eventCooldownKey(device.id, `SPEED_LIMIT_${featureId}`),
       ROAD_EVENT_COOLDOWN_SECONDS,
       {
         fleetId: device.fleetId,
@@ -458,9 +456,9 @@ export class RulesEngineService {
         severity: EventSeverity.MEDIUM,
         metaJson: {
           speedKph: payload.speedKph,
-          speedLimitKph: nearest.speedLimitKph,
-          featureId: nearest.id,
-          distanceMeters: nearest.distanceMeters,
+          speedLimitKph: speedLimit,
+          featureId,
+          distanceMeters: nearest?.distanceMeters ?? 0,
         } as Prisma.InputJsonValue,
       },
     );
