@@ -360,7 +360,14 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         const speedKnots = parseFloat(speedStr);
         const speedKph = isNaN(speedKnots) ? 0 : speedKnots * 1.852;
         const heading = parseFloat(headingStr);
-        const ts = this.parseDateTime(dateStr, timeStr);
+        let ts = new Date();
+        try {
+          const parsedTs = this.parseDateTime(dateStr, timeStr);
+          const diffMs = Math.abs(Date.now() - parsedTs.getTime());
+          if (diffMs <= 5 * 60 * 1000) {
+            ts = parsedTs;
+          }
+        } catch {}
 
         // Update last seen in DB
         await this.prismaService.device.update({
@@ -406,7 +413,23 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const heading = parseFloat(headingStr);
 
     // Parse UTC Date and Time
-    const ts = this.parseDateTime(dateStr, timeStr);
+    let ts = new Date();
+    try {
+      const parsedTs = this.parseDateTime(dateStr, timeStr);
+      const diffMs = Math.abs(Date.now() - parsedTs.getTime());
+      if (diffMs <= 5 * 60 * 1000) {
+        ts = parsedTs;
+      } else {
+        this.logger.debug(
+          `SinoTrack clock offset too large (${Math.round(diffMs / 1000)}s). Using server timestamp instead of tracker date="${dateStr}" time="${timeStr}"`,
+        );
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'unknown error';
+      this.logger.warn(
+        `Failed to parse tracker date/time, using server time: ${message}`,
+      );
+    }
 
     // Parse Ignition status (ACC) from status hex (active-low negative logic on the 3rd byte)
     let ignition = true;
