@@ -174,7 +174,7 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
           <div className="absolute left-3 top-3 z-[400] flex flex-wrap gap-2 rounded-xl border border-line/50 bg-black/65 px-3 py-2 text-xs font-semibold backdrop-blur-md text-white shadow-lg max-w-[calc(100%-24px)]">
             <div className="flex items-center gap-1">
               <Gauge size={12} className="text-blue-400" />
-              <span>{activePoint.speedKph.toFixed(1)} km/h</span>
+              <span>{activePoint.speedKph.toFixed(1)} KM/H</span>
             </div>
             <div className="h-3 w-px bg-white/10" />
             <div className="flex items-center gap-1">

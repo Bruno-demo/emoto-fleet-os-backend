@@ -399,8 +399,35 @@ export class RidersService {
       this.prismaService.user.count({ where }),
     ]);
 
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const tripScores = await this.prismaService.trip.groupBy({
+      by: ['riderId'],
+      where: {
+        riderId: { in: riders.map((r) => r.id) },
+        startTs: { gte: thirtyDaysAgo },
+      },
+      _avg: {
+        score: true,
+      },
+    });
+
+    const scoreMap = new Map<string, number>();
+    for (const row of tripScores) {
+      if (row.riderId && row._avg.score !== null) {
+        scoreMap.set(row.riderId, Math.round(Number(row._avg.score)));
+      }
+    }
+
     return createPaginatedResponse(
-      riders.map((rider) => this.toRiderSummary(rider as RiderIdentity)),
+      riders.map((rider) => {
+        const summary = this.toRiderSummary(rider as RiderIdentity);
+        return {
+          ...summary,
+          safetyScore: scoreMap.get(rider.id) ?? 100,
+        };
+      }),
       total,
       pagination.page,
       pagination.pageSize,

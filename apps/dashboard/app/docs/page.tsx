@@ -271,7 +271,7 @@ export default function DocsPage() {
                 <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] p-5">
                   <h4 className="text-xs font-bold text-white">Command Verification Rules</h4>
                   <ul className="list-disc list-inside mt-3 text-xs text-zinc-500 space-y-2 leading-relaxed">
-                    <li><strong className="text-zinc-300">Stationary Checks:</strong> Lock commands are blocked by the safety engine if the telemetry stream indicates speed &gt; 0 Kph or active G-Force vectors, avoiding accidents.</li>
+                    <li><strong className="text-zinc-300">Stationary Checks:</strong> Lock commands are blocked by the safety engine if the telemetry stream indicates speed &gt; 0 KM/H or active G-Force vectors, avoiding accidents.</li>
                     <li><strong className="text-zinc-300">Ignition Relay:</strong> A Lock command pulls the physical ignition line low (engine cutoff). An Unlock command pulls the line high, returning starting control back to the ignition key.</li>
                     <li><strong className="text-zinc-300">HQ Admin Override:</strong> Super Admins can bypass typical fleet ownership restrictions to command and recover stolen vehicles from the HQ Control panel.</li>
                   </ul>

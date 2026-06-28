@@ -500,6 +500,24 @@ export default function RidersPage() {
         },
       },
       {
+        header: t('safety_score'),
+        render: (rider) => {
+          const score = rider.safetyScore ?? 100;
+          let color = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+          if (score < 70) {
+            color = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+          } else if (score < 85) {
+            color = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+          }
+          return (
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border ${color}`}>
+              <Shield size={12} />
+              <span>{score}</span>
+            </div>
+          );
+        },
+      },
+      {
         header: t('Contact'),
         render: (rider) => (
           <div className="space-y-1">

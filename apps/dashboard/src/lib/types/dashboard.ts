@@ -280,6 +280,7 @@ export interface Rider {
   leaseToOwn?: boolean;
   leasePrincipal?: number;
   leaseDailyRate?: number;
+  safetyScore?: number;
 }
 
 export type AuditActionType =

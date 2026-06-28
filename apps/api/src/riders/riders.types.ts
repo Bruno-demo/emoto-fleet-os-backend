@@ -18,6 +18,7 @@ export interface RiderSummary {
   leaseToOwn?: boolean;
   leasePrincipal?: number;
   leaseDailyRate?: number;
+  safetyScore?: number;
 }
 
 export interface AssignmentSummary {
