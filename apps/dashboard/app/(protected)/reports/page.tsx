@@ -703,16 +703,8 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
     </DashboardCard>
   );
 }
-
-function TrafficFinesCard() {
+function TrafficFinesCard() {
   const { t } = useTranslation();
-  const [showMock, setShowMock] = useState(false);
-
-  const mockFines = [
-    { vehicle: 'RAA 412C', reason: 'Overspeed (School Zone)', amount: '25,000 RWF', status: 'Pending', issued: '2026-06-12' },
-    { vehicle: 'RAB 890X', reason: 'Harsh Braking near Market', amount: '10,000 RWF', status: 'Paid', issued: '2026-06-10' },
-    { vehicle: 'RAC 054Y', reason: 'Night Geofence Breach', amount: '50,000 RWF', status: 'Pending', issued: '2026-06-09' },
-  ];
 
   return (
     <DashboardCard
@@ -720,16 +712,6 @@ function TrafficFinesCard() {
       title={t('Traffic fines')}
       description={t('Irembo fines will stream here in real time once the integration is enabled.')}
     >
-      <div className="flex justify-end mb-3">
-        <button
-          type="button"
-          onClick={() => setShowMock(!showMock)}
-          className="text-[10px] uppercase font-bold text-accent hover:underline flex items-center gap-1"
-        >
-          {showMock ? t('🔌 Disable Demo Feed') : t('⚡ Simulate Live Irembo Feed')}
-        </button>
-      </div>
-
       <div className="rounded-[20px] border border-line bg-surface-muted px-4 py-4 overflow-x-auto">
         <div className="min-w-[600px]">
           <div className="grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-muted border-b border-white/[0.04] pb-2">
@@ -740,38 +722,15 @@ function TrafficFinesCard() {
             <span>{t('Issued')}</span>
           </div>
 
-          {!showMock ? (
-            <div className="mt-3 grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-sm text-ink-soft">
-              <span className="font-semibold text-ink">--</span>
-              <span>{t('Awaiting Irembo feed')}</span>
-              <span>--</span>
-              <span className="inline-flex max-w-max rounded-full bg-white/[0.02] border border-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
-                {t('Pending')}
-              </span>
-              <span>--</span>
-            </div>
-          ) : (
-            <div className="divide-y divide-white/[0.04] mt-2">
-              {mockFines.map((fine, idx) => (
-                <div key={idx} className="grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-sm text-ink-soft py-2.5 items-center">
-                  <span className="font-semibold text-ink">{fine.vehicle}</span>
-                  <span>{t(fine.reason)}</span>
-                  <span className="font-mono">{fine.amount}</span>
-                  <span>
-                    <span className={cx(
-                      "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]",
-                      fine.status === 'Paid' 
-                        ? 'bg-success-soft text-success-ink' 
-                        : 'bg-warning-soft text-warning-ink'
-                    )}>
-                      {t(fine.status)}
-                    </span>
-                  </span>
-                  <span className="font-mono text-xs">{fine.issued}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="mt-3 grid grid-cols-[1.1fr_1.5fr_1fr_1fr_1fr] gap-3 text-sm text-ink-soft">
+            <span className="font-semibold text-ink">--</span>
+            <span>{t('Awaiting Irembo feed')}</span>
+            <span>--</span>
+            <span className="inline-flex max-w-max rounded-full bg-white/[0.02] border border-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
+              {t('Pending')}
+            </span>
+            <span>--</span>
+          </div>
         </div>
       </div>
       <p className="mt-3 text-xs text-ink-muted">

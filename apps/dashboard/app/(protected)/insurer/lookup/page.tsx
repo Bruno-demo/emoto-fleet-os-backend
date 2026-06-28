@@ -267,7 +267,7 @@ export default function InsurerLookupPage() {
                 />
                 <MetricCard
                   title={t('Trips Recorded')}
-                  value={bikeMileageQuery.data?.tripCount ?? 0}
+                  value={String(bikeMileageQuery.data?.tripCount ?? 0)}
                   hint={t('Total trips in active week window')}
                   icon={<Calendar size={20} className="text-purple-400" />}
                 />
@@ -294,7 +294,7 @@ export default function InsurerLookupPage() {
                 />
                 <MetricCard
                   title={t('Trips Scored')}
-                  value={riderScoreQuery.data?.tripCount ?? 0}
+                  value={String(riderScoreQuery.data?.tripCount ?? 0)}
                   hint={t('Trips feeding safety score algorithm')}
                   icon={<Calendar size={20} className="text-purple-400" />}
                 />
