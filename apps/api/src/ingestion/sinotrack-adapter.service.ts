@@ -367,7 +367,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           if (diffMs <= 5 * 60 * 1000) {
             ts = parsedTs;
           }
-        } catch (err: unknown) {
+        } catch {
           // Fallback to server timestamp if parsing fails
         }
 
