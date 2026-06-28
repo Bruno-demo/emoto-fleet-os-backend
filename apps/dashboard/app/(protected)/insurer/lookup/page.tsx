@@ -149,7 +149,7 @@ export default function InsurerLookupPage() {
     <div className="space-y-6 p-6">
       {/* Page Header */}
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-white">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
           {t('Insurer Investigation Room')}
         </h1>
         <p className="text-sm text-zinc-400">
@@ -174,7 +174,7 @@ export default function InsurerLookupPage() {
                 setSelectedRiderId(null);
               }
             }}
-            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] pl-12 pr-4 py-3.5 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-accent focus:bg-white/[0.04]"
+            className="w-full rounded-xl border border-line bg-surface-hover pl-12 pr-4 py-3.5 text-sm text-ink placeholder-zinc-500 outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
           />
         </div>
 
