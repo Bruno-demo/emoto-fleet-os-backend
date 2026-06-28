@@ -1687,17 +1687,17 @@ function getRoadFeatureStyle(feature: RoadFeature): {
 } {
   switch (feature.type) {
     case 'SCHOOL':
-      return { label: 'School zone', fill: '#fb923c', stroke: '#c2410c', radius: 6 };
+      return { label: 'School zone', fill: '#fb923c', stroke: '#c2410c', radius: 14 };
     case 'HOSPITAL':
-      return { label: 'Hospital', fill: '#f87171', stroke: '#b91c1c', radius: 6 };
+      return { label: 'Hospital', fill: '#f87171', stroke: '#b91c1c', radius: 14 };
     case 'MARKET':
-      return { label: 'Market', fill: '#38bdf8', stroke: '#0284c7', radius: 5 };
+      return { label: 'Market', fill: '#38bdf8', stroke: '#0284c7', radius: 12 };
     case 'SPEED_LIMIT':
-      return { label: 'Speed limit', fill: '#818cf8', stroke: '#4f46e5', radius: 5 };
+      return { label: 'Speed limit', fill: '#818cf8', stroke: '#4f46e5', radius: 12 };
     case 'TRAFFIC_SIGN':
-      return { label: 'Traffic sign', fill: '#94a3b8', stroke: '#475569', radius: 4 };
+      return { label: 'Traffic sign', fill: '#94a3b8', stroke: '#475569', radius: 10 };
     default:
-      return { label: 'Road feature', fill: '#94a3b8', stroke: '#475569', radius: 4 };
+      return { label: 'Road feature', fill: '#94a3b8', stroke: '#475569', radius: 10 };
   }
 }
 

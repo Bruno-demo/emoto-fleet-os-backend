@@ -44,6 +44,11 @@ export default function TermsPage() {
       title: '4. Limitation of Liability',
       content: 'E-Moto operates as a real-time safety metrics and dispatch coordination hub. We do not assume liability for driver conduct, battery depletion damage, accidents, or force majeure events within Kigali municipality zones.',
     },
+    {
+      icon: <Scale size={16} className="text-blue-400" />,
+      title: '5. Regulatory Compliance & Legal Scope',
+      content: 'Operators agree to comply with all applicable local and international regulations. In Rwanda, operations are governed by <strong>Law N° 058/2021 relating to the Protection of Personal Data and Privacy (PDPL)</strong>, requiring explicit consent from riders prior to telemetry collection, and <strong>Law N° 60/2018 on Prevention and Punishment of Cybercrimes</strong>, which imposes strict criminal liability for unauthorized remote disabling, data interception, or hacking. Internationally, operators are bound by <strong>GDPR guidelines</strong> for cross-border data transfer, and <strong>RURA</strong> cellular transceiver communication mandates.',
+    },
   ];
 
   return (
