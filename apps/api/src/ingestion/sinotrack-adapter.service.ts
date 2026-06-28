@@ -59,6 +59,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   >();
   private mqttClient: mqtt.MqttClient | null = null;
   private readonly deviceSecretMasterKey: string;
+  private readonly devicePassword: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -80,6 +81,10 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     );
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
       'DEVICE_SECRET_MASTER_KEY',
+    );
+    this.devicePassword = this.configService.get<string>(
+      'SINOTRACK_DEVICE_PASSWORD',
+      '0000',
     );
   }
 
@@ -737,9 +742,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
       let sinotrackCmd = '';
       if (command.type === 'LOCK') {
-        sinotrackCmd = '9400000'; // Cut off fuel/ignition
+        sinotrackCmd = `940${this.devicePassword}`; // Cut off fuel/ignition
       } else if (command.type === 'UNLOCK') {
-        sinotrackCmd = '9410000'; // Restore fuel/ignition
+        sinotrackCmd = `941${this.devicePassword}`; // Restore fuel/ignition
       } else {
         this.logger.warn(
           `SinoTrack adapter does not support command type ${command.type as string}`,
