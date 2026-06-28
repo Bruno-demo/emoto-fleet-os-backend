@@ -331,9 +331,22 @@ export class RidersService {
   ): Promise<PaginatedResponse<RiderSummary>> {
     const pagination = getPaginationParams(query);
     const where: Prisma.UserWhereInput = {
-      fleetId: user.fleetId,
       role: UserRole.RIDER,
     };
+
+    if (user.fleetPlan === 'INSURANCE') {
+      where.bikeAssignments = {
+        some: {
+          active: true,
+          bike: {
+            insurerName: user.insurerName,
+          },
+        },
+      };
+    } else {
+      where.fleetId = user.fleetId;
+    }
+
     if (query.bikeId) {
       where.bikeAssignments = {
         some: {
@@ -341,6 +354,18 @@ export class RidersService {
           active: true,
         },
       };
+    }
+
+    if (query.search) {
+      where.OR = [
+        { email: { contains: query.search, mode: 'insensitive' } },
+        { phone: { contains: query.search, mode: 'insensitive' } },
+        {
+          riderProfile: {
+            fullName: { contains: query.search, mode: 'insensitive' },
+          },
+        },
+      ];
     }
 
     const [riders, total] = await Promise.all([

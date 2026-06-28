@@ -43,6 +43,14 @@ export class BikesService {
       where.fleetId = user.fleetId;
     }
 
+    if (query.search) {
+      where.OR = [
+        { label: { contains: query.search, mode: 'insensitive' } },
+        { serial: { contains: query.search, mode: 'insensitive' } },
+        { plate: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
     const [bikes, total] = await Promise.all([
       this.prismaService.bike.findMany({
         where,
