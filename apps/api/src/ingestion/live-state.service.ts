@@ -99,7 +99,7 @@ export class LiveStateService {
           bikeId: bike.id,
           deviceId: activeDevice.id,
           deviceUid: activeDevice.deviceUid,
-          ts: latestTelemetry.ts.toISOString(),
+          ts: (activeDevice.lastSeenAt ?? latestTelemetry.ts).toISOString(),
           lat: Number(latestTelemetry.lat),
           lng: Number(latestTelemetry.lng),
           speedKph: Number(latestTelemetry.speedKph),

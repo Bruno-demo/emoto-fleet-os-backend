@@ -506,6 +506,25 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         lastSeenAt: timestamp,
       },
     });
+
+    if (device.bikeId) {
+      try {
+        const cached = await this.liveStateService.getBikeState(
+          device.fleetId,
+          device.bikeId,
+        );
+        if (cached) {
+          cached.ts = timestamp.toISOString();
+          await this.liveStateService.setLatestBikeState(cached);
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'unknown error';
+        this.logger.warn(
+          `Failed to update cached heartbeat timestamp: ${message}`,
+        );
+      }
+    }
+
     this.metricsService.incrementMqttIngestion('sinotrack', 'accepted');
   }
 
