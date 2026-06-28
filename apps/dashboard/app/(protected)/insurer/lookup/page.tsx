@@ -19,6 +19,58 @@ import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cx, formatTimestamp } from '@/lib/ui';
 
+interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface SearchBikeResult {
+  id: string;
+  label: string;
+  serial: string;
+}
+
+interface SearchRiderResult {
+  id: string;
+  email: string;
+  riderProfile?: {
+    fullName?: string;
+  };
+}
+
+interface BikeDetails {
+  id: string;
+  label: string;
+  serial: string;
+}
+
+interface BikeMileage {
+  weeklyMileageKm: number;
+  tripCount: number;
+}
+
+interface RiderDetails {
+  id: string;
+  email: string;
+  riderProfile?: {
+    fullName?: string;
+  };
+}
+
+interface RiderScore {
+  avgScore: number;
+  tripCount: number;
+}
+
+interface TripInfo {
+  id: string;
+  distanceKm: number;
+  startTs: string;
+  score: number;
+}
+
 export default function InsurerLookupPage() {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,7 +81,7 @@ export default function InsurerLookupPage() {
   const bikesSearchQuery = useQuery({
     queryKey: ['bikes', 'search', searchTerm],
     queryFn: () =>
-      apiFetch<any>(`/bikes?search=${encodeURIComponent(searchTerm)}&pageSize=5`),
+      apiFetch<PaginatedResponse<SearchBikeResult>>(`/bikes?search=${encodeURIComponent(searchTerm)}&pageSize=5`),
     enabled: searchTerm.length > 2,
   });
 
@@ -37,45 +89,45 @@ export default function InsurerLookupPage() {
   const ridersSearchQuery = useQuery({
     queryKey: ['riders', 'search', searchTerm],
     queryFn: () =>
-      apiFetch<any>(`/riders?search=${encodeURIComponent(searchTerm)}&pageSize=5`),
+      apiFetch<PaginatedResponse<SearchRiderResult>>(`/riders?search=${encodeURIComponent(searchTerm)}&pageSize=5`),
     enabled: searchTerm.length > 2,
   });
 
   // 3. Fetch details for selected bike
   const bikeDetailsQuery = useQuery({
     queryKey: ['bikes', selectedBikeId],
-    queryFn: () => apiFetch<any>(`/bikes/${selectedBikeId}`),
+    queryFn: () => apiFetch<BikeDetails>(`/bikes/${selectedBikeId}`),
     enabled: !!selectedBikeId,
   });
 
   const bikeMileageQuery = useQuery({
     queryKey: ['bikes', selectedBikeId, 'mileage'],
-    queryFn: () => apiFetch<any>(`/bikes/${selectedBikeId}/weekly-mileage`),
+    queryFn: () => apiFetch<BikeMileage>(`/bikes/${selectedBikeId}/weekly-mileage`),
     enabled: !!selectedBikeId,
   });
 
   const bikeTripsQuery = useQuery({
     queryKey: ['bikes', selectedBikeId, 'trips'],
-    queryFn: () => apiFetch<any>(`/trips?bikeId=${selectedBikeId}&pageSize=5`),
+    queryFn: () => apiFetch<PaginatedResponse<TripInfo>>(`/trips?bikeId=${selectedBikeId}&pageSize=5`),
     enabled: !!selectedBikeId,
   });
 
   // 4. Fetch details for selected rider
   const riderDetailsQuery = useQuery({
     queryKey: ['riders', selectedRiderId],
-    queryFn: () => apiFetch<any>(`/riders/${selectedRiderId}`),
+    queryFn: () => apiFetch<RiderDetails>(`/riders/${selectedRiderId}`),
     enabled: !!selectedRiderId,
   });
 
   const riderScoreQuery = useQuery({
     queryKey: ['riders', selectedRiderId, 'score'],
-    queryFn: () => apiFetch<any>(`/riders/${selectedRiderId}/score`),
+    queryFn: () => apiFetch<RiderScore>(`/riders/${selectedRiderId}/score`),
     enabled: !!selectedRiderId,
   });
 
   const riderTripsQuery = useQuery({
     queryKey: ['riders', selectedRiderId, 'trips'],
-    queryFn: () => apiFetch<any>(`/trips?riderId=${selectedRiderId}&pageSize=5`),
+    queryFn: () => apiFetch<PaginatedResponse<TripInfo>>(`/trips?riderId=${selectedRiderId}&pageSize=5`),
     enabled: !!selectedRiderId,
   });
 
@@ -138,7 +190,7 @@ export default function InsurerLookupPage() {
                 <p className="text-xs text-zinc-500">{t('Searching...')}</p>
               ) : matchingBikes.length ? (
                 <ul className="space-y-2">
-                  {matchingBikes.map((bike: any) => (
+                  {matchingBikes.map((bike) => (
                     <li key={bike.id}>
                       <button
                         onClick={() => handleSelectBike(bike.id)}
@@ -167,7 +219,7 @@ export default function InsurerLookupPage() {
                 <p className="text-xs text-zinc-500">{t('Searching...')}</p>
               ) : matchingRiders.length ? (
                 <ul className="space-y-2">
-                  {matchingRiders.map((rider: any) => (
+                  {matchingRiders.map((rider) => (
                     <li key={rider.id}>
                       <button
                         onClick={() => handleSelectRider(rider.id)}
@@ -268,7 +320,7 @@ export default function InsurerLookupPage() {
               {((selectedBikeId && bikeTripsQuery.data?.data?.length) ||
                 (selectedRiderId && riderTripsQuery.data?.data?.length)) ? (
                 <ul className="divide-y divide-white/[0.04]">
-                  {((selectedBikeId ? bikeTripsQuery.data?.data : riderTripsQuery.data?.data) ?? []).map((trip: any) => (
+                  {((selectedBikeId ? bikeTripsQuery.data?.data : riderTripsQuery.data?.data) ?? []).map((trip) => (
                     <li key={trip.id} className="py-3 flex justify-between items-center text-xs">
                       <div>
                         <p className="font-semibold text-white">{trip.distanceKm.toFixed(2)} km</p>
