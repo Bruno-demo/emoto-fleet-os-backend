@@ -150,7 +150,7 @@ async function startSimulation() {
       const now = new Date();
       const timeStr = now.toISOString().replace(/[-T:]/g, '').slice(8, 14); // hhmmss
       const dateStr = now.toISOString().slice(8, 10) + now.toISOString().slice(5, 7) + now.toISOString().slice(2, 4); // ddmmyy
-      const statusHex = 'FFFFFBFF'; // ACC/Ignition is ON (negative active-low bitwise 0x04)
+      const statusHex = 'FFFFFFFF'; // ACC/Ignition is ON (positive active-high bitwise 0x04)
 
       // Construct SinoTrack packet
       const packet = `*HQ,${TEST_IMEI},V1,${timeStr},A,${latStr},${latHem},${lngStr},${lngHem},${speedKnots.toFixed(1).padStart(5, '0')},${String(coord.heading).padStart(3, '0')},${dateStr},${statusHex}#`;

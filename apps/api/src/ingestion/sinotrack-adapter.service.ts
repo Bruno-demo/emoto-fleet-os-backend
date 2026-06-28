@@ -408,13 +408,13 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     // Parse UTC Date and Time
     const ts = this.parseDateTime(dateStr, timeStr);
 
-    // Parse Ignition status (ACC) from status hex (active-low negative logic on the 3rd byte)
+    // Parse Ignition status (ACC) from status hex (active-high positive logic on the 3rd byte)
     let ignition = true;
     if (statusHex && statusHex.length >= 6) {
       const thirdByteHex = statusHex.substring(4, 6);
       const thirdByte = parseInt(thirdByteHex, 16);
       if (!isNaN(thirdByte)) {
-        ignition = (thirdByte & 0x04) === 0;
+        ignition = (thirdByte & 0x04) !== 0;
       }
     }
 
