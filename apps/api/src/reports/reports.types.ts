@@ -25,4 +25,5 @@ export interface WeeklyReport {
   eventCounts: TripEventCounts;
   topRiskyBikes: WeeklyRiskBike[];
   topRiskyRiders: WeeklyRiskRider[];
+  dailyScores: Array<{ date: string; score: number }>;
 }

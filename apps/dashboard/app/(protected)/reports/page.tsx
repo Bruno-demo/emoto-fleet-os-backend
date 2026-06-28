@@ -222,11 +222,7 @@ export default function ReportsPage() {
           {/* Visual Analytics Charts */}
           {!reportQuery.isLoading && report && (
             <section className="grid gap-4 xl:grid-cols-2">
-              <TrendChart
-                avgScore={report.avgScore}
-                from={dateRange.from}
-                to={dateRange.to}
-              />
+              <TrendChart dailyScores={report.dailyScores} />
               <EventDistributionChart eventCounts={report.eventCounts} />
             </section>
           )}
@@ -504,22 +500,12 @@ interface TrendPoint {
   score: number;
 }
 
-function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to: string }) {
+function TrendChart({
+  dailyScores,
+}: {
+  dailyScores: Array<{ date: string; score: number }>;
+}) {
   const { t } = useTranslation();
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
-  const daysDiff = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
-  
-  const points: TrendPoint[] = [];
-  for (let i = 0; i <= daysDiff; i++) {
-    const current = new Date(fromDate);
-    current.setDate(current.getDate() + i);
-    const dateStr = current.toISOString().slice(5, 10); // MM-DD
-    const angle = (i / Math.max(1, daysDiff)) * Math.PI * 2;
-    const variation = Math.sin(angle) * 8 + Math.cos(angle * 2) * 3;
-    const score = Math.max(10, Math.min(100, avgScore + variation));
-    points.push({ date: dateStr, score });
-  }
 
   const width = 500;
   const height = 180;
@@ -531,11 +517,19 @@ function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
 
-  const svgPoints = points.map((p, index) => {
-    const x = paddingLeft + (index / Math.max(1, points.length - 1)) * chartWidth;
-    const y = paddingTop + chartHeight - (p.score / 100) * chartHeight;
-    return `${x},${y}`;
-  }).join(' ');
+  const pointsCount = dailyScores.length;
+  const svgPoints = dailyScores
+    .map((p, index) => {
+      const x = paddingLeft + (index / Math.max(1, pointsCount - 1)) * chartWidth;
+      const y = paddingTop + chartHeight - (p.score / 100) * chartHeight;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const startX = paddingLeft;
+  const endX = paddingLeft + chartWidth;
+  const bottomY = paddingTop + chartHeight;
+  const areaPath = dailyScores.length > 1 ? `M ${startX} ${bottomY} L ${svgPoints} L ${endX} ${bottomY} Z` : '';
 
   return (
     <DashboardCard
@@ -545,18 +539,68 @@ function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to
     >
       <div className="relative w-full">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+          <defs>
+            <linearGradient id="reportsAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
           {[100, 75, 50, 25].map((lvl) => {
             const y = paddingTop + chartHeight - (lvl / 100) * chartHeight;
             return (
               <g key={lvl} className="opacity-40">
-                <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="3" />
-                <text x={paddingLeft - 8} y={y + 3} textAnchor="end" className="fill-zinc-500 font-mono text-[8px]">{lvl}</text>
+                <line
+                  x1={paddingLeft}
+                  y1={y}
+                  x2={width - paddingRight}
+                  y2={y}
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeDasharray="3"
+                />
+                <text
+                  x={paddingLeft - 8}
+                  y={y + 3}
+                  textAnchor="end"
+                  className="fill-zinc-500 font-mono text-[8px]"
+                >
+                  {lvl}
+                </text>
               </g>
             );
           })}
-          <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="rgba(255,255,255,0.1)" />
+          <line
+            x1={paddingLeft}
+            y1={height - paddingBottom}
+            x2={width - paddingRight}
+            y2={height - paddingBottom}
+            stroke="rgba(255,255,255,0.1)"
+          />
 
-          {points.length > 1 && (
+          {/* X Axis Labels */}
+          {dailyScores.map((p, index) => {
+            const x = paddingLeft + (index / Math.max(1, pointsCount - 1)) * chartWidth;
+            return (
+              <text
+                key={index}
+                x={x}
+                y={height - paddingBottom + 15}
+                textAnchor="middle"
+                className="fill-zinc-500 font-mono text-[7px]"
+              >
+                {p.date}
+              </text>
+            );
+          })}
+
+          {/* Area fill */}
+          {dailyScores.length > 1 && (
+            <path d={areaPath} fill="url(#reportsAreaGradient)" />
+          )}
+
+          {/* Line */}
+          {dailyScores.length > 1 && (
             <polyline
               fill="none"
               stroke="#4f46e5"
@@ -567,8 +611,9 @@ function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to
             />
           )}
 
-          {points.map((p, i) => {
-            const x = paddingLeft + (i / Math.max(1, points.length - 1)) * chartWidth;
+          {/* Data points */}
+          {dailyScores.map((p, i) => {
+            const x = paddingLeft + (i / Math.max(1, pointsCount - 1)) * chartWidth;
             const y = paddingTop + chartHeight - (p.score / 100) * chartHeight;
             return (
               <g key={i} className="group cursor-pointer">
@@ -576,26 +621,9 @@ function TrendChart({ avgScore, from, to }: { avgScore: number; from: string; to
                   cx={x}
                   cy={y}
                   r="3.5"
-                  className="fill-accent stroke-zinc-950 stroke-[1.5px] hover:r-5 transition-all"
+                  className="fill-[#4f46e5] stroke-[#161618] stroke-[1.5] opacity-80 group-hover:opacity-100 transition-opacity"
                 />
-                <text
-                  x={x}
-                  y={y - 8}
-                  textAnchor="middle"
-                  className="hidden group-hover:block fill-white font-mono text-[8px] font-bold"
-                >
-                  {p.score.toFixed(0)}
-                </text>
-                {(i === 0 || i === points.length - 1 || (points.length > 5 && i === Math.floor(points.length / 2))) && (
-                  <text
-                    x={x}
-                    y={height - paddingBottom + 12}
-                    textAnchor="middle"
-                    className="fill-zinc-500 font-mono text-[7px]"
-                  >
-                    {p.date}
-                  </text>
-                )}
+                <title>{`${p.date}: ${p.score}`}</title>
               </g>
             );
           })}

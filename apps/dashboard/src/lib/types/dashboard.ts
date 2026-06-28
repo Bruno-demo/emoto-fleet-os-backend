@@ -256,6 +256,7 @@ export interface WeeklyReport {
     tripCount: number;
     avgScore: number;
   }>;
+  dailyScores: Array<{ date: string; score: number }>;
 }
 
 export interface Rider {

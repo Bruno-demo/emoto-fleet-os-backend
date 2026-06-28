@@ -33,6 +33,10 @@ const statsSchema = z.object({
   totalPartners: z.number(),
   totalInsurers: z.number().optional(),
   unassignedDevices: z.number().optional(),
+  dailyTripTrend: z.array(z.object({
+    date: z.string(),
+    count: z.number()
+  })).optional(),
 });
 
 const pendingCountSchema = z.object({
@@ -414,6 +418,10 @@ export default function HqOverviewPage() {
         />
       </div>
 
+      {stats?.dailyTripTrend && (
+        <GlobalActivityChart dailyTripTrend={stats.dailyTripTrend} />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Platform Health */}
         <div className="flex flex-col rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
@@ -556,6 +564,144 @@ function ActivityItem({ fleet, event, time, type, icon }: { fleet: string; event
           <div className={`h-1 w-1 rounded-full ${colors[type]}`}></div>
           <p className="text-xs text-zinc-400">{event}</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GlobalActivityChart({
+  dailyTripTrend,
+}: {
+  dailyTripTrend: Array<{ date: string; count: number }>;
+}) {
+  const width = 600;
+  const height = 180;
+  const paddingLeft = 30;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  const maxCount = Math.max(...dailyTripTrend.map((t) => t.count), 10);
+
+  const svgPoints = dailyTripTrend
+    .map((p, index) => {
+      const x = paddingLeft + (index / Math.max(1, dailyTripTrend.length - 1)) * chartWidth;
+      const y = paddingTop + chartHeight - (p.count / maxCount) * chartHeight;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const startX = paddingLeft;
+  const endX = paddingLeft + chartWidth;
+  const bottomY = paddingTop + chartHeight;
+  const areaPath = dailyTripTrend.length > 1 ? `M ${startX} ${bottomY} L ${svgPoints} L ${endX} ${bottomY} Z` : '';
+
+  return (
+    <div className="flex flex-col rounded-3xl border border-line bg-surface-strong p-6 shadow-sm">
+      <div className="flex items-center justify-between border-b border-line pb-4 mb-6">
+        <div>
+          <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+            <TrendingUp size={16} className="text-emerald-400" />
+            Global Activity Trend
+          </h2>
+          <p className="text-xs text-zinc-500 mt-1">Processed daily trip volumes over the last 7 days.</p>
+        </div>
+      </div>
+      <div className="relative w-full">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+          <defs>
+            <linearGradient id="hqAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {[1, 0.75, 0.5, 0.25].map((factor) => {
+            const val = Math.round(maxCount * factor);
+            const y = paddingTop + chartHeight - (val / maxCount) * chartHeight;
+            return (
+              <g key={factor} className="opacity-40">
+                <line
+                  x1={paddingLeft}
+                  y1={y}
+                  x2={width - paddingRight}
+                  y2={y}
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeDasharray="3"
+                />
+                <text
+                  x={paddingLeft - 8}
+                  y={y + 3}
+                  textAnchor="end"
+                  className="fill-zinc-500 font-mono text-[8px]"
+                >
+                  {val}
+                </text>
+              </g>
+            );
+          })}
+          <line
+            x1={paddingLeft}
+            y1={height - paddingBottom}
+            x2={width - paddingRight}
+            y2={height - paddingBottom}
+            stroke="rgba(255,255,255,0.1)"
+          />
+
+          {/* X Axis Labels */}
+          {dailyTripTrend.map((p, index) => {
+            const x = paddingLeft + (index / Math.max(1, dailyTripTrend.length - 1)) * chartWidth;
+            return (
+              <text
+                key={index}
+                x={x}
+                y={height - paddingBottom + 15}
+                textAnchor="middle"
+                className="fill-zinc-500 font-mono text-[7px]"
+              >
+                {p.date}
+              </text>
+            );
+          })}
+
+          {/* Area fill */}
+          {dailyTripTrend.length > 1 && (
+            <path d={areaPath} fill="url(#hqAreaGradient)" />
+          )}
+
+          {/* Line */}
+          {dailyTripTrend.length > 1 && (
+            <polyline
+              fill="none"
+              stroke="#10b981"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={svgPoints}
+            />
+          )}
+
+          {/* Data points */}
+          {dailyTripTrend.map((p, i) => {
+            const x = paddingLeft + (i / Math.max(1, dailyTripTrend.length - 1)) * chartWidth;
+            const y = paddingTop + chartHeight - (p.count / maxCount) * chartHeight;
+            return (
+              <g key={i} className="group cursor-pointer">
+                <circle
+                  cx={x}
+                  cy={y}
+                  r="3.5"
+                  className="fill-[#10b981] stroke-[#161618] stroke-[1.5] opacity-80 group-hover:opacity-100 transition-opacity"
+                />
+                <title>{`${p.date}: ${p.count} trips`}</title>
+              </g>
+            );
+          })}
+        </svg>
       </div>
     </div>
   );

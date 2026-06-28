@@ -56,6 +56,38 @@ export class HqService {
       this.prisma.device.count({ where: { bikeId: null, status: 'ACTIVE' } }),
     ]);
 
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+    const trips = await this.prisma.trip.findMany({
+      where: {
+        startTs: {
+          gte: sevenDaysAgo,
+        },
+      },
+      select: {
+        startTs: true,
+      },
+    });
+
+    const dailyMap = new Map<string, number>();
+    for (const trip of trips) {
+      const dateKey = trip.startTs.toISOString().slice(5, 10);
+      dailyMap.set(dateKey, (dailyMap.get(dateKey) ?? 0) + 1);
+    }
+
+    const dailyTripTrend = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toISOString().slice(5, 10);
+      dailyTripTrend.push({
+        date: dateKey,
+        count: dailyMap.get(dateKey) ?? 0,
+      });
+    }
+
     return {
       totalFleets,
       totalBikes,
@@ -67,6 +99,7 @@ export class HqService {
       openIncidents,
       totalInsurers,
       unassignedDevices,
+      dailyTripTrend,
     };
   }
 

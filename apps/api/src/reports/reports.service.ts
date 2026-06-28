@@ -69,6 +69,7 @@ export class ReportsService {
           bikeId: true,
           riderId: true,
           score: true,
+          startTs: true,
         },
       }),
       this.prismaService.event.groupBy({
@@ -104,6 +105,28 @@ export class ReportsService {
         : trips.reduce((sum, trip) => sum + Number(trip.score), 0) /
           trips.length;
 
+    // Calculate actual daily average safety scores
+    const dailyMap = new Map<string, { sum: number; count: number }>();
+    for (const trip of trips) {
+      const dateKey = trip.startTs.toISOString().slice(0, 10);
+      const existing = dailyMap.get(dateKey) ?? { sum: 0, count: 0 };
+      existing.sum += Number(trip.score);
+      existing.count += 1;
+      dailyMap.set(dateKey, existing);
+    }
+
+    const dailyScores: Array<{ date: string; score: number }> = [];
+    const scanDate = new Date(from);
+    while (scanDate <= to) {
+      const dateKey = scanDate.toISOString().slice(0, 10);
+      const dayData = dailyMap.get(dateKey);
+      dailyScores.push({
+        date: dateKey.slice(5, 10),
+        score: dayData ? Number((dayData.sum / dayData.count).toFixed(2)) : 100,
+      });
+      scanDate.setDate(scanDate.getDate() + 1);
+    }
+
     return {
       range: {
         from: from.toISOString(),
@@ -114,6 +137,7 @@ export class ReportsService {
       eventCounts,
       topRiskyBikes,
       topRiskyRiders,
+      dailyScores,
     };
   }
 
