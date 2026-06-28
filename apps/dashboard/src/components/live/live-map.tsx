@@ -1335,6 +1335,11 @@ function ActionButton({
             ? 'bg-rose-600 text-white border-rose-700 hover:bg-rose-500 dark:bg-rose-700/80 dark:border-rose-600/50 dark:hover:bg-rose-600'
             : 'bg-zinc-50 text-zinc-900 border-zinc-200 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800',
       )}
+      style={
+        !disabled && tone === 'danger'
+          ? { backgroundColor: '#EF4444', color: '#FFFFFF', borderColor: '#EF4444' }
+          : undefined
+      }
     >
       {icon}
       {label}
