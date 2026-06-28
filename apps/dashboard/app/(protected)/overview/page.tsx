@@ -538,10 +538,6 @@ function ScorePill({ score }: { score: number }) {
   );
 }
 
-interface TrendPoint {
-  date: string;
-  score: number;
-}
 
 function TrendChart({
   dailyScores,

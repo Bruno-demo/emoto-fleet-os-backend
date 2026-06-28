@@ -495,10 +495,6 @@ export default function ReportsPage() {
   );
 }
 
-interface TrendPoint {
-  date: string;
-  score: number;
-}
 
 function TrendChart({
   dailyScores,

@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { useTheme } from 'next-themes';
-import { Layers, Globe, Navigation, Trash2 } from 'lucide-react';
+import { Globe, Navigation, Trash2 } from 'lucide-react';
 
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
   useMapEvents({
@@ -106,14 +106,14 @@ export default function ZoneDrawMap({
               iconAnchor: [7, 7]
             })}
             eventHandlers={{
-              dragend: (e: any) => {
-                const marker = e.target;
+              dragend: (e: L.LeafletEvent) => {
+                const marker = e.target as L.Marker;
                 const position = marker.getLatLng();
                 const updatedPoints = [...points];
                 updatedPoints[index] = [position.lng, position.lat];
                 onChange(updatedPoints);
               },
-              click: (e: any) => {
+              click: (e: L.LeafletMouseEvent) => {
                 L.DomEvent.stopPropagation(e);
                 removePoint(index);
               }
