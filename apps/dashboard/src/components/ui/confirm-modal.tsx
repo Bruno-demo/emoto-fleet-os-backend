@@ -105,8 +105,8 @@ export function ConfirmModal({
             className={cx(
               'rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-50',
               tone === 'danger'
-                ? 'bg-danger-ink hover:brightness-110'
-                : 'bg-accent hover:bg-accent-strong',
+                ? 'bg-red-600 hover:bg-red-500'
+                : 'bg-blue-600 hover:bg-blue-500',
             )}
           >
             {isSubmitting ? 'Working…' : confirmLabel}

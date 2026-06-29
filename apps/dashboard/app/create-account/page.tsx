@@ -79,12 +79,23 @@ const RWANDA_INSURERS = [
   'Phoenix',
 ];
 
-const PLAN_DETAILS: Record<string, { title: string; price: string; period: string; description: string; icon: React.ReactNode }> = {
+const PLAN_DETAILS: Record<
+  string,
+  {
+    title: string;
+    price: string;
+    period: string;
+    description: string;
+    setupFeePerBike: number;
+    icon: React.ReactNode;
+  }
+> = {
   'safety-core': { 
     title: 'Safety Core', 
     price: '5,000 RWF', 
     period: '/ bike / mo', 
     description: 'Essential safety (+ 35,000 RWF setup).',
+    setupFeePerBike: 35000,
     icon: <ShieldCheck size={18} />
   },
   'operations-plus': { 
@@ -92,6 +103,7 @@ const PLAN_DETAILS: Record<string, { title: string; price: string; period: strin
     price: '10,000 RWF', 
     period: '/ bike / mo', 
     description: 'Advanced fleet ops (+ 35,000 RWF setup).',
+    setupFeePerBike: 35000,
     icon: <Zap size={18} />
   },
   insurance: { 
@@ -99,6 +111,7 @@ const PLAN_DETAILS: Record<string, { title: string; price: string; period: strin
     price: 'Custom', 
     period: '', 
     description: 'For insurance companies only.',
+    setupFeePerBike: 0,
     icon: <Building2 size={18} />
   },
 };
@@ -199,7 +212,8 @@ function CreateAccountInner() {
           updatedPlans['safety-core'] = {
             ...updatedPlans['safety-core'],
             price: `${coreTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            description: `${coreTier.description || 'Essential safety'} (+ ${coreTier.setupFeePerBike.toLocaleString()} RWF setup).`,
+            description: coreTier.description || 'Essential safety',
+            setupFeePerBike: coreTier.setupFeePerBike,
           };
         }
         
@@ -208,7 +222,8 @@ function CreateAccountInner() {
           updatedPlans['operations-plus'] = {
             ...updatedPlans['operations-plus'],
             price: `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            description: `${premiumTier.description || 'Advanced fleet ops'} (+ ${premiumTier.setupFeePerBike.toLocaleString()} RWF setup).`,
+            description: premiumTier.description || 'Advanced fleet ops',
+            setupFeePerBike: premiumTier.setupFeePerBike,
           };
         }
 
@@ -218,6 +233,7 @@ function CreateAccountInner() {
             ...updatedPlans['insurance'],
             price: insuranceTier.monthlyRatePerBike === 0 ? 'Custom' : `${insuranceTier.monthlyRatePerBike.toLocaleString()} RWF`,
             description: insuranceTier.description || 'For insurance companies only.',
+            setupFeePerBike: insuranceTier.setupFeePerBike,
           };
         }
         
@@ -827,9 +843,9 @@ function CreateAccountInner() {
                         </p>
                         <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
                           {slug === 'safety-core' 
-                            ? t('safety_core_desc_short', 'Essential safety (+ {fee} RWF setup).').replace('{fee}', plan.description?.match(/[\d,]+/)?.[0] || '35,000')
+                            ? t('safety_core_desc_short', 'Essential safety (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
                             : slug === 'operations-plus'
-                            ? t('operations_plus_desc_short', 'Advanced fleet ops (+ {fee} RWF setup).').replace('{fee}', plan.description?.match(/[\d,]+/)?.[0] || '35,000')
+                            ? t('operations_plus_desc_short', 'Advanced fleet ops (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
                             : plan.description}
                         </p>
                       </div>
