@@ -218,10 +218,15 @@ export default function FinancialsPage() {
 
   // 2. Fetch Payments History Log
   const paymentsQuery = useQuery({
-    queryKey: ['payments', page],
+    queryKey: ['payments', page, startDate, endDate],
     queryFn: () =>
       apiFetch<PaginatedResponse<PaymentRecord>>(
-        `/financials${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
+        `/financials${buildQueryString({
+          page,
+          pageSize: PAGE_SIZE,
+          startDate: `${startDate}T00:00:00.000Z`,
+          endDate: `${endDate}T23:59:59.999Z`,
+        })}`,
       ),
   });
 
@@ -287,10 +292,20 @@ export default function FinancialsPage() {
     return selectedRider.leaseToOwn && (!selectedRider.activeAssignments || selectedRider.activeAssignments.length === 0);
   }, [selectedRider]);
 
-  // Compute current week calendar matrix with offset support
+  // Reset pagination page when date range filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [startDate, endDate]);
+
+  // Reset weekly offset when date range filter changes
+  useEffect(() => {
+    setWeekOffset(0);
+  }, [endDate]);
+
+  // Compute current week calendar matrix with offset support (anchored to endDate)
   const weekDays = useMemo(() => {
     const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const current = new Date();
+    const current = new Date(endDate);
     
     // Shift current date based on weekOffset (7 days per offset step)
     current.setDate(current.getDate() + weekOffset * 7);
@@ -309,7 +324,7 @@ export default function FinancialsPage() {
         displayDate: next.getDate(),
       };
     });
-  }, [weekOffset]);
+  }, [weekOffset, endDate]);
 
   // Compute week range human-readable label
   const weekRangeLabel = useMemo(() => {
