@@ -274,8 +274,8 @@ export default function FinancialsPage() {
     setCollectError(null);
   };
 
-  const ridersList = ridersQuery.data?.data ?? [];
-  const paymentsList = paymentsQuery.data?.data ?? [];
+  const ridersList = useMemo(() => ridersQuery.data?.data ?? [], [ridersQuery.data]);
+  const paymentsList = useMemo(() => paymentsQuery.data?.data ?? [], [paymentsQuery.data]);
   const summary = summaryQuery.data;
 
   const selectedRider = useMemo(() => {
@@ -320,6 +320,23 @@ export default function FinancialsPage() {
     return `${startStr} - ${endStr}, ${yearStr}`;
   }, [weekDays]);
 
+  // Fetch payments for the active week to populate the payment matrix
+  const weekStartDate = weekDays[0]?.dateString;
+  const weekEndDate = weekDays[6]?.dateString;
+  const weekPaymentsQuery = useQuery({
+    queryKey: ['payments', 'week', weekStartDate, weekEndDate],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<PaymentRecord>>(
+        `/financials${buildQueryString({
+          startDate: `${weekStartDate}T00:00:00.000Z`,
+          endDate: `${weekEndDate}T23:59:59.999Z`,
+          pageSize: 200,
+        })}`,
+      ),
+    enabled: !!weekStartDate && !!weekEndDate,
+  });
+  const weekPayments = weekPaymentsQuery.data?.data ?? [];
+
   const openCollectForMatrix = (riderId: string, dateString: string) => {
     setFormRiderId(riderId);
     setFormPaidAt(`${dateString}T12:00`);
@@ -328,8 +345,7 @@ export default function FinancialsPage() {
 
   // Helper to check payment on a matrix day
   const getMatrixCellStatus = (riderId: string, dateString: string) => {
-    // Check if there is an existing payment record in the current page list or active cache
-    const matched = paymentsList.find(
+    const matched = weekPayments.find(
       (p) => p.riderId === riderId && p.paidAt.slice(0, 10) === dateString,
     );
     if (!matched) return 'unpaid';

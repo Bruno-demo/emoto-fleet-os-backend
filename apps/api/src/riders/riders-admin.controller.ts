@@ -51,7 +51,13 @@ export class RidersAdminController {
   }
 
   @Get('riders')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER, UserRole.INSURER)
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.TECH,
+    UserRole.RIDER,
+    UserRole.INSURER,
+  )
   @ApiOperation({ summary: 'List riders in caller fleet' })
   async listRiders(
     @CurrentUser() user: AuthenticatedUser,

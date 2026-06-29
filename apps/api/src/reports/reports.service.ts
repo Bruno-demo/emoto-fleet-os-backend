@@ -28,9 +28,15 @@ export class ReportsService {
     fromStr?: string,
     toStr?: string,
   ): Promise<WeeklyReport> {
-    const to = toStr ? new Date(toStr) : new Date();
+    const to = toStr
+      ? toStr.includes('T')
+        ? new Date(toStr)
+        : new Date(toStr + 'T23:59:59.999Z')
+      : new Date();
     const from = fromStr
-      ? new Date(fromStr)
+      ? fromStr.includes('T')
+        ? new Date(fromStr)
+        : new Date(fromStr + 'T00:00:00.000Z')
       : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     let insurerBikeFilter: Prisma.BikeWhereInput | undefined = undefined;

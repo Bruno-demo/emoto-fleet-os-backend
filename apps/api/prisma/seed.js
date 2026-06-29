@@ -320,8 +320,19 @@ async function upsertFleetUsers(fleetId, passwordHash, userFixtures) {
     if (fixture.role === 'RIDER' && fixture.fullName) {
       await prisma.riderProfile.upsert({
         where: { userId: user.id },
-        update: { fullName: fixture.fullName },
-        create: { userId: user.id, fullName: fixture.fullName },
+        update: {
+          fullName: fixture.fullName,
+          leaseToOwn: true,
+          leasePrincipal: 2500000,
+          leaseDailyRate: 15000,
+        },
+        create: {
+          userId: user.id,
+          fullName: fixture.fullName,
+          leaseToOwn: true,
+          leasePrincipal: 2500000,
+          leaseDailyRate: 15000,
+        },
       });
     }
   }
@@ -391,6 +402,7 @@ async function resetFleetData(fleetId) {
   await prisma.scoreSummary.deleteMany({ where: { fleetId: fleetId } });
   await prisma.trip.deleteMany({ where: { fleetId: fleetId } });
   await prisma.event.deleteMany({ where: { fleetId: fleetId } });
+  await prisma.riderPayment.deleteMany({ where: { fleetId: fleetId } });
   if (devIds.length > 0) await prisma.telemetryPoint.deleteMany({ where: { deviceId: { in: devIds } } });
   await prisma.bikeAssignment.deleteMany({ where: { fleetId: fleetId } });
   await prisma.emergencyContact.deleteMany({ where: { fleetId: fleetId } });
@@ -654,6 +666,40 @@ async function seed() {
     await prisma.trip.createMany({ data: tripData });
     totals.trips += tripData.length;
     console.log('   ' + tripData.length + ' trips');
+
+    // ── Rider Payments ───────────────────────────────────────────────
+    const paymentData = [];
+    const paymentMethods = ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER'];
+
+    for (let r = 0; r < riderKeys.length; r++) {
+      const riderId = users[riderKeys[r]].id;
+      // We want to generate payments over the last 14 days
+      const numPayments = 6 + Math.floor(Math.random() * 6);
+      for (let p = 0; p < numPayments; p++) {
+        const daysAgo = p * 2 + Math.floor(Math.random() * 2);
+        const paidAt = offsetMinutes(now, -daysAgo * 24 * 60 - Math.floor(Math.random() * 720));
+        
+        const method = paymentMethods[p % paymentMethods.length];
+        const status = p === 0 && Math.random() < 0.2 ? 'PARTIAL' : 'PAID';
+        const amount = status === 'PAID' ? 15000 : 8000;
+
+        paymentData.push({
+          fleetId: cfg.id,
+          riderId: riderId,
+          amount: amount,
+          paidAt: paidAt,
+          method: method,
+          status: status,
+          reference: 'TXN-' + cfg.bikePrefix.toUpperCase() + '-' + r + '-' + p,
+          notes: 'Daily lease rate collection',
+          createdAt: paidAt,
+        });
+      }
+    }
+
+    await prisma.riderPayment.createMany({ data: paymentData });
+    totals.riderPayments = (totals.riderPayments || 0) + paymentData.length;
+    console.log('   ' + paymentData.length + ' rider payments');
 
     // â”€â”€ Telemetry Points â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     let allTelemetry = [];
@@ -1145,7 +1191,8 @@ async function seed() {
     evidencePacks: totals.evidencePacks,
     roadFeatures: rfData.length,
     partners: 2,
-    seedVersion: 'comprehensive-v2',
+    riderPayments: totals.riderPayments || 0,
+    seedVersion: 'comprehensive-v3',
   }, null, 2));
   console.log('\nLogin credentials:');
   console.log('  E-Moto HQ Staff:   admin@hq.emoto / ChangeMe123!');

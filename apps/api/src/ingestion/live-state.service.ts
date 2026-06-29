@@ -113,9 +113,15 @@ export class LiveStateService {
           lat: Number(latestTelemetry.lat),
           lng: Number(latestTelemetry.lng),
           speedKph: Number(latestTelemetry.speedKph),
-          heading: latestTelemetry.heading ? Number(latestTelemetry.heading) : undefined,
-          batteryV: latestTelemetry.batteryV ? Number(latestTelemetry.batteryV) : undefined,
-          batteryPct: latestTelemetry.batteryPct ? Number(latestTelemetry.batteryPct) : undefined,
+          heading: latestTelemetry.heading
+            ? Number(latestTelemetry.heading)
+            : undefined,
+          batteryV: latestTelemetry.batteryV
+            ? Number(latestTelemetry.batteryV)
+            : undefined,
+          batteryPct: latestTelemetry.batteryPct
+            ? Number(latestTelemetry.batteryPct)
+            : undefined,
           ignition: latestTelemetry.ignition ?? undefined,
         };
         parsedStates.push(fallbackState);

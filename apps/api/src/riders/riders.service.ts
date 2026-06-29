@@ -1819,13 +1819,14 @@ export class RidersService {
       },
     });
 
-    const scores = trips
-      .map((t) => Number(t.score))
-      .filter((s) => !isNaN(s));
-      
-    const avgScore = scores.length > 0
-      ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
-      : 100;
+    const scores = trips.map((t) => Number(t.score)).filter((s) => !isNaN(s));
+
+    const avgScore =
+      scores.length > 0
+        ? Math.round(
+            scores.reduce((sum, score) => sum + score, 0) / scores.length,
+          )
+        : 100;
 
     return {
       riderId: rider.id,

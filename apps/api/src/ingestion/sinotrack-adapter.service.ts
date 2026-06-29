@@ -222,13 +222,14 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       while ((boundaryIndex = buffer.indexOf('#')) !== -1) {
         const rawPacket = buffer.substring(0, boundaryIndex + 1);
         buffer = buffer.substring(boundaryIndex + 1);
-        
+
         // Chain the processing on the promise queue to ensure strict sequential order
         processingQueue = processingQueue.then(async () => {
           try {
             await this.processRawPacket(rawPacket, socket);
           } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'unknown error';
+            const message =
+              err instanceof Error ? err.message : 'unknown error';
             this.logger.error(
               `Error processing SinoTrack GPRS packet: ${message}`,
             );
@@ -266,7 +267,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         packet: trimmed,
         remoteAddress: `${socket.remoteAddress}:${socket.remotePort}`,
       });
-      await this.redisService.lpushAndTrim('sinotrack:raw_packets', logEntry, 20);
+      await this.redisService.lpushAndTrim(
+        'sinotrack:raw_packets',
+        logEntry,
+        20,
+      );
     } catch (err: unknown) {
       this.logger.warn(
         `Failed to log raw packet to Redis: ${
@@ -361,7 +366,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         `Device IMEI=${parts[1]} reported invalid GPS fix (V). Caching position to Redis and updating keep-alive.`,
       );
       try {
-        const { lat, lng } = this.parseCoordinates(latStr, latHem, lngStr, lngHem);
+        const { lat, lng } = this.parseCoordinates(
+          latStr,
+          latHem,
+          lngStr,
+          lngHem,
+        );
         const speedKnots = parseFloat(speedStr);
         const speedKph = isNaN(speedKnots) ? 0 : speedKnots * 1.852;
         const heading = parseFloat(headingStr);
@@ -391,7 +401,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'unknown';
-        this.logger.warn(`Failed to process void GPS telemetry for caching: ${msg}`);
+        this.logger.warn(
+          `Failed to process void GPS telemetry for caching: ${msg}`,
+        );
         await this.processHeartbeatPacket(device);
       }
       return;

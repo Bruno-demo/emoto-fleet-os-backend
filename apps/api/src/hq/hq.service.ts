@@ -243,7 +243,8 @@ export class HqService {
           },
         });
 
-        let lockState: 'LOCKED' | 'UNLOCKED' | 'LOCKING' | 'UNLOCKING' = 'UNLOCKED';
+        let lockState: 'LOCKED' | 'UNLOCKED' | 'LOCKING' | 'UNLOCKING' =
+          'UNLOCKED';
         if (lastCommand) {
           if (lastCommand.type === 'LOCK') {
             if (lastCommand.status === 'ACKED') {
@@ -274,7 +275,7 @@ export class HqService {
           ...bike,
           lockState,
         };
-      })
+      }),
     );
 
     return {

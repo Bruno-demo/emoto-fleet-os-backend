@@ -171,7 +171,11 @@ export class RedisService implements OnModuleDestroy {
   }
 
   // Pushes a value to a list and trims it to a maximum length.
-  async lpushAndTrim(key: string, value: string, maxLen: number): Promise<void> {
+  async lpushAndTrim(
+    key: string,
+    value: string,
+    maxLen: number,
+  ): Promise<void> {
     if (this.useInMemoryStore) {
       const existing = this.memoryStore.get(key)?.value
         ? (JSON.parse(this.memoryStore.get(key)!.value) as string[])

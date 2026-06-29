@@ -697,10 +697,7 @@ export class PartnerService {
   }
 
   // Records partner route access in fleet-scoped audit logs without sensitive fields.
-  async getRiderSafetyScore(
-    partner: AuthenticatedPartner,
-    riderId: string,
-  ) {
+  async getRiderSafetyScore(partner: AuthenticatedPartner, riderId: string) {
     this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
 
     // 1. Find the rider and their profile
@@ -754,13 +751,14 @@ export class PartnerService {
       },
     });
 
-    const scores = trips
-      .map((t) => Number(t.score))
-      .filter((s) => !isNaN(s));
-      
-    const avgScore = scores.length > 0
-      ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
-      : 100; // Default to 100 if no trips recorded
+    const scores = trips.map((t) => Number(t.score)).filter((s) => !isNaN(s));
+
+    const avgScore =
+      scores.length > 0
+        ? Math.round(
+            scores.reduce((sum, score) => sum + score, 0) / scores.length,
+          )
+        : 100; // Default to 100 if no trips recorded
 
     return {
       riderId: rider.id,
@@ -772,10 +770,7 @@ export class PartnerService {
     };
   }
 
-  async getBikeWeeklyMileage(
-    partner: AuthenticatedPartner,
-    bikeId: string,
-  ) {
+  async getBikeWeeklyMileage(partner: AuthenticatedPartner, bikeId: string) {
     this.assertScope(partner, PARTNER_SCOPE_INSURER_READ);
 
     // 1. Find the bike
