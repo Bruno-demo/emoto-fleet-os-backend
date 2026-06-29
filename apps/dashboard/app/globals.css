@@ -444,4 +444,10 @@ a:not([aria-disabled="true"]):active,
   color: #ffffff !important;
 }
 
+/* Fix Leaflet control overlays showing on top of Topbar or Sidebar Layouts */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 800 !important;
+}
+
 
