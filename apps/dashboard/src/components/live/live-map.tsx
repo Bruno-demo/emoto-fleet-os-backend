@@ -1063,8 +1063,9 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
         selected,
         severity,
         moving: state.speedKph >= 5,
+        label,
       }),
-    [selected, severity, state.speedKph],
+    [selected, severity, state.speedKph, label],
   );
 
   return (
@@ -1631,10 +1632,12 @@ function createBikeMarkerIcon({
   selected,
   severity,
   moving,
+  label,
 }: {
   selected: boolean;
   severity?: FleetEvent['severity'];
   moving: boolean;
+  label: string;
 }) {
   const fill =
     severity === 'CRITICAL'
@@ -1648,20 +1651,49 @@ function createBikeMarkerIcon({
   return L.divIcon({
     className: 'emoto-bike-marker',
     html: `
-      <div style="
-        width: ${selected ? 34 : 24}px;
-        height: ${selected ? 34 : 24}px;
-        border-radius: 999px;
-        background: ${fill};
-        border: 2.5px solid #fff;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.18), 0 0 ${selected ? '12' : '0'}px ${fill}55;
-        outline: ${selected ? `3px solid ${fill}33` : 'none'};
-        outline-offset: 2px;
-        transition: all 150ms ease;
-      "></div>
+      <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; pointer-events: none;">
+        <!-- Bike Circle Pin -->
+        <div style="
+          width: ${selected ? 30 : 22}px;
+          height: ${selected ? 30 : 22}px;
+          border-radius: 50%;
+          background: ${fill};
+          border: 2px solid #fff;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          transition: all 150ms ease;
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="${selected ? 15 : 11}" height="${selected ? 15 : 11}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18.5" cy="17.5" r="3.5"/>
+            <circle cx="5.5" cy="17.5" r="3.5"/>
+            <circle cx="15" cy="5" r="1"/>
+            <path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
+          </svg>
+        </div>
+        
+        <!-- Floating Text Label -->
+        <div style="
+          background: rgba(15, 23, 42, 0.85);
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #fff;
+          font-family: system-ui, sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          padding: 1.5px 5px;
+          border-radius: 4px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+          letter-spacing: 0.05em;
+        ">
+          ${label}
+        </div>
+      </div>
     `,
-    iconSize: selected ? [34, 34] : [24, 24],
-    iconAnchor: selected ? [17, 17] : [12, 12],
+    iconSize: [120, 32],
+    iconAnchor: selected ? [15, 15] : [11, 11],
     popupAnchor: [0, -14],
   });
 }
