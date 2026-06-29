@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { useTheme } from 'next-themes';
 import { Globe, Navigation, Trash2 } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageProvider';
 
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
   useMapEvents({
@@ -24,6 +25,76 @@ function MapRecenter({ target }: { target: [number, number] }) {
     }
   }, [target, map]);
   return null;
+}
+
+function SearchControl({ onSelectLocation }: { onSelectLocation: (lat: number, lng: number) => void }) {
+  const { t } = useTranslation();
+  const map = useMap();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [searching, setSearching] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(searchQuery)}`
+      );
+      const data = await res.json();
+      setSearchResults(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelect = (lat: string, lon: string) => {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lon);
+    map.flyTo([latitude, longitude], 15);
+    onSelectLocation(latitude, longitude);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
+
+  return (
+    <div className="absolute top-3 left-3 z-[500] w-64 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-1.5 shadow-md flex flex-col gap-1.5">
+      <form onSubmit={handleSearch} className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="text"
+          placeholder={t("Search place...")}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 bg-white/5 border border-line rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-accent/50"
+        />
+        <button
+          type="submit"
+          disabled={searching}
+          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded text-[10px] font-bold transition cursor-pointer"
+        >
+          {searching ? t("...") : t("Search")}
+        </button>
+      </form>
+      {searchResults.length > 0 && (
+        <div className="max-h-36 overflow-y-auto divide-y divide-line border-t border-line mt-1 dashboard-scrollbar" onClick={(e) => e.stopPropagation()}>
+          {searchResults.map((result, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSelect(result.lat, result.lon)}
+              className="w-full text-left px-2 py-1.5 text-[10px] text-zinc-300 hover:bg-white/10 truncate transition cursor-pointer"
+              title={result.display_name}
+            >
+              {result.display_name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ZoneDrawMap({
@@ -76,6 +147,7 @@ export default function ZoneDrawMap({
 
         <MapEvents onMapClick={handleMapClick} />
         <MapRecenter target={mapCenter} />
+        <SearchControl onSelectLocation={() => {}} />
 
         {/* Draw Polygon shape if there are at least 3 points */}
         {points.length >= 3 && (
