@@ -259,16 +259,16 @@ export class FinancialsService {
       },
     });
 
-    // Overdue/unpaid counts
-    const overdueCount = rangePayments.filter(
+    // Overdue/unpaid counts (all-time outstanding)
+    const overdueCount = allPayments.filter(
       (p) => p.status === 'OVERDUE',
     ).length;
-    const unpaidCount = rangePayments.filter(
+    const unpaidCount = allPayments.filter(
       (p) => p.status === 'UNPAID',
     ).length;
 
-    // Outstanding total unpaid logs
-    const unpaidLogsSum = rangePayments
+    // Outstanding total unpaid logs (all-time outstanding)
+    const unpaidLogsSum = allPayments
       .filter((p) => p.status === 'UNPAID' || p.status === 'OVERDUE')
       .reduce((acc, p) => acc + p.amount.toNumber(), 0);
 
