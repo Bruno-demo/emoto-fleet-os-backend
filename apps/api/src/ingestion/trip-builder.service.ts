@@ -271,6 +271,16 @@ export class TripBuilderService {
       0,
       Math.floor((endDate.getTime() - startDate.getTime()) / 1000),
     );
+
+    // Discard static/dummy trips (e.g. ignition on/off cycles without movement)
+    if (distanceKm < 0.05) {
+      this.logger.debug(
+        `Discarding dummy trip for device ${this.truncateDeviceUid(
+          device.deviceUid,
+        )}: distance=${distanceKm} km, duration=${durationSec}s`,
+      );
+      return;
+    }
     const eventCounts = await this.getTripEventCounts(
       device.id,
       startDate,
