@@ -129,10 +129,14 @@ export class FinancialsService {
     if (query.startDate || query.endDate) {
       where.paidAt = {};
       if (query.startDate) {
-        where.paidAt.gte = new Date(query.startDate);
+        where.paidAt.gte = query.startDate.includes('T')
+          ? new Date(query.startDate)
+          : new Date(query.startDate + 'T00:00:00.000Z');
       }
       if (query.endDate) {
-        where.paidAt.lte = new Date(query.endDate);
+        where.paidAt.lte = query.endDate.includes('T')
+          ? new Date(query.endDate)
+          : new Date(query.endDate + 'T23:59:59.999Z');
       }
     }
 
@@ -176,9 +180,11 @@ export class FinancialsService {
     endDate?: string,
   ) {
     const start = startDate
-      ? new Date(startDate)
+      ? (startDate.includes('T') ? new Date(startDate) : new Date(startDate + 'T00:00:00.000Z'))
       : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const end = endDate ? new Date(endDate) : new Date();
+    const end = endDate
+      ? (endDate.includes('T') ? new Date(endDate) : new Date(endDate + 'T23:59:59.999Z'))
+      : new Date();
 
     // Sum of all payments in fleet
     const allPayments = await this.prisma.riderPayment.findMany({
@@ -267,20 +273,24 @@ export class FinancialsService {
       .reduce((acc, p) => acc + p.amount.toNumber(), 0);
 
     // Statistics for Today, This Month, This Year
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // Statistics for Today, This Month, This Year (aligned with reference end date)
+    const referenceDate = endDate ? new Date(endDate) : new Date();
+
+    const todayStart = new Date(referenceDate);
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const todayEnd = new Date(referenceDate);
+    todayEnd.setUTCHours(23, 59, 59, 999);
 
     const monthStart = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
+      referenceDate.getUTCFullYear(),
+      referenceDate.getUTCMonth(),
       1,
     );
-    const yearStart = new Date(new Date().getFullYear(), 0, 1);
+    const yearStart = new Date(referenceDate.getUTCFullYear(), 0, 1);
 
     const todayPayments = allPayments.filter(
-      (p) => p.createdAt >= todayStart && p.createdAt <= todayEnd,
+      (p) => p.paidAt >= todayStart && p.paidAt <= todayEnd,
     );
     const monthPayments = allPayments.filter((p) => p.paidAt >= monthStart);
     const yearPayments = allPayments.filter((p) => p.paidAt >= yearStart);
