@@ -60,6 +60,69 @@ export class FinancialsService {
 
     const paidAtDate = new Date(dto.paidAt);
 
+    // Define the day boundary in UTC
+    const dayStart = new Date(paidAtDate);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(paidAtDate);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+
+    const existingPayment = await this.prisma.riderPayment.findFirst({
+      where: {
+        fleetId: user.fleetId,
+        riderId: dto.riderId,
+        paidAt: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
+      },
+    });
+
+    if (existingPayment) {
+      const payment = await this.prisma.riderPayment.update({
+        where: { id: existingPayment.id },
+        data: {
+          amount: new Prisma.Decimal(dto.amount),
+          paidAt: paidAtDate,
+          method: dto.method,
+          status: dto.status,
+          reference: dto.reference || null,
+          notes: dto.notes || null,
+        },
+        include: {
+          rider: {
+            select: {
+              id: true,
+              email: true,
+              phone: true,
+              riderProfile: {
+                select: {
+                  fullName: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      await this.auditService.createAuditLog({
+        fleetId: user.fleetId,
+        actorUserId: user.id,
+        actionType: AuditActionType.RIDER_PAYMENT_RECORDED,
+        targetType: 'RIDER_PAYMENT',
+        targetId: payment.id,
+        metaJson: {
+          riderId: dto.riderId,
+          amount: dto.amount,
+          method: dto.method,
+          status: dto.status,
+          reference: dto.reference || null,
+          isUpdate: true,
+        },
+      });
+
+      return this.toPaymentSummary(payment as unknown as PaymentWithRider);
+    }
+
     const payment = await this.prisma.riderPayment.create({
       data: {
         fleetId: user.fleetId,

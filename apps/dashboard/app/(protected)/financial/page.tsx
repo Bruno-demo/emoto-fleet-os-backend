@@ -300,9 +300,12 @@ export default function FinancialsPage() {
     
     return Array.from({ length: 7 }, (_, i) => {
       const next = new Date(current.getFullYear(), current.getMonth(), first + i);
+      const year = next.getFullYear();
+      const month = String(next.getMonth() + 1).padStart(2, '0');
+      const date = String(next.getDate()).padStart(2, '0');
       return {
         dayLabel: daysOfWeek[i],
-        dateString: next.toISOString().slice(0, 10),
+        dateString: `${year}-${month}-${date}`,
         displayDate: next.getDate(),
       };
     });
@@ -339,7 +342,32 @@ export default function FinancialsPage() {
 
   const openCollectForMatrix = (riderId: string, dateString: string) => {
     setFormRiderId(riderId);
-    setFormPaidAt(`${dateString}T12:00`);
+
+    const matched = weekPayments.find(
+      (p) => p.riderId === riderId && p.paidAt.slice(0, 10) === dateString,
+    );
+
+    if (matched) {
+      setFormAmount(String(matched.amount));
+      const d = new Date(matched.paidAt);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const localStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      setFormPaidAt(localStr);
+      setFormMethod(matched.method);
+      setFormStatus(matched.status);
+      setFormReference(matched.reference ?? '');
+      setFormNotes(matched.notes ?? '');
+    } else {
+      const rider = ridersList.find(r => r.id === riderId);
+      const leaseRate = rider?.leaseDailyRate ?? DAILY_LEASE_RATE;
+      setFormAmount(String(leaseRate));
+      setFormPaidAt(`${dateString}T12:00`);
+      setFormMethod('CASH');
+      setFormStatus('PAID');
+      setFormReference('');
+      setFormNotes('');
+    }
+
     setShowCollectModal(true);
   };
 
@@ -1210,7 +1238,32 @@ export default function FinancialsPage() {
               <SelectField
                 label={t("Rider")}
                 value={formRiderId}
-                onChange={(e) => setFormRiderId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormRiderId(val);
+                  if (val && formPaidAt) {
+                    const dateString = formPaidAt.slice(0, 10);
+                    const matched = weekPayments.find(
+                      (p) => p.riderId === val && p.paidAt.slice(0, 10) === dateString,
+                    );
+                    if (matched) {
+                      setFormAmount(String(matched.amount));
+                      setFormMethod(matched.method);
+                      setFormStatus(matched.status);
+                      setFormReference(matched.reference ?? '');
+                      setFormNotes(matched.notes ?? '');
+                    } else {
+                      const r = ridersList.find(r => r.id === val);
+                      setFormAmount(String(r?.leaseDailyRate ?? DAILY_LEASE_RATE));
+                      setFormMethod('CASH');
+                      setFormStatus('PAID');
+                      setFormReference('');
+                      setFormNotes('');
+                    }
+                  } else {
+                    resetForm();
+                  }
+                }}
               >
                 <option value="">{t("-- Select Rider --")}</option>
                 {ridersList.map((r) => (
@@ -1258,7 +1311,30 @@ export default function FinancialsPage() {
                   label={t("Date & Time")}
                   type="datetime-local"
                   value={formPaidAt}
-                  onChange={(e) => setFormPaidAt(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormPaidAt(val);
+                    if (formRiderId && val) {
+                      const dateString = val.slice(0, 10);
+                      const matched = weekPayments.find(
+                        (p) => p.riderId === formRiderId && p.paidAt.slice(0, 10) === dateString,
+                      );
+                      if (matched) {
+                        setFormAmount(String(matched.amount));
+                        setFormMethod(matched.method);
+                        setFormStatus(matched.status);
+                        setFormReference(matched.reference ?? '');
+                        setFormNotes(matched.notes ?? '');
+                      } else {
+                        const r = ridersList.find(r => r.id === formRiderId);
+                        setFormAmount(String(r?.leaseDailyRate ?? DAILY_LEASE_RATE));
+                        setFormMethod('CASH');
+                        setFormStatus('PAID');
+                        setFormReference('');
+                        setFormNotes('');
+                      }
+                    }
+                  }}
                 />
               </div>
 
