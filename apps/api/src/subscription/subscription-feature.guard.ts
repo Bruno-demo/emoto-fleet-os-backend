@@ -42,11 +42,14 @@ export class SubscriptionFeatureGuard implements CanActivate {
       throw new UnauthorizedException('Unauthenticated request');
     }
 
-    if (
+    const isAllowed =
       user.subscriptionStatus === FleetSubscriptionStatus.ACTIVE &&
       (user.fleetPlan === FleetPlan.PREMIUM ||
-        user.fleetPlan === FleetPlan.INSURANCE)
-    ) {
+        user.fleetPlan === FleetPlan.INSURANCE ||
+        (user.fleetPlan === FleetPlan.DEMO &&
+          ['devices', 'commands', 'reports'].includes(feature)));
+
+    if (isAllowed) {
       return true;
     }
 
