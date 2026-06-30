@@ -486,6 +486,32 @@ export class AuthService {
             plan,
             subscriptionStatus: 'ACTIVE',
             monthlyRatePerBike,
+            billingStartedAt: new Date(),
+          },
+        });
+
+        // Automatically generate the first billing cycle based on date of registration
+        const config = await tx.billingConfig.findFirst();
+        const cycleDays = config?.billingCycleDays ?? 30;
+        const periodStart = new Date();
+        const periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + cycleDays);
+        const dueDate = new Date(periodStart);
+
+        await tx.billingCycle.create({
+          data: {
+            fleetId: fleet.id,
+            cycleNumber: 1,
+            periodStart,
+            periodEnd,
+            dueDate,
+            bikeCount: 0,
+            ratePerBike: monthlyRatePerBike,
+            subtotal: 0,
+            totalDue: 0,
+            totalPaid: 0,
+            status: 'PENDING',
+            isTrial: false,
           },
         });
 
@@ -610,10 +636,36 @@ export class AuthService {
             insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',
             monthlyRatePerBike,
+            billingStartedAt: new Date(),
             bikeRange: dto.bikeRange ? String(dto.bikeRange) : null,
             fleetDiscounts: fleetDiscountConnect
               ? { connect: [fleetDiscountConnect] }
               : undefined,
+          },
+        });
+
+        // Automatically generate the first billing cycle based on date of registration
+        const config = await tx.billingConfig.findFirst();
+        const cycleDays = config?.billingCycleDays ?? 30;
+        const periodStart = new Date();
+        const periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + cycleDays);
+        const dueDate = new Date(periodStart);
+
+        await tx.billingCycle.create({
+          data: {
+            fleetId: fleet.id,
+            cycleNumber: 1,
+            periodStart,
+            periodEnd,
+            dueDate,
+            bikeCount: 0,
+            ratePerBike: monthlyRatePerBike,
+            subtotal: 0,
+            totalDue: 0,
+            totalPaid: 0,
+            status: 'PENDING',
+            isTrial: false,
           },
         });
 
