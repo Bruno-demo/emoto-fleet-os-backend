@@ -179,8 +179,11 @@ export class TripBuilderService {
       return;
     }
 
-    await this.finalizeTrip(device, activeStartTs, payload.ts);
+    // Clear the active state in Redis immediately BEFORE starting the long async database operation
+    // to prevent concurrent telemetry packets from triggering duplicate trips for the same start time.
     await this.clearState(device.id);
+
+    await this.finalizeTrip(device, activeStartTs, payload.ts);
   }
 
   // Applies start conditions while device is currently considered idle.

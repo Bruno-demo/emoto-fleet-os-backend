@@ -8,14 +8,16 @@ import { WeeklyReport, WeeklyRiskBike, WeeklyRiskRider } from './reports.types';
 interface AggregatedBikeMetrics {
   bikeId: string;
   tripCount: number;
-  scoreSum: number;
+  weightedScoreSum: number;
+  totalDistance: number;
   eventCount: number;
 }
 
 interface AggregatedRiderMetrics {
   riderId: string;
   tripCount: number;
-  scoreSum: number;
+  weightedScoreSum: number;
+  totalDistance: number;
 }
 
 @Injectable()
@@ -76,6 +78,7 @@ export class ReportsService {
           riderId: true,
           score: true,
           startTs: true,
+          distanceKm: true,
         },
       }),
       this.prismaService.event.groupBy({
@@ -105,19 +108,30 @@ export class ReportsService {
 
     const topRiskyBikes = this.buildTopRiskyBikes(bikeMetrics, bikeLabels);
     const topRiskyRiders = this.buildTopRiskyRiders(riderMetrics, riderNames);
+    
+    let totalWeeklyDistance = 0;
+    let weightedWeeklyScoreSum = 0;
+    for (const trip of trips) {
+      const s = Number(trip.score);
+      const d = Number(trip.distanceKm);
+      totalWeeklyDistance += d;
+      weightedWeeklyScoreSum += s * d;
+    }
     const avgScore =
       trips.length === 0
         ? 100
+        : totalWeeklyDistance > 0
+        ? weightedWeeklyScoreSum / totalWeeklyDistance
         : trips.reduce((sum, trip) => sum + Number(trip.score), 0) /
           trips.length;
 
     // Calculate actual daily average safety scores
-    const dailyMap = new Map<string, { sum: number; count: number }>();
+    const dailyMap = new Map<string, { weightedSum: number; totalDistance: number }>();
     for (const trip of trips) {
       const dateKey = trip.startTs.toISOString().slice(0, 10);
-      const existing = dailyMap.get(dateKey) ?? { sum: 0, count: 0 };
-      existing.sum += Number(trip.score);
-      existing.count += 1;
+      const existing = dailyMap.get(dateKey) ?? { weightedSum: 0, totalDistance: 0 };
+      existing.weightedSum += Number(trip.score) * Number(trip.distanceKm);
+      existing.totalDistance += Number(trip.distanceKm);
       dailyMap.set(dateKey, existing);
     }
 
@@ -126,9 +140,20 @@ export class ReportsService {
     while (scanDate <= to) {
       const dateKey = scanDate.toISOString().slice(0, 10);
       const dayData = dailyMap.get(dateKey);
+      let dayScore = 100;
+      if (dayData) {
+        if (dayData.totalDistance > 0) {
+          dayScore = Number((dayData.weightedSum / dayData.totalDistance).toFixed(2));
+        } else {
+          const rawSum = trips.filter(t => t.startTs.toISOString().slice(0, 10) === dateKey)
+                               .reduce((sum, t) => sum + Number(t.score), 0);
+          const rawCount = trips.filter(t => t.startTs.toISOString().slice(0, 10) === dateKey).length;
+          dayScore = rawCount > 0 ? Number((rawSum / rawCount).toFixed(2)) : 100;
+        }
+      }
       dailyScores.push({
         date: dateKey.slice(5, 10),
-        score: dayData ? Number((dayData.sum / dayData.count).toFixed(2)) : 100,
+        score: dayScore,
       });
       scanDate.setDate(scanDate.getDate() + 1);
     }
@@ -149,7 +174,7 @@ export class ReportsService {
 
   // Aggregates per-bike score and event totals for fleet risk ranking.
   private aggregateBikeMetrics(
-    trips: Array<{ bikeId: string; score: { toNumber: () => number } }>,
+    trips: Array<{ bikeId: string; score: any; distanceKm: any }>,
     groupedEvents: Array<{ bikeId: string | null; _count: { _all: number } }>,
   ): AggregatedBikeMetrics[] {
     const metrics = new Map<string, AggregatedBikeMetrics>();
@@ -158,11 +183,15 @@ export class ReportsService {
       const existing = metrics.get(trip.bikeId) ?? {
         bikeId: trip.bikeId,
         tripCount: 0,
-        scoreSum: 0,
+        weightedScoreSum: 0,
+        totalDistance: 0,
         eventCount: 0,
       };
+      const score = Number(trip.score);
+      const distance = Number(trip.distanceKm);
       existing.tripCount += 1;
-      existing.scoreSum += Number(trip.score);
+      existing.weightedScoreSum += score * distance;
+      existing.totalDistance += distance;
       metrics.set(trip.bikeId, existing);
     }
 
@@ -174,7 +203,8 @@ export class ReportsService {
       const existing = metrics.get(event.bikeId) ?? {
         bikeId: event.bikeId,
         tripCount: 0,
-        scoreSum: 0,
+        weightedScoreSum: 0,
+        totalDistance: 0,
         eventCount: 0,
       };
       existing.eventCount += event._count._all;
@@ -186,7 +216,7 @@ export class ReportsService {
 
   // Aggregates rider trip scoring metrics from fleet trips.
   private aggregateRiderMetrics(
-    trips: Array<{ riderId: string | null; score: { toNumber: () => number } }>,
+    trips: Array<{ riderId: string | null; score: any; distanceKm: any }>,
   ): AggregatedRiderMetrics[] {
     const metrics = new Map<string, AggregatedRiderMetrics>();
 
@@ -198,10 +228,14 @@ export class ReportsService {
       const existing = metrics.get(trip.riderId) ?? {
         riderId: trip.riderId,
         tripCount: 0,
-        scoreSum: 0,
+        weightedScoreSum: 0,
+        totalDistance: 0,
       };
+      const score = Number(trip.score);
+      const distance = Number(trip.distanceKm);
       existing.tripCount += 1;
-      existing.scoreSum += Number(trip.score);
+      existing.weightedScoreSum += score * distance;
+      existing.totalDistance += distance;
       metrics.set(trip.riderId, existing);
     }
 
@@ -237,7 +271,11 @@ export class ReportsService {
     return bikeMetrics
       .map((metric) => {
         const avgScore =
-          metric.tripCount === 0 ? 100 : metric.scoreSum / metric.tripCount;
+          metric.tripCount === 0
+            ? 100
+            : metric.totalDistance > 0
+            ? metric.weightedScoreSum / metric.totalDistance
+            : 100;
         return {
           bikeId: metric.bikeId,
           label: bikeLabels.get(metric.bikeId) ?? 'Unknown',
@@ -300,12 +338,20 @@ export class ReportsService {
     riderNames: Map<string, string>,
   ): WeeklyRiskRider[] {
     return riderMetrics
-      .map((metric) => ({
-        riderId: metric.riderId,
-        fullName: riderNames.get(metric.riderId) ?? 'Unknown',
-        tripCount: metric.tripCount,
-        avgScore: Number((metric.scoreSum / metric.tripCount).toFixed(2)),
-      }))
+      .map((metric) => {
+        const avgScore =
+          metric.tripCount === 0
+            ? 100
+            : metric.totalDistance > 0
+            ? metric.weightedScoreSum / metric.totalDistance
+            : 100;
+        return {
+          riderId: metric.riderId,
+          fullName: riderNames.get(metric.riderId) ?? 'Unknown',
+          tripCount: metric.tripCount,
+          avgScore: Number(avgScore.toFixed(2)),
+        };
+      })
       .sort((left, right) => left.avgScore - right.avgScore)
       .slice(0, 5);
   }

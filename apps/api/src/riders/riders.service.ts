@@ -402,21 +402,42 @@ export class RidersService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const tripScores = await this.prismaService.trip.groupBy({
-      by: ['riderId'],
+    const trips = await this.prismaService.trip.findMany({
       where: {
         riderId: { in: riders.map((r) => r.id) },
         startTs: { gte: thirtyDaysAgo },
       },
-      _avg: {
+      select: {
+        riderId: true,
         score: true,
+        distanceKm: true,
       },
     });
 
     const scoreMap = new Map<string, number>();
-    for (const row of tripScores) {
-      if (row.riderId && row._avg.score !== null) {
-        scoreMap.set(row.riderId, Math.round(Number(row._avg.score)));
+    const riderTrips = new Map<string, Array<{ score: number; distanceKm: number }>>();
+    for (const trip of trips) {
+      if (!trip.riderId) continue;
+      const list = riderTrips.get(trip.riderId) ?? [];
+      list.push({
+        score: Number(trip.score),
+        distanceKm: Number(trip.distanceKm),
+      });
+      riderTrips.set(trip.riderId, list);
+    }
+
+    for (const [riderId, list] of riderTrips.entries()) {
+      let totalDistance = 0;
+      let weightedScoreSum = 0;
+      for (const t of list) {
+        totalDistance += t.distanceKm;
+        weightedScoreSum += t.score * t.distanceKm;
+      }
+      if (totalDistance > 0) {
+        scoreMap.set(riderId, Math.round(weightedScoreSum / totalDistance));
+      } else {
+        const avg = list.reduce((sum, t) => sum + t.score, 0) / list.length;
+        scoreMap.set(riderId, Math.round(avg));
       }
     }
 
@@ -1074,13 +1095,25 @@ export class RidersService {
       },
       select: {
         score: true,
+        distanceKm: true,
       },
     });
 
-    const scores = trips.map((trip) => Number(trip.score));
+    let totalDistance = 0;
+    let weightedScoreSum = 0;
+    const scores = trips.map((trip) => {
+      const s = Number(trip.score);
+      const d = Number(trip.distanceKm);
+      totalDistance += d;
+      weightedScoreSum += s * d;
+      return s;
+    });
+
     const avgScore =
-      scores.length === 0
+      trips.length === 0
         ? 100
+        : totalDistance > 0
+        ? weightedScoreSum / totalDistance
         : scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const bestScore = scores.length === 0 ? null : Math.max(...scores);
     const worstScore = scores.length === 0 ? null : Math.min(...scores);
@@ -1816,15 +1849,28 @@ export class RidersService {
       },
       select: {
         score: true,
+        distanceKm: true,
       },
     });
 
-    const scores = trips.map((t) => Number(t.score)).filter((s) => !isNaN(s));
+    let totalDistance = 0;
+    let weightedScoreSum = 0;
+    const scores = trips
+      .map((t) => {
+        const s = Number(t.score);
+        const d = Number(t.distanceKm);
+        totalDistance += d;
+        weightedScoreSum += s * d;
+        return s;
+      })
+      .filter((s) => !isNaN(s));
 
     const avgScore =
       scores.length > 0
         ? Math.round(
-            scores.reduce((sum, score) => sum + score, 0) / scores.length,
+            totalDistance > 0
+              ? weightedScoreSum / totalDistance
+              : scores.reduce((sum, score) => sum + score, 0) / scores.length,
           )
         : 100;
 
