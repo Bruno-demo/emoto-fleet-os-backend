@@ -721,7 +721,6 @@ export default function LandingContent() {
               )}
 
               <p className="mt-3 text-sm text-zinc-400 leading-relaxed min-h-[48px]">{plan.description}</p>
-
               <div className="my-6 h-px w-full bg-white/[0.06]" />
 
               <ul className="space-y-3 text-sm flex-1">
@@ -736,7 +735,7 @@ export default function LandingContent() {
               </ul>
 
               <Link
-                href={`/create-account?plan=${plan.slug}`}
+                href={hasSession ? `/checkout?plan=${plan.slug}` : `/create-account?plan=${plan.slug}`}
                 className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all hover:opacity-90"
                 style={
                   plan.featured
@@ -744,7 +743,7 @@ export default function LandingContent() {
                     : { border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgb(212,212,216)' }
                 }
               >
-                {t('land_plans_get_started', 'Get started')} <ChevronRight size={14} />
+                {hasSession ? t('proceed_to_checkout', 'Proceed to Checkout') : t('land_plans_get_started', 'Get started')} <ChevronRight size={14} />
               </Link>
             </div>
           ))}
