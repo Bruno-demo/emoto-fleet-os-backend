@@ -260,7 +260,7 @@ export class RulesEngineService {
       }
 
       const timeDeltaMs = Date.parse(payload.ts) - Date.parse(prev.ts);
-      if (timeDeltaMs <= 0 || timeDeltaMs > 5000) {
+      if (timeDeltaMs <= 0 || timeDeltaMs > 30000) {
         return;
       }
 
@@ -387,7 +387,7 @@ export class RulesEngineService {
       }
 
       const timeDeltaMs = Date.parse(payload.ts) - Date.parse(previousState.ts);
-      if (timeDeltaMs <= 0 || timeDeltaMs > 5000) {
+      if (timeDeltaMs <= 0 || timeDeltaMs > 30000) {
         return;
       }
 
