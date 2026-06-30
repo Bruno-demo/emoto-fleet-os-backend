@@ -94,7 +94,7 @@ function RegistrationSuccessContent() {
           <div className="mt-6 w-full rounded-[20px] border border-line bg-surface-muted/50 p-5 text-left flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">Registered Fleet</p>
-              <p className="text-sm font-bold text-white mt-1.5">{fleetName}</p>
+              <p className="text-sm font-bold text-ink mt-1.5">{fleetName}</p>
             </div>
             {fleetSize && (
               <div className="text-right">
