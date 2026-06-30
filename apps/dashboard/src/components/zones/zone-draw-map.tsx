@@ -195,7 +195,7 @@ export default function ZoneDrawMap({
       </MapContainer>
 
       {/* Map Style Selector */}
-      <div className="absolute top-3 right-3 z-[500] flex gap-1 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-0.5 shadow-md">
+      <div className="absolute bottom-3 right-3 z-[500] flex gap-1 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-0.5 shadow-md">
         <button
           type="button"
           onClick={() => setMapType('road')}

@@ -196,26 +196,9 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
 
       {/* Playback Controls & scrub slider bar */}
       <div className="rounded-2xl border border-line bg-surface-muted p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handlePlayToggle}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow transition hover:bg-accent-strong"
-            >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface-hover text-ink transition hover:bg-surface-muted"
-            >
-              <RotateCcw size={14} />
-            </button>
-          </div>
-
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Slider bar */}
-          <div className="flex-1">
+          <div className="w-full sm:flex-1 order-1 sm:order-2">
             <input
               type="range"
               min="0"
@@ -226,22 +209,41 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
             />
           </div>
 
-          {/* Playback Speed selector */}
-          <div className="flex gap-1">
-            {[1, 2, 5, 10].map((speed) => (
+          <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto order-2 sm:order-1">
+            <div className="flex items-center gap-2">
               <button
-                key={speed}
                 type="button"
-                onClick={() => setPlaybackSpeed(speed)}
-                className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
-                  playbackSpeed === speed
-                    ? 'bg-accent/10 text-accent border border-accent/20'
-                    : 'border border-line bg-surface-hover text-ink-soft hover:bg-surface-muted'
-                }`}
+                onClick={handlePlayToggle}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow transition hover:bg-accent-strong"
               >
-                {speed}x
+                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={handleReset}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface-hover text-ink transition hover:bg-surface-muted"
+              >
+                <RotateCcw size={14} />
+              </button>
+            </div>
+
+            {/* Playback Speed selector */}
+            <div className="flex gap-1">
+              {[1, 2, 5, 10].map((speed) => (
+                <button
+                  key={speed}
+                  type="button"
+                  onClick={() => setPlaybackSpeed(speed)}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                    playbackSpeed === speed
+                      ? 'bg-accent/10 text-accent border border-accent/20'
+                      : 'border border-line bg-surface-hover text-ink-soft hover:bg-surface-muted'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

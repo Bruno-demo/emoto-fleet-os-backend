@@ -597,8 +597,8 @@ export function LiveMapPanel() {
                 </MapContainer>
 
                 {/* Floating Map Layers Selector Control */}
-                <div className="absolute top-4 left-16 z-[500] pointer-events-auto">
-                  <div className="flex items-center gap-3 rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 shadow-sm backdrop-blur-md">
+                <div className="absolute top-4 left-12 md:left-16 right-4 sm:right-auto z-[500] pointer-events-auto">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 rounded-lg border border-line bg-[var(--background-strong)]/90 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm backdrop-blur-md">
                     <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted flex items-center gap-1.5 border-r border-line pr-2.5">
                       <Layers size={12} className="text-accent" /> {t("Layers")}
                     </span>
@@ -686,7 +686,7 @@ export function LiveMapPanel() {
                 {/* Triage Feed Floating Overlay */}
                 <div
                   className={cx(
-                    'absolute right-4 top-4 bottom-4 w-[22rem] z-[800] transition-all duration-300 ease-in-out pointer-events-auto flex flex-col',
+                    'absolute right-4 left-4 sm:left-auto sm:w-[22rem] top-4 bottom-4 z-[800] transition-all duration-300 ease-in-out pointer-events-auto flex flex-col',
                     isFeedCollapsed
                       ? 'opacity-0 translate-x-12 pointer-events-none'
                       : 'opacity-100 translate-x-0'
