@@ -102,12 +102,11 @@ export function ConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className={cx(
-              'rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-50',
-              tone === 'danger'
-                ? 'bg-danger-ink hover:bg-danger-strong'
-                : 'bg-accent hover:bg-accent-strong',
-            )}
+            className="rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-all disabled:opacity-50 hover:brightness-115"
+            style={{
+              backgroundColor: tone === 'danger' ? '#E11D48' : '#3B82F6',
+              color: '#FFFFFF',
+            }}
           >
             {isSubmitting ? 'Working…' : confirmLabel}
           </button>
