@@ -124,12 +124,15 @@ function CheckoutContent() {
     : (demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF` : '5,000 RWF');
 
   const activeTier = isOperationsPlus ? premiumTier : demoTier;
-  const displayFeatures = plan?.features.map(f => {
-    if (f.includes('setup & install fee') && activeTier) {
-      return `+ ${activeTier.setupFeePerBike.toLocaleString()} RWF device setup & install fee`;
-    }
-    return f;
-  }) ?? [];
+  const { data: bikesData } = useQuery({
+    queryKey: ['bikes', 'list', { page: 1, pageSize: 1 }],
+    queryFn: () => apiFetch<{ total: number }>('/bikes?page=1&pageSize=1'),
+  });
+  const bikeCount = bikesData?.total ?? 0;
+
+  const displayFeatures = plan?.features
+    .filter(f => !f.includes('setup & install fee'))
+    .map(f => f) ?? [];
 
   useEffect(() => {
     if (!showSuccess) return;
@@ -318,34 +321,64 @@ function CheckoutContent() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-          {/* Plan summary */}
-          <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-5">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-accent">
-                {plan.title}
-              </p>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-ink">
-                  {displayPrice}
-                </span>
-                {plan.period && (
-                  <span className="text-sm text-ink-muted">{plan.period}</span>
-                )}
+          <div className="space-y-6">
+            {/* Plan summary */}
+            <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-5">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-accent">
+                  {plan.title}
+                </p>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-ink">
+                    {displayPrice}
+                  </span>
+                  {plan.period && (
+                    <span className="text-sm text-ink-muted">{plan.period}</span>
+                  )}
+                </div>
               </div>
+
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-line to-transparent" />
+
+              <ul className="space-y-3 text-sm">
+                {displayFeatures.map((feat) => (
+                  <li key={feat} className="flex items-center gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                      <BadgeCheck size={12} />
+                    </span>
+                    <span className="text-ink-soft">{feat}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-line to-transparent" />
-
-            <ul className="space-y-3 text-sm">
-              {displayFeatures.map((feat) => (
-                <li key={feat} className="flex items-center gap-3">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
-                    <BadgeCheck size={12} />
+            {/* Calculation Card */}
+            <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
+                Estimated Monthly Charge
+              </p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-soft">Active fleet size</span>
+                  <span className="font-bold text-ink">
+                    {bikeCount} {bikeCount === 1 ? 'bike' : 'bikes'}
                   </span>
-                  <span className="text-ink-soft">{feat}</span>
-                </li>
-              ))}
-            </ul>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-soft">Monthly rate per bike</span>
+                  <span className="font-bold text-ink">
+                    {(activeTier?.monthlyRatePerBike ?? 10000).toLocaleString()} RWF
+                  </span>
+                </div>
+                <div className="h-px w-full bg-line/50 my-1" />
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-ink">Total Monthly Payment</span>
+                  <span className="text-xl font-extrabold text-accent">
+                    {(bikeCount * (activeTier?.monthlyRatePerBike ?? 10000)).toLocaleString()} RWF
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Payment method */}
@@ -355,26 +388,30 @@ function CheckoutContent() {
                 Payment method
               </p>
 
-              {/* Cash on Install - only option for now */}
+              {/* Pay on Request */}
               <label className="flex items-start gap-4 rounded-xl border-2 border-accent bg-accent/[0.07] p-4 cursor-pointer">
                 <input
                   type="radio"
                   name="payment"
-                  value="cash-on-install"
+                  value="pay-on-request"
                   checked
                   readOnly
-                  className="mt-0.5 accent-[var(--color-accent)]"
+                  className="mt-2.5 accent-[var(--color-accent)]"
                 />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 border border-accent/30 text-accent">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-bike" aria-hidden="true">
+                    <circle cx="18.5" cy="17.5" r="3.5"></circle>
+                    <circle cx="5.5" cy="17.5" r="3.5"></circle>
+                    <circle cx="15" cy="5" r="1"></circle>
+                    <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
+                  </svg>
+                </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Banknote size={16} className="text-accent" />
-                    <span className="text-sm font-bold text-ink">
-                      Cash on Install
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-ink-muted leading-relaxed">
-                    Pay when our team arrives to set up your fleet devices. No
-                    upfront charge required.
+                  <span className="text-sm font-bold text-ink block">
+                    Pay on Request
+                  </span>
+                  <p className="mt-1 text-xs text-ink-muted leading-relaxed">
+                    Pay once our team requests you to pay.
                   </p>
                 </div>
               </label>
@@ -485,7 +522,7 @@ function CheckoutContent() {
               <Link href="/privacy" className="underline hover:text-ink transition">
                 Privacy Policy
               </Link>
-              . No charge until installation is complete.
+              . Payments will be handled on request.
             </p>
           </div>
         </div>
