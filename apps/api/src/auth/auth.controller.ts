@@ -342,15 +342,13 @@ export class AuthController {
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
-    const sameSite = isProd
-      ? 'none'
-      : configuredSameSite === 'none' && !secure
-        ? 'lax'
-        : configuredSameSite;
+    const sameSite = configuredSameSite === 'none' && !secure
+      ? 'lax'
+      : configuredSameSite;
 
     let domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
-    if (!domain && isProd) {
-      domain = '.emotofleet.com';
+    if (domain === '') {
+      domain = undefined;
     }
 
     const rememberDays = this.configService.get<number>(
@@ -385,15 +383,13 @@ export class AuthController {
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
-    const sameSite = isProd
-      ? 'none'
-      : configuredSameSite === 'none' && !secure
-        ? 'lax'
-        : configuredSameSite;
+    const sameSite = configuredSameSite === 'none' && !secure
+      ? 'lax'
+      : configuredSameSite;
 
     let domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
-    if (!domain && isProd) {
-      domain = '.emotofleet.com';
+    if (domain === '') {
+      domain = undefined;
     }
 
     response.clearCookie(cookieName, {
