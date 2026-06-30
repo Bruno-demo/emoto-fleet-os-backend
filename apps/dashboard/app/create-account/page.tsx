@@ -196,6 +196,7 @@ function CreateAccountInner() {
   const [selectedPlanSlug, setSelectedPlanSlug] = useState<string | null>(planSlugFromUrl);
   
   const [plans, setPlans] = useState(PLAN_DETAILS);
+  const [isPricingLoaded, setIsPricingLoaded] = useState(false);
   const selectedPlan = selectedPlanSlug ? plans[selectedPlanSlug] : null;
 
   useEffect(() => {
@@ -226,7 +227,7 @@ function CreateAccountInner() {
             setupFeePerBike: premiumTier.setupFeePerBike,
           };
         }
-
+ 
         const insuranceTier = tiers.find(t => t.planCode === 'INSURANCE');
         if (insuranceTier) {
           updatedPlans['insurance'] = {
@@ -238,6 +239,7 @@ function CreateAccountInner() {
         }
         
         setPlans(updatedPlans);
+        setIsPricingLoaded(true);
       } catch (err) {
         console.error('Failed to load dynamic pricing in registration:', err);
       }
@@ -841,17 +843,25 @@ function CreateAccountInner() {
                         )}>
                           {slug === 'safety-core' ? t('safety_core_plan_title', 'Safety Core') : slug === 'operations-plus' ? t('operations_plus_plan_title', 'Operations Plus') : plan.title}
                         </p>
-                        <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
-                          {slug === 'safety-core' 
-                            ? t('safety_core_desc_short', 'Essential safety (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
-                            : slug === 'operations-plus'
-                            ? t('operations_plus_desc_short', 'Advanced fleet ops (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
-                            : plan.description}
-                        </p>
+                        {isPricingLoaded ? (
+                          <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
+                            {slug === 'safety-core' 
+                              ? t('safety_core_desc_short', 'Essential safety (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
+                              : slug === 'operations-plus'
+                              ? t('operations_plus_desc_short', 'Advanced fleet ops (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
+                              : plan.description}
+                          </p>
+                        ) : (
+                          <span className="h-3.5 w-36 bg-line rounded animate-pulse inline-block mt-1" />
+                        )}
                       </div>
 
                       <div className="mt-4 flex items-baseline gap-1">
-                        <span className="text-sm font-extrabold text-ink">{plan.price}</span>
+                        {isPricingLoaded ? (
+                          <span className="text-sm font-extrabold text-ink">{plan.price}</span>
+                        ) : (
+                          <span className="h-5 w-16 bg-line rounded animate-pulse inline-block" />
+                        )}
                         <span className="text-[10px] text-ink-muted">{t('per_bike_per_mo', '/ bike / mo')}</span>
                       </div>
 

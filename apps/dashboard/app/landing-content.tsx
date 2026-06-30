@@ -706,7 +706,11 @@ export default function LandingContent() {
               )}
               <p className="text-xs font-semibold uppercase tracking-wider text-accent">{plan.title}</p>
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">{plan.price}</span>
+                {pricingTiers ? (
+                  <span className="text-4xl font-extrabold text-white">{plan.price}</span>
+                ) : (
+                  <span className="h-10 w-28 bg-white/10 rounded-lg animate-pulse inline-block" />
+                )}
                 {plan.period && <span className="text-sm text-zinc-500">{plan.period}</span>}
               </div>
 
