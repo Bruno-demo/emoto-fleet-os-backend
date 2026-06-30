@@ -298,10 +298,10 @@ function CheckoutContent() {
             </div>
           </Link>
           <Link
-            href="/#pricing"
+            href="/live"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink transition"
           >
-            <ChevronLeft size={14} /> Back to pricing
+            <ChevronLeft size={14} /> Back to dashboard
           </Link>
         </nav>
       </header>
