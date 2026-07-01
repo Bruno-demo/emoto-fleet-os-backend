@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { useTheme } from 'next-themes';
-import { Globe, Navigation, Trash2 } from 'lucide-react';
+import { Globe, Navigation, Trash2, Layers } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageProvider';
 
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
@@ -224,42 +224,42 @@ export default function ZoneDrawMap({
       </MapContainer>
 
       {/* Map Style Selector */}
-      <div className="absolute bottom-3 right-3 z-[500] flex gap-1 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-0.5 shadow-md">
+      <div className="absolute bottom-3 right-3 z-[500] flex flex-col gap-1 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-0.5 shadow-md">
         <button
           type="button"
           onClick={() => setMapType('road')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-md transition ${
+          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
             mapType === 'road'
               ? 'bg-white/10 text-white'
               : 'text-zinc-400 hover:text-white'
           }`}
+          title={t('Map')}
         >
-          <Navigation size={10} />
-          {t('Map')}
+          <Navigation size={12} />
         </button>
         <button
           type="button"
           onClick={() => setMapType('satellite')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-md transition ${
+          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
             mapType === 'satellite'
               ? 'bg-white/10 text-white'
               : 'text-zinc-400 hover:text-white'
           }`}
+          title={t('Satellite')}
         >
-          <Globe size={10} />
-          {t('Satellite')}
+          <Globe size={12} />
         </button>
         <button
           type="button"
           onClick={() => setMapType('hybrid')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-md transition ${
+          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
             mapType === 'hybrid'
               ? 'bg-white/10 text-white'
               : 'text-zinc-400 hover:text-white'
           }`}
+          title={t('Hybrid')}
         >
-          <Globe size={10} />
-          {t('Hybrid')}
+          <Layers size={12} />
         </button>
       </div>
 

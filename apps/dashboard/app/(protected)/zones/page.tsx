@@ -490,7 +490,8 @@ export default function ZonesPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="rounded-[var(--radius-control)] bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ backgroundColor: '#3B82F6', color: '#FFFFFF' }}
               >
                 {isSubmitting
                   ? editingZone
