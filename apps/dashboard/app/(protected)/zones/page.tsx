@@ -9,7 +9,7 @@ import { canManageZones } from '@/lib/auth/roles';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
-import { PaginatedResponse, Zone } from '@/lib/types/dashboard';
+import { Bike, LiveBikeState, PaginatedResponse, Zone } from '@/lib/types/dashboard';
 import { formatEnumLabel } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -117,6 +117,18 @@ export default function ZonesPage() {
         `/zones${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
       ),
     enabled: isAdmin,
+    retry: false,
+  });
+
+  const liveBikesQuery = useQuery({
+    queryKey: ['live-bikes'],
+    queryFn: () => apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
+    retry: false,
+  });
+
+  const bikesQuery = useQuery({
+    queryKey: ['bikes'],
+    queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=100'),
     retry: false,
   });
 
@@ -446,6 +458,8 @@ export default function ZonesPage() {
                 points={points}
                 onChange={handlePointsChange}
                 center={mapCenter}
+                liveBikes={liveBikesQuery.data?.data}
+                bikes={bikesQuery.data?.data}
               />
             </div>
 

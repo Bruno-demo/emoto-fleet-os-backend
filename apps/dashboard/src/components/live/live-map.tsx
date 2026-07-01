@@ -1677,7 +1677,7 @@ function isFreshState(ts: string) {
 }
 
 // Creates an emphasized marker icon without pulling additional map icon dependencies.
-function createBikeMarkerIcon({
+export function createBikeMarkerIcon({
   selected,
   severity,
   moving,

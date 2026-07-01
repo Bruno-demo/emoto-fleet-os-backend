@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import { useTheme } from 'next-themes';
 import { Globe, Navigation, Trash2, Layers } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageProvider';
+import { createBikeMarkerIcon } from '../live/live-map';
+import { Bike, LiveBikeState } from '../../lib/types/dashboard';
 
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
   useMapEvents({
@@ -112,14 +114,26 @@ export default function ZoneDrawMap({
   points,
   onChange,
   center,
+  liveBikes,
+  bikes,
 }: {
   points: Array<[number, number]>;
   onChange: (points: Array<[number, number]>) => void;
   center?: [number, number] | null;
+  liveBikes?: LiveBikeState[];
+  bikes?: Bike[];
 }) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const [mapType, setMapType] = useState<'road' | 'satellite' | 'hybrid'>('satellite');
+
+  const bikeLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const bike of bikes ?? []) {
+      map.set(bike.id, bike.label);
+    }
+    return map;
+  }, [bikes]);
 
   const handleMapClick = (latlng: L.LatLng) => {
     // GeoJSON uses [longitude, latitude] order
@@ -221,6 +235,41 @@ export default function ZoneDrawMap({
             }}
           />
         ))}
+        {/* Live Bike Markers for Geolocation Reference */}
+        {liveBikes?.map((bikeState) => {
+          const label = bikeLabelMap.get(bikeState.bikeId) || `Bike-${bikeState.bikeId.slice(0, 4)}`;
+          const moving = bikeState.speedKph >= 5 || bikeState.ignition !== false;
+          const icon = createBikeMarkerIcon({
+            selected: false,
+            moving,
+            label,
+          });
+          return (
+            <Marker
+              key={bikeState.bikeId}
+              position={[bikeState.lat, bikeState.lng]}
+              icon={icon}
+              eventHandlers={{
+                click: (e) => {
+                  const marker = e.target;
+                  marker._map.setView(marker.getLatLng(), 16);
+                }
+              }}
+            >
+              <Popup className="emoto-poi-popup">
+                <div className="space-y-1 text-xs">
+                  <p className="font-semibold text-white">{label}</p>
+                  <p className="text-zinc-400">
+                    {t('Status')}: {moving ? t('Moving') : t('Parked (Ignition Off)')}
+                  </p>
+                  <p className="text-zinc-400">
+                    {t('Speed')}: {bikeState.speedKph.toFixed(1)} {t('kph')}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {/* Map Style Selector */}
