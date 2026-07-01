@@ -1059,10 +1059,11 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
   const { t } = useTranslation();
 
   const [animatedPos, setAnimatedPos] = useState<[number, number]>([state.lat, state.lng]);
+  const lastPosRef = useRef<[number, number]>([state.lat, state.lng]);
 
   useEffect(() => {
-    const startLat = animatedPos[0];
-    const startLng = animatedPos[1];
+    const startLat = lastPosRef.current[0];
+    const startLng = lastPosRef.current[1];
     const endLat = state.lat;
     const endLng = state.lng;
 
@@ -1072,7 +1073,10 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
     // Distance threshold: if jump is too large (e.g. > 2km / 0.02 degrees), snap immediately
     const distance = Math.sqrt(Math.pow(endLat - startLat, 2) + Math.pow(endLng - startLng, 2));
     if (distance > 0.02) {
-      setAnimatedPos([endLat, endLng]);
+      lastPosRef.current = [endLat, endLng];
+      requestAnimationFrame(() => {
+        setAnimatedPos([endLat, endLng]);
+      });
       return;
     }
 
@@ -1087,6 +1091,7 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
       const currentLat = startLat + (endLat - startLat) * progress;
       const currentLng = startLng + (endLng - startLng) * progress;
 
+      lastPosRef.current = [currentLat, currentLng];
       setAnimatedPos([currentLat, currentLng]);
 
       if (progress < 1) {
