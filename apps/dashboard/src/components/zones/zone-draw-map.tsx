@@ -34,8 +34,7 @@ function SearchControl({ onSelectLocation }: { onSelectLocation: (lat: number, l
   const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
   const [searching, setSearching] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
@@ -62,22 +61,34 @@ function SearchControl({ onSelectLocation }: { onSelectLocation: (lat: number, l
 
   return (
     <div className="absolute top-3 left-3 z-[500] w-64 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-1.5 shadow-md flex flex-col gap-1.5">
-      <form onSubmit={handleSearch} className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
         <input
           type="text"
           placeholder={t("Search place...")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSearch();
+            }
+          }}
           className="flex-1 bg-white/5 border border-line rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-accent/50"
         />
         <button
-          type="submit"
+          type="button"
           disabled={searching}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleSearch();
+          }}
           className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded text-[10px] font-bold transition cursor-pointer"
         >
           {searching ? t("...") : t("Search")}
         </button>
-      </form>
+      </div>
       {searchResults.length > 0 && (
         <div className="max-h-36 overflow-y-auto divide-y divide-line border-t border-line mt-1 dashboard-scrollbar" onClick={(e) => e.stopPropagation()}>
           {searchResults.map((result, idx) => (
@@ -106,8 +117,9 @@ export default function ZoneDrawMap({
   onChange: (points: Array<[number, number]>) => void;
   center?: [number, number] | null;
 }) {
+  const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
-  const [mapType, setMapType] = useState<'road' | 'satellite'>('satellite');
+  const [mapType, setMapType] = useState<'road' | 'satellite' | 'hybrid'>('satellite');
 
   const handleMapClick = (latlng: L.LatLng) => {
     // GeoJSON uses [longitude, latitude] order
@@ -129,20 +141,37 @@ export default function ZoneDrawMap({
         zoom={14}
         className="h-full w-full"
         zoomControl={false}
+        attributionControl={false}
         style={{ height: '100%', width: '100%' }}
       >
-        {mapType === 'satellite' ? (
+        {mapType === 'satellite' && (
           <TileLayer
-            attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           />
-        ) : (
+        )}
+        {mapType === 'road' && (
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url={resolvedTheme === 'light'
               ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
               : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'}
           />
+        )}
+        {mapType === 'hybrid' && (
+          <>
+            <TileLayer
+              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+            <TileLayer
+              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+              url={resolvedTheme === 'light'
+                ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'}
+              zIndex={10}
+            />
+          </>
         )}
 
         <MapEvents onMapClick={handleMapClick} />
@@ -206,7 +235,7 @@ export default function ZoneDrawMap({
           }`}
         >
           <Navigation size={10} />
-          Road
+          {t('Map')}
         </button>
         <button
           type="button"
@@ -218,7 +247,19 @@ export default function ZoneDrawMap({
           }`}
         >
           <Globe size={10} />
-          Satellite
+          {t('Satellite')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapType('hybrid')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold rounded-md transition ${
+            mapType === 'hybrid'
+              ? 'bg-white/10 text-white'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Globe size={10} />
+          {t('Hybrid')}
         </button>
       </div>
 
