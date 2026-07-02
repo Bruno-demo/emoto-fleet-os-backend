@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { TelemetryPayload } from '../mqtt/mqtt-validation.util';
@@ -35,6 +35,7 @@ export class TripBuilderService {
   private readonly minDistanceForScoringKm: number;
   private readonly penaltyMultiplier: number;
   private readonly scoreWeights: TripScoreWeights;
+  private readonly maxTripDurationSeconds: number;
   private readonly tripStreamKey: string | null;
   private readonly streamMaxLen: number;
   private readonly streamEnabled: boolean;
@@ -56,6 +57,10 @@ export class TripBuilderService {
     this.endIdleSeconds = this.configService.get<number>(
       'TRIP_END_IDLE_SECONDS',
       300,
+    );
+    this.maxTripDurationSeconds = this.configService.get<number>(
+      'MAX_TRIP_DURATION_SECONDS',
+      43200, // 12 hours
     );
     this.minDistanceForScoringKm = this.configService.get<number>(
       'TRIP_SCORE_MIN_DISTANCE_KM',
@@ -154,6 +159,17 @@ export class TripBuilderService {
       return;
     }
 
+    // Guard: force-finalize trips that exceed the maximum allowed duration (default 12h).
+    // This prevents runaway trips caused by faulty ignition wires or GPS drift.
+    const tripElapsedSeconds =
+      (nowMs - Date.parse(state.activeStartTs)) / 1000;
+    if (tripElapsedSeconds >= this.maxTripDurationSeconds) {
+      const activeStartTs = state.activeStartTs;
+      await this.clearState(device.id);
+      await this.finalizeTrip(device, activeStartTs, payload.ts);
+      return;
+    }
+
     if (noMovement) {
       if (!state.idleSinceTs) {
         state.idleSinceTs = payload.ts;
@@ -179,11 +195,18 @@ export class TripBuilderService {
       return;
     }
 
+    // Determine the correct trip end timestamp:
+    // - Idle timeout: use idleSinceTs (when bike actually stopped), NOT the current packet time
+    // - Ignition off: use payload.ts (the ignition-off moment)
+    const tripEndTs = shouldEndByIdle && state.idleSinceTs
+      ? state.idleSinceTs
+      : payload.ts;
+
     // Clear the active state in Redis immediately BEFORE starting the long async database operation
     // to prevent concurrent telemetry packets from triggering duplicate trips for the same start time.
     await this.clearState(device.id);
 
-    await this.finalizeTrip(device, activeStartTs, payload.ts);
+    await this.finalizeTrip(device, activeStartTs, tripEndTs);
   }
 
   // Applies start conditions while device is currently considered idle.
@@ -318,20 +341,35 @@ export class TripBuilderService {
       },
     });
 
-    const createdTrip = await this.prismaService.trip.create({
-      data: {
-        fleetId: device.fleetId,
-        bikeId: device.bikeId,
-        riderId: activeAssignment?.riderUserId ?? null,
-        startTs: startDate,
-        endTs: endDate,
-        distanceKm,
-        durationSec,
-        score,
-        startBatteryPct,
-        endBatteryPct,
-      },
-    });
+    let createdTrip;
+    try {
+      createdTrip = await this.prismaService.trip.create({
+        data: {
+          fleetId: device.fleetId,
+          bikeId: device.bikeId,
+          riderId: activeAssignment?.riderUserId ?? null,
+          startTs: startDate,
+          endTs: endDate,
+          distanceKm,
+          durationSec,
+          score,
+          startBatteryPct,
+          endBatteryPct,
+        },
+      });
+    } catch (error: unknown) {
+      // Silently discard duplicate trips (unique constraint violation on bikeId + startTs)
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        this.logger.warn(
+          `Duplicate trip discarded for device ${this.truncateDeviceUid(device.deviceUid)} startTs=${startDate.toISOString()}`,
+        );
+        return;
+      }
+      throw error;
+    }
 
     await this.publishTripSummary(createdTrip);
 

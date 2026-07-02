@@ -491,7 +491,7 @@ model Trip {
   @@index([bikeId])
   @@index([startTs])
   @@index([fleetId, startTs])
-  @@index([bikeId, startTs])
+  @@unique([bikeId, startTs])
 }
 
 model ScoreSummary {
