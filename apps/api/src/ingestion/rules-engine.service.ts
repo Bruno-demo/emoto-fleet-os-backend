@@ -267,7 +267,11 @@ export class RulesEngineService {
       const speedDeltaKph = payload.speedKph - prev.speedKph;
       const speedDeltaMs = speedDeltaKph / 3.6;
       const timeDeltaSeconds = timeDeltaMs / 1000;
-      const acceleration = speedDeltaMs / timeDeltaSeconds;
+      
+      // Cap the divisor to 2.5s for harsh dynamics calculations. This represents the typical 
+      // duration of a hard braking/accel event, preventing G-force dilution over the packet interval.
+      const effectiveTimeDelta = Math.min(timeDeltaSeconds, 2.5);
+      const acceleration = speedDeltaMs / effectiveTimeDelta;
       const gForce = acceleration / 9.81;
 
       const SOFTWARE_BRAKE_G_THRESHOLD = -0.35;
@@ -394,7 +398,10 @@ export class RulesEngineService {
       const speedDropKph = previousState.speedKph - payload.speedKph;
       const speedDropMs = speedDropKph / 3.6;
       const timeDeltaSeconds = timeDeltaMs / 1000;
-      const deceleration = speedDropMs / timeDeltaSeconds;
+      
+      // Cap the divisor to 1.5s to calculate impact intensity rather than averaging over the packet interval
+      const effectiveTimeDelta = Math.min(timeDeltaSeconds, 1.5);
+      const deceleration = speedDropMs / effectiveTimeDelta;
       const gForce = deceleration / 9.81;
 
       const SOFTWARE_CRASH_G_THRESHOLD = 1.0;
