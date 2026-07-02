@@ -1080,7 +1080,7 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
       return;
     }
 
-    const duration = 2000; // Interpolate over 2 seconds
+    const duration = 5000; // Interpolate over 5 seconds (matching the GPS tracker report interval)
     const startTime = performance.now();
     let animFrameId: number;
 
