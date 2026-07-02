@@ -52,7 +52,7 @@ export function normalizeTripEventCounts(
   return counts;
 }
 
-// Computes 0-100 trip score from weighted events per km with configurable penalty scaling.
+// Computes 0-100 trip score with square root distance scaling for behavioral events (preventing dilution on long trips) and flat deductions for critical safety incidents (crash/theft).
 export function computeTripScore(
   distanceKm: number,
   counts: TripEventCounts,
@@ -60,9 +60,11 @@ export function computeTripScore(
   penaltyMultiplier: number,
   minDistanceKm: number,
 ): number {
-  const normalizedDistanceKm = Math.max(distanceKm, minDistanceKm);
+  const rawDistance = Math.max(distanceKm, minDistanceKm);
+  const normalizedDistanceKm = Math.sqrt(rawDistance);
 
-  const weightedPenalty =
+  // Behavioral/frequency-based penalties (normalized by square root of distance to prevent dilution)
+  const behavioralPenalty =
     (counts.OVERSPEED * weights.overspeed +
       counts.SPEED_LIMIT_VIOLATION * weights.speedLimitViolation +
       counts.SCHOOL_ZONE_SPEED * weights.schoolZoneSpeed +
@@ -70,12 +72,15 @@ export function computeTripScore(
       counts.MARKET_ZONE_SPEED * weights.marketZoneSpeed +
       counts.HARSH_BRAKE * weights.harshBrake +
       counts.HARSH_ACCEL * weights.harshAccel +
-      counts.HARSH_CORNER * weights.harshCorner +
-      counts.CRASH * weights.crash +
-      counts.THEFT_SUSPECTED * weights.theftSuspected) /
+      counts.HARSH_CORNER * weights.harshCorner) /
     normalizedDistanceKm;
 
-  const score = 100 - weightedPenalty * penaltyMultiplier;
+  // Critical/incident-based penalties (flat deduction, not diluted by distance)
+  const criticalPenalty =
+    counts.CRASH * weights.crash +
+    counts.THEFT_SUSPECTED * weights.theftSuspected;
+
+  const score = 100 - (behavioralPenalty + criticalPenalty) * penaltyMultiplier;
   return clamp(score, 0, 100);
 }
 

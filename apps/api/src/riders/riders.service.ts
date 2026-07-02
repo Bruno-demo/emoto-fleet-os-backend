@@ -415,7 +415,10 @@ export class RidersService {
     });
 
     const scoreMap = new Map<string, number>();
-    const riderTrips = new Map<string, Array<{ score: number; distanceKm: number }>>();
+    const riderTrips = new Map<
+      string,
+      Array<{ score: number; distanceKm: number }>
+    >();
     for (const trip of trips) {
       if (!trip.riderId) continue;
       const list = riderTrips.get(trip.riderId) ?? [];
@@ -1113,8 +1116,8 @@ export class RidersService {
       trips.length === 0
         ? 100
         : totalDistance > 0
-        ? weightedScoreSum / totalDistance
-        : scores.reduce((sum, score) => sum + score, 0) / scores.length;
+          ? weightedScoreSum / totalDistance
+          : scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const bestScore = scores.length === 0 ? null : Math.max(...scores);
     const worstScore = scores.length === 0 ? null : Math.min(...scores);
 
@@ -1288,10 +1291,8 @@ export class RidersService {
     distanceKm: number,
     counts: TripEventCounts,
   ): RiderTripDetail['scoreBreakdown'] {
-    const normalizedDistanceKm = Math.max(
-      distanceKm,
-      this.tripScoreMinDistanceKm,
-    );
+    const rawDistance = Math.max(distanceKm, this.tripScoreMinDistanceKm);
+    const normalizedDistanceKm = Math.sqrt(rawDistance);
     const weightedBaseByType = {
       OVERSPEED: counts.OVERSPEED * this.tripScoreWeights.overspeed,
       SPEED_LIMIT_VIOLATION:
@@ -1345,12 +1346,10 @@ export class RidersService {
           this.tripPenaltyMultiplier,
       ),
       CRASH: this.roundScorePenalty(
-        (weightedBaseByType.CRASH / normalizedDistanceKm) *
-          this.tripPenaltyMultiplier,
+        weightedBaseByType.CRASH * this.tripPenaltyMultiplier,
       ),
       THEFT_SUSPECTED: this.roundScorePenalty(
-        (weightedBaseByType.THEFT_SUSPECTED / normalizedDistanceKm) *
-          this.tripPenaltyMultiplier,
+        weightedBaseByType.THEFT_SUSPECTED * this.tripPenaltyMultiplier,
       ),
     };
 
