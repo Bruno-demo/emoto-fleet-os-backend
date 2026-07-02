@@ -433,11 +433,13 @@ export class RulesEngineService {
     const gForce = totalAccel / 9.81;
     const tiltDetected = Math.abs(payload.accel.z) <= CRASH_TILT_Z_THRESHOLD;
 
-    if (
-      gForce < CRASH_G_FORCE_THRESHOLD ||
-      speedDrop < CRASH_SPEED_DROP_THRESHOLD_KPH ||
-      !tiltDetected
-    ) {
+    // Robust multi-path crash detection for insurance reliability:
+    // 1. Major collision: High impact G-force combined with a sudden deceleration.
+    // 2. Slide/Fall: High impact G-force accompanied by a tilt event (Z-axis drop).
+    const isMajorCollision = gForce >= CRASH_G_FORCE_THRESHOLD && speedDrop >= CRASH_SPEED_DROP_THRESHOLD_KPH;
+    const isSlideOrFall = gForce >= CRASH_G_FORCE_THRESHOLD && tiltDetected;
+
+    if (!isMajorCollision && !isSlideOrFall) {
       return;
     }
 

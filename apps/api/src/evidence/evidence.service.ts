@@ -113,7 +113,10 @@ export class EvidenceService {
               fleetId: incident.fleetId,
               bikeId: incident.bikeId,
               startTs: { lte: crashTs },
-              OR: [{ endTs: null }, { endTs: { gte: crashTs } }],
+              OR: [
+                { endTs: null },
+                { endTs: { gte: new Date(crashTs.getTime() - 120 * 1000) } },
+              ],
             },
             orderBy: {
               startTs: 'desc',
