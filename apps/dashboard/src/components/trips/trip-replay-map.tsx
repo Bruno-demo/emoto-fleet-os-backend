@@ -214,7 +214,8 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
               <button
                 type="button"
                 onClick={handlePlayToggle}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow transition hover:bg-accent-strong"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-white shadow transition-all hover:brightness-110"
+                style={{ backgroundColor: '#3B82F6', color: '#FFFFFF' }}
               >
                 {isPlaying ? <Pause size={14} /> : <Play size={14} />}
               </button>
