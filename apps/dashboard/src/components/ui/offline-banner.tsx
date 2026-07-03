@@ -7,13 +7,12 @@ import { WifiOff, X } from 'lucide-react';
 // automatically when connectivity is restored. Uses the browser's native
 // navigator.onLine + online/offline events.
 export function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(
+    () => typeof navigator !== 'undefined' && !navigator.onLine,
+  );
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Set initial state (only on client)
-    setIsOffline(!navigator.onLine);
-
     const handleOffline = () => {
       setIsOffline(true);
       setDismissed(false); // Re-show banner on each offline event
