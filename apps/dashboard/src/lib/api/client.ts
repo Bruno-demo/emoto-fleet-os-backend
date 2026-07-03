@@ -81,7 +81,7 @@ export async function apiFetch<T = unknown>(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout to allow for cloud cold starts
+  const timeoutId = setTimeout(() => controller.abort(), 40000); // 40s timeout for slow/flaky connections and cloud cold starts
 
   try {
     const resolvedUrl = resolveApiUrl(path);

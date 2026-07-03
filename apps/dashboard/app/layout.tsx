@@ -4,6 +4,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { LanguageProvider } from '@/components/i18n/LanguageProvider';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
@@ -161,6 +162,7 @@ export default function RootLayout({
           <LanguageProvider>
             <QueryProvider>
               {children}
+              <OfflineBanner />
               <SpeedInsights />
               <Analytics />
             </QueryProvider>
