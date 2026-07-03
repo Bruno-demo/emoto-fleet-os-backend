@@ -108,7 +108,7 @@ export class ReportsService {
 
     const topRiskyBikes = this.buildTopRiskyBikes(bikeMetrics, bikeLabels);
     const topRiskyRiders = this.buildTopRiskyRiders(riderMetrics, riderNames);
-    
+
     let totalWeeklyDistance = 0;
     let weightedWeeklyScoreSum = 0;
     for (const trip of trips) {
@@ -121,15 +121,21 @@ export class ReportsService {
       trips.length === 0
         ? 100
         : totalWeeklyDistance > 0
-        ? weightedWeeklyScoreSum / totalWeeklyDistance
-        : trips.reduce((sum, trip) => sum + Number(trip.score), 0) /
-          trips.length;
+          ? weightedWeeklyScoreSum / totalWeeklyDistance
+          : trips.reduce((sum, trip) => sum + Number(trip.score), 0) /
+            trips.length;
 
     // Calculate actual daily average safety scores
-    const dailyMap = new Map<string, { weightedSum: number; totalDistance: number }>();
+    const dailyMap = new Map<
+      string,
+      { weightedSum: number; totalDistance: number }
+    >();
     for (const trip of trips) {
       const dateKey = trip.startTs.toISOString().slice(0, 10);
-      const existing = dailyMap.get(dateKey) ?? { weightedSum: 0, totalDistance: 0 };
+      const existing = dailyMap.get(dateKey) ?? {
+        weightedSum: 0,
+        totalDistance: 0,
+      };
       existing.weightedSum += Number(trip.score) * Number(trip.distanceKm);
       existing.totalDistance += Number(trip.distanceKm);
       dailyMap.set(dateKey, existing);
@@ -143,12 +149,18 @@ export class ReportsService {
       let dayScore = 100;
       if (dayData) {
         if (dayData.totalDistance > 0) {
-          dayScore = Number((dayData.weightedSum / dayData.totalDistance).toFixed(2));
+          dayScore = Number(
+            (dayData.weightedSum / dayData.totalDistance).toFixed(2),
+          );
         } else {
-          const rawSum = trips.filter(t => t.startTs.toISOString().slice(0, 10) === dateKey)
-                               .reduce((sum, t) => sum + Number(t.score), 0);
-          const rawCount = trips.filter(t => t.startTs.toISOString().slice(0, 10) === dateKey).length;
-          dayScore = rawCount > 0 ? Number((rawSum / rawCount).toFixed(2)) : 100;
+          const rawSum = trips
+            .filter((t) => t.startTs.toISOString().slice(0, 10) === dateKey)
+            .reduce((sum, t) => sum + Number(t.score), 0);
+          const rawCount = trips.filter(
+            (t) => t.startTs.toISOString().slice(0, 10) === dateKey,
+          ).length;
+          dayScore =
+            rawCount > 0 ? Number((rawSum / rawCount).toFixed(2)) : 100;
         }
       }
       dailyScores.push({
@@ -274,8 +286,8 @@ export class ReportsService {
           metric.tripCount === 0
             ? 100
             : metric.totalDistance > 0
-            ? metric.weightedScoreSum / metric.totalDistance
-            : 100;
+              ? metric.weightedScoreSum / metric.totalDistance
+              : 100;
         return {
           bikeId: metric.bikeId,
           label: bikeLabels.get(metric.bikeId) ?? 'Unknown',
@@ -343,8 +355,8 @@ export class ReportsService {
           metric.tripCount === 0
             ? 100
             : metric.totalDistance > 0
-            ? metric.weightedScoreSum / metric.totalDistance
-            : 100;
+              ? metric.weightedScoreSum / metric.totalDistance
+              : 100;
         return {
           riderId: metric.riderId,
           fullName: riderNames.get(metric.riderId) ?? 'Unknown',

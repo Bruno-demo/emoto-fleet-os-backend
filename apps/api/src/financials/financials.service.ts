@@ -243,10 +243,14 @@ export class FinancialsService {
     endDate?: string,
   ) {
     const start = startDate
-      ? (startDate.includes('T') ? new Date(startDate) : new Date(startDate + 'T00:00:00.000Z'))
+      ? startDate.includes('T')
+        ? new Date(startDate)
+        : new Date(startDate + 'T00:00:00.000Z')
       : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const end = endDate
-      ? (endDate.includes('T') ? new Date(endDate) : new Date(endDate + 'T23:59:59.999Z'))
+      ? endDate.includes('T')
+        ? new Date(endDate)
+        : new Date(endDate + 'T23:59:59.999Z')
       : new Date();
 
     // Sum of all payments in fleet
@@ -326,9 +330,7 @@ export class FinancialsService {
     const overdueCount = allPayments.filter(
       (p) => p.status === 'OVERDUE',
     ).length;
-    const unpaidCount = allPayments.filter(
-      (p) => p.status === 'UNPAID',
-    ).length;
+    const unpaidCount = allPayments.filter((p) => p.status === 'UNPAID').length;
 
     // Outstanding total unpaid logs (all-time outstanding)
     const unpaidLogsSum = allPayments

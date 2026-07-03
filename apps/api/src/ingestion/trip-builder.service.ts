@@ -161,8 +161,7 @@ export class TripBuilderService {
 
     // Guard: force-finalize trips that exceed the maximum allowed duration (default 12h).
     // This prevents runaway trips caused by faulty ignition wires or GPS drift.
-    const tripElapsedSeconds =
-      (nowMs - Date.parse(state.activeStartTs)) / 1000;
+    const tripElapsedSeconds = (nowMs - Date.parse(state.activeStartTs)) / 1000;
     if (tripElapsedSeconds >= this.maxTripDurationSeconds) {
       const activeStartTs = state.activeStartTs;
       await this.clearState(device.id);
@@ -198,9 +197,8 @@ export class TripBuilderService {
     // Determine the correct trip end timestamp:
     // - Idle timeout: use idleSinceTs (when bike actually stopped), NOT the current packet time
     // - Ignition off: use payload.ts (the ignition-off moment)
-    const tripEndTs = shouldEndByIdle && state.idleSinceTs
-      ? state.idleSinceTs
-      : payload.ts;
+    const tripEndTs =
+      shouldEndByIdle && state.idleSinceTs ? state.idleSinceTs : payload.ts;
 
     // Clear the active state in Redis immediately BEFORE starting the long async database operation
     // to prevent concurrent telemetry packets from triggering duplicate trips for the same start time.

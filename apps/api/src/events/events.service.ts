@@ -104,8 +104,51 @@ export class EventsService {
       this.prismaService.event.count({ where }),
     ]);
 
+    let enrichedEvents = events.map((event) => this.toFleetEvent(event));
+
+    if (events.length > 0) {
+      const telemetryPoints = await this.prismaService.telemetryPoint.findMany({
+        where: {
+          OR: events.map((e) => ({
+            deviceId: e.deviceId,
+            ts: e.ts,
+          })),
+        },
+        select: {
+          deviceId: true,
+          ts: true,
+          lat: true,
+          lng: true,
+        },
+      });
+
+      const coordsMap = new Map<string, { lat: number; lng: number }>();
+      for (const point of telemetryPoints) {
+        coordsMap.set(`${point.deviceId}_${point.ts.toISOString()}`, {
+          lat: Number(point.lat),
+          lng: Number(point.lng),
+        });
+      }
+
+      enrichedEvents = enrichedEvents.map((fleetEvent) => {
+        const coords = coordsMap.get(
+          `${fleetEvent.deviceId}_${fleetEvent.ts.toISOString()}`,
+        );
+        if (coords) {
+          const meta =
+            fleetEvent.metaJson &&
+            typeof fleetEvent.metaJson === 'object' &&
+            !Array.isArray(fleetEvent.metaJson)
+              ? (fleetEvent.metaJson as Record<string, unknown>)
+              : {};
+          fleetEvent.metaJson = { ...meta, lat: coords.lat, lng: coords.lng };
+        }
+        return fleetEvent;
+      });
+    }
+
     return createPaginatedResponse(
-      events.map((event) => this.toFleetEvent(event)),
+      enrichedEvents,
       total,
       pagination.page,
       pagination.pageSize,
@@ -114,6 +157,38 @@ export class EventsService {
 
   // Persists an event and broadcasts it to fleet websocket subscribers.
   async createFleetEvent(input: CreateFleetEventInput): Promise<FleetEvent> {
+    let dbLat = null;
+    let dbLng = null;
+    try {
+      const tp = await this.prismaService.telemetryPoint.findFirst({
+        where: {
+          deviceId: input.deviceId,
+          ts: input.ts,
+        },
+        select: {
+          lat: true,
+          lng: true,
+        },
+      });
+      if (tp) {
+        dbLat = Number(tp.lat);
+        dbLng = Number(tp.lng);
+      }
+    } catch {
+      // Ignore lookup errors
+    }
+
+    const inputMeta =
+      input.metaJson &&
+      typeof input.metaJson === 'object' &&
+      !Array.isArray(input.metaJson)
+        ? (input.metaJson as Record<string, unknown>)
+        : {};
+    const lat = typeof inputMeta.lat === 'number' ? inputMeta.lat : dbLat;
+    const lng = typeof inputMeta.lng === 'number' ? inputMeta.lng : dbLng;
+
+    const metaJson = { ...inputMeta, lat, lng } as Prisma.InputJsonValue;
+
     const event = await this.prismaService.event.create({
       data: {
         fleetId: input.fleetId,
@@ -122,7 +197,7 @@ export class EventsService {
         ts: input.ts,
         type: input.type,
         severity: input.severity,
-        metaJson: input.metaJson,
+        metaJson,
       },
     });
 

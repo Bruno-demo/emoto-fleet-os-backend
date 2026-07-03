@@ -267,8 +267,8 @@ export class RulesEngineService {
       const speedDeltaKph = payload.speedKph - prev.speedKph;
       const speedDeltaMs = speedDeltaKph / 3.6;
       const timeDeltaSeconds = timeDeltaMs / 1000;
-      
-      // Cap the divisor to 2.5s for harsh dynamics calculations. This represents the typical 
+
+      // Cap the divisor to 2.5s for harsh dynamics calculations. This represents the typical
       // duration of a hard braking/accel event, preventing G-force dilution over the packet interval.
       const effectiveTimeDelta = Math.min(timeDeltaSeconds, 2.5);
       const acceleration = speedDeltaMs / effectiveTimeDelta;
@@ -398,7 +398,7 @@ export class RulesEngineService {
       const speedDropKph = previousState.speedKph - payload.speedKph;
       const speedDropMs = speedDropKph / 3.6;
       const timeDeltaSeconds = timeDeltaMs / 1000;
-      
+
       // Cap the divisor to 1.5s to calculate impact intensity rather than averaging over the packet interval
       const effectiveTimeDelta = Math.min(timeDeltaSeconds, 1.5);
       const deceleration = speedDropMs / effectiveTimeDelta;
@@ -443,7 +443,9 @@ export class RulesEngineService {
     // Robust multi-path crash detection for insurance reliability:
     // 1. Major collision: High impact G-force combined with a sudden deceleration.
     // 2. Slide/Fall: High impact G-force accompanied by a tilt event (Z-axis drop).
-    const isMajorCollision = gForce >= CRASH_G_FORCE_THRESHOLD && speedDrop >= CRASH_SPEED_DROP_THRESHOLD_KPH;
+    const isMajorCollision =
+      gForce >= CRASH_G_FORCE_THRESHOLD &&
+      speedDrop >= CRASH_SPEED_DROP_THRESHOLD_KPH;
     const isSlideOrFall = gForce >= CRASH_G_FORCE_THRESHOLD && tiltDetected;
 
     if (!isMajorCollision && !isSlideOrFall) {

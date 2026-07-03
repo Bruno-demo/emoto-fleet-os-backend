@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, CalendarDays, Filter, ShieldAlert } from 'lucide-react';
+import { Activity, CalendarDays, Filter, ShieldAlert, Lock, MapPin, ArrowRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
+import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { SelectField, TextField } from '@/components/ui/form-controls';
@@ -14,11 +16,29 @@ import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { Bike, FleetEvent, PaginatedResponse } from '@/lib/types/dashboard';
 import { formatEnumLabel, formatTimestamp } from '@/lib/ui';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { getSubscriptionEntitlements } from '@/lib/subscription';
+
+const EventMap = dynamic(
+  () => import('@/components/events/event-map').then((mod) => mod.EventMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-60 w-full flex items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm text-ink-soft animate-pulse">
+        Loading map...
+      </div>
+    ),
+  },
+);
 
 const PAGE_SIZE = 20;
 
 export default function EventsPage() {
   const { t } = useTranslation();
+  const { data: user } = useCurrentUser();
+  const entitlements = useMemo(() => getSubscriptionEntitlements(user), [user]);
+  const [selectedEvent, setSelectedEvent] = useState<FleetEvent | null>(null);
+
   const [page, setPage] = useState(1);
   const [type, setType] = useState('');
   const [severity, setSeverity] = useState('');
@@ -247,6 +267,7 @@ export default function EventsPage() {
             columns={columns}
             keyExtractor={(event) => event.id}
             loading={eventsQuery.isLoading}
+            onRowClick={(event) => setSelectedEvent(event)}
             emptyState={
               <EmptyState
                 icon={<Activity size={18} />}
@@ -263,8 +284,189 @@ export default function EventsPage() {
           onPageChange={setPage}
         />
       </DashboardCard>
+
+      {/* Event Details Drawer */}
+      <Drawer
+        open={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        title={selectedEvent ? `${t(formatEnumLabel(selectedEvent.type))} ${t('Event')}` : ''}
+        description={selectedEvent ? `${t('Event ID')}: ${selectedEvent.id}` : ''}
+      >
+        {selectedEvent && (
+          <div className="space-y-6">
+            {/* Entitlement Check */}
+            {user?.role === 'INSURER' || entitlements.isPremium ? (
+              <>
+                {/* Severity & Timestamp */}
+                <div className="flex items-center justify-between border-b border-line pb-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                      {t('Severity')}
+                    </p>
+                    <div className="mt-1">
+                      <SeverityBadge severity={selectedEvent.severity} />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                      {t('Occurred At')}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-ink">
+                      {formatTimestamp(selectedEvent.ts)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Event Explanation */}
+                <div className="rounded-2xl border border-line bg-surface-muted p-4">
+                  <h4 className="text-sm font-bold text-white mb-2">{t('Event Explanation')}</h4>
+                  <p className="text-sm text-zinc-300 leading-relaxed">
+                    {getEventDescription(selectedEvent.type, selectedEvent.metaJson as Record<string, unknown> | null, t)}
+                  </p>
+                </div>
+
+                {/* Where it happened (Map) */}
+                <div>
+                  <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-1.5">
+                    <MapPin size={16} className="text-accent" />
+                    {t('Location Coordinates')}
+                  </h4>
+                  {(selectedEvent.metaJson as Record<string, unknown>)?.lat && (selectedEvent.metaJson as Record<string, unknown>)?.lng ? (
+                    <div className="space-y-3">
+                      <EventMap
+                        lat={Number((selectedEvent.metaJson as Record<string, unknown>).lat)}
+                        lng={Number((selectedEvent.metaJson as Record<string, unknown>).lng)}
+                      />
+                      <div className="flex gap-4 text-xs text-zinc-400 bg-surface px-4 py-2.5 rounded-xl border border-line">
+                        <span>
+                          <strong className="text-zinc-300">{t('Lat:')}</strong>{' '}
+                          {Number((selectedEvent.metaJson as Record<string, unknown>).lat).toFixed(5)}
+                        </span>
+                        <span>
+                          <strong className="text-zinc-300">{t('Lng:')}</strong>{' '}
+                          {Number((selectedEvent.metaJson as Record<string, unknown>).lng).toFixed(5)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center bg-surface-hover/30">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-500 mb-2">
+                        <MapPin size={15} />
+                      </span>
+                      <p className="text-xs text-zinc-400">
+                        {t('No location coordinates recorded for this event.')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Technical Diagnostic Metadata */}
+                <div>
+                  <h4 className="text-sm font-bold text-white mb-3">{t('Technical Diagnostics')}</h4>
+                  <div className="rounded-2xl border border-line bg-[#09090b] p-4 font-mono text-xs text-zinc-400 overflow-x-auto">
+                    <pre>{JSON.stringify(selectedEvent.metaJson, null, 2)}</pre>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {selectedEvent.bikeId && (
+                  <div className="flex flex-col gap-2 pt-4 border-t border-line">
+                    <Link
+                      href={`/bikes?bikeId=${selectedEvent.bikeId}`}
+                      onClick={() => setSelectedEvent(null)}
+                      className="flex items-center justify-between rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-accent transition hover:bg-surface-muted"
+                    >
+                      <span>{t('Go to bike profile')}</span>
+                      <ArrowRight size={16} />
+                    </Link>
+                    <Link
+                      href={`/live?bikeId=${selectedEvent.bikeId}`}
+                      onClick={() => setSelectedEvent(null)}
+                      className="flex items-center justify-between rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted"
+                    >
+                      <span>{t('Locate bike on live map')}</span>
+                      <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Upgrade Lock Screen */
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent mb-4 animate-pulse">
+                  <Lock size={24} />
+                </span>
+                <h3 className="text-lg font-bold text-white mb-2">
+                  {t('Event Diagnostics Locked')}
+                </h3>
+                <p className="text-sm text-zinc-400 max-w-sm mb-6 leading-relaxed">
+                  {t(
+                    'Detailed event explanations, exact GPS coordinates, and historical location mapping are premium features. Upgrade to Operations Plus to unlock.',
+                  )}
+                </p>
+                <Link
+                  href="/checkout?plan=operations-plus"
+                  onClick={() => setSelectedEvent(null)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-strong active:scale-95"
+                >
+                  {t('Upgrade plan')}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
+}
+
+function getEventDescription(type: string, meta: Record<string, unknown> | null | undefined, t: (key: string) => string): string {
+  switch (type) {
+    case 'OVERSPEED':
+      return t('The vehicle exceeded the speed limit of {limit} kph within the slow zone "{zone}" by traveling at {speed} kph.')
+        .replace('{limit}', String(meta?.speedLimitKph ?? 'N/A'))
+        .replace('{zone}', String(meta?.zoneName ?? t('Unknown Zone')))
+        .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
+    case 'SPEED_LIMIT_VIOLATION':
+      return t('The vehicle exceeded the road speed limit of {limit} kph by traveling at {speed} kph.')
+        .replace('{limit}', String(meta?.speedLimitKph ?? 'N/A'))
+        .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
+    case 'SCHOOL_ZONE_SPEED':
+      return t('The vehicle exceeded the safety speed limit of {limit} kph inside a school zone by traveling at {speed} kph.')
+        .replace('{limit}', String(meta?.speedLimitKph ?? '30'))
+        .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
+    case 'HOSPITAL_ZONE_SPEED':
+      return t('The vehicle exceeded the safety speed limit of {limit} kph inside a hospital zone by traveling at {speed} kph.')
+        .replace('{limit}', String(meta?.speedLimitKph ?? '30'))
+        .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
+    case 'MARKET_ZONE_SPEED':
+      return t('The vehicle exceeded the safety speed limit of {limit} kph inside a market zone by traveling at {speed} kph.')
+        .replace('{limit}', String(meta?.speedLimitKph ?? '25'))
+        .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
+    case 'HARSH_BRAKE':
+      return t('Harsh braking detected. G-force of {gforce} G recorded during a sudden speed drop of {delta} kph.')
+        .replace('{gforce}', String(meta?.gpsGForce ?? meta?.accelX ?? 'N/A'))
+        .replace('{delta}', String(meta?.speedDeltaKph ?? 'N/A'));
+    case 'HARSH_ACCEL':
+      return t('Harsh acceleration detected. G-force of {gforce} G recorded during a sudden speed increase of {delta} kph.')
+        .replace('{gforce}', String(meta?.gpsGForce ?? meta?.accelX ?? 'N/A'))
+        .replace('{delta}', String(meta?.speedDeltaKph ?? 'N/A'));
+    case 'HARSH_CORNER':
+      return t('Harsh cornering detected. Sudden lateral G-force of {gforce} G recorded.')
+        .replace('{gforce}', String(meta?.gpsGForce ?? 'N/A'));
+    case 'CRASH':
+      return t('Severe crash alert! The vehicle experienced an impact G-force of {gforce} G with a speed drop of {delta} kph.')
+        .replace('{gforce}', String(meta?.gForce ? Number(meta.gForce).toFixed(2) : 'N/A'))
+        .replace('{delta}', String(meta?.speedDropKph ? Number(meta.speedDropKph).toFixed(2) : 'N/A'));
+    case 'THEFT_SUSPECTED':
+      return t('Suspicious movement alert: {reason} with a speed of {speed} kph.')
+        .replace('{reason}', meta?.reason === 'movement_while_ignition_off' ? t('movement with ignition off') : t('outside park zone at night'))
+        .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
+    case 'SOS':
+      return t('Rider triggered the physical SOS button on the vehicle, indicating an emergency.');
+    default:
+      return t('An unexpected fleet telemetry event was recorded.');
+  }
 }
 
 function SeverityBadge({ severity }: { severity: FleetEvent['severity'] }) {

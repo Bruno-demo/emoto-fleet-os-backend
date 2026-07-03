@@ -342,9 +342,8 @@ export class AuthController {
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
-    const sameSite = configuredSameSite === 'none' && !secure
-      ? 'lax'
-      : configuredSameSite;
+    const sameSite =
+      configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
 
     let domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
     if (domain === '') {
@@ -383,9 +382,8 @@ export class AuthController {
     const configuredSameSite = this.configService.get<
       'lax' | 'strict' | 'none'
     >('AUTH_COOKIE_SAMESITE', 'lax');
-    const sameSite = configuredSameSite === 'none' && !secure
-      ? 'lax'
-      : configuredSameSite;
+    const sameSite =
+      configuredSameSite === 'none' && !secure ? 'lax' : configuredSameSite;
 
     let domain = this.configService.get<string>('AUTH_COOKIE_DOMAIN');
     if (domain === '') {
