@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { WifiOff, X } from 'lucide-react';
 
 // Floating banner that appears ONLY when the browser fires an actual 'offline'
@@ -9,11 +9,11 @@ import { WifiOff, X } from 'lucide-react';
 // (returns false on working connections behind proxies, VPNs, or Railway).
 export function OfflineBanner() {
   const [visible, setVisible] = useState(false);
-  const dismissedRef = useRef(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     const handleOffline = () => {
-      dismissedRef.current = false;
+      setDismissed(false);
       setVisible(true);
     };
     const handleOnline = () => {
@@ -28,12 +28,7 @@ export function OfflineBanner() {
     };
   }, []);
 
-  const dismiss = () => {
-    dismissedRef.current = true;
-    setVisible(false);
-  };
-
-  if (!visible || dismissedRef.current) return null;
+  if (!visible || dismissed) return null;
 
   return (
     <div className="fixed bottom-4 left-1/2 z-[9999] -translate-x-1/2">
@@ -47,7 +42,7 @@ export function OfflineBanner() {
         </div>
         <button
           type="button"
-          onClick={dismiss}
+          onClick={() => setDismissed(true)}
           className="ml-2 shrink-0 rounded-lg p-1 text-yellow-400/60 transition hover:bg-yellow-500/20 hover:text-yellow-300"
           aria-label="Dismiss"
         >
