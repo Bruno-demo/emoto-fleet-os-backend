@@ -1,25 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { WifiOff, X } from 'lucide-react';
 
-// Floating banner that appears when the browser goes offline and hides
-// automatically when connectivity is restored. Uses the browser's native
-// navigator.onLine + online/offline events.
+// Floating banner that appears ONLY when the browser fires an actual 'offline'
+// event and auto-hides when 'online' fires. We intentionally do NOT read
+// navigator.onLine on mount because it is unreliable in many environments
+// (returns false on working connections behind proxies, VPNs, or Railway).
 export function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(
-    () => typeof navigator !== 'undefined' && !navigator.onLine,
-  );
-  const [dismissed, setDismissed] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const dismissedRef = useRef(false);
 
   useEffect(() => {
     const handleOffline = () => {
-      setIsOffline(true);
-      setDismissed(false); // Re-show banner on each offline event
+      dismissedRef.current = false;
+      setVisible(true);
     };
     const handleOnline = () => {
-      setIsOffline(false);
-      setDismissed(false);
+      setVisible(false);
     };
 
     window.addEventListener('offline', handleOffline);
@@ -30,10 +28,15 @@ export function OfflineBanner() {
     };
   }, []);
 
-  if (!isOffline || dismissed) return null;
+  const dismiss = () => {
+    dismissedRef.current = true;
+    setVisible(false);
+  };
+
+  if (!visible || dismissedRef.current) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[9999] -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in duration-300">
+    <div className="fixed bottom-4 left-1/2 z-[9999] -translate-x-1/2">
       <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-950/90 px-5 py-3 shadow-2xl backdrop-blur-lg">
         <WifiOff size={18} className="shrink-0 text-yellow-400 animate-pulse" />
         <div className="text-sm">
@@ -44,7 +47,7 @@ export function OfflineBanner() {
         </div>
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={dismiss}
           className="ml-2 shrink-0 rounded-lg p-1 text-yellow-400/60 transition hover:bg-yellow-500/20 hover:text-yellow-300"
           aria-label="Dismiss"
         >
