@@ -134,6 +134,7 @@ enum EventType {
   CRASH
   THEFT_SUSPECTED
   SOS
+  TRACKER_OFFLINE
 }
 
 enum RoadFeatureType {

@@ -10,12 +10,14 @@ import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { EventsService } from '../src/events/events.service';
+import { DevicesService } from '../src/devices/devices.service';
 
 describe('Incidents and Notification Outbox (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaClient;
   let httpServer: Parameters<typeof request>[0];
   let eventsService: EventsService;
+  let devicesService: DevicesService;
   let token = '';
   let fleetId = '';
   let bikeId = '';
@@ -121,6 +123,7 @@ describe('Incidents and Notification Outbox (e2e)', () => {
 
     httpServer = app.getHttpServer() as Parameters<typeof request>[0];
     eventsService = app.get(EventsService);
+    devicesService = app.get(DevicesService);
 
     const login = await request(httpServer).post('/auth/login').send({
       email: adminEmail,
@@ -191,5 +194,61 @@ describe('Incidents and Notification Outbox (e2e)', () => {
     expect(
       incidentsPayload.data.some((item) => item.eventId === event.id),
     ).toBe(true);
+  });
+
+  it('triggers TRACKER_OFFLINE incident when a device has no data for 5+ hours', async () => {
+    // 1. Update seeded device to have lastSeenAt set to 6 hours ago
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    await prisma.device.update({
+      where: { id: deviceId },
+      data: {
+        lastSeenAt: sixHoursAgo,
+      },
+    });
+
+    // 2. Invoke monitorOfflineDevices
+    await devicesService.monitorOfflineDevices();
+
+    // 3. Find created incident
+    const offlineIncident = await prisma.incident.findFirst({
+      where: {
+        deviceId,
+        status: IncidentStatus.OPEN,
+        event: {
+          type: 'TRACKER_OFFLINE',
+        },
+      },
+      include: {
+        event: true,
+      },
+    });
+
+    expect(offlineIncident).not.toBeNull();
+    expect(offlineIncident?.bikeId).toBe(bikeId);
+    expect(offlineIncident?.event.type).toBe('TRACKER_OFFLINE');
+    expect(offlineIncident?.event.severity).toBe('HIGH');
+
+    // 4. Run it again and verify duplicate incident is NOT created
+    const countBefore = await prisma.incident.count({
+      where: {
+        deviceId,
+        event: {
+          type: 'TRACKER_OFFLINE',
+        },
+      },
+    });
+
+    await devicesService.monitorOfflineDevices();
+
+    const countAfter = await prisma.incident.count({
+      where: {
+        deviceId,
+        event: {
+          type: 'TRACKER_OFFLINE',
+        },
+      },
+    });
+
+    expect(countAfter).toBe(countBefore);
   });
 });

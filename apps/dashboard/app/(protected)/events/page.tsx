@@ -464,6 +464,9 @@ function getEventDescription(type: string, meta: Record<string, unknown> | null 
         .replace('{speed}', String(meta?.speedKph ?? 'N/A'));
     case 'SOS':
       return t('Rider triggered the physical SOS button on the vehicle, indicating an emergency.');
+    case 'TRACKER_OFFLINE':
+      return t('Tracker offline alert! The device has not sent any data since {lastSeen}.')
+        .replace('{lastSeen}', meta?.lastSeenAt ? formatTimestamp(String(meta.lastSeenAt)) : t('Never'));
     default:
       return t('An unexpected fleet telemetry event was recorded.');
   }

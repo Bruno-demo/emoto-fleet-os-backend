@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import {
@@ -349,5 +350,89 @@ export class DevicesService {
     }
 
     return `${deviceUid.slice(0, 4)}...${deviceUid.slice(-4)}`;
+  }
+
+  // Cron job running every 30 minutes to check if any active tracker has been offline for over 5 hours.
+  // Triggers a TRACKER_OFFLINE incident if found, notifying the fleet owner.
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async monitorOfflineDevices(): Promise<void> {
+    this.logger.log('Starting offline devices monitoring cron job...');
+    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+
+    // Find all active devices assigned to bikes that haven't been seen for 5 hours
+    const silentDevices = await this.prismaService.device.findMany({
+      where: {
+        status: DeviceStatus.ACTIVE,
+        bikeId: { not: null },
+        lastSeenAt: {
+          not: null,
+          lt: fiveHoursAgo,
+        },
+      },
+    });
+
+    this.logger.log(
+      `Found ${silentDevices.length} silent devices older than 5 hours`,
+    );
+
+    for (const device of silentDevices) {
+      try {
+        // Check if there is already an open incident of type TRACKER_OFFLINE for this device
+        const existingOpenIncident =
+          await this.prismaService.incident.findFirst({
+            where: {
+              deviceId: device.id,
+              status: 'OPEN',
+              event: {
+                type: 'TRACKER_OFFLINE',
+              },
+            },
+          });
+
+        if (existingOpenIncident) {
+          continue;
+        }
+
+        this.logger.warn(
+          `Device ${this.truncateDeviceUid(device.deviceUid)} (bike ${device.bikeId}) has been offline since ${device.lastSeenAt?.toISOString() ?? 'Never'}. Triggering TRACKER_OFFLINE incident.`,
+        );
+
+        // Create the event and incident inside a transaction
+        await this.prismaService.$transaction(async (tx) => {
+          // 1. Create the event
+          const event = await tx.event.create({
+            data: {
+              fleetId: device.fleetId,
+              bikeId: device.bikeId,
+              deviceId: device.id,
+              ts: new Date(),
+              type: 'TRACKER_OFFLINE',
+              severity: 'HIGH',
+              metaJson: {
+                lastSeenAt: device.lastSeenAt?.toISOString(),
+                durationOfflineHours: 5,
+                reason: 'No data received from GPRS tracker for over 5 hours',
+              },
+            },
+          });
+
+          // 2. Create the incident
+          await tx.incident.create({
+            data: {
+              fleetId: device.fleetId,
+              bikeId: device.bikeId,
+              deviceId: device.id,
+              eventId: event.id,
+              status: 'OPEN',
+            },
+          });
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `Failed to process offline alert for device ${device.id}: ${msg}`,
+        );
+      }
+    }
   }
 }

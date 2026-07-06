@@ -104,15 +104,17 @@ export class LiveStateService {
       // 2. Fall back to the latest telemetry point in the database
       const latestTelemetry = activeDevice.telemetry[0];
       if (latestTelemetry) {
+        const lastSeen = activeDevice.lastSeenAt ?? latestTelemetry.ts;
+        const isStale = Date.now() - lastSeen.getTime() > 10 * 60 * 1000; // 10 minutes stale threshold
         const fallbackState: LiveBikeState = {
           fleetId,
           bikeId: bike.id,
           deviceId: activeDevice.id,
           deviceUid: activeDevice.deviceUid,
-          ts: (activeDevice.lastSeenAt ?? latestTelemetry.ts).toISOString(),
+          ts: lastSeen.toISOString(),
           lat: Number(latestTelemetry.lat),
           lng: Number(latestTelemetry.lng),
-          speedKph: Number(latestTelemetry.speedKph),
+          speedKph: isStale ? 0 : Number(latestTelemetry.speedKph),
           heading: latestTelemetry.heading
             ? Number(latestTelemetry.heading)
             : undefined,
