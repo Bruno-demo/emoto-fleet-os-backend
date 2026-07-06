@@ -175,4 +175,29 @@ describe('Device Commands API (e2e)', () => {
     expect(command?.type).toBe('LOCK');
     expect(command?.status).toBe(body.status);
   });
+
+  it('rejects lock when bike ignition is ON', async () => {
+    // stationary, but ignition is true
+    await redisService.set(
+      `live:fleet:${fleetId}:bike:${bikeId}`,
+      JSON.stringify({
+        fleetId,
+        bikeId,
+        deviceId,
+        deviceUid,
+        ts: new Date(Date.now() - 20_000).toISOString(),
+        lat: -1.944,
+        lng: 30.061,
+        speedKph: 0,
+        ignition: true,
+      }),
+      600,
+    );
+
+    await request(httpServer)
+      .post(`/commands/lock?bikeId=${bikeId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(400);
+  });
 });

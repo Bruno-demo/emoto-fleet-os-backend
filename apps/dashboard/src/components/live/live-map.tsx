@@ -1664,6 +1664,10 @@ function evaluateLockRule(state: LiveBikeState | null, t: (key: string) => strin
     return { allowed: false, reason: t('No live state available for this bike.') };
   }
 
+  if (state.ignition === true) {
+    return { allowed: false, reason: t('Cannot lock while ignition is ON') };
+  }
+
   if (Math.abs(state.speedKph) > 0.1) {
     return { allowed: false, reason: t('Cannot lock while bike is moving') };
   }

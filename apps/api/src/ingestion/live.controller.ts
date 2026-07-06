@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Param, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -29,5 +29,15 @@ export class LiveController {
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedResponse<LiveBikeState>> {
     return this.liveStateService.getFleetBikeStates(user.fleetId, query);
+  }
+
+  @Get('bikes/:bikeId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({ summary: 'Get latest live state for a single bike' })
+  async getSingleLiveBike(
+    @Param('bikeId', ParseUUIDPipe) bikeId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<LiveBikeState | null> {
+    return this.liveStateService.getBikeState(user.fleetId, bikeId);
   }
 }

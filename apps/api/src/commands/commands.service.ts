@@ -43,6 +43,7 @@ const MQTT_PUBLISH_TIMEOUT_MS = 10_000;
 interface LiveStateSnapshot {
   ts: string;
   speedKph: number;
+  ignition?: boolean;
 }
 
 @Injectable()
@@ -452,11 +453,12 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('No recent live state (<30 seconds)');
     }
 
-    let parsedState: { ts?: unknown; speedKph?: unknown };
+    let parsedState: { ts?: unknown; speedKph?: unknown; ignition?: unknown };
     try {
       parsedState = JSON.parse(rawState) as {
         ts?: unknown;
         speedKph?: unknown;
+        ignition?: unknown;
       };
     } catch {
       throw new BadRequestException('Malformed live state payload');
@@ -478,6 +480,10 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     return {
       ts: parsedState.ts,
       speedKph: parsedState.speedKph,
+      ignition:
+        typeof parsedState.ignition === 'boolean'
+          ? parsedState.ignition
+          : undefined,
     };
   }
 
@@ -486,6 +492,10 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     deviceId: string,
     state: LiveStateSnapshot,
   ): Promise<void> {
+    if (state.ignition === true) {
+      throw new BadRequestException('Cannot lock while ignition is ON');
+    }
+
     if (Math.abs(state.speedKph) > 0.01) {
       throw new BadRequestException('Cannot lock while bike is moving');
     }

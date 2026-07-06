@@ -36,6 +36,7 @@ import type {
   FleetEvent,
   PaginatedResponse,
   Rider,
+  LiveBikeState,
 } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimestamp } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -346,6 +347,13 @@ export default function BikesPage() {
         })}`,
       ),
     enabled: !!selectedBikeId && selectedBikeId !== 'null',
+  });
+
+  const bikeLiveStateQuery = useQuery({
+    queryKey: ['live-states', 'bike', selectedBikeId],
+    queryFn: () => apiFetch<LiveBikeState | null>(`/live/bikes/${selectedBikeId}`),
+    enabled: !!selectedBikeId && selectedBikeId !== 'null',
+    refetchInterval: 5000,
   });
 
   const bikeCommandStatuses = useMemo(
@@ -881,7 +889,7 @@ export default function BikesPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    disabled={!canSendCommands || isSendingCommand}
+                    disabled={!canSendCommands || isSendingCommand || bikeLiveStateQuery.data?.ignition === true}
                     onClick={() => setCommandIntent('LOCK')}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ background: '#EF4444', color: 'white' }}
@@ -902,6 +910,9 @@ export default function BikesPage() {
 
                 {!canUseFeature(currentUser, 'commands') ? (
                   <InlineNotice message={t('Remote lock and unlock controls are available on Operations Plus.')} />
+                ) : null}
+                {canSendCommands && bikeLiveStateQuery.data?.ignition === true ? (
+                  <InlineNotice message={t('Cannot lock while ignition is ON')} tone="warning" />
                 ) : null}
                 {commandError ? <InlineNotice message={commandError} /> : null}
               </DashboardCard>
