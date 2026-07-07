@@ -222,6 +222,7 @@ enum AuditActionType {
   TRIAL_EXPIRED
   PARTNER_DELETED
   INSURER_DELETED
+  DEVICE_DELETED
 }
 
 model Fleet {

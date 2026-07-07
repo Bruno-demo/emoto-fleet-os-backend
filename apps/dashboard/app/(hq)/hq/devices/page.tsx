@@ -15,7 +15,8 @@ import {
   Copy, 
   Check, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -110,6 +111,8 @@ export default function HqDevicesPage() {
   const [unassignTargetId, setUnassignTargetId] = useState<string | null>(null);
   const [unassignTargetUid, setUnassignTargetUid] = useState<string | null>(null);
   const [unassignTargetBikeLabel, setUnassignTargetBikeLabel] = useState<string | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; deviceUid: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['hq', 'devices', page, search, filterStatus, filterFleetId, filterAssigned],
@@ -238,6 +241,20 @@ export default function HqDevicesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (deviceId: string) =>
+      apiFetch(`/hq/devices/${deviceId}/permanent`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setDeleteTarget(null);
+      setSelectedDevice(null);
+    },
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      alert(error?.message ?? t('Failed to delete device'));
+    },
+  });
+
   // Calculate client side metrics from current page
   const devicesList = data?.data ?? [];
   const metrics = useMemo(() => {
@@ -334,6 +351,13 @@ export default function HqDevicesPage() {
               {t('Assign')}
             </button>
           )}
+          <button
+            onClick={() => setDeleteTarget({ id: row.id, deviceUid: row.deviceUid })}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-all"
+            title={t('Delete Device')}
+          >
+            <Trash2 size={12} />
+          </button>
         </div>
       ),
     },
@@ -552,6 +576,13 @@ export default function HqDevicesPage() {
                     {t('Assign Bike')}
                   </button>
                 )}
+                <button
+                  onClick={() => setDeleteTarget({ id: selectedDevice.id, deviceUid: selectedDevice.deviceUid })}
+                  className="flex items-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 text-xs font-bold text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-colors"
+                >
+                  <Trash2 size={14} />
+                  {t('Delete Device')}
+                </button>
               </div>
             </div>
           </div>
@@ -828,6 +859,21 @@ export default function HqDevicesPage() {
           setUnassignTargetId(null);
           setUnassignTargetUid(null);
           setUnassignTargetBikeLabel(null);
+        }}
+      />
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title={t('Delete Device')}
+        description={`${t('Are you sure you want to permanently delete device')} "${deleteTarget?.deviceUid}"? ${t('All historical telemetry, incidents, commands, and active configurations will be wiped. This action cannot be undone.')}`}
+        confirmLabel={t('Delete Permanently')}
+        tone="danger"
+        isSubmitting={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+        }}
+        onCancel={() => {
+          setDeleteTarget(null);
         }}
       />
     </div>

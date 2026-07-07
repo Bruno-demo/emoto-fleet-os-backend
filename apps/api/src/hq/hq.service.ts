@@ -945,6 +945,33 @@ export class HqService {
     };
   }
 
+  async permanentDeleteDevice(deviceId: string, actor: AuthenticatedUser) {
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+    });
+    if (!device) throw new NotFoundException('Device not found');
+
+    await this.prisma.device.delete({ where: { id: deviceId } });
+
+    await this.auditService.createAuditLog({
+      fleetId: actor.fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.DEVICE_DELETED,
+      targetType: 'DEVICE',
+      targetId: deviceId,
+      metaJson: {
+        permanentDelete: true,
+        deviceUid: device.deviceUid,
+        imei: device.imei,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Device "${device.deviceUid}" has been permanently deleted.`,
+    };
+  }
+
   async deletePartnerCredential(
     partnerId: string,
     credentialId: string,

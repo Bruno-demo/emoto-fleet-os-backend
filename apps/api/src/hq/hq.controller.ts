@@ -416,6 +416,15 @@ export class HqController {
     return this.hqService.permanentDeletePartner(id, user);
   }
 
+  @Delete('devices/:id/permanent')
+  @ApiOperation({ summary: 'Permanently delete a device and all its data' })
+  deleteDevicePermanently(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.permanentDeleteDevice(id, user);
+  }
+
   // ── Audit Log ─────────────────────────────────────────────────────
 
   @Get('audit')
