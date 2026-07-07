@@ -416,10 +416,11 @@ export function HomeScreen() {
               </View>
               <View style={styles.lockBtnWrap}>
                 <PrimaryButton
-                  label="Lock"
+                  label="Lock (Coming Soon)"
                   tone="danger"
-                  onPress={() => lockMutation.mutate()}
-                  loading={lockMutation.isPending}
+                  disabled={true}
+                  onPress={() => {}}
+                  loading={false}
                 />
               </View>
             </View>

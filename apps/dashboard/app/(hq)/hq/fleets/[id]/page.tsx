@@ -1014,29 +1014,12 @@ export default function FleetDetailPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  `Lock bike "${bike.label}"? This will immobilize the vehicle.`
-                                )
-                              ) {
-                                lockMutation.mutate({ bikeId: bike.id, action: 'lock' });
-                              }
-                            }}
-                            disabled={
-                              lockingBikeId === bike.id ||
-                              bike.status !== 'ACTIVE' ||
-                              ((bike as unknown) as { lockState?: string }).lockState === 'LOCKED' ||
-                              ((bike as unknown) as { lockState?: string }).lockState === 'LOCKING'
-                            }
-                            title="Lock bike"
+                            onClick={() => {}}
+                            disabled={true}
+                            title="Lock bike (Coming Soon)"
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition-all hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
                           >
-                            {lockingBikeId === bike.id ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                              <Lock size={14} />
-                            )}
+                            <Lock size={14} />
                           </button>
                           <button
                             onClick={() =>
