@@ -268,25 +268,25 @@ export default function HqDevicesPage() {
   const columns: Array<DataTableColumn<HqDevice>> = [
     {
       header: t('Device UID'),
-      render: (row) => <span className="font-bold text-ink">{row.deviceUid}</span>,
+      render: (row) => <span className="font-bold text-ink whitespace-nowrap">{row.deviceUid}</span>,
     },
     {
       header: t('IMEI'),
-      render: (row) => <span className="font-mono text-xs text-ink-muted">{row.imei ?? '—'}</span>,
+      render: (row) => <span className="font-mono text-xs text-ink-muted whitespace-nowrap">{row.imei ?? '—'}</span>,
     },
     {
       header: t('Fleet'),
-      render: (row) => <span className="text-xs text-ink-soft">{row.fleet.name}</span>,
+      render: (row) => <span className="text-xs text-ink-soft whitespace-nowrap">{row.fleet.name}</span>,
     },
     {
       header: t('Assigned Bike'),
       render: (row) => row.bike ? (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent whitespace-nowrap">
           <Bike size={12} />
           {row.bike.label}
         </span>
       ) : (
-        <span className="text-xs text-ink-faint">{t('Unassigned')}</span>
+        <span className="text-xs text-ink-faint whitespace-nowrap">{t('Unassigned')}</span>
       ),
     },
     {
@@ -298,11 +298,11 @@ export default function HqDevicesPage() {
     },
     {
       header: t('Last Seen'),
-      render: (row) => <span className="text-xs text-ink-soft">{row.lastSeenAt ? formatTimeAgo(row.lastSeenAt) : t('Never')}</span>,
+      render: (row) => <span className="text-xs text-ink-soft whitespace-nowrap">{row.lastSeenAt ? formatTimeAgo(row.lastSeenAt) : t('Never')}</span>,
     },
     {
       header: t('FW Version'),
-      render: (row) => <span className="font-mono text-xs text-ink-muted">{row.fwVersion ?? '—'}</span>,
+      render: (row) => <span className="font-mono text-xs text-ink-muted whitespace-nowrap">{row.fwVersion ?? '—'}</span>,
     },
     {
       header: t('Actions'),
