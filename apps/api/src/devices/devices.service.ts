@@ -352,27 +352,27 @@ export class DevicesService {
     return `${deviceUid.slice(0, 4)}...${deviceUid.slice(-4)}`;
   }
 
-  // Cron job running every 30 minutes to check if any active tracker has been offline for over 5 hours.
+  // Cron job running every 5 minutes to check if any active tracker has been offline for over 10 minutes.
   // Triggers a TRACKER_OFFLINE incident if found, notifying the fleet owner.
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async monitorOfflineDevices(): Promise<void> {
     this.logger.log('Starting offline devices monitoring cron job...');
-    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
-    // Find all active devices assigned to bikes that haven't been seen for 5 hours
+    // Find all active devices assigned to bikes that haven't been seen for 10 minutes
     const silentDevices = await this.prismaService.device.findMany({
       where: {
         status: DeviceStatus.ACTIVE,
         bikeId: { not: null },
         lastSeenAt: {
           not: null,
-          lt: fiveHoursAgo,
+          lt: tenMinutesAgo,
         },
       },
     });
 
     this.logger.log(
-      `Found ${silentDevices.length} silent devices older than 5 hours`,
+      `Found ${silentDevices.length} silent devices older than 10 minutes`,
     );
 
     for (const device of silentDevices) {
@@ -410,8 +410,8 @@ export class DevicesService {
               severity: 'HIGH',
               metaJson: {
                 lastSeenAt: device.lastSeenAt?.toISOString(),
-                durationOfflineHours: 5,
-                reason: 'No data received from GPRS tracker for over 5 hours',
+                durationOfflineMinutes: 10,
+                reason: 'No data received from GPRS tracker for over 10 minutes',
               },
             },
           });
