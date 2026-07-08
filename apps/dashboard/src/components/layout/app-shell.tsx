@@ -11,6 +11,7 @@ import { canUseFeature, getSubscriptionEntitlements } from '@/lib/subscription';
 import type { Incident, IncidentStats, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx } from '@/lib/ui';
 import { useTranslation } from '../i18n/LanguageProvider';
+import { WifiOff } from 'lucide-react';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -19,6 +20,8 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const { t } = useTranslation();
   const { data: user } = useCurrentUser();
   const entitlements = getSubscriptionEntitlements(user);
   const canViewIncidents = user?.role !== 'INSURER' && canUseFeature(user, 'incidents');
@@ -31,6 +34,19 @@ export function AppShell({ children }: AppShellProps) {
   });
   const showBadge = user?.notifOpenIncidents ?? true;
   const openIncidentCount = canViewIncidents && showBadge ? incidentsStatsQuery.data?.open ?? 0 : 0;
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -63,6 +79,17 @@ export function AppShell({ children }: AppShellProps) {
         />
         <main className="px-4 py-5 md:px-6 md:py-6 xl:px-8">
           <div className="mx-auto max-w-[1600px]">
+            {!isOnline && (
+              <div className="mb-5 rounded-[20px] border border-warning-ink/25 bg-warning-soft px-5 py-4 text-sm text-warning-ink animate-pulse flex items-center gap-3">
+                <WifiOff size={16} className="shrink-0" />
+                <div>
+                  <p className="font-semibold">{t('you_are_currently_offline')}</p>
+                  <p className="mt-1 text-xs text-warning-ink">
+                    {t('operational_controls_are_disabled_and_dashboard_data_will_not_refresh_until_your_network_connection_is_restored')}
+                  </p>
+                </div>
+              </div>
+            )}
             {user ? (
               <SubscriptionNotice
                 isActive={entitlements.isActive}
