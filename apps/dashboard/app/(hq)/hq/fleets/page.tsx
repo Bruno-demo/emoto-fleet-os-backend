@@ -11,6 +11,7 @@ const fleetsSchema = z.array(
   z.object({
     id: z.string(),
     name: z.string(),
+    type: z.string(),
     plan: z.string(),
     subscriptionStatus: z.string(),
     createdAt: z.string(),
@@ -159,6 +160,7 @@ export default function HqFleetsPage() {
             <thead>
               <tr className="border-b border-line bg-white/[0.02]">
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Type</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Plan</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Network Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
@@ -170,14 +172,14 @@ export default function HqFleetsPage() {
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={6} className="px-8 py-6">
+                    <td colSpan={7} className="px-8 py-6">
                       <div className="h-4 w-full rounded bg-white/5" />
                     </td>
                   </tr>
                 ))
               ) : filteredFleets?.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-16 text-center">
+                  <td colSpan={7} className="px-8 py-16 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
                       <Search size={20} />
                     </div>
@@ -204,6 +206,12 @@ export default function HqFleetsPage() {
                           <p className="mt-1 text-[10px] text-zinc-500 font-mono tracking-tight">{fleet.id.slice(0, 8)}...</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">
+                        <div className={`h-1 w-1 rounded-full ${fleet.type === 'DELIVERY' ? 'bg-amber-400' : 'bg-cyan-400'}`} />
+                        {fleet.type}
+                      </span>
                     </td>
                     <td className="px-8 py-6">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">

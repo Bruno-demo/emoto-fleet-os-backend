@@ -141,6 +141,19 @@ export default function FleetDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hq', 'fleet', id] })
   });
 
+  const typeMutation = useMutation({
+    mutationFn: (type: string) =>
+      apiFetch(
+        `/hq/fleets/${id}/type`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ type }),
+          headers: { 'Content-Type': 'application/json' }
+        }
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hq', 'fleet', id] })
+  });
+
   const subMutation = useMutation({
     mutationFn: (status: string) =>
       apiFetch(
@@ -676,7 +689,38 @@ export default function FleetDetailPage() {
           <Shield size={18} className="text-zinc-400" />
           Fleet Management
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Fleet Type */}
+          <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
+              Fleet Type
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => typeMutation.mutate('COOP')}
+                disabled={typeMutation.isPending || fleet.type === 'COOP'}
+                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                  fleet.type === 'COOP'
+                    ? 'bg-accent text-white'
+                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                }`}
+              >
+                COOP
+              </button>
+              <button
+                onClick={() => typeMutation.mutate('DELIVERY')}
+                disabled={typeMutation.isPending || fleet.type === 'DELIVERY'}
+                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                  fleet.type === 'DELIVERY'
+                    ? 'bg-accent text-white'
+                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                }`}
+              >
+                DELIVERY
+              </button>
+            </div>
+          </div>
+
           {/* Plan Change */}
           <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">

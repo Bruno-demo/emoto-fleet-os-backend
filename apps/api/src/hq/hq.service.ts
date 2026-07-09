@@ -12,6 +12,7 @@ import {
   BikeStatus,
   Prisma,
   AuditActionType,
+  FleetType,
 } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -325,6 +326,45 @@ export class HqService {
       metaJson: {
         oldPlan: fleet.plan,
         newPlan: plan,
+      },
+    });
+
+    return updated;
+  }
+
+  async updateFleetType(
+    fleetId: string,
+    type: 'COOP' | 'DELIVERY',
+    actor: AuthenticatedUser,
+  ) {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+    });
+    if (!fleet) throw new NotFoundException('Fleet not found');
+
+    if (!['COOP', 'DELIVERY'].includes(type)) {
+      throw new BadRequestException(
+        'Invalid fleet type. Must be COOP or DELIVERY',
+      );
+    }
+
+    const updated = await this.prisma.fleet.update({
+      where: { id: fleetId },
+      data: {
+        type: type as FleetType,
+      },
+      select: { id: true, name: true, type: true },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.FLEET_PLAN_CHANGED,
+      targetType: 'FLEET',
+      targetId: fleetId,
+      metaJson: {
+        oldType: fleet.type,
+        newType: type,
       },
     });
 
