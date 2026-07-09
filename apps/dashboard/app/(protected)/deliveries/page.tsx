@@ -943,7 +943,7 @@ export default function DeliveriesPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_new_status', 'Status')}</label>
                 <select
                   value={simulatedStatus}
-                  onChange={(e) => setSimulatedStatus(e.target.value as Delivery['status'])}
+                  onChange={(e) => setSimulatedStatus(e.target.value as typeof simulatedStatus)}
                   className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
                 >
                   <option value="PICKED_UP">{t('delivery_status_PICKED_UP', 'Picked Up')}</option>
