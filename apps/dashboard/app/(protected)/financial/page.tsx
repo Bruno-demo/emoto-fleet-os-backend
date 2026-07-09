@@ -33,6 +33,7 @@ import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { PaginatedResponse, Rider } from '@/lib/types/dashboard';
 import { cx } from '@/lib/ui';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 const PAGE_SIZE = 15;
 const DAILY_LEASE_RATE = 15000; // default daily lease rate in RWF
@@ -86,6 +87,7 @@ interface LeaseContract {
 export default function FinancialsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
   const [weekOffset, setWeekOffset] = useState(0);
   const [showCollectModal, setShowCollectModal] = useState(false);
@@ -582,6 +584,16 @@ export default function FinancialsPage() {
       amount: earn.amount,
     };
   }, [activePointIndex, summary, svgChartPath]);
+
+  if (currentUser && currentUser.fleetType !== 'COOP') {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <AlertTriangle size={48} className="text-amber-500 animate-bounce" />
+        <h1 className="text-lg font-bold text-ink">{t('Access Denied')}</h1>
+        <p className="text-sm text-ink-muted">{t('Financial management features are only available for Cooperative fleets.')}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

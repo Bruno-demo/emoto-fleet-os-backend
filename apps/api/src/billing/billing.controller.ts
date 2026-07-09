@@ -12,7 +12,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { FleetPlan } from '@prisma/client';
+import { FleetPlan, FleetType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -53,6 +53,9 @@ export class BillingController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListBillingCyclesDto,
   ) {
+    if (user.fleetType !== FleetType.COOP) {
+      throw new ForbiddenException('Billing cycles are only available for cooperative fleets');
+    }
     query.fleetId = user.fleetId;
     return await this.billingCycleService.listCycles(query);
   }
@@ -65,6 +68,9 @@ export class BillingController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
+    if (user.fleetType !== FleetType.COOP) {
+      throw new ForbiddenException('Billing cycles are only available for cooperative fleets');
+    }
     const cycle = await this.billingCycleService.getCycle(id);
     if (cycle.fleetId !== user.fleetId) {
       throw new ForbiddenException(

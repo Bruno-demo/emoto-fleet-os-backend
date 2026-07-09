@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, ForbiddenException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { UserRole, FleetType } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
@@ -23,6 +23,9 @@ export class FinancialsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: RecordPaymentDto,
   ) {
+    if (user.fleetType !== FleetType.COOP) {
+      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+    }
     return this.financialsService.recordPayment(user, dto);
   }
 
@@ -32,6 +35,9 @@ export class FinancialsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListPaymentsDto,
   ) {
+    if (user.fleetType !== FleetType.COOP) {
+      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+    }
     return this.financialsService.listPayments(user, query);
   }
 
@@ -45,6 +51,9 @@ export class FinancialsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    if (user.fleetType !== FleetType.COOP) {
+      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+    }
     return this.financialsService.getSummary(user, startDate, endDate);
   }
 
@@ -53,6 +62,9 @@ export class FinancialsController {
     summary: 'Get all active lease-to-own accounts',
   })
   async getLeases(@CurrentUser() user: AuthenticatedUser) {
+    if (user.fleetType !== FleetType.COOP) {
+      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+    }
     return this.financialsService.getLeases(user);
   }
 }

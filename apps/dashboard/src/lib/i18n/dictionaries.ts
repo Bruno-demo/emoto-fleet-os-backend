@@ -2,6 +2,14 @@ export type Locale = 'en' | 'rw';
 
 export const translations = {
   en: {
+    nav_deliveries: "Deliveries",
+    eyebrow_deliveries: "Dispatch control",
+    delivery_status_PENDING: "Pending",
+    delivery_status_ASSIGNED: "Assigned",
+    delivery_status_PICKED_UP: "Picked Up",
+    delivery_status_IN_TRANSIT: "In Transit",
+    delivery_status_DELIVERED: "Delivered",
+    delivery_status_FAILED: "Failed",
     compliance: "Compliance",
     audit_trail: "Audit trail",
     entries: "entries",
@@ -1155,6 +1163,14 @@ export const translations = {
     failed_to_rotate_api_credentials: "Failed to rotate API credentials",
   },
   rw: {
+    nav_deliveries: "Ibyoherezwa",
+    eyebrow_deliveries: "Gucunga ibyoherezwa",
+    delivery_status_PENDING: "Bitegereje",
+    delivery_status_ASSIGNED: "Bihamijwe",
+    delivery_status_PICKED_UP: "Byafashwe",
+    delivery_status_IN_TRANSIT: "Biri mu nzira",
+    delivery_status_DELIVERED: "Byashyikirijwe",
+    delivery_status_FAILED: "Ntibyagezeho",
     compliance: "Kubahiriza amategeko",
     audit_trail: "Amateka y'ibugenzuzi",
     entries: "ibikorwa",

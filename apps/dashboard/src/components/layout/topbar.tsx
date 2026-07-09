@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Bell, Bike, Menu, Radio, Search, Siren, Users, X, Zap, MapPin } from 'lucide-react';
+import { Bell, Bike, Menu, Radio, Search, Siren, Users, X, Zap, MapPin, Package } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { ConnectionIndicator } from '@/components/ui/connection-indicator';
@@ -273,6 +273,7 @@ function getRouteContext(pathname: string, t: (key: string, fallback?: string) =
   if (pathname.startsWith('/incidents')) return { eyebrow: t('eyebrow_incidents', 'Incident desk'), title: t('nav_incidents') };
   if (pathname.startsWith('/bikes')) return { eyebrow: t('eyebrow_bikes', 'Fleet assets'), title: t('nav_bikes') };
   if (pathname.startsWith('/devices')) return { eyebrow: t('eyebrow_devices', 'Provisioning'), title: t('nav_devices', 'Devices') };
+  if (pathname.startsWith('/deliveries')) return { eyebrow: t('eyebrow_deliveries', 'Dispatch control'), title: t('nav_deliveries', 'Deliveries') };
   if (pathname.startsWith('/events')) return { eyebrow: t('eyebrow_events', 'Risk signals'), title: t('nav_events', 'Events') };
   if (pathname.startsWith('/trips')) return { eyebrow: t('eyebrow_trips', 'Fleet telemetry'), title: t('nav_trips') };
   if (pathname.startsWith('/zones')) return { eyebrow: t('eyebrow_zones', 'Policy controls'), title: t('nav_zones', 'Zones') };
@@ -287,7 +288,7 @@ function getRouteContext(pathname: string, t: (key: string, fallback?: string) =
 
 interface SearchResult {
   id: string;
-  type: 'bike' | 'rider' | 'event' | 'incident' | 'zone' | 'device';
+  type: 'bike' | 'rider' | 'event' | 'incident' | 'zone' | 'device' | 'delivery';
   label: string;
   sublabel: string;
   href: string;
@@ -301,6 +302,7 @@ const SEARCH_ICONS: Record<SearchResult['type'], ReactNode> = {
   incident: <Siren size={14} />,
   zone: <MapPin size={14} />,
   device: <Zap size={14} />,
+  delivery: <Package size={14} />,
 };
 
 function SearchOverlay({
@@ -449,8 +451,9 @@ async function globalSearch(
   const showIncidents = canUseFeature(user, 'incidents');
   const showZones = user?.role !== 'INSURER' && canUseFeature(user, 'zones');
   const showDevices = user?.role !== 'INSURER' && canUseFeature(user, 'devices');
+  const showDeliveries = user?.fleetType === 'DELIVERY';
 
-  const [bikes, riders, events, incidents, zones, devices] = await Promise.allSettled([
+  const [bikes, riders, events, incidents, zones, devices, deliveries] = await Promise.allSettled([
     showBikes
       ? apiFetch<PaginatedResponse<{ id: string; label: string; plate: string | null; status: string }>>('/bikes?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
@@ -469,6 +472,9 @@ async function globalSearch(
     showDevices
       ? apiFetch<PaginatedResponse<{ id: string; deviceUid: string; imei: string | null; status: string; bike: { id: string; label: string } | null }>>('/devices?page=1&pageSize=50')
       : Promise.resolve({ data: [] }),
+    showDeliveries
+      ? apiFetch<{ id: string; orderNumber: string; customerName: string; customerPhone: string; pickupAddress: string; dropoffAddress: string; status: string }[]>('/deliveries')
+      : Promise.resolve([]),
   ]);
 
   if (bikes.status === 'fulfilled') {
@@ -575,6 +581,28 @@ async function globalSearch(
           sublabel: [d.imei, d.bike?.label, d.status].filter(Boolean).join(' · '),
           href: `/devices`,
           icon: SEARCH_ICONS.device,
+        });
+      }
+    }
+  }
+
+  if (showDeliveries && deliveries.status === 'fulfilled') {
+    const list = Array.isArray(deliveries.value) ? deliveries.value : [];
+    for (const d of list) {
+      if (
+        d.orderNumber.toLowerCase().includes(q) ||
+        d.customerName.toLowerCase().includes(q) ||
+        d.customerPhone.toLowerCase().includes(q) ||
+        d.pickupAddress.toLowerCase().includes(q) ||
+        d.dropoffAddress.toLowerCase().includes(q)
+      ) {
+        results.push({
+          id: d.id,
+          type: 'delivery',
+          label: d.orderNumber,
+          sublabel: `${d.customerName} · ${d.status}`,
+          href: `/deliveries`,
+          icon: SEARCH_ICONS.delivery,
         });
       }
     }

@@ -1,0 +1,711 @@
+'use client';
+
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import {
+  Package,
+  Plus,
+  Clipboard,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Truck,
+  UserCheck,
+  MapPin,
+  FileText,
+  User,
+  Phone,
+  Copy,
+  Check,
+  Navigation,
+  AlertTriangle,
+} from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { apiFetch } from '@/lib/api/client';
+import { cx, formatTimestamp } from '@/lib/ui';
+import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
+
+interface Delivery {
+  id: string;
+  orderNumber: string;
+  pickupAddress: string;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffAddress: string;
+  dropoffLat: number;
+  dropoffLng: number;
+  customerName: string;
+  customerPhone: string;
+  status: 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
+  notes?: string;
+  assignedAt?: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
+  failedAt?: string;
+  failureReason?: string;
+  proofPhotoUrl?: string;
+  proofSignature?: string;
+  createdAt: string;
+  rider?: {
+    id: string;
+    email: string | null;
+    phone: string | null;
+    riderProfile?: {
+      fullName: string;
+    } | null;
+  } | null;
+}
+
+interface Rider {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  riderProfile?: {
+    fullName: string;
+  } | null;
+}
+
+export default function DeliveriesPage() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
+
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'FAILED'>('ALL');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<Delivery | null>(null);
+  const [statusTarget, setStatusTarget] = useState<Delivery | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Form states for creating delivery
+  const [orderNumber, setOrderNumber] = useState('');
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupLat, setPickupLat] = useState('-1.9441');
+  const [pickupLng, setPickupLng] = useState('30.0899');
+  const [dropoffAddress, setDropoffAddress] = useState('');
+  const [dropoffLat, setDropoffLat] = useState('-1.9398');
+  const [dropoffLng, setDropoffLng] = useState('30.0532');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [formError, setFormError] = useState('');
+
+  // Status simulation form states
+  const [simulatedStatus, setSimulatedStatus] = useState<'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED'>('PICKED_UP');
+  const [failureReason, setFailureReason] = useState('');
+  const [simulatedNotes, setSimulatedNotes] = useState('');
+
+  // Queries
+  const { data: deliveries = [], isLoading } = useQuery<Delivery[]>({
+    queryKey: ['deliveries'],
+    queryFn: () => apiFetch('/deliveries'),
+  });
+
+  const { data: ridersData } = useQuery<{ data: Rider[] }>({
+    queryKey: ['riders-list'],
+    queryFn: () => apiFetch('/riders/riders?pageSize=100'),
+    enabled: !!currentUser,
+  });
+
+  const riders = ridersData?.data || [];
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: (newDelivery: any) =>
+      apiFetch('/deliveries', {
+        method: 'POST',
+        body: JSON.stringify(newDelivery),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      setCreateModalOpen(false);
+      resetCreateForm();
+    },
+    onError: (err: any) => {
+      setFormError(err.message || 'Failed to create delivery');
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: ({ deliveryId, riderId }: { deliveryId: string; riderId: string }) =>
+      apiFetch(`/deliveries/${deliveryId}/assign`, {
+        method: 'PUT',
+        body: JSON.stringify({ riderId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      setAssignTarget(null);
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ deliveryId, payload }: { deliveryId: string; payload: any }) =>
+      apiFetch(`/deliveries/${deliveryId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      setStatusTarget(null);
+      resetStatusForm();
+    },
+  });
+
+  const resetCreateForm = () => {
+    setOrderNumber('');
+    setPickupAddress('');
+    setPickupLat('-1.9441');
+    setPickupLng('30.0899');
+    setDropoffAddress('');
+    setDropoffLat('-1.9398');
+    setDropoffLng('30.0532');
+    setCustomerName('');
+    setCustomerPhone('');
+    setNotes('');
+    setFormError('');
+  };
+
+  const resetStatusForm = () => {
+    setSimulatedStatus('PICKED_UP');
+    setFailureReason('');
+    setSimulatedNotes('');
+  };
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!orderNumber || !pickupAddress || !dropoffAddress || !customerName || !customerPhone) {
+      setFormError('All fields marked as required are mandatory.');
+      return;
+    }
+
+    createMutation.mutate({
+      orderNumber,
+      pickupAddress,
+      pickupLat: parseFloat(pickupLat) || -1.9441,
+      pickupLng: parseFloat(pickupLng) || 30.0899,
+      dropoffAddress,
+      dropoffLat: parseFloat(dropoffLat) || -1.9398,
+      dropoffLng: parseFloat(dropoffLng) || 30.0532,
+      customerName,
+      customerPhone,
+      notes: notes || undefined,
+    });
+  };
+
+  const handleCopyLink = (deliveryId: string) => {
+    const trackingLink = `${window.location.origin}/track/${deliveryId}`;
+    navigator.clipboard.writeText(trackingLink);
+    setCopiedId(deliveryId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Metrics calculations
+  const pendingCount = deliveries.filter((d) => d.status === 'PENDING').length;
+  const activeCount = deliveries.filter((d) => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(d.status)).length;
+  const completedCount = deliveries.filter((d) => d.status === 'DELIVERED').length;
+  const failedCount = deliveries.filter((d) => d.status === 'FAILED').length;
+
+  const filteredDeliveries = deliveries.filter((d) => {
+    if (activeTab === 'PENDING') return d.status === 'PENDING';
+    if (activeTab === 'ACTIVE') return ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(d.status);
+    if (activeTab === 'COMPLETED') return d.status === 'DELIVERED';
+    if (activeTab === 'FAILED') return d.status === 'FAILED';
+    return true;
+  });
+
+  if (currentUser && currentUser.fleetType !== 'DELIVERY') {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <AlertTriangle size={48} className="text-amber-500 animate-bounce" />
+        <h1 className="text-lg font-bold text-ink">{t('Access Denied')}</h1>
+        <p className="text-sm text-ink-muted">{t('Delivery features are only available for Delivery fleets.')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Metrics Row */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <MetricCard
+          title={t('metric_deliveries_pending', 'Pending Assignment')}
+          value={String(pendingCount)}
+          hint={t('hint_pending_deliveries', 'Orders waiting for dispatcher assignment')}
+          icon={<Clock size={20} />}
+          tone="warning"
+        />
+        <MetricCard
+          title={t('metric_deliveries_active', 'Active Deliveries')}
+          value={String(activeCount)}
+          hint={t('hint_active_deliveries', 'Deliveries currently in progress')}
+          icon={<Truck size={20} />}
+          tone="info"
+        />
+        <MetricCard
+          title={t('metric_deliveries_completed', 'Completed Today')}
+          value={String(completedCount)}
+          hint={t('hint_completed_deliveries', 'Successfully completed dropoffs')}
+          icon={<CheckCircle2 size={20} />}
+          tone="success"
+        />
+        <MetricCard
+          title={t('metric_deliveries_failed', 'Failed Deliveries')}
+          value={String(failedCount)}
+          hint={t('hint_failed_deliveries', 'Canceled or unsuccessful delivery runs')}
+          icon={<XCircle size={20} />}
+          tone="danger"
+        />
+      </div>
+
+      {/* Main Panel */}
+      <DashboardCard
+        title={t('delivery_registry', 'Delivery Registry')}
+        description={t('delivery_registry_desc', 'Track dispatch requests, assign riders, and monitor active deliveries.')}
+        actions={
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-ink hover:bg-accent-hover transition-colors shadow-lg shadow-accent/15"
+          >
+            <Plus size={16} />
+            {t('btn_add_delivery', 'Add Delivery')}
+          </button>
+        }
+      >
+        {/* Tabs */}
+        <div className="flex border-b border-line mb-6">
+          {(['ALL', 'PENDING', 'ACTIVE', 'COMPLETED', 'FAILED'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cx(
+                'px-5 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all',
+                activeTab === tab
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-ink-muted hover:text-ink hover:border-line'
+              )}
+            >
+              {t(`tab_delivery_${tab.toLowerCase()}`, tab)}
+            </button>
+          ))}
+        </div>
+
+        {/* Deliveries Table */}
+        {isLoading ? (
+          <div className="flex h-48 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-accent" />
+          </div>
+        ) : filteredDeliveries.length === 0 ? (
+          <div className="flex h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-surface-card p-6 text-center">
+            <Package className="h-10 w-10 text-ink-muted mb-3" />
+            <p className="text-sm font-bold text-ink">{t('no_deliveries_found', 'No Deliveries Found')}</p>
+            <p className="text-xs text-ink-muted mt-1">
+              {t('no_deliveries_found_desc', 'No delivery records match the current filter.')}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm text-ink">
+              <thead>
+                <tr className="border-b border-line text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">
+                  <th className="px-6 py-4">{t('col_order_number', 'Order #')}</th>
+                  <th className="px-6 py-4">{t('col_customer', 'Customer')}</th>
+                  <th className="px-6 py-4">{t('col_pickup', 'Pickup')}</th>
+                  <th className="px-6 py-4">{t('col_dropoff', 'Dropoff')}</th>
+                  <th className="px-6 py-4">{t('col_assigned_rider', 'Assigned Rider')}</th>
+                  <th className="px-6 py-4">{t('col_status', 'Status')}</th>
+                  <th className="px-6 py-4 text-right">{t('col_actions', 'Actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {filteredDeliveries.map((delivery) => (
+                  <tr key={delivery.id} className="hover:bg-surface-hover/30 transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-ink">
+                      {delivery.orderNumber}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold">{delivery.customerName}</div>
+                      <div className="text-xs text-ink-muted">{delivery.customerPhone}</div>
+                    </td>
+                    <td className="px-6 py-4 max-w-xs truncate" title={delivery.pickupAddress}>
+                      {delivery.pickupAddress}
+                    </td>
+                    <td className="px-6 py-4 max-w-xs truncate" title={delivery.dropoffAddress}>
+                      {delivery.dropoffAddress}
+                    </td>
+                    <td className="px-6 py-4">
+                      {delivery.rider?.riderProfile?.fullName ? (
+                        <div className="flex items-center gap-2 font-bold text-accent">
+                          <User size={14} />
+                          {delivery.rider.riderProfile.fullName}
+                        </div>
+                      ) : (
+                        <span className="text-ink-muted italic text-xs">{t('unassigned', 'Unassigned')}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={cx(
+                          'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold',
+                          delivery.status === 'PENDING' && 'bg-amber-500/10 text-amber-400',
+                          delivery.status === 'ASSIGNED' && 'bg-blue-500/10 text-blue-400',
+                          delivery.status === 'PICKED_UP' && 'bg-purple-500/10 text-purple-400',
+                          delivery.status === 'IN_TRANSIT' && 'bg-cyan-500/10 text-cyan-400',
+                          delivery.status === 'DELIVERED' && 'bg-emerald-500/10 text-emerald-400',
+                          delivery.status === 'FAILED' && 'bg-rose-500/10 text-rose-400'
+                        )}
+                      >
+                        {t(`delivery_status_${delivery.status}`, delivery.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Copy Link Action */}
+                        <button
+                          onClick={() => handleCopyLink(delivery.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-card text-ink-muted hover:text-ink transition-all"
+                          title={t('copy_tracking_link', 'Copy Customer Tracking Link')}
+                        >
+                          {copiedId === delivery.id ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                        </button>
+
+                        {/* Public Link Action */}
+                        <a
+                          href={`/track/${delivery.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-card text-ink-muted hover:text-ink transition-all"
+                          title={t('view_live_tracking', 'Open Live Tracking Page')}
+                        >
+                          <Navigation size={16} />
+                        </a>
+
+                        {/* Assign Rider Trigger */}
+                        {delivery.status === 'PENDING' && (
+                          <button
+                            onClick={() => setAssignTarget(delivery)}
+                            className="flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/20 transition-all"
+                          >
+                            <UserCheck size={14} />
+                            {t('btn_assign', 'Assign')}
+                          </button>
+                        )}
+
+                        {/* Update Status Trigger */}
+                        {['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(delivery.status) && (
+                          <button
+                            onClick={() => {
+                              setStatusTarget(delivery);
+                              if (delivery.status === 'ASSIGNED') setSimulatedStatus('PICKED_UP');
+                              else if (delivery.status === 'PICKED_UP') setSimulatedStatus('IN_TRANSIT');
+                              else setSimulatedStatus('DELIVERED');
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/20 transition-all"
+                          >
+                            <Truck size={14} />
+                            {t('btn_update', 'Update')}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DashboardCard>
+
+      {/* ─── ADD DELIVERY MODAL ─── */}
+      {createModalOpen && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
+          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-[#09090b] p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-line pb-4 mb-4">
+              <h3 className="text-lg font-bold text-white">{t('modal_add_delivery_title', 'Create Delivery Request')}</h3>
+              <button onClick={() => setCreateModalOpen(false)} className="text-ink-muted hover:text-ink">
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
+              {formError && <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs font-semibold text-rose-400">{formError}</div>}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_order_number', 'Order Number')} *</label>
+                  <input
+                    type="text"
+                    value={orderNumber}
+                    onChange={(e) => setOrderNumber(e.target.value)}
+                    placeholder="ORD-10020"
+                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_customer_name', 'Customer Name')} *</label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_customer_phone', 'Customer Phone')} *</label>
+                <input
+                  type="text"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="+250 788 000 000"
+                  className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 border-t border-line/50 pt-3">
+                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">{t('pickup_details', 'Pickup Point')}</h4>
+                <div>
+                  <label className="block text-xs text-ink-muted mb-1">{t('label_pickup_address', 'Address')} *</label>
+                  <input
+                    type="text"
+                    value={pickupAddress}
+                    onChange={(e) => setPickupAddress(e.target.value)}
+                    placeholder="Kigali Heights, KG 7 Ave"
+                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('label_latitude', 'Latitude')}</label>
+                    <input
+                      type="text"
+                      value={pickupLat}
+                      onChange={(e) => setPickupLat(e.target.value)}
+                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('label_longitude', 'Longitude')}</label>
+                    <input
+                      type="text"
+                      value={pickupLng}
+                      onChange={(e) => setPickupLng(e.target.value)}
+                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 border-t border-line/50 pt-3">
+                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">{t('dropoff_details', 'Dropoff Point')}</h4>
+                <div>
+                  <label className="block text-xs text-ink-muted mb-1">{t('label_dropoff_address', 'Address')} *</label>
+                  <input
+                    type="text"
+                    value={dropoffAddress}
+                    onChange={(e) => setDropoffAddress(e.target.value)}
+                    placeholder="Nyabugogo Bus Station"
+                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('label_latitude', 'Latitude')}</label>
+                    <input
+                      type="text"
+                      value={dropoffLat}
+                      onChange={(e) => setDropoffLat(e.target.value)}
+                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-ink-muted mb-1">{t('label_longitude', 'Longitude')}</label>
+                    <input
+                      type="text"
+                      value={dropoffLng}
+                      onChange={(e) => setDropoffLng(e.target.value)}
+                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_notes', 'Order Notes')}</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Extra dropoff instructions..."
+                  className="w-full h-20 rounded-xl border border-line bg-surface-card px-4 py-2 text-sm font-semibold text-white focus:border-accent focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-4 border-t border-line pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="flex-1 rounded-xl border border-line bg-white/5 py-3 text-sm font-bold text-ink-muted hover:bg-white/10"
+                >
+                  {t('cancel', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending}
+                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {createMutation.isPending ? t('saving', 'Saving...') : t('btn_create_request', 'Create Request')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ASSIGN RIDER MODAL ─── */}
+      {assignTarget && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setAssignTarget(null)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-line bg-[#09090b] p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">{t('modal_assign_rider_title', 'Assign Rider')}</h3>
+            <p className="text-xs text-ink-muted mb-4">
+              {t('modal_assign_rider_desc', 'Choose a rider to assign to order')} <span className="font-bold text-white">{assignTarget.orderNumber}</span>.
+            </p>
+
+            {riders.length === 0 ? (
+              <p className="text-sm font-semibold text-rose-400 my-4 text-center">{t('no_active_riders_found', 'No active riders registered in your fleet')}</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto mb-6 pr-1">
+                {riders.map((rider) => (
+                  <button
+                    key={rider.id}
+                    onClick={() => assignMutation.mutate({ deliveryId: assignTarget.id, riderId: rider.id })}
+                    disabled={assignMutation.isPending}
+                    className="w-full flex items-center justify-between rounded-xl border border-line bg-surface-card px-4 py-3 hover:bg-surface-hover hover:border-accent text-left transition-all"
+                  >
+                    <div>
+                      <div className="font-bold text-white">{rider.riderProfile?.fullName || 'Unnamed Rider'}</div>
+                      <div className="text-[10px] text-ink-muted font-mono">{rider.email || rider.phone}</div>
+                    </div>
+                    <UserCheck size={16} className="text-accent" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setAssignTarget(null)}
+              className="w-full rounded-xl border border-line bg-white/5 py-3 text-sm font-bold text-ink-muted hover:bg-white/10"
+            >
+              {t('cancel', 'Cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── SIMULATE STATUS UPDATE MODAL ─── */}
+      {statusTarget && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setStatusTarget(null)} />
+          <div className="relative w-full max-w-md rounded-2xl border border-line bg-[#09090b] p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">{t('modal_update_status_title', 'Update Delivery Status')}</h3>
+            <p className="text-xs text-ink-muted mb-4">
+              {t('modal_update_status_desc', 'Simulate rider status updates for')} <span className="font-bold text-white">{statusTarget.orderNumber}</span>.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const payload: any = {
+                  status: simulatedStatus,
+                  notes: simulatedNotes || undefined,
+                };
+                if (simulatedStatus === 'DELIVERED') {
+                  // Simulate proof photo and signature
+                  payload.proofPhotoUrl = 'https://picsum.photos/400/300';
+                  payload.proofSignature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAt0lEQVR42u3YwQnCQBQF0HMtN9FArMTQyhy0C8sY2ogX1sIs3ESFIIgP7oH/eTCDYQcWTpL/k4wREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREXm1wAMA/r7P1eZz6m4AAAAASUVORK5CYII=';
+                }
+                if (simulatedStatus === 'FAILED') {
+                  payload.failureReason = failureReason || 'Unreachable customer';
+                }
+
+                updateStatusMutation.mutate({ deliveryId: statusTarget.id, payload });
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_new_status', 'Status')}</label>
+                <select
+                  value={simulatedStatus}
+                  onChange={(e) => setSimulatedStatus(e.target.value as any)}
+                  className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                >
+                  <option value="PICKED_UP">{t('delivery_status_PICKED_UP', 'Picked Up')}</option>
+                  <option value="IN_TRANSIT">{t('delivery_status_IN_TRANSIT', 'In Transit')}</option>
+                  <option value="DELIVERED">{t('delivery_status_DELIVERED', 'Delivered (with Proof)')}</option>
+                  <option value="FAILED">{t('delivery_status_FAILED', 'Failed')}</option>
+                </select>
+              </div>
+
+              {simulatedStatus === 'FAILED' && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_failure_reason', 'Failure Reason')}</label>
+                  <input
+                    type="text"
+                    value={failureReason}
+                    onChange={(e) => setFailureReason(e.target.value)}
+                    placeholder="e.g. Recipient was unreachable"
+                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    required
+                  />
+                </div>
+              )}
+
+              {simulatedStatus === 'DELIVERED' && (
+                <div className="rounded-xl border border-dashed border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-400">
+                  <p className="font-bold mb-1">✓ {t('simulated_pod', 'Simulated POD (Proof of Delivery)')}</p>
+                  <p>{t('simulated_pod_desc', 'This action will automatically append a simulated proof-of-delivery photo and customer signature.')}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_update_notes', 'Execution Notes')}</label>
+                <textarea
+                  value={simulatedNotes}
+                  onChange={(e) => setSimulatedNotes(e.target.value)}
+                  placeholder="Notes about status transition..."
+                  className="w-full h-20 rounded-xl border border-line bg-surface-card px-4 py-2 text-sm font-semibold text-white focus:border-accent focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-4 border-t border-line pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setStatusTarget(null)}
+                  className="flex-1 rounded-xl border border-line bg-white/5 py-3 text-sm font-bold text-ink-muted hover:bg-white/10"
+                >
+                  {t('cancel', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateStatusMutation.isPending}
+                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {updateStatusMutation.isPending ? t('updating', 'Updating...') : t('btn_update_status', 'Save Status')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

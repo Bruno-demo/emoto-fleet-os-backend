@@ -14,7 +14,8 @@ export type DashboardFeature =
   | 'settings'
   | 'commands'
   | 'evidence'
-  | 'financial';
+  | 'financial'
+  | 'deliveries';
 
 export type SubscriptionTier = 'core' | 'premium' | 'insurance';
 
@@ -35,6 +36,7 @@ const CORE_FEATURES: DashboardFeature[] = [
   'bikes',
   'riders',
   'settings',
+  'deliveries',
 ];
 
 const PREMIUM_FEATURES: DashboardFeature[] = [
@@ -128,6 +130,7 @@ export function featureForPath(pathname: string): DashboardFeature {
   if (pathname.startsWith('/audit')) return 'audit';
   if (pathname.startsWith('/settings')) return 'settings';
   if (pathname.startsWith('/financial')) return 'financial';
+  if (pathname.startsWith('/deliveries')) return 'deliveries';
   return 'overview';
 }
 

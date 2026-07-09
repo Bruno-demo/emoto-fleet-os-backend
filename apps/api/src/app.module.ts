@@ -27,6 +27,7 @@ import { ZonesModule } from './zones/zones.module';
 import { FinancialsModule } from './financials/financials.module';
 import { MailModule } from './mail/mail.module';
 import { BillingModule } from './billing/billing.module';
+import { DeliveriesModule } from './deliveries/deliveries.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { BillingModule } from './billing/billing.module';
     FinancialsModule,
     MailModule,
     BillingModule,
+    DeliveriesModule,
   ],
   providers: [
     {

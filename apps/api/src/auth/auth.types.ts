@@ -3,6 +3,7 @@ import {
   FleetSubscriptionStatus,
   UserRole,
   UserStatus,
+  FleetType,
 } from '@prisma/client';
 import { Request } from 'express';
 
@@ -17,6 +18,7 @@ export interface AuthenticatedUser {
   fleetId: string;
   fleetName: string;
   fleetPlan: FleetPlan;
+  fleetType: FleetType;
   subscriptionStatus: FleetSubscriptionStatus;
   upgradeRequested: boolean;
   role: UserRole;

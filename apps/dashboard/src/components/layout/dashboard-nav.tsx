@@ -24,6 +24,7 @@ import {
   Users,
   X,
   Zap,
+  Package,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { canManageZones } from '@/lib/auth/roles';
@@ -56,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/overview', label: 'Overview', icon: Gauge, feature: 'overview' },
       { href: '/insurer/lookup', label: 'Lookup', icon: Search, feature: 'overview' },
       { href: '/live', label: 'Live Map', icon: Map, feature: 'live' },
+      { href: '/deliveries', label: 'Deliveries', icon: Package, feature: 'overview' },
       { href: '/incidents', label: 'Incidents', icon: AlertCircle, feature: 'incidents' },
       { href: '/events', label: 'Events', icon: Radio, feature: 'events' },
     ],
@@ -127,6 +129,12 @@ export function DashboardNav({
       return allowedPaths.includes(link.href);
     }
     if (link.href === '/insurer/lookup') {
+      return false;
+    }
+    if (link.href === '/deliveries' && user?.fleetType !== 'DELIVERY') {
+      return false;
+    }
+    if (link.href === '/financial' && user?.fleetType !== 'COOP') {
       return false;
     }
     if (link.requiresAdmin && user && !canManageZones(user.role)) return false;

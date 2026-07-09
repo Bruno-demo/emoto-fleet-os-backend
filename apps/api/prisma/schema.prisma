@@ -223,6 +223,9 @@ enum AuditActionType {
   PARTNER_DELETED
   INSURER_DELETED
   DEVICE_DELETED
+  DELIVERY_CREATED
+  DELIVERY_ASSIGNED
+  DELIVERY_STATUS_CHANGED
 }
 
 model Fleet {
@@ -261,6 +264,7 @@ model Fleet {
   billingCycles     BillingCycle[]
   billingPayments   BillingPayment[]
   fleetDiscounts    Discount[]           @relation("FleetDiscount")
+  deliveries        Delivery[]
 }
 
 model User {
@@ -287,6 +291,8 @@ model User {
   usedInvites           RegistrationInvite[] @relation("InviteUsedBy")
   payments              RiderPayment[]
   billingPayments       BillingPayment[]
+  deliveries            Delivery[]           @relation("DeliveryRider")
+
 
   @@unique([fleetId, email])
   @@unique([fleetId, phone])
@@ -877,4 +883,47 @@ model BillingPayment {
   fleet          Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   recordedBy     User          @relation(fields: [recordedById], references: [id])
 }
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+}
+
+model Delivery {
+  id               String         @id @default(uuid()) @db.Uuid
+  fleetId          String         @db.Uuid
+  riderId          String?        @db.Uuid
+  orderNumber      String
+  pickupAddress    String
+  pickupLat        Decimal        @db.Decimal(9, 6)
+  pickupLng        Decimal        @db.Decimal(9, 6)
+  dropoffAddress   String
+  dropoffLat       Decimal        @db.Decimal(9, 6)
+  dropoffLng       Decimal        @db.Decimal(9, 6)
+  customerName     String
+  customerPhone    String
+  status           DeliveryStatus @default(PENDING)
+  assignedAt       DateTime?      @db.Timestamptz(6)
+  pickedUpAt       DateTime?      @db.Timestamptz(6)
+  inTransitAt      DateTime?      @db.Timestamptz(6)
+  deliveredAt      DateTime?      @db.Timestamptz(6)
+  failedAt         DateTime?      @db.Timestamptz(6)
+  failureReason    String?
+  proofPhotoUrl    String?
+  proofSignature   String?
+  notes            String?
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(6)
+  fleet            Fleet          @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  rider            User?          @relation("DeliveryRider", fields: [riderId], references: [id], onDelete: SetNull)
+
+  @@index([fleetId])
+  @@index([riderId])
+  @@index([status])
+}
+
 
