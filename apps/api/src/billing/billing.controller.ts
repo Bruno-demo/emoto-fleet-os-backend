@@ -54,7 +54,9 @@ export class BillingController {
     @Query() query: ListBillingCyclesDto,
   ) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException('Billing cycles are only available for cooperative fleets');
+      throw new ForbiddenException(
+        'Billing cycles are only available for cooperative fleets',
+      );
     }
     query.fleetId = user.fleetId;
     return await this.billingCycleService.listCycles(query);
@@ -69,7 +71,9 @@ export class BillingController {
     @Param('id') id: string,
   ) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException('Billing cycles are only available for cooperative fleets');
+      throw new ForbiddenException(
+        'Billing cycles are only available for cooperative fleets',
+      );
     }
     const cycle = await this.billingCycleService.getCycle(id);
     if (cycle.fleetId !== user.fleetId) {

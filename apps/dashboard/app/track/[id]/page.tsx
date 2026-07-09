@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
   Package,
   Clock,
@@ -98,14 +99,14 @@ export default function PublicTrackingPage() {
           <AlertCircle className="h-12 w-12 text-rose-500 mx-auto" />
           <h2 className="text-lg font-bold text-white">Tracking Link Invalid</h2>
           <p className="text-sm text-zinc-400">
-            We couldn't retrieve tracking information for this order. The link may have expired or is incorrect.
+            We couldn&apos;t retrieve tracking information for this order. The link may have expired or is incorrect.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block rounded-xl bg-white/10 px-6 py-2.5 text-xs font-bold text-white hover:bg-white/15 transition-all"
           >
             Go to Portal
-          </a>
+          </Link>
         </div>
       </div>
     );

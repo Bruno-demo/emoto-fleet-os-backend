@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -163,6 +163,30 @@ export function PublicTrackMap({ pickup, dropoff, rider }: PublicTrackMapProps) 
   const pickupIcon = useMemo(() => createPickupIcon(), []);
   const dropoffIcon = useMemo(() => createDropoffIcon(), []);
   const riderIcon = useMemo(() => createRiderIcon(rider?.name ?? null, rider?.speedKph ?? 0), [rider?.name, rider?.speedKph]);
+  
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+
+  useEffect(() => {
+    let waypoints = '';
+    if (rider) {
+      waypoints = `${rider.lng},${rider.lat};${dropoff.lng},${dropoff.lat}`;
+    } else {
+      waypoints = `${pickup.lng},${pickup.lat};${dropoff.lng},${dropoff.lat}`;
+    }
+
+    fetch(`https://router.projectosrm.org/route/v1/driving/${waypoints}?overview=full&geometries=geojson`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.routes && data.routes[0] && data.routes[0].geometry) {
+          const coords = data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
+          setRouteCoords(coords);
+        }
+      })
+      .catch((err) => {
+        console.error('OSRM route fetch failed, falling back to straight lines:', err);
+        setRouteCoords([]);
+      });
+  }, [pickup.lat, pickup.lng, dropoff.lat, dropoff.lng, rider?.lat, rider?.lng]);
 
   const fitCoords = useMemo(() => {
     const list: [number, number][] = [
@@ -199,9 +223,18 @@ export function PublicTrackMap({ pickup, dropoff, rider }: PublicTrackMapProps) 
           positions={fitCoords}
           color="#0ea5e9"
           dashArray="5, 10"
-          weight={3}
-          opacity={0.8}
+          weight={2}
+          opacity={0.4}
         />
+
+        {routeCoords.length > 0 && (
+          <Polyline
+            positions={routeCoords}
+            color="#0ea5e9"
+            weight={4}
+            opacity={0.9}
+          />
+        )}
 
         <MapAutoFit coords={fitCoords} />
       </MapContainer>

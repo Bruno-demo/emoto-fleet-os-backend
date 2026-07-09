@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Post, Query, ForbiddenException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole, FleetType } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -24,7 +31,9 @@ export class FinancialsController {
     @Body() dto: RecordPaymentDto,
   ) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+      throw new ForbiddenException(
+        'Financial management features are only available for cooperative fleets',
+      );
     }
     return this.financialsService.recordPayment(user, dto);
   }
@@ -36,7 +45,9 @@ export class FinancialsController {
     @Query() query: ListPaymentsDto,
   ) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+      throw new ForbiddenException(
+        'Financial management features are only available for cooperative fleets',
+      );
     }
     return this.financialsService.listPayments(user, query);
   }
@@ -52,7 +63,9 @@ export class FinancialsController {
     @Query('endDate') endDate?: string,
   ) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+      throw new ForbiddenException(
+        'Financial management features are only available for cooperative fleets',
+      );
     }
     return this.financialsService.getSummary(user, startDate, endDate);
   }
@@ -63,7 +76,9 @@ export class FinancialsController {
   })
   async getLeases(@CurrentUser() user: AuthenticatedUser) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException('Financial management features are only available for cooperative fleets');
+      throw new ForbiddenException(
+        'Financial management features are only available for cooperative fleets',
+      );
     }
     return this.financialsService.getLeases(user);
   }

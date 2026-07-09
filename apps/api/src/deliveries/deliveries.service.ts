@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { LiveStateService } from '../ingestion/live-state.service';
@@ -16,7 +20,11 @@ export class DeliveriesService {
     private readonly liveStateService: LiveStateService,
   ) {}
 
-  async createDelivery(fleetId: string, dto: CreateDeliveryDto, actor: AuthenticatedUser) {
+  async createDelivery(
+    fleetId: string,
+    dto: CreateDeliveryDto,
+    actor: AuthenticatedUser,
+  ) {
     const delivery = await this.prisma.delivery.create({
       data: {
         fleetId,
@@ -49,8 +57,15 @@ export class DeliveriesService {
     return delivery;
   }
 
-  async listDeliveries(fleetId: string, query: { status?: DeliveryStatus; riderId?: string }) {
-    const where: any = { fleetId };
+  async listDeliveries(
+    fleetId: string,
+    query: { status?: DeliveryStatus; riderId?: string },
+  ) {
+    const where: {
+      fleetId: string;
+      status?: DeliveryStatus;
+      riderId?: string;
+    } = { fleetId };
     if (query.status) {
       where.status = query.status;
     }
@@ -95,13 +110,22 @@ export class DeliveriesService {
     if (!delivery) {
       throw new NotFoundException('Delivery not found');
     }
-    if (actor && actor.role === UserRole.RIDER && delivery.riderId !== actor.id) {
+    if (
+      actor &&
+      actor.role === UserRole.RIDER &&
+      delivery.riderId !== actor.id
+    ) {
       throw new NotFoundException('Delivery not found');
     }
     return delivery;
   }
 
-  async assignDelivery(fleetId: string, id: string, dto: AssignDeliveryDto, actor: AuthenticatedUser) {
+  async assignDelivery(
+    fleetId: string,
+    id: string,
+    dto: AssignDeliveryDto,
+    actor: AuthenticatedUser,
+  ) {
     const delivery = await this.prisma.delivery.findFirst({
       where: { id, fleetId },
     });
@@ -110,8 +134,13 @@ export class DeliveriesService {
     }
 
     // Prevent assignment if delivery is in terminal state
-    if (delivery.status === DeliveryStatus.DELIVERED || delivery.status === DeliveryStatus.FAILED) {
-      throw new BadRequestException('Cannot assign a delivery in a terminal state');
+    if (
+      delivery.status === DeliveryStatus.DELIVERED ||
+      delivery.status === DeliveryStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Cannot assign a delivery in a terminal state',
+      );
     }
 
     // Verify rider exists and is in the same fleet
@@ -158,7 +187,12 @@ export class DeliveriesService {
     return updated;
   }
 
-  async updateDeliveryStatus(fleetId: string, id: string, dto: UpdateDeliveryStatusDto, actor: AuthenticatedUser) {
+  async updateDeliveryStatus(
+    fleetId: string,
+    id: string,
+    dto: UpdateDeliveryStatusDto,
+    actor: AuthenticatedUser,
+  ) {
     const delivery = await this.prisma.delivery.findFirst({
       where: { id, fleetId },
     });
@@ -168,7 +202,9 @@ export class DeliveriesService {
 
     // Enforce rider security check: riders can only update deliveries assigned to them
     if (actor.role === UserRole.RIDER && delivery.riderId !== actor.id) {
-      throw new BadRequestException('You can only update status of deliveries assigned to you');
+      throw new BadRequestException(
+        'You can only update status of deliveries assigned to you',
+      );
     }
 
     const currentStatus = delivery.status;
@@ -176,10 +212,24 @@ export class DeliveriesService {
 
     // Define valid transitions
     const VALID_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
-      [DeliveryStatus.PENDING]: [DeliveryStatus.ASSIGNED, DeliveryStatus.FAILED],
-      [DeliveryStatus.ASSIGNED]: [DeliveryStatus.PENDING, DeliveryStatus.PICKED_UP, DeliveryStatus.FAILED],
-      [DeliveryStatus.PICKED_UP]: [DeliveryStatus.IN_TRANSIT, DeliveryStatus.DELIVERED, DeliveryStatus.FAILED],
-      [DeliveryStatus.IN_TRANSIT]: [DeliveryStatus.DELIVERED, DeliveryStatus.FAILED],
+      [DeliveryStatus.PENDING]: [
+        DeliveryStatus.ASSIGNED,
+        DeliveryStatus.FAILED,
+      ],
+      [DeliveryStatus.ASSIGNED]: [
+        DeliveryStatus.PENDING,
+        DeliveryStatus.PICKED_UP,
+        DeliveryStatus.FAILED,
+      ],
+      [DeliveryStatus.PICKED_UP]: [
+        DeliveryStatus.IN_TRANSIT,
+        DeliveryStatus.DELIVERED,
+        DeliveryStatus.FAILED,
+      ],
+      [DeliveryStatus.IN_TRANSIT]: [
+        DeliveryStatus.DELIVERED,
+        DeliveryStatus.FAILED,
+      ],
       [DeliveryStatus.DELIVERED]: [],
       [DeliveryStatus.FAILED]: [],
     };
@@ -187,11 +237,23 @@ export class DeliveriesService {
     if (currentStatus !== nextStatus) {
       const allowed = VALID_TRANSITIONS[currentStatus] || [];
       if (!allowed.includes(nextStatus)) {
-        throw new BadRequestException(`Invalid status transition from ${currentStatus} to ${nextStatus}`);
+        throw new BadRequestException(
+          `Invalid status transition from ${currentStatus} to ${nextStatus}`,
+        );
       }
     }
 
-    const data: any = {
+    const data: {
+      status: DeliveryStatus;
+      notes?: string | null;
+      pickedUpAt?: Date;
+      inTransitAt?: Date;
+      deliveredAt?: Date;
+      proofPhotoUrl?: string;
+      proofSignature?: string;
+      failedAt?: Date;
+      failureReason?: string;
+    } = {
       status: dto.status,
       notes: dto.notes ?? delivery.notes,
     };

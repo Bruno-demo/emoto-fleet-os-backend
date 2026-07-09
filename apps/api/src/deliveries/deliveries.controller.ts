@@ -1,4 +1,14 @@
-import { Controller, Post, Get, Put, Body, Param, Query, ParseUUIDPipe, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Body,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DeliveriesService } from './deliveries.service';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
@@ -24,7 +34,9 @@ export class DeliveriesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException('Delivery features are only available for delivery fleets');
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
     }
     return this.deliveriesService.createDelivery(user.fleetId, dto, user);
   }
@@ -39,11 +51,16 @@ export class DeliveriesController {
     @Query('riderId') riderId?: string,
   ) {
     if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException('Delivery features are only available for delivery fleets');
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
     }
     // Security check: riders can only see their own deliveries
     const effectiveRiderId = user.role === UserRole.RIDER ? user.id : riderId;
-    return this.deliveriesService.listDeliveries(user.fleetId, { status, riderId: effectiveRiderId });
+    return this.deliveriesService.listDeliveries(user.fleetId, {
+      status,
+      riderId: effectiveRiderId,
+    });
   }
 
   @Get(':id')
@@ -55,7 +72,9 @@ export class DeliveriesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException('Delivery features are only available for delivery fleets');
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
     }
     return this.deliveriesService.getDelivery(user.fleetId, id, user);
   }
@@ -70,7 +89,9 @@ export class DeliveriesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException('Delivery features are only available for delivery fleets');
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
     }
     return this.deliveriesService.assignDelivery(user.fleetId, id, dto, user);
   }
@@ -78,16 +99,25 @@ export class DeliveriesController {
   @Put(':id/status')
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.RIDER)
-  @ApiOperation({ summary: 'Update the status and proof details of a delivery' })
+  @ApiOperation({
+    summary: 'Update the status and proof details of a delivery',
+  })
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDeliveryStatusDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException('Delivery features are only available for delivery fleets');
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
     }
-    return this.deliveriesService.updateDeliveryStatus(user.fleetId, id, dto, user);
+    return this.deliveriesService.updateDeliveryStatus(
+      user.fleetId,
+      id,
+      dto,
+      user,
+    );
   }
 
   @Get('public/:id/track')

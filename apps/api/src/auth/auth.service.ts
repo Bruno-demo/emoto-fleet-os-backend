@@ -632,7 +632,8 @@ export class AuthService {
         const fleet = await tx.fleet.create({
           data: {
             name: dto.fleetName,
-            type: dto.plan === 'INSURANCE' ? 'PERSONAL' : (dto.fleetType ?? 'COOP'),
+            type:
+              dto.plan === 'INSURANCE' ? 'PERSONAL' : (dto.fleetType ?? 'COOP'),
             plan,
             insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
             subscriptionStatus: 'ACTIVE',

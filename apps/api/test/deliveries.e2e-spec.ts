@@ -10,17 +10,16 @@ describe('Deliveries API (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaClient;
   let httpServer: Parameters<typeof request>[0];
-  
+
   let adminToken = '';
   let rider1Token = '';
   let rider2Token = '';
   let coopToken = '';
-  
+
   let fleetId = '';
-  let adminUserId = '';
   let rider1UserId = '';
   let rider2UserId = '';
-  
+
   const runId = randomUUID().replace(/-/g, '');
   const adminEmail = `admin.deliveries.${runId}@demo.emoto`;
   const coopAdminEmail = `coop.deliveries.${runId}@demo.emoto`;
@@ -39,7 +38,7 @@ describe('Deliveries API (e2e)', () => {
     });
     fleetId = fleet.id;
 
-    const admin = await prisma.user.create({
+    await prisma.user.create({
       data: {
         fleetId,
         role: 'ADMIN',
@@ -48,7 +47,6 @@ describe('Deliveries API (e2e)', () => {
         status: 'ACTIVE',
       },
     });
-    adminUserId = admin.id;
 
     const rider1 = await prisma.user.create({
       data: {
@@ -175,9 +173,13 @@ describe('Deliveries API (e2e)', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body.orderNumber).toContain('ORD-');
-      expect(response.body.status).toBe(DeliveryStatus.PENDING);
-      deliveryId = response.body.id;
+      expect((response.body as { orderNumber: string }).orderNumber).toContain(
+        'ORD-',
+      );
+      expect((response.body as { status: string }).status).toBe(
+        DeliveryStatus.PENDING,
+      );
+      deliveryId = (response.body as { id: string }).id;
     });
 
     it('lists all deliveries for admin (GET /deliveries)', async () => {
@@ -187,7 +189,7 @@ describe('Deliveries API (e2e)', () => {
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThanOrEqual(1);
+      expect((response.body as unknown[]).length).toBeGreaterThanOrEqual(1);
     });
 
     it('assigns a rider to the delivery (PUT /deliveries/:id/assign)', async () => {
@@ -199,9 +201,13 @@ describe('Deliveries API (e2e)', () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body.status).toBe(DeliveryStatus.ASSIGNED);
-      expect(response.body.riderId).toBe(rider1UserId);
-      expect(response.body.assignedAt).toBeDefined();
+      expect((response.body as { status: string }).status).toBe(
+        DeliveryStatus.ASSIGNED,
+      );
+      expect((response.body as { riderId: string }).riderId).toBe(rider1UserId);
+      expect(
+        (response.body as { assignedAt: string }).assignedAt,
+      ).toBeDefined();
     });
 
     it('fails to assign rider when delivery is terminal (simulate terminal transition)', async () => {
@@ -241,7 +247,7 @@ describe('Deliveries API (e2e)', () => {
           customerName: 'Jane Doe',
           customerPhone: '+250788888889',
         });
-      const newDeliveryId = createResponse.body.id;
+      const newDeliveryId = (createResponse.body as { id: string }).id;
 
       // Assign to Rider 1
       await request(httpServer)
@@ -262,7 +268,9 @@ describe('Deliveries API (e2e)', () => {
         .set('Authorization', `Bearer ${rider1Token}`)
         .send({ status: DeliveryStatus.PICKED_UP });
       expect(pickedUpResponse.status).toBe(200);
-      expect(pickedUpResponse.body.pickedUpAt).toBeDefined();
+      expect(
+        (pickedUpResponse.body as { pickedUpAt: string }).pickedUpAt,
+      ).toBeDefined();
 
       // Valid: PICKED_UP -> IN_TRANSIT
       const inTransitResponse = await request(httpServer)
@@ -270,7 +278,9 @@ describe('Deliveries API (e2e)', () => {
         .set('Authorization', `Bearer ${rider1Token}`)
         .send({ status: DeliveryStatus.IN_TRANSIT });
       expect(inTransitResponse.status).toBe(200);
-      expect(inTransitResponse.body.inTransitAt).toBeDefined();
+      expect(
+        (inTransitResponse.body as { inTransitAt: string }).inTransitAt,
+      ).toBeDefined();
 
       // Valid: IN_TRANSIT -> DELIVERED
       const deliveredResponse = await request(httpServer)
@@ -282,8 +292,12 @@ describe('Deliveries API (e2e)', () => {
           proofSignature: 'signature-base64',
         });
       expect(deliveredResponse.status).toBe(200);
-      expect(deliveredResponse.body.deliveredAt).toBeDefined();
-      expect(deliveredResponse.body.proofPhotoUrl).toBe('http://test.image.url');
+      expect(
+        (deliveredResponse.body as { deliveredAt: string }).deliveredAt,
+      ).toBeDefined();
+      expect(
+        (deliveredResponse.body as { proofPhotoUrl: string }).proofPhotoUrl,
+      ).toBe('http://test.image.url');
 
       // Invalid: Try updating terminal DELIVERED status
       const terminalResponse = await request(httpServer)
@@ -309,7 +323,7 @@ describe('Deliveries API (e2e)', () => {
           customerName: 'Bob Smith',
           customerPhone: '+250788888890',
         });
-      const newDeliveryId = createResponse.body.id;
+      const newDeliveryId = (createResponse.body as { id: string }).id;
 
       // Assign to Rider 1
       await request(httpServer)
@@ -336,22 +350,27 @@ describe('Deliveries API (e2e)', () => {
         .set('Authorization', `Bearer ${rider1Token}`);
       expect(rider1ListResponse.status).toBe(200);
       expect(Array.isArray(rider1ListResponse.body)).toBe(true);
-      
+
       // Ensure all returned deliveries are assigned to Rider 1
-      rider1ListResponse.body.forEach((d: any) => {
+      (rider1ListResponse.body as { riderId: string }[]).forEach((d) => {
         expect(d.riderId).toBe(rider1UserId);
       });
     });
 
     it('exposes public tracking without auth (GET /deliveries/public/:id/track)', async () => {
-      const publicResponse = await request(httpServer)
-        .get(`/deliveries/public/${deliveryId}/track`);
+      const publicResponse = await request(httpServer).get(
+        `/deliveries/public/${deliveryId}/track`,
+      );
 
+      const publicBody = publicResponse.body as {
+        delivery?: { orderNumber: string; customerPhone?: string };
+        riderName?: string;
+      };
       expect(publicResponse.status).toBe(200);
-      expect(publicResponse.body.delivery).toBeDefined();
-      expect(publicResponse.body.delivery.orderNumber).toBeDefined();
-      expect(publicResponse.body.delivery.customerPhone).toBeUndefined(); // Should be redacted/not returned
-      expect(publicResponse.body.riderName).toBeDefined();
+      expect(publicBody.delivery).toBeDefined();
+      expect(publicBody.delivery?.orderNumber).toBeDefined();
+      expect(publicBody.delivery?.customerPhone).toBeUndefined(); // Should be redacted/not returned
+      expect(publicBody.riderName).toBeDefined();
     });
 
     it('restricts delivery endpoints to DELIVERY fleets only (COOP returns 403)', async () => {
