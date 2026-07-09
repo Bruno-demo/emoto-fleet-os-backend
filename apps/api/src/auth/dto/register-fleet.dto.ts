@@ -57,4 +57,13 @@ export class RegisterFleetDto {
   @IsOptional()
   @IsString()
   promoCode?: string;
+
+  @ApiPropertyOptional({
+    example: 'COOP',
+    enum: ['COOP', 'DELIVERY', 'PERSONAL'],
+    description: 'Fleet type to differentiate feature sets',
+  })
+  @IsOptional()
+  @IsIn(['COOP', 'DELIVERY', 'PERSONAL'])
+  fleetType?: 'COOP' | 'DELIVERY' | 'PERSONAL';
 }

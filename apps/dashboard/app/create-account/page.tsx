@@ -18,6 +18,7 @@ import {
   Navigation2,
   Activity,
   Banknote,
+  Truck,
 } from 'lucide-react';
 import { compressImage } from '@/lib/image';
 import Link from 'next/link';
@@ -265,6 +266,7 @@ function CreateAccountInner() {
   const [isCompresingIdCard, setIsCompresingIdCard] = useState(false);
   const [role, setRole] = useState<UserRole>(planSlugFromUrl ? 'ADMIN' : 'DISPATCHER');
   const [fleetName, setFleetName] = useState('');
+  const [fleetType, setFleetType] = useState<'COOP' | 'DELIVERY' | 'PERSONAL'>('COOP');
   const [bikeRange, setBikeRange] = useState('11-50');
   const [insurerName, setInsurerName] = useState('');
   const [customInsurerName, setCustomInsurerName] = useState('');
@@ -614,6 +616,7 @@ function CreateAccountInner() {
               phone: parsed.data.phone,
               password: parsed.data.password,
               plan: selectedPlanSlug === 'safety-core' ? 'DEMO' : selectedPlanSlug === 'insurance' ? 'INSURANCE' : 'PREMIUM',
+              fleetType: selectedPlanSlug === 'insurance' ? undefined : fleetType,
               insurerName: finalInsurerName,
               fullName: fullName.trim() || undefined,
               promoCode: appliedDiscount ? promoCode : undefined,
@@ -683,6 +686,7 @@ function CreateAccountInner() {
       setPassword('');
       setConfirmPassword('');
       setFleetName('');
+      setFleetType('COOP');
       setInsurerName('');
       setCustomInsurerName('');
       setBikeRange('11-50');
@@ -1358,6 +1362,54 @@ function CreateAccountInner() {
                       disabled={isFormDisabled || isGateLocked}
                       icon={<Building2 size={16} />}
                     />
+
+                    {/* Fleet Type Selector */}
+                    <div>
+                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+                        {t('fleet_type_label')}
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { value: 'COOP' as const, icon: <UsersRound size={18} />, labelKey: 'fleet_type_coop', descKey: 'fleet_type_coop_desc' },
+                          { value: 'DELIVERY' as const, icon: <Truck size={18} />, labelKey: 'fleet_type_delivery', descKey: 'fleet_type_delivery_desc' },
+                          { value: 'PERSONAL' as const, icon: <User size={18} />, labelKey: 'fleet_type_personal', descKey: 'fleet_type_personal_desc' },
+                        ]).map((ft) => {
+                          const isSelected = fleetType === ft.value;
+                          return (
+                            <button
+                              key={ft.value}
+                              type="button"
+                              onClick={() => setFleetType(ft.value)}
+                              disabled={isFormDisabled || isGateLocked}
+                              className={cx(
+                                'group relative flex flex-col items-center gap-1.5 rounded-2xl border-2 px-3 py-4 text-center transition-all duration-200',
+                                isSelected
+                                  ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                                  : 'border-line bg-surface-muted hover:border-ink-faint hover:bg-surface-hover',
+                                (isFormDisabled || isGateLocked) && 'opacity-50 cursor-not-allowed',
+                              )}
+                            >
+                              <span className={cx(
+                                'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                                isSelected ? 'bg-accent/20 text-accent' : 'bg-surface text-ink-muted group-hover:text-ink',
+                              )}>
+                                {ft.icon}
+                              </span>
+                              <span className={cx(
+                                'text-xs font-bold leading-tight',
+                                isSelected ? 'text-accent' : 'text-ink',
+                              )}>
+                                {t(ft.labelKey)}
+                              </span>
+                              <span className="text-[10px] leading-snug text-ink-muted">
+                                {t(ft.descKey)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <AuthSelect
                       label={t('bike_range_label')}
                       value={bikeRange}
