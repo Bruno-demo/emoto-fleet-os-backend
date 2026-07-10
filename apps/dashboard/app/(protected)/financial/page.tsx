@@ -1557,9 +1557,9 @@ function DeliveryFinancialsView() {
                     <td className="px-6 py-4 font-bold text-white">{p.amount.toLocaleString()} RWF</td>
                     <td className="px-6 py-4">
                       {p.status === 'PAID' ? (
-                        <Badge variant="success">{t('Paid')}</Badge>
+                        <Badge label={t('Paid')} tone="success" />
                       ) : (
-                        <Badge variant="warning">{t('Pending')}</Badge>
+                        <Badge label={t('Pending')} tone="warning" />
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
