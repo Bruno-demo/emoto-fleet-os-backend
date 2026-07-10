@@ -721,148 +721,158 @@ export default function DeliveriesPage() {
 
       {/* ─── ADD DELIVERY MODAL ─── */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
-          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-[#09090b] p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line pb-4 mb-4">
-              <h3 className="text-lg font-bold text-white">{t('modal_add_delivery_title', 'Create Delivery Request')}</h3>
-              <button onClick={() => setCreateModalOpen(false)} className="text-ink-muted hover:text-ink">
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0" onClick={() => setCreateModalOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-[24px] border border-line bg-surface shadow-2xl overflow-hidden cursor-default">
+            
+            {/* Header: fixed */}
+            <div className="flex items-center justify-between border-b border-line p-5 shrink-0">
+              <h3 className="font-display text-lg font-bold text-ink">{t('modal_add_delivery_title', 'Create Delivery Request')}</h3>
+              <button
+                type="button"
+                onClick={() => setCreateModalOpen(false)}
+                className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover"
+              >
                 <XCircle size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              {formError && <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs font-semibold text-rose-400">{formError}</div>}
+            {/* Form & Body: scrollable */}
+            <form onSubmit={handleCreateSubmit} className="flex-1 flex flex-col overflow-hidden min-h-0 m-0">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 dashboard-scrollbar">
+                {formError && <div className="rounded-lg bg-danger-soft border border-danger-ink/20 p-3 text-xs font-semibold text-danger-ink">{formError}</div>}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_order_number', 'Order Number')} *</label>
-                  <input
-                    type="text"
-                    value={orderNumber}
-                    onChange={(e) => setOrderNumber(e.target.value)}
-                    placeholder="ORD-10020"
-                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_customer_name', 'Customer Name')} *</label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_customer_phone', 'Customer Phone')} *</label>
-                <input
-                  type="text"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="+250 788 000 000"
-                  className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2 border-t border-line/50 pt-3">
-                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">{t('pickup_details', 'Pickup Point')}</h4>
-                <div>
-                  <label className="block text-xs text-ink-muted mb-1">{t('label_pickup_address', 'Address')} *</label>
-                  <input
-                    type="text"
-                    value={pickupAddress}
-                    onChange={(e) => setPickupAddress(e.target.value)}
-                    placeholder="Kigali Heights, KG 7 Ave"
-                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
-                    required
-                  />
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-ink-muted mb-1">{t('label_latitude', 'Latitude')}</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_order_number', 'Order Number')} *</label>
                     <input
                       type="text"
-                      value={pickupLat}
-                      onChange={(e) => setPickupLat(e.target.value)}
-                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                      value={orderNumber}
+                      onChange={(e) => setOrderNumber(e.target.value)}
+                      placeholder="ORD-10020"
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none placeholder:text-ink-faint"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-ink-muted mb-1">{t('label_longitude', 'Longitude')}</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_customer_name', 'Customer Name')} *</label>
                     <input
                       type="text"
-                      value={pickupLng}
-                      onChange={(e) => setPickupLng(e.target.value)}
-                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="John Doe"
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none placeholder:text-ink-faint"
+                      required
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2 border-t border-line/50 pt-3">
-                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">{t('dropoff_details', 'Dropoff Point')}</h4>
                 <div>
-                  <label className="block text-xs text-ink-muted mb-1">{t('label_dropoff_address', 'Address')} *</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_customer_phone', 'Customer Phone')} *</label>
                   <input
                     type="text"
-                    value={dropoffAddress}
-                    onChange={(e) => setDropoffAddress(e.target.value)}
-                    placeholder="Nyabugogo Bus Station"
-                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="+250 788 000 000"
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none placeholder:text-ink-faint"
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                <div className="space-y-3 border-t border-line/50 pt-3">
+                  <h4 className="text-xs font-bold text-accent uppercase tracking-wider">{t('pickup_details', 'Pickup Point')}</h4>
                   <div>
-                    <label className="block text-xs text-ink-muted mb-1">{t('label_latitude', 'Latitude')}</label>
+                    <label className="block text-xs text-ink-muted mb-1">{t('label_pickup_address', 'Address')} *</label>
                     <input
                       type="text"
-                      value={dropoffLat}
-                      onChange={(e) => setDropoffLat(e.target.value)}
-                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                      value={pickupAddress}
+                      onChange={(e) => setPickupAddress(e.target.value)}
+                      placeholder="Kigali Heights, KG 7 Ave"
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none placeholder:text-ink-faint"
+                      required
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-ink-muted mb-1">{t('label_latitude', 'Latitude')}</label>
+                      <input
+                        type="text"
+                        value={pickupLat}
+                        onChange={(e) => setPickupLat(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2 text-xs font-mono text-ink focus:border-accent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-ink-muted mb-1">{t('label_longitude', 'Longitude')}</label>
+                      <input
+                        type="text"
+                        value={pickupLng}
+                        onChange={(e) => setPickupLng(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2 text-xs font-mono text-ink focus:border-accent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 border-t border-line/50 pt-3">
+                  <h4 className="text-xs font-bold text-accent uppercase tracking-wider">{t('dropoff_details', 'Dropoff Point')}</h4>
                   <div>
-                    <label className="block text-xs text-ink-muted mb-1">{t('label_longitude', 'Longitude')}</label>
+                    <label className="block text-xs text-ink-muted mb-1">{t('label_dropoff_address', 'Address')} *</label>
                     <input
                       type="text"
-                      value={dropoffLng}
-                      onChange={(e) => setDropoffLng(e.target.value)}
-                      className="w-full rounded-xl border border-line bg-surface-card px-4 py-2 text-xs font-mono text-white focus:border-accent"
+                      value={dropoffAddress}
+                      onChange={(e) => setDropoffAddress(e.target.value)}
+                      placeholder="Nyabugogo Bus Station"
+                      className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none placeholder:text-ink-faint"
+                      required
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-ink-muted mb-1">{t('label_latitude', 'Latitude')}</label>
+                      <input
+                        type="text"
+                        value={dropoffLat}
+                        onChange={(e) => setDropoffLat(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2 text-xs font-mono text-ink focus:border-accent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-ink-muted mb-1">{t('label_longitude', 'Longitude')}</label>
+                      <input
+                        type="text"
+                        value={dropoffLng}
+                        onChange={(e) => setDropoffLng(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2 text-xs font-mono text-ink focus:border-accent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_notes', 'Order Notes')}</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Extra dropoff instructions..."
+                    className="w-full h-20 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink focus:border-accent focus:outline-none resize-none placeholder:text-ink-faint"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">{t('label_notes', 'Order Notes')}</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Extra dropoff instructions..."
-                  className="w-full h-20 rounded-xl border border-line bg-surface-card px-4 py-2 text-sm font-semibold text-white focus:border-accent focus:outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex gap-4 border-t border-line pt-4 mt-6">
+              {/* Action buttons: fixed at bottom */}
+              <div className="flex gap-4 border-t border-line p-5 shrink-0 bg-surface-muted">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="flex-1 rounded-xl border border-line bg-white/5 py-3 text-sm font-bold text-ink-muted hover:bg-white/10"
+                  className="flex-1 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-bold text-ink hover:bg-surface-hover"
                 >
                   {t('cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:bg-accent-hover disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50 transition-all"
                 >
                   {createMutation.isPending ? t('saving', 'Saving...') : t('btn_create_request', 'Create Request')}
                 </button>
@@ -874,18 +884,18 @@ export default function DeliveriesPage() {
 
       {/* ─── ASSIGN RIDER MODAL ─── */}
       {assignTarget && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setAssignTarget(null)} />
-          <div className="relative w-full max-w-sm rounded-2xl border border-line bg-[#09090b] p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">{t('modal_assign_rider_title', 'Assign Rider')}</h3>
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0" onClick={() => setAssignTarget(null)} />
+          <div className="relative w-full max-w-sm rounded-[24px] border border-line bg-surface p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-ink mb-2">{t('modal_assign_rider_title', 'Assign Rider')}</h3>
             <p className="text-xs text-ink-muted mb-4">
-              {t('modal_assign_rider_desc', 'Choose a rider to assign to order')} <span className="font-bold text-white">{assignTarget.orderNumber}</span>.
+              {t('modal_assign_rider_desc', 'Choose a rider to assign to order')} <span className="font-bold text-ink">{assignTarget.orderNumber}</span>.
             </p>
 
             <button
               onClick={() => autoAssignMutation.mutate(assignTarget.id)}
               disabled={autoAssignMutation.isPending}
-              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition hover:bg-accent/80 disabled:opacity-50"
+              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-50"
             >
               {autoAssignMutation.isPending ? (
                 <span>{t('auto_assigning', 'Auto-Assigning...')}</span>
@@ -906,16 +916,16 @@ export default function DeliveriesPage() {
             {riders.length === 0 ? (
               <p className="text-sm font-semibold text-rose-400 my-4 text-center">{t('no_active_riders_found', 'No active riders registered in your fleet')}</p>
             ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto mb-6 pr-1">
+              <div className="space-y-2 max-h-60 overflow-y-auto mb-6 pr-1 dashboard-scrollbar">
                 {riders.map((rider) => (
                   <button
                     key={rider.id}
                     onClick={() => assignMutation.mutate({ deliveryId: assignTarget.id, riderId: rider.id })}
                     disabled={assignMutation.isPending}
-                    className="w-full flex items-center justify-between rounded-xl border border-line bg-surface-card px-4 py-3 hover:bg-surface-hover hover:border-accent text-left transition-all"
+                    className="w-full flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3 hover:bg-surface-hover hover:border-accent text-left transition-all"
                   >
                     <div>
-                      <div className="font-bold text-white">{rider.riderProfile?.fullName || 'Unnamed Rider'}</div>
+                      <div className="font-bold text-ink">{rider.riderProfile?.fullName || 'Unnamed Rider'}</div>
                       <div className="text-[10px] text-ink-muted font-mono">{rider.email || rider.phone}</div>
                     </div>
                     <UserCheck size={16} className="text-accent" />
@@ -926,7 +936,7 @@ export default function DeliveriesPage() {
 
             <button
               onClick={() => setAssignTarget(null)}
-              className="w-full rounded-xl border border-line bg-white/5 py-3 text-sm font-bold text-ink-muted hover:bg-white/10"
+              className="w-full rounded-xl border border-line bg-surface-muted py-3 text-sm font-bold text-ink hover:bg-surface-hover"
             >
               {t('cancel', 'Cancel')}
             </button>
@@ -936,12 +946,12 @@ export default function DeliveriesPage() {
 
       {/* ─── SIMULATE STATUS UPDATE MODAL ─── */}
       {statusTarget && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setStatusTarget(null)} />
-          <div className="relative w-full max-w-md rounded-2xl border border-line bg-[#09090b] p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">{t('modal_update_status_title', 'Update Delivery Status')}</h3>
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0" onClick={() => setStatusTarget(null)} />
+          <div className="relative w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-ink mb-2">{t('modal_update_status_title', 'Update Delivery Status')}</h3>
             <p className="text-xs text-ink-muted mb-4">
-              {t('modal_update_status_desc', 'Simulate rider status updates for')} <span className="font-bold text-white">{statusTarget.orderNumber}</span>.
+              {t('modal_update_status_desc', 'Simulate rider status updates for')} <span className="font-bold text-ink">{statusTarget.orderNumber}</span>.
             </p>
 
             <form
@@ -977,7 +987,7 @@ export default function DeliveriesPage() {
                 <select
                   value={simulatedStatus}
                   onChange={(e) => setSimulatedStatus(e.target.value as typeof simulatedStatus)}
-                  className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none"
                 >
                   <option value="PICKED_UP">{t('delivery_status_PICKED_UP', 'Picked Up')}</option>
                   <option value="IN_TRANSIT">{t('delivery_status_IN_TRANSIT', 'In Transit')}</option>
@@ -994,7 +1004,7 @@ export default function DeliveriesPage() {
                     value={failureReason}
                     onChange={(e) => setFailureReason(e.target.value)}
                     placeholder="e.g. Recipient was unreachable"
-                    className="w-full rounded-xl border border-line bg-surface-card px-4 py-2.5 text-sm font-semibold text-white focus:border-accent focus:outline-none"
+                    className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none placeholder:text-ink-faint"
                     required
                   />
                 </div>
@@ -1013,7 +1023,7 @@ export default function DeliveriesPage() {
                   value={simulatedNotes}
                   onChange={(e) => setSimulatedNotes(e.target.value)}
                   placeholder="Notes about status transition..."
-                  className="w-full h-20 rounded-xl border border-line bg-surface-card px-4 py-2 text-sm font-semibold text-white focus:border-accent focus:outline-none resize-none"
+                  className="w-full h-20 rounded-xl border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink focus:border-accent focus:outline-none resize-none placeholder:text-ink-faint"
                 />
               </div>
 
@@ -1021,14 +1031,14 @@ export default function DeliveriesPage() {
                 <button
                   type="button"
                   onClick={() => setStatusTarget(null)}
-                  className="flex-1 rounded-xl border border-line bg-white/5 py-3 text-sm font-bold text-ink-muted hover:bg-white/10"
+                  className="flex-1 rounded-xl border border-line bg-surface-muted py-3 text-sm font-bold text-ink hover:bg-surface-hover"
                 >
                   {t('cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={updateStatusMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:bg-accent-hover disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50 transition-all"
                 >
                   {updateStatusMutation.isPending ? t('updating', 'Updating...') : t('btn_update_status', 'Save Status')}
                 </button>
