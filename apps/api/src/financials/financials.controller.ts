@@ -15,6 +15,13 @@ import { RequireSubscriptionFeature } from '../subscription/subscription-feature
 import { FinancialsService } from './financials.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { ListPaymentsDto } from './dto/list-payments.dto';
+import { IsUUID, IsNotEmpty } from 'class-validator';
+
+export class RecordDeliveryPayoutDto {
+  @IsUUID()
+  @IsNotEmpty()
+  riderId!: string;
+}
 
 @ApiTags('financials')
 @ApiBearerAuth()
@@ -121,11 +128,3 @@ export class FinancialsController {
     return this.financialsService.recordDeliveryPayout(user, dto);
   }
 }
-
-class RecordDeliveryPayoutDto {
-  @IsUUID()
-  @IsNotEmpty()
-  riderId!: string;
-}
-
-import { IsUUID, IsNotEmpty } from 'class-validator';
