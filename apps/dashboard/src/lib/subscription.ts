@@ -50,6 +50,13 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
   'financial',
 ];
 
+const DEMO_FEATURES: DashboardFeature[] = [
+  ...CORE_FEATURES,
+  'commands',
+  'devices',
+  'reports',
+];
+
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
 
 const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
@@ -89,17 +96,19 @@ export function getSubscriptionEntitlements(
     };
   }
 
-  const isPremium = (plan === 'PREMIUM' || plan === 'DEMO') && isActive;
+  const isPremium = plan === 'PREMIUM' && isActive;
   const tier: SubscriptionTier = isPremium ? 'premium' : 'core';
   const allowedFeatures = !isActive
     ? INACTIVE_FEATURES
-    : isPremium
+    : plan === 'PREMIUM'
       ? PREMIUM_FEATURES
-      : CORE_FEATURES;
+      : plan === 'DEMO'
+        ? DEMO_FEATURES
+        : CORE_FEATURES;
 
   return {
     tier,
-    planLabel: tier === 'premium' ? 'Operations Plus' : 'Safety Core',
+    planLabel: plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core',
     statusLabel: formatSubscriptionStatus(status),
     isActive,
     isPremium,

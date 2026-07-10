@@ -13,6 +13,7 @@ export const userRoleSchema = z.enum([
 
 export const userStatusSchema = z.enum(['INVITED', 'PENDING_SETUP', 'ACTIVE', 'SUSPENDED', 'DISABLED']);
 export const fleetPlanSchema = z.enum(['DEMO', 'PREMIUM', 'INSURANCE']);
+export const fleetTypeSchema = z.enum(['COOP', 'DELIVERY', 'PERSONAL']);
 export const subscriptionStatusSchema = z.enum(['ACTIVE', 'PAST_DUE', 'CANCELED']);
 
 export const authUserSchema = z.object({
@@ -20,6 +21,7 @@ export const authUserSchema = z.object({
   fleetId: fleetIdSchema,
   fleetName: z.string().nullable().optional(),
   fleetPlan: fleetPlanSchema.optional(),
+  fleetType: fleetTypeSchema.optional(),
   subscriptionStatus: subscriptionStatusSchema.optional(),
   upgradeRequested: z.boolean().optional(),
   role: userRoleSchema,
