@@ -213,6 +213,16 @@ export class DevicesService {
 
     this.assertFleetAccess(bike.fleetId, user);
 
+    const existingDevice = await this.prismaService.device.findFirst({
+      where: {
+        bikeId: bike.id,
+        id: { not: device.id },
+      },
+    });
+    if (existingDevice) {
+      throw new ConflictException('Bike is already assigned to another device');
+    }
+
     const updatedDevice = await this.prismaService.device.update({
       where: { id: device.id },
       data: {

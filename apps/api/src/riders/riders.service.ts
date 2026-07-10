@@ -1480,8 +1480,11 @@ export class RidersService {
 
     await tx.bikeAssignment.updateMany({
       where: {
-        bikeId,
         active: true,
+        OR: [
+          { bikeId },
+          { riderUserId },
+        ],
       },
       data: {
         active: false,

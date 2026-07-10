@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -1378,6 +1379,16 @@ export class HqService {
       throw new BadRequestException(
         'Device and bike must belong to the same fleet',
       );
+    }
+
+    const existingDevice = await this.prisma.device.findFirst({
+      where: {
+        bikeId,
+        id: { not: deviceId },
+      },
+    });
+    if (existingDevice) {
+      throw new ConflictException('Bike is already assigned to another device');
     }
 
     const updated = await this.prisma.device.update({

@@ -37,7 +37,6 @@ const CORE_FEATURES: DashboardFeature[] = [
   'riders',
   'settings',
   'deliveries',
-  'financial',
 ];
 
 const PREMIUM_FEATURES: DashboardFeature[] = [
@@ -48,6 +47,7 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
   'reports',
   'audit',
   'evidence',
+  'financial',
 ];
 
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
@@ -59,6 +59,7 @@ const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
   reports: 'Trip analytics and reports',
   audit: 'Compliance audit log',
   evidence: 'Incident evidence packs',
+  financial: 'Financial management',
 };
 
 export function getSubscriptionEntitlements(
