@@ -66,7 +66,7 @@ export default function ReportsPage() {
   const leasesQuery = useQuery({
     queryKey: ['leases', 'reporting'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
-    enabled: activeTab === 'leases' && user?.role !== 'INSURER',
+    enabled: activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
 
@@ -132,7 +132,7 @@ export default function ReportsPage() {
           <BarChart3 size={16} />
           {t('Operations & Safety')}
         </button>
-        {user?.role !== 'INSURER' && (
+        {user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY' && (
           <button
             type="button"
             onClick={() => setActiveTab('leases')}
