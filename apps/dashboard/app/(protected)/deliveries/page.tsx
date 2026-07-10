@@ -112,7 +112,7 @@ export default function DeliveriesPage() {
 
   const { data: ridersData } = useQuery<{ data: Rider[] }>({
     queryKey: ['riders-list'],
-    queryFn: () => apiFetch('/riders/riders?pageSize=100'),
+    queryFn: () => apiFetch('/riders?pageSize=100'),
     enabled: !!currentUser,
   });
 
