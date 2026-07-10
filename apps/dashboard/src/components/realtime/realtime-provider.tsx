@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { connectFleetSocket, disconnectFleetSocket } from '@/lib/realtime/socket';
 import type {
@@ -84,6 +85,7 @@ const MAX_RECENT_EVENTS = 60;
 const MAX_COMMAND_STATUSES = 80;
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [bikeStates, setBikeStates] = useState<Record<string, LiveBikeState>>({});
   const [recentEvents, setRecentEvents] = useState<FleetEvent[]>([]);
   const [commandStatuses, setCommandStatuses] = useState<CommandStatusEvent[]>([]);
@@ -139,6 +141,11 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       recordCommandStatus(parsed.data);
     };
 
+    // Listens for fleet updates (plan/type/subscription status) and invalidates query cache to trigger reload.
+    const onFleetUpdated = () => {
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    };
+
     // Tracks websocket lifecycle so the shell can expose connection health clearly.
     const onConnect = () => {
       setConnectionState('connected');
@@ -164,6 +171,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socket.on('bike_state', onBikeState);
     socket.on('new_event', onNewEvent);
     socket.on('command_status', onCommandStatus);
+    socket.on('fleet_updated', onFleetUpdated);
 
     return () => {
       socket.off('connect', onConnect);
@@ -172,9 +180,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       socket.off('bike_state', onBikeState);
       socket.off('new_event', onNewEvent);
       socket.off('command_status', onCommandStatus);
+      socket.off('fleet_updated', onFleetUpdated);
       disconnectFleetSocket();
     };
-  }, [recordCommandStatus]);
+  }, [recordCommandStatus, queryClient]);
 
   const contextValue = useMemo(
     () => ({

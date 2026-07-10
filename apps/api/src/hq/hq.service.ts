@@ -23,12 +23,14 @@ import {
 } from '../crypto/device-secret.crypto';
 import { AuditService } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class HqService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   // ── Overview ──────────────────────────────────────────────────────
@@ -318,6 +320,8 @@ export class HqService {
       select: { id: true, name: true, plan: true },
     });
 
+    this.eventsGateway.emitFleetUpdated(fleetId, { plan: updated.plan });
+
     await this.auditService.createAuditLog({
       fleetId,
       actorUserId: actor.id,
@@ -357,6 +361,8 @@ export class HqService {
       select: { id: true, name: true, type: true },
     });
 
+    this.eventsGateway.emitFleetUpdated(fleetId, { type: updated.type });
+
     await this.auditService.createAuditLog({
       fleetId,
       actorUserId: actor.id,
@@ -390,6 +396,10 @@ export class HqService {
       where: { id: fleetId },
       data: { subscriptionStatus: status as FleetSubscriptionStatus },
       select: { id: true, name: true, subscriptionStatus: true },
+    });
+
+    this.eventsGateway.emitFleetUpdated(fleetId, {
+      subscriptionStatus: updated.subscriptionStatus,
     });
 
     await this.auditService.createAuditLog({

@@ -201,6 +201,18 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
     this.server.to(this.roomForFleet(fleetId)).emit('new_incident', payload);
   }
 
+  // Emits fleet updates (plan, type, subscription changes) to fleet websocket subscribers.
+  emitFleetUpdated(
+    fleetId: string,
+    payload: { plan?: string; type?: string; subscriptionStatus?: string },
+  ): void {
+    if (!this.server) {
+      return;
+    }
+
+    this.server.to(this.roomForFleet(fleetId)).emit('fleet_updated', payload);
+  }
+
   // Authenticates a socket using bearer token from auth payload or headers.
   private async authenticateSocket(socket: Socket): Promise<AuthenticatedUser> {
     const token = this.extractBearerToken(socket);
