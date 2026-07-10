@@ -84,6 +84,7 @@ enum NotificationType {
   CRASH_ALERT
   THEFT_ALERT
   SOS_ALERT
+  DELIVERY_UPDATE
 }
 
 enum NotificationChannel {

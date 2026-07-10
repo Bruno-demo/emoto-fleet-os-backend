@@ -96,6 +96,24 @@ export class DeliveriesController {
     return this.deliveriesService.assignDelivery(user.fleetId, id, dto, user);
   }
 
+  @Post(':id/auto-assign')
+  @ApiBearerAuth()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER)
+  @ApiOperation({
+    summary: 'Auto-assign the closest available rider to a delivery',
+  })
+  async autoAssign(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (user.fleetType !== FleetType.DELIVERY) {
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
+    }
+    return this.deliveriesService.autoAssignDelivery(user.fleetId, id, user);
+  }
+
   @Put(':id/status')
   @ApiBearerAuth()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.RIDER)

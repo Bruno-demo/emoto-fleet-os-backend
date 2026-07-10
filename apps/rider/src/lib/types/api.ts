@@ -210,3 +210,23 @@ export interface RiderSosResponse {
   notifiedContacts: number;
   type: 'SOS';
 }
+
+export interface RiderDelivery {
+  id: string;
+  orderNumber: string;
+  pickupAddress: string;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffAddress: string;
+  dropoffLat: number;
+  dropoffLng: number;
+  customerName: string;
+  customerPhone: string;
+  status: 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
+  notes: string | null;
+  assignedAt: string | null;
+  pickedUpAt: string | null;
+  deliveredAt: string | null;
+  failedAt: string | null;
+  createdAt: string;
+}

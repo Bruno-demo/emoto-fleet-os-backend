@@ -16,18 +16,22 @@ import { ResetAccessScreen } from '../screens/reset-access-screen';
 import { SosScreen } from '../screens/sos-screen';
 import { TripDetailScreen } from '../screens/trip-detail-screen';
 import { TripsScreen } from '../screens/trips-screen';
+import { DeliveriesScreen } from '../screens/deliveries-screen';
+import { DeliveryDetailScreen } from '../screens/delivery-detail-screen';
 import { theme } from '../theme/tokens';
 import type {
   RiderAuthStackParamList,
   RiderRootStackParamList,
   RiderTabParamList,
   RiderTripsStackParamList,
+  RiderDeliveriesStackParamList,
 } from './navigation.types';
 
 const RootStack = createNativeStackNavigator<RiderRootStackParamList>();
 const AuthStack = createNativeStackNavigator<RiderAuthStackParamList>();
 const Tab = createBottomTabNavigator<RiderTabParamList>();
 const TripsStack = createNativeStackNavigator<RiderTripsStackParamList>();
+const DeliveriesStack = createNativeStackNavigator<RiderDeliveriesStackParamList>();
 
 function getTabIconName(
   routeName: keyof RiderTabParamList,
@@ -39,6 +43,9 @@ function getTabIconName(
   if (routeName === 'TripsStack') {
     return focused ? 'map' : 'map-outline';
   }
+  if (routeName === 'DeliveriesStack') {
+    return focused ? 'cube' : 'cube-outline';
+  }
   if (routeName === 'SOS') {
     return focused ? 'warning' : 'warning-outline';
   }
@@ -46,6 +53,34 @@ function getTabIconName(
     return focused ? 'person-circle' : 'person-circle-outline';
   }
   return focused ? 'navigate' : 'navigate-outline';
+}
+
+function DeliveriesStackNavigator() {
+  return (
+    <DeliveriesStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerShadowVisible: false,
+        headerTintColor: theme.colors.text,
+        headerTitleStyle: {
+          fontWeight: '700',
+        },
+      }}
+    >
+      <DeliveriesStack.Screen
+        name="DeliveriesList"
+        component={DeliveriesScreen}
+        options={{ title: 'Deliveries' }}
+      />
+      <DeliveriesStack.Screen
+        name="DeliveryDetail"
+        component={DeliveryDetailScreen}
+        options={{ title: 'Order Details' }}
+      />
+    </DeliveriesStack.Navigator>
+  );
 }
 
 // Keeps unauthenticated rider help and recovery screens inside a dedicated auth stack.
@@ -132,6 +167,11 @@ function RiderTabsNavigator() {
         name="TripsStack"
         component={TripsStackNavigator}
         options={{ title: 'Trips' }}
+      />
+      <Tab.Screen
+        name="DeliveriesStack"
+        component={DeliveriesStackNavigator}
+        options={{ title: 'Deliveries' }}
       />
       <Tab.Screen name="SOS" component={SosScreen} options={{ title: 'SOS' }} />
       <Tab.Screen

@@ -4,7 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NotificationChannel, NotificationType, Prisma } from '@prisma/client';
+import {
+  NotificationChannel,
+  NotificationType,
+  Prisma,
+  DeliveryStatus,
+  AuditActionType,
+  Delivery,
+} from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -13,6 +20,7 @@ import {
 } from '../crypto/device-secret.crypto';
 import { EvidenceService } from '../evidence/evidence.service';
 import type { FleetEvent } from '../events/events.types';
+import { CreatePartnerDeliveryDto } from './dto/create-partner-delivery.dto';
 import { NotificationOutboxService } from '../incidents/notification-outbox.service';
 import { FleetIncident } from '../incidents/incidents.types';
 import {
@@ -913,5 +921,140 @@ export class PartnerService {
       select: { id: true },
     });
     return !!user;
+  }
+
+  async createDeliveryForPartner(
+    partner: AuthenticatedPartner,
+    dto: CreatePartnerDeliveryDto,
+  ) {
+    this.assertScope(partner, 'deliveries:write');
+    await this.assertFleetAccess(partner.partnerId, dto.fleetId);
+
+    const fleet = await this.prismaService.fleet.findUnique({
+      where: { id: dto.fleetId },
+    });
+    if (!fleet) {
+      throw new NotFoundException('Fleet not found');
+    }
+    if (fleet.type !== 'DELIVERY') {
+      throw new ForbiddenException(
+        'Delivery features are only available for delivery fleets',
+      );
+    }
+
+    const delivery = await this.prismaService.delivery.create({
+      data: {
+        fleetId: dto.fleetId,
+        orderNumber: dto.orderNumber,
+        pickupAddress: dto.pickupAddress,
+        pickupLat: dto.pickupLat,
+        pickupLng: dto.pickupLng,
+        dropoffAddress: dto.dropoffAddress,
+        dropoffLat: dto.dropoffLat,
+        dropoffLng: dto.dropoffLng,
+        customerName: dto.customerName,
+        customerPhone: dto.customerPhone,
+        notes: dto.notes,
+        status: DeliveryStatus.PENDING,
+      },
+    });
+
+    await this.auditPartnerApiAccess(
+      partner,
+      dto.fleetId,
+      'partner.create_delivery',
+      {
+        deliveryId: delivery.id,
+        orderNumber: delivery.orderNumber,
+      },
+    );
+
+    await this.auditService.createAuditLog({
+      fleetId: dto.fleetId,
+      actionType: AuditActionType.DELIVERY_CREATED,
+      targetType: 'DELIVERY',
+      targetId: delivery.id,
+      metaJson: {
+        orderNumber: delivery.orderNumber,
+        customerName: delivery.customerName,
+        partnerId: partner.partnerId,
+      },
+    });
+
+    await this.enqueueDeliveryWebhookNotifications(
+      dto.fleetId,
+      delivery,
+      'delivery.created',
+    );
+
+    return delivery;
+  }
+
+  async enqueueDeliveryWebhookNotifications(
+    fleetId: string,
+    delivery: Delivery,
+    event: string,
+  ): Promise<void> {
+    const webhooks = await this.prismaService.partnerWebhook.findMany({
+      where: {
+        active: true,
+        partner: {
+          status: 'ACTIVE',
+          fleetAccesses: {
+            some: {
+              fleetId,
+              active: true,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        url: true,
+        partnerId: true,
+      },
+    });
+
+    for (const webhook of webhooks) {
+      const notification = await this.prismaService.notification.create({
+        data: {
+          fleetId,
+          type: NotificationType.DELIVERY_UPDATE,
+          channel: NotificationChannel.WEBHOOK,
+          to: webhook.url,
+          partnerWebhookId: webhook.id,
+          payloadJson: {
+            event,
+            delivery: {
+              id: delivery.id,
+              orderNumber: delivery.orderNumber,
+              status: delivery.status,
+              riderId: delivery.riderId ?? null,
+              assignedAt: delivery.assignedAt?.toISOString() ?? null,
+              pickedUpAt: delivery.pickedUpAt?.toISOString() ?? null,
+              deliveredAt: delivery.deliveredAt?.toISOString() ?? null,
+              failedAt: delivery.failedAt?.toISOString() ?? null,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await this.notificationOutboxService.enqueueNotification(notification.id);
+      await this.auditService.createAuditLog({
+        fleetId,
+        actionType: 'PARTNER_WEBHOOK_DELIVERY',
+        targetType: 'Notification',
+        targetId: notification.id,
+        metaJson: {
+          partnerId: webhook.partnerId,
+          webhookId: webhook.id,
+          webhookHost: this.safeUrlHost(webhook.url),
+          status: 'PENDING',
+        },
+      });
+    }
   }
 }

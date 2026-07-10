@@ -33,17 +33,42 @@ import { RidersService } from './riders.service';
 import { LiveBikeState } from '../ingestion/ingestion.types';
 import { FleetDeviceCommand } from '../commands/commands.types';
 
+import { RedisService } from '../redis/redis.service';
+
 @ApiTags('rider')
 @ApiBearerAuth()
 @Controller('rider')
 export class RiderController {
-  constructor(private readonly ridersService: RidersService) {}
+  constructor(
+    private readonly ridersService: RidersService,
+    private readonly redisService: RedisService,
+  ) {}
 
   @Get('me')
   @Roles(UserRole.RIDER)
   @ApiOperation({ summary: 'Return rider profile and active bike assignments' })
   async me(@CurrentUser() user: AuthenticatedUser): Promise<RiderMeResponse> {
     return this.ridersService.getRiderMe(user);
+  }
+
+  @Get('online')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Get current courier availability status' })
+  async getOnline(@CurrentUser() user: AuthenticatedUser) {
+    const status = await this.redisService.get(`rider:online:${user.id}`);
+    return { online: status === 'ONLINE' };
+  }
+
+  @Post('online')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({ summary: 'Update courier availability status' })
+  async updateOnline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { online: boolean },
+  ) {
+    const status = body.online ? 'ONLINE' : 'OFFLINE';
+    await this.redisService.set(`rider:online:${user.id}`, status);
+    return { online: body.online };
   }
 
   @Get('bikes/:id/state')

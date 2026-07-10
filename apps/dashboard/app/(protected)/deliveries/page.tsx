@@ -23,6 +23,7 @@ import {
   Activity,
   TrendingUp,
   Flame,
+  Zap,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
@@ -140,6 +141,17 @@ export default function DeliveriesPage() {
       apiFetch(`/deliveries/${deliveryId}/assign`, {
         method: 'PUT',
         body: JSON.stringify({ riderId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      setAssignTarget(null);
+    },
+  });
+
+  const autoAssignMutation = useMutation({
+    mutationFn: (deliveryId: string) =>
+      apiFetch(`/deliveries/${deliveryId}/auto-assign`, {
+        method: 'POST',
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deliveries'] });
@@ -869,6 +881,27 @@ export default function DeliveriesPage() {
             <p className="text-xs text-ink-muted mb-4">
               {t('modal_assign_rider_desc', 'Choose a rider to assign to order')} <span className="font-bold text-white">{assignTarget.orderNumber}</span>.
             </p>
+
+            <button
+              onClick={() => autoAssignMutation.mutate(assignTarget.id)}
+              disabled={autoAssignMutation.isPending}
+              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition hover:bg-accent/80 disabled:opacity-50"
+            >
+              {autoAssignMutation.isPending ? (
+                <span>{t('auto_assigning', 'Auto-Assigning...')}</span>
+              ) : (
+                <>
+                  <Zap size={14} />
+                  <span>{t('auto_assign_closest', 'Auto-Assign Closest Rider')}</span>
+                </>
+              )}
+            </button>
+
+            <div className="border-t border-line my-4 pt-4">
+              <p className="text-[10px] uppercase tracking-wider text-ink-muted mb-2 font-bold">
+                {t('or_assign_manually', 'Or Assign Manually')}
+              </p>
+            </div>
 
             {riders.length === 0 ? (
               <p className="text-sm font-semibold text-rose-400 my-4 text-center">{t('no_active_riders_found', 'No active riders registered in your fleet')}</p>

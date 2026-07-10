@@ -5,6 +5,7 @@ import { IncidentsModule } from '../incidents/incidents.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CommandsModule } from '../commands/commands.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
+import { RedisModule } from '../redis/redis.module';
 import { RiderController } from './rider.controller';
 import { RidersAdminController } from './riders-admin.controller';
 import { RidersService } from './riders.service';
@@ -17,6 +18,7 @@ import { RidersService } from './riders.service';
     IncidentsModule,
     CommandsModule,
     IngestionModule,
+    RedisModule,
   ],
   controllers: [RidersAdminController, RiderController],
   providers: [RidersService],

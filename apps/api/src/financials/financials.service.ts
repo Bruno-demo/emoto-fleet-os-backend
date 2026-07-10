@@ -506,6 +506,128 @@ export class FinancialsService {
       createdAt: p.createdAt,
     };
   }
+
+  async getDeliveryFinancialSummary(user: AuthenticatedUser) {
+    const fleetId = user.fleetId;
+
+    const payments = await this.prisma.riderPayment.findMany({
+      where: {
+        fleetId,
+        notes: { startsWith: 'Delivery Commission' },
+      },
+    });
+
+    let totalPending = 0;
+    let totalPaid = 0;
+    let count = 0;
+
+    for (const p of payments) {
+      const amt = Number(p.amount);
+      if (p.status === 'UNPAID') {
+        totalPending += amt;
+      } else if (p.status === 'PAID') {
+        totalPaid += amt;
+      }
+      count++;
+    }
+
+    const avgCommission = count > 0 ? (totalPending + totalPaid) / count : 0;
+
+    return {
+      totalPending,
+      totalPaid,
+      deliveryCount: count,
+      avgCommission,
+    };
+  }
+
+  async getDeliveryPayouts(user: AuthenticatedUser) {
+    const fleetId = user.fleetId;
+
+    const payments = await this.prisma.riderPayment.findMany({
+      where: {
+        fleetId,
+        notes: { startsWith: 'Delivery Commission' },
+      },
+      include: {
+        rider: {
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            riderProfile: {
+              select: { fullName: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return payments.map((p) => ({
+      id: p.id,
+      riderId: p.riderId,
+      riderName: p.rider?.riderProfile?.fullName || 'Unnamed Rider',
+      riderPhone: p.rider?.phone || '',
+      amount: Number(p.amount),
+      paidAt: p.paidAt,
+      status: p.status,
+      notes: p.notes,
+      reference: p.reference,
+    }));
+  }
+
+  async recordDeliveryPayout(
+    user: AuthenticatedUser,
+    dto: { riderId: string },
+  ) {
+    const fleetId = user.fleetId;
+
+    const unpaidCommissions = await this.prisma.riderPayment.findMany({
+      where: {
+        fleetId,
+        riderId: dto.riderId,
+        status: 'UNPAID',
+        notes: { startsWith: 'Delivery Commission' },
+      },
+    });
+
+    if (unpaidCommissions.length === 0) {
+      throw new BadRequestException(
+        'No pending commissions to pay out for this rider',
+      );
+    }
+
+    const ids = unpaidCommissions.map((p) => p.id);
+    await this.prisma.riderPayment.updateMany({
+      where: {
+        id: { in: ids },
+      },
+      data: {
+        status: 'PAID',
+        method: 'MOBILE_MONEY',
+        paidAt: new Date(),
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.RIDER_PAYMENT_RECORDED,
+      targetType: 'RIDER_PAYOUT',
+      targetId: dto.riderId,
+      metaJson: {
+        riderId: dto.riderId,
+        totalPaid: unpaidCommissions.reduce(
+          (sum, p) => sum + Number(p.amount),
+          0,
+        ),
+        commissionCount: unpaidCommissions.length,
+      },
+    });
+
+    return { success: true, count: unpaidCommissions.length };
+  }
 }
 
 interface PaymentWithRider {

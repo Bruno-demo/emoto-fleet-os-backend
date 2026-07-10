@@ -232,6 +232,9 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
     if (eventType === 'THEFT_SUSPECTED') {
       return NotificationType.THEFT_ALERT;
     }
+    if (eventType.startsWith('delivery.')) {
+      return NotificationType.DELIVERY_UPDATE;
+    }
     return null;
   }
 

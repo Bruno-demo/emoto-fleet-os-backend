@@ -585,6 +585,10 @@ export default function FinancialsPage() {
     };
   }, [activePointIndex, summary, svgChartPath]);
 
+  if (currentUser && currentUser.fleetType === 'DELIVERY') {
+    return <DeliveryFinancialsView />;
+  }
+
   if (currentUser && currentUser.fleetType !== 'COOP') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center">
@@ -1427,6 +1431,155 @@ export default function FinancialsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function DeliveryFinancialsView() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  const summaryQuery = useQuery({
+    queryKey: ['delivery-summary'],
+    queryFn: () =>
+      apiFetch<{
+        totalPending: number;
+        totalPaid: number;
+        deliveryCount: number;
+        avgCommission: number;
+      }>('/financials/delivery/summary'),
+  });
+
+  const payoutsQuery = useQuery({
+    queryKey: ['delivery-payouts'],
+    queryFn: () =>
+      apiFetch<
+        Array<{
+          id: string;
+          riderId: string;
+          riderName: string;
+          riderPhone: string;
+          amount: number;
+          paidAt: string;
+          status: 'PAID' | 'UNPAID';
+          notes: string;
+          reference: string;
+        }>
+      >('/financials/delivery/payouts'),
+  });
+
+  const payoutMutation = useMutation({
+    mutationFn: (riderId: string) =>
+      apiFetch('/financials/delivery/payout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ riderId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-payouts'] });
+    },
+  });
+
+  const summary = summaryQuery.data || { totalPending: 0, totalPaid: 0, deliveryCount: 0, avgCommission: 0 };
+  const payouts = payoutsQuery.data || [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display text-xl font-bold text-white">{t('Delivery Financials')}</h2>
+        <p className="text-xs text-ink-muted">{t('Track courier delivery commissions, pending balances, and process mobile money payouts.')}</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title={t('Pending Payouts')}
+          value={`${summary.totalPending.toLocaleString()} RWF`}
+          icon={<Wallet size={20} className="text-amber-500" />}
+          hint={t('Accrued commissions not yet paid out')}
+        />
+        <MetricCard
+          title={t('Total Paid')}
+          value={`${summary.totalPaid.toLocaleString()} RWF`}
+          icon={<Coins size={20} className="text-green-500" />}
+          hint={t('Commissions successfully paid to riders')}
+        />
+        <MetricCard
+          title={t('Completed Deliveries')}
+          value={String(summary.deliveryCount)}
+          icon={<Banknote size={20} className="text-blue-500" />}
+          hint={t('Total packages successfully delivered')}
+        />
+        <MetricCard
+          title={t('Avg Commission')}
+          value={`${Math.round(summary.avgCommission).toLocaleString()} RWF`}
+          icon={<TrendingUp size={20} className="text-purple-500" />}
+          hint={t('Average commission earnings per package')}
+        />
+      </div>
+
+      <DashboardCard title={t('Courier Payouts Ledger')}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-line text-ink-muted uppercase tracking-wider text-[10px] font-bold">
+                <th className="px-6 py-4">{t('Date')}</th>
+                <th className="px-6 py-4">{t('Courier')}</th>
+                <th className="px-6 py-4">{t('Details')}</th>
+                <th className="px-6 py-4">{t('Commission')}</th>
+                <th className="px-6 py-4">{t('Status')}</th>
+                <th className="px-6 py-4 text-right">{t('Actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {payouts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-ink-muted">
+                    {t('No payout or commission records found.')}
+                  </td>
+                </tr>
+              ) : (
+                payouts.map((p) => (
+                  <tr key={p.id} className="hover:bg-white/[0.01]">
+                    <td className="px-6 py-4 text-white font-mono">
+                      {new Date(p.paidAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-white">{p.riderName}</div>
+                      <div className="text-[10px] text-ink-muted">{p.riderPhone}</div>
+                    </td>
+                    <td className="px-6 py-4 text-ink-muted">{p.notes}</td>
+                    <td className="px-6 py-4 font-bold text-white">{p.amount.toLocaleString()} RWF</td>
+                    <td className="px-6 py-4">
+                      {p.status === 'PAID' ? (
+                        <Badge variant="success">{t('Paid')}</Badge>
+                      ) : (
+                        <Badge variant="warning">{t('Pending')}</Badge>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {p.status === 'UNPAID' && (
+                        <button
+                          onClick={() => payoutMutation.mutate(p.riderId)}
+                          disabled={payoutMutation.isPending}
+                          className="rounded-lg bg-accent px-3 py-1.5 text-[10px] font-bold text-white transition hover:bg-accent/80 disabled:opacity-50"
+                        >
+                          {payoutMutation.isPending ? t('Processing...') : t('Pay Out')}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </DashboardCard>
     </div>
   );
 }

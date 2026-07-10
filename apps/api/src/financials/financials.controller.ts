@@ -82,4 +82,50 @@ export class FinancialsController {
     }
     return this.financialsService.getLeases(user);
   }
+
+  @Get('delivery/summary')
+  @ApiOperation({
+    summary: 'Get summary of delivery payouts and pending commissions',
+  })
+  async getDeliverySummary(@CurrentUser() user: AuthenticatedUser) {
+    if (user.fleetType !== FleetType.DELIVERY) {
+      throw new ForbiddenException(
+        'Delivery financials are only available for delivery fleets',
+      );
+    }
+    return this.financialsService.getDeliveryFinancialSummary(user);
+  }
+
+  @Get('delivery/payouts')
+  @ApiOperation({ summary: 'Get all delivery payout and commission records' })
+  async getDeliveryPayouts(@CurrentUser() user: AuthenticatedUser) {
+    if (user.fleetType !== FleetType.DELIVERY) {
+      throw new ForbiddenException(
+        'Delivery financials are only available for delivery fleets',
+      );
+    }
+    return this.financialsService.getDeliveryPayouts(user);
+  }
+
+  @Post('delivery/payout')
+  @ApiOperation({ summary: 'Record a delivery commission payout to a rider' })
+  async recordDeliveryPayout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RecordDeliveryPayoutDto,
+  ) {
+    if (user.fleetType !== FleetType.DELIVERY) {
+      throw new ForbiddenException(
+        'Delivery financials are only available for delivery fleets',
+      );
+    }
+    return this.financialsService.recordDeliveryPayout(user, dto);
+  }
 }
+
+class RecordDeliveryPayoutDto {
+  @IsUUID()
+  @IsNotEmpty()
+  riderId!: string;
+}
+
+import { IsUUID, IsNotEmpty } from 'class-validator';

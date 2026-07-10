@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Clipboard, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ScreenContainer } from '../components/screen-container';
 import { AppCard } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -52,6 +52,30 @@ export function ProfileScreen() {
   const user = auth.user;
   const [copiedId, setCopiedId] = useState<'rider' | 'fleet' | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
+
+  const onlineQuery = useQuery({
+    queryKey: ['rider-online-status'],
+    queryFn: () => apiFetch<{ online: boolean }>('/rider/online'),
+  });
+
+  const toggleOnlineMutation = useMutation({
+    mutationFn: (online: boolean) =>
+      apiFetch<{ online: boolean }>('/rider/online', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ online }),
+      }),
+    onSuccess: (data) => {
+      setIsOnline(data.online);
+    },
+  });
+
+  useEffect(() => {
+    if (onlineQuery.data) {
+      setIsOnline(onlineQuery.data.online);
+    }
+  }, [onlineQuery.data]);
 
   const copyToClipboard = (text: string) => {
     if (Clipboard && typeof Clipboard.setString === 'function') {
@@ -138,6 +162,26 @@ export function ProfileScreen() {
           <Badge label={user?.status ?? 'ACTIVE'} tone={statusTone} />
           <Badge label={scoreTone.label} tone={scoreTone.badgeTone} />
         </View>
+      </View>
+
+      {/* Online/Offline Toggle */}
+      <View style={styles.onlineToggleSection}>
+        <Pressable
+          onPress={() => toggleOnlineMutation.mutate(!isOnline)}
+          disabled={toggleOnlineMutation.isPending}
+          style={[
+            styles.onlineToggleButton,
+            isOnline ? styles.onlineButtonActive : styles.onlineButtonInactive,
+          ]}
+        >
+          <Text style={styles.onlineButtonText}>
+            {toggleOnlineMutation.isPending
+              ? 'Updating...'
+              : isOnline
+              ? '🟢 Active & Online'
+              : '⚫ Offline'}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Stats row */}
@@ -550,5 +594,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: theme.colors.primary,
+  },
+  onlineToggleSection: {
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  onlineToggleButton: {
+    borderRadius: theme.radius.card,
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  onlineButtonActive: {
+    backgroundColor: theme.colors.success + '10',
+    borderColor: theme.colors.success,
+  },
+  onlineButtonInactive: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+  },
+  onlineButtonText: {
+    fontSize: theme.typography.body,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
 });

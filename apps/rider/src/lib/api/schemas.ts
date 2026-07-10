@@ -230,3 +230,23 @@ export const riderSosResponseSchema = z.object({
   notifiedContacts: z.number(),
   type: z.literal('SOS'),
 });
+
+export const riderDeliverySchema = z.object({
+  id: uuidLikeSchema,
+  orderNumber: z.string(),
+  pickupAddress: z.string(),
+  pickupLat: z.number().or(z.string().transform(Number)),
+  pickupLng: z.number().or(z.string().transform(Number)),
+  dropoffAddress: z.string(),
+  dropoffLat: z.number().or(z.string().transform(Number)),
+  dropoffLng: z.number().or(z.string().transform(Number)),
+  customerName: z.string(),
+  customerPhone: z.string(),
+  status: z.enum(['PENDING', 'ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'FAILED']),
+  notes: z.string().nullable(),
+  assignedAt: z.string().nullable(),
+  pickedUpAt: z.string().nullable(),
+  deliveredAt: z.string().nullable(),
+  failedAt: z.string().nullable(),
+  createdAt: z.string(),
+});

@@ -18,6 +18,7 @@ import { PartnerDateRangeDto } from './dto/partner-date-range.dto';
 import { PartnerListTripsDto } from './dto/partner-list-trips.dto';
 import { PartnerAuthGuard } from './partner-auth.guard';
 import { PartnerService } from './partner.service';
+import { CreatePartnerDeliveryDto } from './dto/create-partner-delivery.dto';
 import type {
   AuthenticatedPartner,
   PartnerEvidencePackSummary,
@@ -131,5 +132,16 @@ export class PartnerController {
     @Body() dto: CreatePartnerWebhookDto,
   ): Promise<PartnerWebhookRegistration> {
     return this.partnerService.createWebhookForPartner(partner, dto);
+  }
+
+  @Post('deliveries')
+  @ApiOperation({
+    summary: 'Submit a new delivery order from partner integration',
+  })
+  async createDelivery(
+    @CurrentPartner() partner: AuthenticatedPartner,
+    @Body() dto: CreatePartnerDeliveryDto,
+  ) {
+    return this.partnerService.createDeliveryForPartner(partner, dto);
   }
 }

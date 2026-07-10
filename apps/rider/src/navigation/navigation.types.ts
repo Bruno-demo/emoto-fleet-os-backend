@@ -17,6 +17,7 @@ export type RiderAuthStackParamList = {
 export type RiderTabParamList = {
   Home: undefined;
   TripsStack: undefined;
+  DeliveriesStack: undefined;
   SOS: undefined;
   PoiNearby: undefined;
   Profile: undefined;
@@ -26,5 +27,12 @@ export type RiderTripsStackParamList = {
   TripsList: undefined;
   TripDetail: {
     tripId: string;
+  };
+};
+
+export type RiderDeliveriesStackParamList = {
+  DeliveriesList: undefined;
+  DeliveryDetail: {
+    deliveryId: string;
   };
 };

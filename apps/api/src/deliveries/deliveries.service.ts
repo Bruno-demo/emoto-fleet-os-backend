@@ -9,8 +9,17 @@ import { LiveStateService } from '../ingestion/live-state.service';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { AssignDeliveryDto } from './dto/assign-delivery.dto';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
-import { AuditActionType, DeliveryStatus, UserRole } from '@prisma/client';
+import {
+  AuditActionType,
+  DeliveryStatus,
+  UserRole,
+  NotificationType,
+  NotificationChannel,
+  Delivery,
+} from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { NotificationOutboxService } from '../incidents/notification-outbox.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class DeliveriesService {
@@ -18,6 +27,8 @@ export class DeliveriesService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly liveStateService: LiveStateService,
+    private readonly notificationOutboxService: NotificationOutboxService,
+    private readonly redisService: RedisService,
   ) {}
 
   async createDelivery(
@@ -53,6 +64,12 @@ export class DeliveriesService {
         customerName: delivery.customerName,
       },
     });
+
+    await this.enqueueDeliveryWebhookNotifications(
+      fleetId,
+      delivery,
+      'delivery.created',
+    );
 
     return delivery;
   }
@@ -184,6 +201,12 @@ export class DeliveriesService {
       },
     });
 
+    await this.enqueueDeliveryWebhookNotifications(
+      fleetId,
+      updated,
+      'delivery.assigned',
+    );
+
     return updated;
   }
 
@@ -301,6 +324,12 @@ export class DeliveriesService {
       },
     });
 
+    await this.enqueueDeliveryWebhookNotifications(
+      fleetId,
+      updated,
+      `delivery.${dto.status.toLowerCase()}`,
+    );
+
     return updated;
   }
 
@@ -384,4 +413,238 @@ export class DeliveriesService {
       liveState,
     };
   }
+
+  async enqueueDeliveryWebhookNotifications(
+    fleetId: string,
+    delivery: Delivery,
+    event: string,
+  ): Promise<void> {
+    const webhooks = await this.prisma.partnerWebhook.findMany({
+      where: {
+        active: true,
+        partner: {
+          status: 'ACTIVE',
+          fleetAccesses: {
+            some: {
+              fleetId,
+              active: true,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        url: true,
+        partnerId: true,
+      },
+    });
+
+    for (const webhook of webhooks) {
+      const notification = await this.prisma.notification.create({
+        data: {
+          fleetId,
+          type: NotificationType.DELIVERY_UPDATE,
+          channel: NotificationChannel.WEBHOOK,
+          to: webhook.url,
+          partnerWebhookId: webhook.id,
+          payloadJson: {
+            event,
+            delivery: {
+              id: delivery.id,
+              orderNumber: delivery.orderNumber,
+              status: delivery.status,
+              riderId: delivery.riderId ?? null,
+              assignedAt: delivery.assignedAt?.toISOString() ?? null,
+              pickedUpAt: delivery.pickedUpAt?.toISOString() ?? null,
+              deliveredAt: delivery.deliveredAt?.toISOString() ?? null,
+              failedAt: delivery.failedAt?.toISOString() ?? null,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await this.notificationOutboxService.enqueueNotification(notification.id);
+      await this.auditService.createAuditLog({
+        fleetId,
+        actionType: 'PARTNER_WEBHOOK_DELIVERY',
+        targetType: 'Notification',
+        targetId: notification.id,
+        metaJson: {
+          partnerId: webhook.partnerId,
+          webhookId: webhook.id,
+          webhookHost: webhook.url.split('/')[2] || 'unknown-host',
+          status: 'PENDING',
+        },
+      });
+    }
+  }
+
+  async autoAssignDelivery(
+    fleetId: string,
+    id: string,
+    actor: AuthenticatedUser,
+  ) {
+    const delivery = await this.prisma.delivery.findFirst({
+      where: { id, fleetId },
+    });
+    if (!delivery) {
+      throw new NotFoundException('Delivery not found');
+    }
+    if (delivery.status !== DeliveryStatus.PENDING) {
+      throw new BadRequestException(
+        'Delivery must be in PENDING status to auto-assign',
+      );
+    }
+
+    const riders = (await this.prisma.user.findMany({
+      where: {
+        fleetId,
+        role: UserRole.RIDER,
+        status: 'ACTIVE',
+      },
+      include: {
+        riderProfile: true,
+        bikeAssignments: {
+          where: { active: true },
+          include: {
+            bike: true,
+          },
+        },
+      },
+    })) as unknown as Array<{
+      id: string;
+      bikeAssignments: Array<{
+        bike: {
+          id: string;
+        };
+      }>;
+    }>;
+
+    if (riders.length === 0) {
+      throw new BadRequestException('No riders registered in this fleet');
+    }
+
+    const candidates: Array<{
+      riderId: string;
+      bikeId: string;
+      distance: number;
+      batteryLevel: number;
+    }> = [];
+
+    const pickupLat = Number(delivery.pickupLat);
+    const pickupLng = Number(delivery.pickupLng);
+
+    for (const rider of riders) {
+      const onlineVal = await this.redisService.get(`rider:online:${rider.id}`);
+      if (onlineVal !== 'ONLINE') {
+        continue;
+      }
+
+      const activeAssignment = rider.bikeAssignments[0];
+      if (!activeAssignment || !activeAssignment.bike) {
+        continue;
+      }
+
+      const bike = activeAssignment.bike;
+      const state = await this.liveStateService.getBikeState(fleetId, bike.id);
+
+      if (!state) {
+        continue;
+      }
+
+      const batteryV = state.batteryV || 48;
+      const isLowBattery = batteryV < 42;
+      if (isLowBattery) {
+        continue;
+      }
+
+      const distance = calculateHaversineDistance(
+        state.lat,
+        state.lng,
+        pickupLat,
+        pickupLng,
+      );
+
+      candidates.push({
+        riderId: rider.id,
+        bikeId: bike.id,
+        distance,
+        batteryLevel: batteryV,
+      });
+    }
+
+    if (candidates.length === 0) {
+      throw new BadRequestException(
+        'No online couriers with active vehicles and sufficient battery found',
+      );
+    }
+
+    candidates.sort((a, b) => a.distance - b.distance);
+    const bestCandidate = candidates[0];
+
+    const updated = await this.prisma.delivery.update({
+      where: { id },
+      data: {
+        riderId: bestCandidate.riderId,
+        status: DeliveryStatus.ASSIGNED,
+        assignedAt: new Date(),
+      },
+      include: {
+        rider: {
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            riderProfile: {
+              select: { fullName: true },
+            },
+          },
+        },
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId,
+      actorUserId: actor.id,
+      actionType: AuditActionType.DELIVERY_ASSIGNED,
+      targetType: 'DELIVERY',
+      targetId: id,
+      metaJson: {
+        orderNumber: updated.orderNumber,
+        riderId: bestCandidate.riderId,
+        autoAssigned: true,
+        distanceKm: Math.round(bestCandidate.distance * 100) / 100,
+      },
+    });
+
+    await this.enqueueDeliveryWebhookNotifications(
+      fleetId,
+      updated,
+      'delivery.assigned',
+    );
+
+    return updated;
+  }
+}
+
+function calculateHaversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
