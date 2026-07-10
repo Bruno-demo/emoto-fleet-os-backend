@@ -537,43 +537,73 @@ export class DeliveriesService {
     const pickupLat = Number(delivery.pickupLat);
     const pickupLng = Number(delivery.pickupLng);
 
-    for (const rider of riders) {
-      const onlineVal = await this.redisService.get(`rider:online:${rider.id}`);
-      if (onlineVal !== 'ONLINE') {
-        continue;
-      }
+    const onlineKeys = riders.map((rider) => `rider:online:${rider.id}`);
+    const onlineStatuses = await this.redisService.mget(onlineKeys);
 
-      const activeAssignment = rider.bikeAssignments[0];
-      if (!activeAssignment || !activeAssignment.bike) {
-        continue;
-      }
+    // Filter riders who are ONLINE and have a bike assignment
+    const onlineRidersWithBikes = riders
+      .map((rider, index) => ({ rider, onlineVal: onlineStatuses[index] }))
+      .filter(({ rider, onlineVal }) => {
+        if (onlineVal !== 'ONLINE') {
+          return false;
+        }
+        const activeAssignment = rider.bikeAssignments[0];
+        return activeAssignment && activeAssignment.bike;
+      })
+      .map(({ rider }) => ({
+        rider,
+        bike: rider.bikeAssignments[0].bike,
+      }));
 
-      const bike = activeAssignment.bike;
-      const state = await this.liveStateService.getBikeState(fleetId, bike.id);
-
-      if (!state) {
-        continue;
-      }
-
-      const batteryV = state.batteryV || 48;
-      const isLowBattery = batteryV < 42;
-      if (isLowBattery) {
-        continue;
-      }
-
-      const distance = calculateHaversineDistance(
-        state.lat,
-        state.lng,
-        pickupLat,
-        pickupLng,
+    if (onlineRidersWithBikes.length > 0) {
+      const bikeKeys = onlineRidersWithBikes.map(
+        ({ bike }) => `live:fleet:${fleetId}:bike:${bike.id}`,
       );
+      const bikeCachedValues = await this.redisService.mget(bikeKeys);
 
-      candidates.push({
-        riderId: rider.id,
-        bikeId: bike.id,
-        distance,
-        batteryLevel: batteryV,
-      });
+      for (let index = 0; index < onlineRidersWithBikes.length; index++) {
+        const { rider, bike } = onlineRidersWithBikes[index];
+        const cachedValue = bikeCachedValues[index];
+        if (!cachedValue) {
+          continue;
+        }
+
+        let state: { batteryV?: number; lat: number; lng: number } | null =
+          null;
+        try {
+          state = JSON.parse(cachedValue) as {
+            batteryV?: number;
+            lat: number;
+            lng: number;
+          };
+        } catch {
+          // ignore parsing errors
+        }
+
+        if (!state) {
+          continue;
+        }
+
+        const batteryV = state.batteryV || 48;
+        const isLowBattery = batteryV < 42;
+        if (isLowBattery) {
+          continue;
+        }
+
+        const distance = calculateHaversineDistance(
+          state.lat,
+          state.lng,
+          pickupLat,
+          pickupLng,
+        );
+
+        candidates.push({
+          riderId: rider.id,
+          bikeId: bike.id,
+          distance,
+          batteryLevel: batteryV,
+        });
+      }
     }
 
     if (candidates.length === 0) {

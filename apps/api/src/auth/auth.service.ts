@@ -321,32 +321,35 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(dto.password);
     try {
-      const createdUser = await this.prismaService.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            fleetId: actor.fleetId,
-            role: canAssignAnyRole
-              ? (dto.role ?? UserRole.DISPATCHER)
-              : UserRole.RIDER,
-            email: normalizedEmail,
-            phone: dto.phone,
-            passwordHash,
-            status: 'ACTIVE',
-          },
-          select: userSelectForAuth,
-        });
-
-        if (dto.fullName) {
-          await tx.riderProfile.create({
+      const createdUser = await this.prismaService.$transaction(
+        async (tx) => {
+          const user = await tx.user.create({
             data: {
-              userId: user.id,
-              fullName: dto.fullName,
+              fleetId: actor.fleetId,
+              role: canAssignAnyRole
+                ? (dto.role ?? UserRole.DISPATCHER)
+                : UserRole.RIDER,
+              email: normalizedEmail,
+              phone: dto.phone,
+              passwordHash,
+              status: 'ACTIVE',
             },
+            select: userSelectForAuth,
           });
-        }
 
-        return user;
-      });
+          if (dto.fullName) {
+            await tx.riderProfile.create({
+              data: {
+                userId: user.id,
+                fullName: dto.fullName,
+              },
+            });
+          }
+
+          return user;
+        },
+        { timeout: 30000 },
+      );
 
       if (normalizedEmail) {
         await this.redisService.del(`email_verified:${normalizedEmail}`);
@@ -468,77 +471,80 @@ export class AuthService {
     const passwordHash = await this.hashPassword(dto.password);
 
     try {
-      const createdUser = await this.prismaService.$transaction(async (tx) => {
-        // Create the personal fleet for the self owner
-        const plan = dto.plan ?? 'DEMO';
-        const tier = await tx.pricingTier.findUnique({
-          where: { planCode: plan as FleetPlan },
-        });
-        const monthlyRatePerBike = tier
-          ? tier.monthlyRatePerBike
-          : plan === 'PREMIUM'
-            ? 10000
-            : 5000;
+      const createdUser = await this.prismaService.$transaction(
+        async (tx) => {
+          // Create the personal fleet for the self owner
+          const plan = dto.plan ?? 'DEMO';
+          const tier = await tx.pricingTier.findUnique({
+            where: { planCode: plan as FleetPlan },
+          });
+          const monthlyRatePerBike = tier
+            ? tier.monthlyRatePerBike
+            : plan === 'PREMIUM'
+              ? 10000
+              : 5000;
 
-        const fleet = await tx.fleet.create({
-          data: {
-            name: `${dto.fullName}'s Bike`,
-            type: 'PERSONAL',
-            plan,
-            subscriptionStatus: 'ACTIVE',
-            monthlyRatePerBike,
-            billingStartedAt: new Date(),
-          },
-        });
+          const fleet = await tx.fleet.create({
+            data: {
+              name: `${dto.fullName}'s Bike`,
+              type: 'PERSONAL',
+              plan,
+              subscriptionStatus: 'ACTIVE',
+              monthlyRatePerBike,
+              billingStartedAt: new Date(),
+            },
+          });
 
-        // Automatically generate the first billing cycle based on date of registration
-        const config = await tx.billingConfig.findFirst();
-        const cycleDays = config?.billingCycleDays ?? 30;
-        const periodStart = new Date();
-        const periodEnd = new Date(periodStart);
-        periodEnd.setDate(periodEnd.getDate() + cycleDays);
-        const dueDate = new Date(periodStart);
+          // Automatically generate the first billing cycle based on date of registration
+          const config = await tx.billingConfig.findFirst();
+          const cycleDays = config?.billingCycleDays ?? 30;
+          const periodStart = new Date();
+          const periodEnd = new Date(periodStart);
+          periodEnd.setDate(periodEnd.getDate() + cycleDays);
+          const dueDate = new Date(periodStart);
 
-        await tx.billingCycle.create({
-          data: {
-            fleetId: fleet.id,
-            cycleNumber: 1,
-            periodStart,
-            periodEnd,
-            dueDate,
-            bikeCount: 0,
-            ratePerBike: monthlyRatePerBike,
-            subtotal: 0,
-            totalDue: 0,
-            totalPaid: 0,
-            status: 'PENDING',
-            isTrial: false,
-          },
-        });
+          await tx.billingCycle.create({
+            data: {
+              fleetId: fleet.id,
+              cycleNumber: 1,
+              periodStart,
+              periodEnd,
+              dueDate,
+              bikeCount: 0,
+              ratePerBike: monthlyRatePerBike,
+              subtotal: 0,
+              totalDue: 0,
+              totalPaid: 0,
+              status: 'PENDING',
+              isTrial: false,
+            },
+          });
 
-        // Create the rider user
-        const user = await tx.user.create({
-          data: {
-            fleetId: fleet.id,
-            role: UserRole.RIDER,
-            email: normalizedEmail,
-            phone: dto.phone,
-            passwordHash,
-            status: 'PENDING_SETUP',
-          },
-          select: userSelectForAuth,
-        });
+          // Create the rider user
+          const user = await tx.user.create({
+            data: {
+              fleetId: fleet.id,
+              role: UserRole.RIDER,
+              email: normalizedEmail,
+              phone: dto.phone,
+              passwordHash,
+              status: 'PENDING_SETUP',
+            },
+            select: userSelectForAuth,
+          });
 
-        // Create the rider profile
-        await tx.riderProfile.create({
-          data: {
-            userId: user.id,
-            fullName: dto.fullName,
-          },
-        });
+          // Create the rider profile
+          await tx.riderProfile.create({
+            data: {
+              userId: user.id,
+              fullName: dto.fullName,
+            },
+          });
 
-        return user;
-      });
+          return user;
+        },
+        { timeout: 30000 },
+      );
 
       if (normalizedEmail) {
         await this.redisService.del(`email_verified:${normalizedEmail}`);
@@ -591,144 +597,150 @@ export class AuthService {
     const passwordHash = await this.hashPassword(dto.password);
 
     try {
-      const result = await this.prismaService.$transaction(async (tx) => {
-        const plan = dto.plan ?? 'DEMO';
-        const tier = await tx.pricingTier.findUnique({
-          where: { planCode: plan as FleetPlan },
-        });
-        const monthlyRatePerBike = tier
-          ? tier.monthlyRatePerBike
-          : plan === 'PREMIUM'
-            ? 10000
-            : plan === 'INSURANCE'
-              ? 0
-              : 5000;
-
-        let fleetDiscountConnect = undefined;
-
-        if (dto.promoCode) {
-          const discount = await tx.discount.findUnique({
-            where: { code: dto.promoCode.toUpperCase() },
+      const result = await this.prismaService.$transaction(
+        async (tx) => {
+          const plan = dto.plan ?? 'DEMO';
+          const tier = await tx.pricingTier.findUnique({
+            where: { planCode: plan as FleetPlan },
           });
-          if (discount && discount.isActive && !discount.fleetId) {
-            const now = new Date();
-            const isValidDates =
-              (!discount.validFrom || discount.validFrom <= now) &&
-              (!discount.validUntil || discount.validUntil >= now);
-            if (
-              isValidDates &&
-              (discount.maxUses === null ||
-                discount.usedCount < discount.maxUses)
-            ) {
-              fleetDiscountConnect = { id: discount.id };
-              await tx.discount.update({
-                where: { id: discount.id },
-                data: { usedCount: { increment: 1 } },
-              });
+          const monthlyRatePerBike = tier
+            ? tier.monthlyRatePerBike
+            : plan === 'PREMIUM'
+              ? 10000
+              : plan === 'INSURANCE'
+                ? 0
+                : 5000;
+
+          let fleetDiscountConnect = undefined;
+
+          if (dto.promoCode) {
+            const discount = await tx.discount.findUnique({
+              where: { code: dto.promoCode.toUpperCase() },
+            });
+            if (discount && discount.isActive && !discount.fleetId) {
+              const now = new Date();
+              const isValidDates =
+                (!discount.validFrom || discount.validFrom <= now) &&
+                (!discount.validUntil || discount.validUntil >= now);
+              if (
+                isValidDates &&
+                (discount.maxUses === null ||
+                  discount.usedCount < discount.maxUses)
+              ) {
+                fleetDiscountConnect = { id: discount.id };
+                await tx.discount.update({
+                  where: { id: discount.id },
+                  data: { usedCount: { increment: 1 } },
+                });
+              }
             }
           }
-        }
 
-        const fleet = await tx.fleet.create({
-          data: {
-            name: dto.fleetName,
-            type:
-              dto.plan === 'INSURANCE' ? 'PERSONAL' : (dto.fleetType ?? 'COOP'),
-            plan,
-            insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
-            subscriptionStatus: 'ACTIVE',
-            monthlyRatePerBike,
-            billingStartedAt: new Date(),
-            bikeRange: dto.bikeRange ? String(dto.bikeRange) : null,
-            fleetDiscounts: fleetDiscountConnect
-              ? { connect: [fleetDiscountConnect] }
-              : undefined,
-          },
-        });
-
-        // Automatically generate the first billing cycle based on date of registration
-        const config = await tx.billingConfig.findFirst();
-        const cycleDays = config?.billingCycleDays ?? 30;
-        const periodStart = new Date();
-        const periodEnd = new Date(periodStart);
-        periodEnd.setDate(periodEnd.getDate() + cycleDays);
-        const dueDate = new Date(periodStart);
-
-        await tx.billingCycle.create({
-          data: {
-            fleetId: fleet.id,
-            cycleNumber: 1,
-            periodStart,
-            periodEnd,
-            dueDate,
-            bikeCount: 0,
-            ratePerBike: monthlyRatePerBike,
-            subtotal: 0,
-            totalDue: 0,
-            totalPaid: 0,
-            status: 'PENDING',
-            isTrial: false,
-          },
-        });
-
-        const user = await tx.user.create({
-          data: {
-            fleetId: fleet.id,
-            role: dto.plan === 'INSURANCE' ? UserRole.INSURER : UserRole.ADMIN,
-            email: normalizedEmail,
-            phone: dto.phone,
-            passwordHash,
-            status: 'PENDING_SETUP',
-          },
-          select: userSelectForAuth,
-        });
-
-        if (dto.fullName) {
-          await tx.riderProfile.create({
+          const fleet = await tx.fleet.create({
             data: {
-              userId: user.id,
-              fullName: dto.fullName,
-            },
-          });
-        }
-
-        if (dto.plan === 'INSURANCE') {
-          // Synchronize creation with a matching Partner record using the same UUID
-          await tx.partner.create({
-            data: {
-              id: user.id,
-              name: dto.insurerName ?? dto.fleetName,
-              status: 'ACTIVE',
+              name: dto.fleetName,
+              type:
+                dto.plan === 'INSURANCE'
+                  ? 'PERSONAL'
+                  : (dto.fleetType ?? 'COOP'),
+              plan,
+              insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
+              subscriptionStatus: 'ACTIVE',
+              monthlyRatePerBike,
+              billingStartedAt: new Date(),
+              bikeRange: dto.bikeRange ? String(dto.bikeRange) : null,
+              fleetDiscounts: fleetDiscountConnect
+                ? { connect: [fleetDiscountConnect] }
+                : undefined,
             },
           });
 
-          // Grant fleet access to their own fleet
-          await tx.partnerFleetAccess.create({
+          // Automatically generate the first billing cycle based on date of registration
+          const config = await tx.billingConfig.findFirst();
+          const cycleDays = config?.billingCycleDays ?? 30;
+          const periodStart = new Date();
+          const periodEnd = new Date(periodStart);
+          periodEnd.setDate(periodEnd.getDate() + cycleDays);
+          const dueDate = new Date(periodStart);
+
+          await tx.billingCycle.create({
             data: {
-              partnerId: user.id,
               fleetId: fleet.id,
-              active: true,
+              cycleNumber: 1,
+              periodStart,
+              periodEnd,
+              dueDate,
+              bikeCount: 0,
+              ratePerBike: monthlyRatePerBike,
+              subtotal: 0,
+              totalDue: 0,
+              totalPaid: 0,
+              status: 'PENDING',
+              isTrial: false,
             },
           });
 
-          // Provision a default API client credential
-          const clientId = `client_${user.id.slice(0, 8)}`;
-          const clientSecret = randomBytes(16).toString('hex');
-          const clientSecretHash = await bcrypt.hash(clientSecret, 10);
-
-          await tx.partnerClient.create({
+          const user = await tx.user.create({
             data: {
-              partnerId: user.id,
-              clientId,
-              clientSecretHash,
-              scopes: 'insurer:read webhooks:write',
-              status: 'ACTIVE',
+              fleetId: fleet.id,
+              role:
+                dto.plan === 'INSURANCE' ? UserRole.INSURER : UserRole.ADMIN,
+              email: normalizedEmail,
+              phone: dto.phone,
+              passwordHash,
+              status: 'PENDING_SETUP',
             },
+            select: userSelectForAuth,
           });
-        }
 
-        return user as AuthUserRecord;
-      });
+          if (dto.fullName) {
+            await tx.riderProfile.create({
+              data: {
+                userId: user.id,
+                fullName: dto.fullName,
+              },
+            });
+          }
+
+          if (dto.plan === 'INSURANCE') {
+            // Synchronize creation with a matching Partner record using the same UUID
+            await tx.partner.create({
+              data: {
+                id: user.id,
+                name: dto.insurerName ?? dto.fleetName,
+                status: 'ACTIVE',
+              },
+            });
+
+            // Grant fleet access to their own fleet
+            await tx.partnerFleetAccess.create({
+              data: {
+                partnerId: user.id,
+                fleetId: fleet.id,
+                active: true,
+              },
+            });
+
+            // Provision a default API client credential
+            const clientId = `client_${user.id.slice(0, 8)}`;
+            const clientSecret = randomBytes(16).toString('hex');
+            const clientSecretHash = await bcrypt.hash(clientSecret, 10);
+
+            await tx.partnerClient.create({
+              data: {
+                partnerId: user.id,
+                clientId,
+                clientSecretHash,
+                scopes: 'insurer:read webhooks:write',
+                status: 'ACTIVE',
+              },
+            });
+          }
+
+          return user as AuthUserRecord;
+        },
+        { timeout: 30000 },
+      );
 
       this.logger.log(
         `Fleet "${dto.fleetName}" created with admin ${normalizedEmail ?? dto.phone} (bikeRange: ${dto.bikeRange})`,
@@ -889,44 +901,47 @@ export class AuthService {
     const passwordHash = await this.hashPassword(dto.password);
 
     try {
-      const createdUser = await this.prismaService.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            fleetId: invite.fleetId,
-            role: invite.role,
-            email: normalizedEmail ?? invite.email,
-            phone: dto.phone ?? invite.phone,
-            passwordHash,
-            status: 'ACTIVE',
-          },
-          select: userSelectForAuth,
-        });
-
-        if (dto.fullName || invite.role === UserRole.RIDER) {
-          await tx.riderProfile.create({
+      const createdUser = await this.prismaService.$transaction(
+        async (tx) => {
+          const user = await tx.user.create({
             data: {
-              userId: user.id,
-              fullName: dto.fullName || 'New Rider',
-              licenceNumber: dto.licenceNumber || null,
-              identityNumber: dto.identityNumber || null,
-              passportPhoto: dto.passportPhoto || null,
-              licencePhoto: dto.licencePhoto || null,
-              identityCardPhoto: dto.identityCardPhoto || null,
+              fleetId: invite.fleetId,
+              role: invite.role,
+              email: normalizedEmail ?? invite.email,
+              phone: dto.phone ?? invite.phone,
+              passwordHash,
+              status: 'ACTIVE',
+            },
+            select: userSelectForAuth,
+          });
+
+          if (dto.fullName || invite.role === UserRole.RIDER) {
+            await tx.riderProfile.create({
+              data: {
+                userId: user.id,
+                fullName: dto.fullName || 'New Rider',
+                licenceNumber: dto.licenceNumber || null,
+                identityNumber: dto.identityNumber || null,
+                passportPhoto: dto.passportPhoto || null,
+                licencePhoto: dto.licencePhoto || null,
+                identityCardPhoto: dto.identityCardPhoto || null,
+              },
+            });
+          }
+
+          await tx.registrationInvite.update({
+            where: { id: invite.id },
+            data: {
+              status: 'USED',
+              usedAt: now,
+              usedByUserId: user.id,
             },
           });
-        }
 
-        await tx.registrationInvite.update({
-          where: { id: invite.id },
-          data: {
-            status: 'USED',
-            usedAt: now,
-            usedByUserId: user.id,
-          },
-        });
-
-        return user;
-      });
+          return user;
+        },
+        { timeout: 30000 },
+      );
 
       if (normalizedEmail) {
         await this.redisService.del(`email_verified:${normalizedEmail}`);

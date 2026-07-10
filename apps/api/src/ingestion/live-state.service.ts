@@ -88,45 +88,56 @@ export class LiveStateService {
 
     const parsedStates: LiveBikeState[] = [];
 
-    for (const bike of bikes) {
-      const activeDevice = bike.devices[0];
-      if (!activeDevice) {
-        continue;
-      }
+    // Filter bikes with active devices
+    const bikesWithDevices = bikes.filter((bike) => bike.devices[0]);
 
-      // 1. Try to load from Redis first
-      const cachedState = await this.getBikeState(fleetId, bike.id);
-      if (cachedState) {
-        parsedStates.push(cachedState);
-        continue;
-      }
+    if (bikesWithDevices.length > 0) {
+      // Build keys for all these bikes in one go
+      const keys = bikesWithDevices.map((bike) =>
+        this.buildBikeStateKey(fleetId, bike.id),
+      );
+      const cachedValues = await this.redisService.mget(keys);
 
-      // 2. Fall back to the latest telemetry point in the database
-      const latestTelemetry = activeDevice.telemetry[0];
-      if (latestTelemetry) {
-        const lastSeen = activeDevice.lastSeenAt ?? latestTelemetry.ts;
-        const isStale = Date.now() - lastSeen.getTime() > 10 * 60 * 1000; // 10 minutes stale threshold
-        const fallbackState: LiveBikeState = {
-          fleetId,
-          bikeId: bike.id,
-          deviceId: activeDevice.id,
-          deviceUid: activeDevice.deviceUid,
-          ts: lastSeen.toISOString(),
-          lat: Number(latestTelemetry.lat),
-          lng: Number(latestTelemetry.lng),
-          speedKph: isStale ? 0 : Number(latestTelemetry.speedKph),
-          heading: latestTelemetry.heading
-            ? Number(latestTelemetry.heading)
-            : undefined,
-          batteryV: latestTelemetry.batteryV
-            ? Number(latestTelemetry.batteryV)
-            : undefined,
-          batteryPct: latestTelemetry.batteryPct
-            ? Number(latestTelemetry.batteryPct)
-            : undefined,
-          ignition: latestTelemetry.ignition ?? undefined,
-        };
-        parsedStates.push(fallbackState);
+      for (let index = 0; index < bikesWithDevices.length; index++) {
+        const bike = bikesWithDevices[index];
+        const activeDevice = bike.devices[0];
+        const cachedValue = cachedValues[index];
+
+        if (cachedValue) {
+          const cachedState = this.parseState(cachedValue);
+          if (cachedState) {
+            parsedStates.push(cachedState);
+            continue;
+          }
+        }
+
+        // Fall back to the latest telemetry point in the database
+        const latestTelemetry = activeDevice.telemetry[0];
+        if (latestTelemetry) {
+          const lastSeen = activeDevice.lastSeenAt ?? latestTelemetry.ts;
+          const isStale = Date.now() - lastSeen.getTime() > 10 * 60 * 1000; // 10 minutes stale threshold
+          const fallbackState: LiveBikeState = {
+            fleetId,
+            bikeId: bike.id,
+            deviceId: activeDevice.id,
+            deviceUid: activeDevice.deviceUid,
+            ts: lastSeen.toISOString(),
+            lat: Number(latestTelemetry.lat),
+            lng: Number(latestTelemetry.lng),
+            speedKph: isStale ? 0 : Number(latestTelemetry.speedKph),
+            heading: latestTelemetry.heading
+              ? Number(latestTelemetry.heading)
+              : undefined,
+            batteryV: latestTelemetry.batteryV
+              ? Number(latestTelemetry.batteryV)
+              : undefined,
+            batteryPct: latestTelemetry.batteryPct
+              ? Number(latestTelemetry.batteryPct)
+              : undefined,
+            ignition: latestTelemetry.ignition ?? undefined,
+          };
+          parsedStates.push(fallbackState);
+        }
       }
     }
 
