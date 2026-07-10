@@ -40,7 +40,7 @@ const PAGE_SIZE = 20;
 
 const zoneFormSchema = z.object({
   name: z.string().min(2, 'Zone name must be at least 2 characters'),
-  type: z.enum(['SLOW', 'NO_GO', 'PARK']),
+  type: z.enum(['SLOW', 'NO_GO', 'PARK', 'WORK_BOUNDARY']),
   speedLimitKph: z.number().nullable(),
   active: z.boolean(),
   geojsonPolygon: z.string().min(2, 'Please draw a valid boundary on the map or provide a valid coordinates string'),
@@ -77,7 +77,7 @@ export default function ZonesPage() {
   const [page, setPage] = useState(1);
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [type, setType] = useState<'SLOW' | 'NO_GO' | 'PARK'>('SLOW');
+  const [type, setType] = useState<'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY'>('SLOW');
   const [speedLimitKph, setSpeedLimitKph] = useState('');
   const [active, setActive] = useState(true);
   const [geojsonPolygon, setGeojsonPolygon] = useState(defaultPolygon);
@@ -424,11 +424,12 @@ export default function ZonesPage() {
               <SelectField
                 label={t('Zone type')}
                 value={type}
-                onChange={(event) => setType(event.target.value as 'SLOW' | 'NO_GO' | 'PARK')}
+                onChange={(event) => setType(event.target.value as 'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY')}
               >
                 <option value="SLOW">{t('Slow')}</option>
                 <option value="NO_GO">{t('No-go')}</option>
                 <option value="PARK">{t('Park')}</option>
+                <option value="WORK_BOUNDARY">{t('Work Boundary')}</option>
               </SelectField>
 
               <TextField

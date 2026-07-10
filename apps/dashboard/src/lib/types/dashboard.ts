@@ -218,7 +218,7 @@ export interface Zone {
   id: string;
   fleetId: string;
   name: string;
-  type: 'SLOW' | 'NO_GO' | 'PARK';
+  type: 'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY';
   geojsonPolygon: unknown;
   speedLimitKph: number | null;
   active: boolean;

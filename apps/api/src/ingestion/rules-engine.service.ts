@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   EventSeverity,
+  EventType,
   GeofenceZone,
   Prisma,
   RoadFeatureType,
@@ -128,6 +129,16 @@ export class RulesEngineService {
       ['crash', () => this.evaluateCrash(device, payload)],
       ['theft', () => this.evaluateTheft(device, payload, insideParkZone)],
       ['roadSafety', () => this.evaluateRoadSafety(device, payload)],
+      [
+        'workBoundary',
+        () =>
+          this.evaluateWorkBoundary(
+            device,
+            payload,
+            activeZones,
+            insideZoneIds,
+          ),
+      ],
     ];
 
     for (const [name, evaluate] of evaluations) {
@@ -143,14 +154,13 @@ export class RulesEngineService {
     await this.storeLastSpeedState(device, payload);
   }
 
-  // Loads active SLOW and PARK zones used in current telemetry rule checks.
   private async loadActiveZones(fleetId: string): Promise<GeofenceZone[]> {
     return this.prismaService.geofenceZone.findMany({
       where: {
         fleetId,
         active: true,
         type: {
-          in: [ZoneType.SLOW, ZoneType.PARK],
+          in: [ZoneType.SLOW, ZoneType.PARK, ZoneType.WORK_BOUNDARY],
         },
       },
     });
@@ -828,6 +838,41 @@ export class RulesEngineService {
   // Creates a Redis key for previous speed samples used by crash logic.
   private lastSpeedStateKey(deviceId: string): string {
     return `rules:last-speed:${deviceId}`;
+  }
+
+  // Emits GEOFENCE_EXIT when a bike leaves its configured work boundaries.
+  private async evaluateWorkBoundary(
+    device: RuleDeviceContext,
+    payload: TelemetryPayload,
+    zones: GeofenceZone[],
+    insideZoneIds: Set<string>,
+  ): Promise<void> {
+    const workZones = zones.filter((zone) => zone.type === ZoneType.WORK_BOUNDARY);
+    if (workZones.length === 0) {
+      return;
+    }
+
+    const isInsideAnyWorkZone = workZones.some((zone) => insideZoneIds.has(zone.id));
+    const cooldownKey = `cooldown:geofence_exit:${device.id}`;
+    // 5-minute cooldown between geofence exit alerts
+    const COOLDOWN_SECONDS = 300;
+
+    if (!isInsideAnyWorkZone) {
+      await this.emitWithCooldown(cooldownKey, COOLDOWN_SECONDS, {
+        fleetId: device.fleetId,
+        bikeId: device.bikeId,
+        deviceId: device.id,
+        ts: new Date(payload.ts),
+        type: EventType.GEOFENCE_EXIT,
+        severity: EventSeverity.CRITICAL,
+        metaJson: {
+          msg: `Bike left configured work boundary`,
+          lat: payload.lat,
+          lng: payload.lng,
+          speedKph: payload.speedKph,
+        },
+      });
+    }
   }
 }
 

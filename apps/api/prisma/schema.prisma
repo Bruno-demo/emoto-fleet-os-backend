@@ -136,6 +136,7 @@ enum EventType {
   THEFT_SUSPECTED
   SOS
   TRACKER_OFFLINE
+  GEOFENCE_EXIT
 }
 
 enum RoadFeatureType {
@@ -166,6 +167,7 @@ enum ZoneType {
   SLOW
   NO_GO
   PARK
+  WORK_BOUNDARY
 }
 
 enum PoiType {
