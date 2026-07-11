@@ -2,7 +2,7 @@ app = "emoto-dashboard"
 primary_region = "iad"
 
 [build]
-  dockerfile = "apps/dashboard/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "3001"
