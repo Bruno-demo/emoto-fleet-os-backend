@@ -101,22 +101,22 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy API
-        run: flyctl deploy --config apps/api/fly.toml --remote-only
+        run: flyctl deploy . --config apps/api/fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy Gateway
-        run: flyctl deploy --config apps/gateway/fly.toml --remote-only
+        run: flyctl deploy . --config apps/gateway/fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy Stream Processor
-        run: flyctl deploy --config apps/stream-processor/fly.toml --remote-only
+        run: flyctl deploy . --config apps/stream-processor/fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy Dashboard
-        run: flyctl deploy --config apps/dashboard/fly.toml --remote-only --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+        run: flyctl deploy . --config apps/dashboard/fly.toml --remote-only --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
