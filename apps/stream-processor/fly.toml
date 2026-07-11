@@ -1,0 +1,8 @@
+app = "emoto-stream-processor"
+primary_region = "iad"
+
+[build]
+  dockerfile = "apps/stream-processor/Dockerfile"
+
+[env]
+  NODE_ENV = "production"

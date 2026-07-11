@@ -1,0 +1,37 @@
+app = "emoto-gateway"
+primary_region = "iad"
+
+[build]
+  dockerfile = "apps/gateway/Dockerfile"
+
+[env]
+  GATEWAY_PORT = "8080"
+  NODE_ENV = "production"
+
+[[services]]
+  http_service = true
+  internal_port = 8080
+  processes = ["app"]
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.concurrency]]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = "10s"
+    grace_period = "15s"
+    method = "get"
+    path = "/health"
+    protocol = "http"
+    timeout = "2s"
+    tls_skip_verify = false

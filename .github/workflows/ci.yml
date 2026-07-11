@@ -87,3 +87,36 @@ jobs:
         run: |
           docker build -f apps/api/Dockerfile -t emoto-api:ci .
           docker build -f apps/dashboard/Dockerfile --build-arg NEXT_PUBLIC_API_URL=http://localhost:3000 -t emoto-dashboard:ci .
+
+  deploy:
+    name: Deploy to Fly.io
+    needs: build-test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API
+        run: flyctl deploy --config apps/api/fly.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy Gateway
+        run: flyctl deploy --config apps/gateway/fly.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy Stream Processor
+        run: flyctl deploy --config apps/stream-processor/fly.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy Dashboard
+        run: flyctl deploy --config apps/dashboard/fly.toml --remote-only --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
