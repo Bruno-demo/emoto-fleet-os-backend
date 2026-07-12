@@ -1,10 +1,10 @@
 -- Ensure TimescaleDB extension when available.
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') THEN
-    CREATE EXTENSION IF NOT EXISTS timescaledb;
-  END IF;
-END $$;
+-- DO $$
+-- BEGIN
+--   IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') THEN
+--     CREATE EXTENSION IF NOT EXISTS timescaledb;
+--   END IF;
+-- END $$;
 
 -- Ensure TelemetryPoint primary key includes the partitioning column for TimescaleDB.
 DO $$
