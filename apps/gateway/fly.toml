@@ -7,6 +7,9 @@ primary_region = "iad"
 [env]
   GATEWAY_PORT = "8080"
   NODE_ENV = "production"
+  GATEWAY_CORS_ORIGIN = "https://dashboard.emotofleet.com,https://emotofleet.com,https://emoto-dashboard.fly.dev,http://localhost:3000,http://localhost:3001"
+  GATEWAY_API_URL = "http://emoto-api.internal:3000"
+
 
 [[services]]
   http_service = true

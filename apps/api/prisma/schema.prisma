@@ -398,6 +398,7 @@ model TelemetryPoint {
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@id([id, ts])
+  @@unique([deviceId, ts])
   @@index([deviceId])
   @@index([ts])
   @@index([deviceId, ts])
@@ -418,6 +419,7 @@ model Event {
   device    Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   incident  Incident?
 
+  @@unique([deviceId, ts, type])
   @@index([fleetId])
   @@index([deviceId])
   @@index([ts])

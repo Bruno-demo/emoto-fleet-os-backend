@@ -117,6 +117,6 @@
     "testEnvironment": "node"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "echo 'ERROR: Seeding is disabled on this project.'"
   }
 }

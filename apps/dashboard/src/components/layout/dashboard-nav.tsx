@@ -134,7 +134,7 @@ export function DashboardNav({
     if (link.href === '/deliveries' && user?.fleetType !== 'DELIVERY') {
       return false;
     }
-    if (link.href === '/financial' && user?.fleetType !== 'COOP') {
+    if (link.href === '/financial' && user?.fleetType !== 'COOP' && user?.fleetType !== 'DELIVERY') {
       return false;
     }
     if (link.requiresAdmin && user && !canManageZones(user.role)) return false;
