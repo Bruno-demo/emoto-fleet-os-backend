@@ -435,12 +435,24 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
+    // Apply stationary GPS drift filtering and speed clamping
+    const filtered = await this.liveStateService.filterStationaryDrift(
+      device.fleetId,
+      device.bikeId,
+      {
+        lat,
+        lng,
+        speedKph,
+        ignition,
+      },
+    );
+
     // Construct telemetry payload for internal components
     const telemetryPayload: TelemetryPayload = {
       ts: ts.toISOString(),
-      lat,
-      lng,
-      speedKph,
+      lat: filtered.lat,
+      lng: filtered.lng,
+      speedKph: filtered.speedKph,
       heading: isNaN(heading) ? undefined : heading,
       ignition,
       nonce: `sinotrack-${device.id}-${ts.getTime()}`,
@@ -453,9 +465,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         data: {
           deviceId: device.id,
           ts,
-          lat,
-          lng,
-          speedKph,
+          lat: filtered.lat,
+          lng: filtered.lng,
+          speedKph: filtered.speedKph,
           heading: isNaN(heading) ? null : heading,
           ignition,
         },
@@ -476,9 +488,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         deviceId: device.id,
         deviceUid: device.deviceUid,
         ts: telemetryPayload.ts,
-        lat,
-        lng,
-        speedKph,
+        lat: filtered.lat,
+        lng: filtered.lng,
+        speedKph: filtered.speedKph,
         heading: telemetryPayload.heading,
         ignition,
       };

@@ -22,6 +22,58 @@ export class LiveStateService {
     private readonly prismaService: PrismaService,
   ) {}
 
+  // Filters out stationary GPS drift and clamps speed when ignition is off.
+  async filterStationaryDrift(
+    fleetId: string,
+    bikeId: string | null,
+    incoming: { lat: number; lng: number; speedKph: number; ignition?: boolean },
+  ): Promise<{ lat: number; lng: number; speedKph: number }> {
+    let speedKph = incoming.speedKph;
+    let lat = incoming.lat;
+    let lng = incoming.lng;
+
+    // 1. Clamp speed if ignition is off
+    if (incoming.ignition === false) {
+      speedKph = 0;
+    }
+
+    if (!bikeId) {
+      return { lat, lng, speedKph };
+    }
+
+    // 2. Fetch the last cached state
+    const lastState = await this.getBikeState(fleetId, bikeId);
+    if (lastState) {
+      // If ignition is off, lock coordinates to prevent parked drift
+      if (incoming.ignition === false) {
+        lat = lastState.lat;
+        lng = lastState.lng;
+      } else if (speedKph < 3) {
+        // If ignition is on but speed is very low, check distance
+        const R = 6371000; // Earth radius in meters
+        const dLat = ((lat - lastState.lat) * Math.PI) / 180;
+        const dLng = ((lng - lastState.lng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lastState.lat * Math.PI) / 180) *
+            Math.cos((lat * Math.PI) / 180) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        // If moved less than 15 meters, it is likely just stationary jitter
+        if (distance < 15) {
+          lat = lastState.lat;
+          lng = lastState.lng;
+          speedKph = 0;
+        }
+      }
+    }
+
+    return { lat, lng, speedKph };
+  }
+
   // Stores the latest bike state in Redis with fleet-scoped key and expiration.
   async setLatestBikeState(state: LiveBikeState): Promise<void> {
     const key = this.buildBikeStateKey(state.fleetId, state.bikeId);

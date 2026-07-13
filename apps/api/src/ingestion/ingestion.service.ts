@@ -216,21 +216,41 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     );
 
     const telemetryTimestamp = new Date(telemetryPayload.ts);
+
+    // Apply stationary GPS drift filtering and speed clamping
+    const filtered = await this.liveStateService.filterStationaryDrift(
+      device.fleetId,
+      device.bikeId,
+      {
+        lat: Number(telemetryPayload.lat),
+        lng: Number(telemetryPayload.lng),
+        speedKph: Number(telemetryPayload.speedKph),
+        ignition: telemetryPayload.ignition ?? undefined,
+      },
+    );
+
+    const filteredPayload = {
+      ...telemetryPayload,
+      lat: filtered.lat,
+      lng: filtered.lng,
+      speedKph: filtered.speedKph,
+    };
+
     await this.prismaService.$transaction([
       this.prismaService.telemetryPoint.create({
         data: {
           deviceId: device.id,
           ts: telemetryTimestamp,
-          lat: telemetryPayload.lat,
-          lng: telemetryPayload.lng,
-          speedKph: telemetryPayload.speedKph,
-          heading: telemetryPayload.heading,
-          accelX: telemetryPayload.accel?.x,
-          accelY: telemetryPayload.accel?.y,
-          accelZ: telemetryPayload.accel?.z,
-          batteryV: telemetryPayload.batteryV,
-          batteryPct: telemetryPayload.batteryPct,
-          ignition: telemetryPayload.ignition,
+          lat: filteredPayload.lat,
+          lng: filteredPayload.lng,
+          speedKph: filteredPayload.speedKph,
+          heading: filteredPayload.heading,
+          accelX: filteredPayload.accel?.x,
+          accelY: filteredPayload.accel?.y,
+          accelZ: filteredPayload.accel?.z,
+          batteryV: filteredPayload.batteryV,
+          batteryPct: filteredPayload.batteryPct,
+          ignition: filteredPayload.ignition,
         },
       }),
       this.prismaService.device.update({
@@ -242,20 +262,20 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     ]);
 
     if (device.bikeId) {
-      const latestState = this.buildLiveBikeState(device, telemetryPayload);
+      const latestState = this.buildLiveBikeState(device, filteredPayload);
       await this.liveStateService.setLatestBikeState(latestState);
     }
 
     await this.publishStreamTelemetry(
       device,
-      telemetryPayload,
+      filteredPayload,
       telemetryTimestamp,
     );
 
-    await this.rulesEngineService.evaluateTelemetry(device, telemetryPayload);
+    await this.rulesEngineService.evaluateTelemetry(device, filteredPayload);
     await this.tripBuilderService.processTelemetryForTrips(
       device,
-      telemetryPayload,
+      filteredPayload,
     );
   }
 
