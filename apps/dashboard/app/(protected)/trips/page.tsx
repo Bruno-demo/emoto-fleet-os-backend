@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   Map,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { Drawer } from '@/components/ui/drawer';
@@ -68,7 +68,7 @@ export default function TripsPage() {
 
   // Fetch all trips in the fleet scope using selected filters
   const tripsQuery = useQuery({
-    queryKey: ['trips', page, from, to, minScore],
+    queryKey: ['trips', page, from, to, minScore, searchQuery],
     queryFn: () =>
       apiFetch<PaginatedResponse<FleetTrip>>(
         `/trips${buildQueryString({
@@ -77,30 +77,20 @@ export default function TripsPage() {
           from: toIsoUtcOrUndefined(from),
           to: toIsoUtcOrUndefined(to),
           minScore: minScore ? Number(minScore) : undefined,
+          search: searchQuery.trim() || undefined,
         })}`,
       ),
   });
 
+  // Reset page to 1 when search query changes to prevent blank pages
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
   const trips = useMemo(() => tripsQuery.data?.data ?? [], [tripsQuery.data?.data]);
 
   // Clientside filtering for searchable fields (bike label, rider name, trip ID)
-  const filteredTrips = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return trips;
-
-    const tokens = query.split(/\s+/).filter(Boolean);
-    return trips.filter((trip) => {
-      return tokens.every((token) => {
-        return [
-          trip.id,
-          trip.bikeLabel,
-          trip.riderName,
-        ]
-          .filter((val): val is string => !!val)
-          .some((val) => val.toLowerCase().includes(token));
-      });
-    });
-  }, [trips, searchQuery]);
+  const filteredTrips = trips;
 
   const selectedTrip = useMemo(
     () => trips.find((t) => t.id === selectedTripId) ?? null,

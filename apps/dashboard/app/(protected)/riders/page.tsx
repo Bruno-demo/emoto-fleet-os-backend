@@ -23,7 +23,7 @@ import {
   Banknote,
   Calendar,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -300,6 +300,16 @@ export default function RidersPage() {
   });
   const [statementTo, setStatementTo] = useState(() => new Date().toISOString().slice(0, 10));
 
+  interface RiderPaymentLog {
+    id: string;
+    amount: number | string;
+    paidAt: string;
+    method: string;
+    status: string;
+    reference?: string | null;
+    notes?: string | null;
+  }
+
   // Default daily rate fallback constant
   const DAILY_LEASE_RATE = 15000;
 
@@ -307,7 +317,7 @@ export default function RidersPage() {
   const statementQuery = useQuery({
     queryKey: ['rider-statement', statementRider?.id, statementFrom, statementTo],
     queryFn: () =>
-      apiFetch<PaginatedResponse<Record<string, unknown>>>(
+      apiFetch<PaginatedResponse<RiderPaymentLog>>(
         `/financials${buildQueryString({
           riderId: statementRider?.id,
           startDate: `${statementFrom}T00:00:00.000Z`,
@@ -321,12 +331,21 @@ export default function RidersPage() {
   const statementPayments = useMemo(() => statementQuery.data?.data ?? [], [statementQuery.data]);
 
   const ridersQuery = useQuery({
-    queryKey: ['riders', page],
+    queryKey: ['riders', page, searchQuery],
     queryFn: () =>
       apiFetch<PaginatedResponse<Rider>>(
-        `/riders${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
+        `/riders${buildQueryString({
+          page,
+          pageSize: PAGE_SIZE,
+          search: searchQuery.trim() || undefined,
+        })}`,
       ),
   });
+
+  // Reset page to 1 when search query changes to prevent blank pages
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   useQuery({
     queryKey: ['assignments', 'riders-page'],
@@ -337,29 +356,7 @@ export default function RidersPage() {
   const riders = useMemo(() => ridersQuery.data?.data ?? [], [ridersQuery.data?.data]);
   const totalRiders = ridersQuery.data?.total ?? 0;
 
-  const filteredRiders = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return riders;
-
-    const tokens = query.split(/\s+/).filter(Boolean);
-    return riders.filter((r) => {
-      const assignment = r.activeAssignments?.[0];
-      const bikeLabel = assignment ? assignment.bikeLabel : 'unassigned';
-      
-      return tokens.every((token) => {
-        return [
-          r.fullName,
-          r.email,
-          r.phone,
-          r.status,
-          formatEnumLabel(r.status),
-          bikeLabel,
-        ]
-          .filter((val): val is string => !!val)
-          .some((val) => val.toLowerCase().includes(token));
-      });
-    });
-  }, [riders, searchQuery]);
+  const filteredRiders = riders;
 
   const activeCount = riders.filter((r) => r.status === 'ACTIVE').length;
   const suspendedCount = riders.filter((r) => r.status === 'SUSPENDED').length;

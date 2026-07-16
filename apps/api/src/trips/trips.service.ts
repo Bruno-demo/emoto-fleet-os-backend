@@ -47,6 +47,24 @@ export class TripsService {
   ): Promise<PaginatedResponse<FleetTrip>> {
     const where: Prisma.TripWhereInput = {};
 
+    if (query.search) {
+      where.OR = [
+        { id: { contains: query.search, mode: 'insensitive' } },
+        {
+          bike: {
+            label: { contains: query.search, mode: 'insensitive' },
+          },
+        },
+        {
+          rider: {
+            riderProfile: {
+              fullName: { contains: query.search, mode: 'insensitive' },
+            },
+          },
+        },
+      ];
+    }
+
     if (user.role === 'INSURER') {
       where.bike = { insurerName: user.insurerName };
     } else {

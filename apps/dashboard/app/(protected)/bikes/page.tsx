@@ -185,12 +185,21 @@ export default function BikesPage() {
   };
 
   const bikesQuery = useQuery({
-    queryKey: ['bikes', page],
+    queryKey: ['bikes', page, searchQuery],
     queryFn: () =>
       apiFetch<PaginatedResponse<FleetBike>>(
-        `/bikes${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
+        `/bikes${buildQueryString({
+          page,
+          pageSize: PAGE_SIZE,
+          search: searchQuery.trim() || undefined,
+        })}`,
       ),
   });
+
+  // Reset page to 1 when search query changes to prevent blank pages
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const devicesQuery = useQuery({
     queryKey: ['devices', 'bike-join'],
@@ -283,38 +292,8 @@ export default function BikesPage() {
   }, [assignmentsQuery.data?.data]);
 
   const filteredBikes = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const bikes = bikesQuery.data?.data ?? [];
-    if (!query) {
-      return bikes;
-    }
-
-    const tokens = query.split(/\s+/).filter(Boolean);
-    return bikes.filter((bike) => {
-      const device = deviceByBikeId.get(bike.id);
-      const assignment = assignmentByBikeId.get(bike.id);
-      
-      return tokens.every((token) => {
-        return [
-          bike.label,
-          bike.plate,
-          bike.model,
-          bike.serial,
-          bike.status,
-          formatEnumLabel(bike.status),
-          device?.deviceUid,
-          device?.imei,
-          assignment?.riderFullName,
-          bike.insurerName,
-          bike.insurer?.riderProfile?.fullName,
-          bike.insurer?.email,
-          bike.insurer?.phone,
-        ]
-          .filter((val): val is string => !!val)
-          .some((val) => val.toLowerCase().includes(token));
-      });
-    });
-  }, [assignmentByBikeId, bikesQuery.data?.data, deviceByBikeId, searchQuery]);
+    return bikesQuery.data?.data ?? [];
+  }, [bikesQuery.data?.data]);
 
   const selectedBike = useMemo(
     () => (bikesQuery.data?.data ?? []).find((bike) => bike.id === selectedBikeId) ?? null,
