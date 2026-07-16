@@ -766,284 +766,103 @@ export default function FinancialsPage() {
             )}
           </section>
 
-          {/* Grid: Charts + Daily Payment Matrix */}
-          <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-5">
-              {/* Earning Graph */}
-              <DashboardCard
-                eyebrow={t("Revenue Streams")}
-                title={t("Earning progression")}
-                actions={
-                  <button
-                    type="button"
-                    onClick={() => void queryClient.invalidateQueries({ queryKey: ['financials-summary'] })}
-                    className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition"
-                    title={t("Refresh stats")}
-                  >
-                    <RefreshCw size={12} />
-                  </button>
-                }
-              >
-                {summaryQuery.isLoading ? (
-                  <div className="h-[180px] w-full bg-surface-hover rounded-xl animate-pulse" />
-                ) : summary && summary.dailyEarnings.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="h-[180px] w-full mt-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={summary.dailyEarnings}
-                          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
-                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis
-                            dataKey="date"
-                            tickFormatter={(str) => {
-                              const d = new Date(str);
-                              return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                            }}
-                            stroke="rgba(255,255,255,0.08)"
-                            tick={{ fill: 'var(--color-ink-muted, #94A3B8)', fontSize: 10 }}
-                          />
-                          <YAxis
-                            stroke="rgba(255,255,255,0.08)"
-                            tick={{ fill: 'var(--color-ink-muted, #94A3B8)', fontSize: 10 }}
-                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
-                          />
-                          <ChartTooltip
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                const data = payload[0].payload as { date: string; amount: number };
-                                return (
-                                  <div className="rounded-xl border border-line bg-surface p-2.5 shadow-xl text-[10px] leading-none text-ink">
-                                    <p className="font-semibold text-ink-muted">
-                                      {new Date(data.date).toLocaleDateString(undefined, {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                      })}
-                                    </p>
-                                    <p className="font-mono font-bold text-accent text-xs mt-1">
-                                      {data.amount.toLocaleString()} RWF
-                                    </p>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="amount"
-                            stroke="#3B82F6"
-                            strokeWidth={2.5}
-                            fillOpacity={1}
-                            fill="url(#chartGrad)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-ink-muted px-2 border-t border-line/20 pt-2">
-                      <span>{new Date(startDate).toLocaleDateString()}</span>
-                      <span className="font-medium text-ink-soft">{t("Daily Revenue Stream")}</span>
-                      <span>{new Date(endDate).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<TrendingUp size={18} />}
-                    title={t("No revenue logged")}
-                    description={t("Collections data graphs will appear here once logs are entered.")}
-                  />
-                )}
-              </DashboardCard>
-
-              {/* Interactive Matrix Grid */}
-              <DashboardCard
-                eyebrow={t("Operational Tracker")}
-                title={t("Interactive payment matrix")}
-                description={t('Weekly view for {range}').replace('{range}', weekRangeLabel)}
-                actions={
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setWeekOffset((prev) => prev - 1)}
-                      className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
-                      title={t("Previous week")}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWeekOffset(0)}
-                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface hover:bg-surface-hover border border-line text-ink-soft hover:text-ink transition-colors cursor-pointer"
-                      title={t("Current week")}
-                    >
-                      {t("Current")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWeekOffset((prev) => prev + 1)}
-                      className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
-                      title={t("Next week")}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                }
-              >
-                {ridersQuery.isLoading ? (
-                  <div className="space-y-2 animate-pulse">
-                    <div className="h-10 bg-surface-muted rounded-xl" />
-                    <div className="h-10 bg-surface-muted rounded-xl" />
-                    <div className="h-10 bg-surface-muted rounded-xl" />
-                  </div>
-                ) : ridersList.length === 0 ? (
-                  <EmptyState
-                    icon={<Calendar size={18} />}
-                    title={t("No riders registered")}
-                    description={t("Riders must be added to your registry to track daily lease matrix.")}
-                  />
-                ) : (
-                  <div className="space-y-4">
-                    {/* Search & Tabs Controls */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-muted/40 p-2.5 rounded-xl border border-line/50">
-                      {/* Tabs selector */}
-                      <div className="flex rounded-lg bg-surface-muted p-0.5 border border-line w-fit">
-                        <button
-                          type="button"
-                          onClick={() => setMatrixTab('daily')}
-                          className={cx(
-                            'rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer',
-                            matrixTab === 'daily'
-                              ? 'bg-surface text-ink shadow-sm'
-                              : 'text-ink-muted hover:text-ink'
-                          )}
-                        >
-                          {t('Daily Collections')} ({dailyCollectionRiders.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMatrixTab('lease')}
-                          className={cx(
-                            'rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer',
-                            matrixTab === 'lease'
-                              ? 'bg-surface text-ink shadow-sm'
-                              : 'text-ink-muted hover:text-ink'
-                          )}
-                        >
-                          {t('Buy-to-Own Leases')} ({buyToOwnRiders.length})
-                        </button>
-                      </div>
-
-                      {/* Search box */}
-                      <div className="relative max-w-xs w-full">
-                        <span className="absolute inset-y-0 left-2.5 flex items-center text-ink-faint pointer-events-none">
-                          <Search size={12} />
-                        </span>
-                        <input
-                          type="text"
-                          placeholder={t('Search rider by name, phone...')}
-                          value={matrixSearch}
-                          onChange={(e) => setMatrixSearch(e.target.value)}
-                          className="w-full rounded-lg border border-line bg-surface pl-8 pr-7 py-1 text-xs text-ink placeholder-ink-faint focus:outline-none focus:border-accent"
+          {/* Charts Row: Earning Graph + Method Distribution + Quick Collect */}
+          <section className="space-y-5">
+            {/* Earning Graph — full width */}
+            <DashboardCard
+              eyebrow={t("Revenue Streams")}
+              title={t("Earning progression")}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => void queryClient.invalidateQueries({ queryKey: ['financials-summary'] })}
+                  className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition"
+                  title={t("Refresh stats")}
+                >
+                  <RefreshCw size={12} />
+                </button>
+              }
+            >
+              {summaryQuery.isLoading ? (
+                <div className="h-[180px] w-full bg-surface-hover rounded-xl animate-pulse" />
+              ) : summary && summary.dailyEarnings.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="h-[180px] w-full mt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={summary.dailyEarnings}
+                        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(str) => {
+                            const d = new Date(str);
+                            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                          }}
+                          stroke="rgba(255,255,255,0.08)"
+                          tick={{ fill: 'var(--color-ink-muted, #94A3B8)', fontSize: 10 }}
                         />
-                        {matrixSearch && (
-                          <button
-                            type="button"
-                            onClick={() => setMatrixSearch('')}
-                            className="absolute inset-y-0 right-2.5 flex items-center text-ink-faint hover:text-ink"
-                          >
-                            <X size={10} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Matrix Table */}
-                    {activeMatrixRiders.length === 0 ? (
-                      <EmptyState
-                        icon={<Users size={16} />}
-                        title={t("No matching riders found")}
-                        description={t("Try refining your search query or switching tabs.")}
-                      />
-                    ) : (
-                      <div className="overflow-x-auto dashboard-scrollbar">
-                        <table className="w-full min-w-[500px] border-collapse text-left text-xs">
-                          <thead>
-                            <tr className="border-b border-line text-ink-faint">
-                              <th className="py-2.5 font-bold">{t('Rider')}</th>
-                              {weekDays.map((d) => (
-                                <th key={d.dateString} className="py-2.5 text-center font-bold">
-                                  <div>{t(d.dayLabel)}</div>
-                                  <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {activeMatrixRiders.map((rider) => (
-                              <tr key={rider.id} className="border-b border-line hover:bg-surface-hover transition-colors">
-                                <td className="py-3 font-semibold text-ink">
-                                  <div className="flex items-center gap-2">
-                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
-                                      {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
-                                    </span>
-                                    <div className="flex flex-col min-w-0">
-                                      <span className="truncate max-w-[120px] font-semibold">
-                                        {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
-                                      </span>
-                                      <span className="text-[10px] text-ink-muted leading-tight font-normal">
-                                        {rider.phone ?? rider.email ?? ''}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </td>
-                                {weekDays.map((day) => {
-                                  const status = getMatrixCellStatus(rider.id, day.dateString);
-                                  return (
-                                    <td key={day.dateString} className="py-3 text-center">
-                                      <button
-                                        type="button"
-                                        onClick={() => openCollectForMatrix(rider.id, day.dateString)}
-                                        className={cx(
-                                          'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
-                                          status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
-                                          status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
-                                          status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
-                                          status === 'unpaid' && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
-                                        )}
-                                        title={
-                                          status === 'unpaid'
-                                            ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
-                                            : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
-                                        }
-                                      >
-                                        {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
-                                        {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
-                                        {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
-                                        {status === 'unpaid' && <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />}
-                                      </button>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                        <YAxis
+                          stroke="rgba(255,255,255,0.08)"
+                          tick={{ fill: 'var(--color-ink-muted, #94A3B8)', fontSize: 10 }}
+                          tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                        />
+                        <ChartTooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload as { date: string; amount: number };
+                              return (
+                                <div className="rounded-xl border border-line bg-surface p-2.5 shadow-xl text-[10px] leading-none text-ink">
+                                  <p className="font-semibold text-ink-muted">
+                                    {new Date(data.date).toLocaleDateString(undefined, {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    })}
+                                  </p>
+                                  <p className="font-mono font-bold text-accent text-xs mt-1">
+                                    {data.amount.toLocaleString()} RWF
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="amount"
+                          stroke="#3B82F6"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#chartGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-                )}
-              </DashboardCard>
-            </div>
+                  <div className="flex items-center justify-between text-[10px] text-ink-muted px-2 border-t border-line/20 pt-2">
+                    <span>{new Date(startDate).toLocaleDateString()}</span>
+                    <span className="font-medium text-ink-soft">{t("Daily Revenue Stream")}</span>
+                    <span>{new Date(endDate).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<TrendingUp size={18} />}
+                  title={t("No revenue logged")}
+                  description={t("Collections data graphs will appear here once logs are entered.")}
+                />
+              )}
+            </DashboardCard>
 
-            {/* Right side: Method pie/doughnut + quick record panel shortcut */}
-            <div className="space-y-5">
+            {/* Method Distribution + Quick Collect — side by side in a compact row */}
+            <div className="grid gap-5 md:grid-cols-2">
               {/* Method Chart */}
               <DashboardCard eyebrow={t("Financial Distribution")} title={t("Collections by payment method")}>
                 {summaryQuery.isLoading ? (
@@ -1135,6 +954,185 @@ export default function FinancialsPage() {
                 </button>
               </DashboardCard>
             </div>
+
+            {/* Interactive Matrix Grid — full width */}
+            <DashboardCard
+              eyebrow={t("Operational Tracker")}
+              title={t("Interactive payment matrix")}
+              description={t('Weekly view for {range}').replace('{range}', weekRangeLabel)}
+              actions={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWeekOffset((prev) => prev - 1)}
+                    className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
+                    title={t("Previous week")}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWeekOffset(0)}
+                    className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface hover:bg-surface-hover border border-line text-ink-soft hover:text-ink transition-colors cursor-pointer"
+                    title={t("Current week")}
+                  >
+                    {t("Current")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWeekOffset((prev) => prev + 1)}
+                    className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
+                    title={t("Next week")}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              }
+            >
+              {ridersQuery.isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-10 bg-surface-muted rounded-xl" />
+                  <div className="h-10 bg-surface-muted rounded-xl" />
+                  <div className="h-10 bg-surface-muted rounded-xl" />
+                </div>
+              ) : ridersList.length === 0 ? (
+                <EmptyState
+                  icon={<Calendar size={18} />}
+                  title={t("No riders registered")}
+                  description={t("Riders must be added to your registry to track daily lease matrix.")}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {/* Search & Tabs Controls */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-surface-muted/40 p-2.5 rounded-xl border border-line/50">
+                    {/* Tabs selector */}
+                    <div className="flex rounded-lg bg-surface-muted p-0.5 border border-line w-fit">
+                      <button
+                        type="button"
+                        onClick={() => setMatrixTab('daily')}
+                        className={cx(
+                          'rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer',
+                          matrixTab === 'daily'
+                            ? 'bg-surface text-ink shadow-sm'
+                            : 'text-ink-muted hover:text-ink'
+                        )}
+                      >
+                        {t('Daily Collections')} ({dailyCollectionRiders.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMatrixTab('lease')}
+                        className={cx(
+                          'rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer',
+                          matrixTab === 'lease'
+                            ? 'bg-surface text-ink shadow-sm'
+                            : 'text-ink-muted hover:text-ink'
+                        )}
+                      >
+                        {t('Buy-to-Own Leases')} ({buyToOwnRiders.length})
+                      </button>
+                    </div>
+
+                    {/* Search box */}
+                    <div className="relative max-w-xs w-full">
+                      <span className="absolute inset-y-0 left-2.5 flex items-center text-ink-faint pointer-events-none">
+                        <Search size={12} />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder={t('Search rider by name, phone...')}
+                        value={matrixSearch}
+                        onChange={(e) => setMatrixSearch(e.target.value)}
+                        className="w-full rounded-lg border border-line bg-surface pl-8 pr-7 py-1 text-xs text-ink placeholder-ink-faint focus:outline-none focus:border-accent"
+                      />
+                      {matrixSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setMatrixSearch('')}
+                          className="absolute inset-y-0 right-2.5 flex items-center text-ink-faint hover:text-ink"
+                        >
+                          <X size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Matrix Table */}
+                  {activeMatrixRiders.length === 0 ? (
+                    <EmptyState
+                      icon={<Users size={16} />}
+                      title={t("No matching riders found")}
+                      description={t("Try refining your search query or switching tabs.")}
+                    />
+                  ) : (
+                    <div className="overflow-x-auto dashboard-scrollbar">
+                      <table className="w-full min-w-[500px] border-collapse text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-line text-ink-faint">
+                            <th className="py-2.5 font-bold">{t('Rider')}</th>
+                            {weekDays.map((d) => (
+                              <th key={d.dateString} className="py-2.5 text-center font-bold">
+                                <div>{t(d.dayLabel)}</div>
+                                <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeMatrixRiders.map((rider) => (
+                            <tr key={rider.id} className="border-b border-line hover:bg-surface-hover transition-colors">
+                              <td className="py-3 font-semibold text-ink">
+                                <div className="flex items-center gap-2">
+                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
+                                    {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
+                                  </span>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="truncate max-w-[120px] font-semibold">
+                                      {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
+                                    </span>
+                                    <span className="text-[10px] text-ink-muted leading-tight font-normal">
+                                      {rider.phone ?? rider.email ?? ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                              {weekDays.map((day) => {
+                                const status = getMatrixCellStatus(rider.id, day.dateString);
+                                return (
+                                  <td key={day.dateString} className="py-3 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => openCollectForMatrix(rider.id, day.dateString)}
+                                      className={cx(
+                                        'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
+                                        status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
+                                        status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
+                                        status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
+                                        status === 'unpaid' && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
+                                      )}
+                                      title={
+                                        status === 'unpaid'
+                                          ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                          : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
+                                      }
+                                    >
+                                      {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
+                                      {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
+                                      {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
+                                      {status === 'unpaid' && <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />}
+                                    </button>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </DashboardCard>
           </section>
 
           {/* History table */}
