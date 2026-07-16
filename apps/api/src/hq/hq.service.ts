@@ -239,6 +239,13 @@ export class HqService {
 
     const bikesWithLockState = await Promise.all(
       fleet.bikes.map(async (bike) => {
+        if (!bike.devices || bike.devices.length === 0) {
+          return {
+            ...bike,
+            lockState: 'UNLOCKED' as const,
+          };
+        }
+
         const lastCommand = await this.prisma.deviceCommand.findFirst({
           where: {
             deviceId: { in: bike.devices.map((d) => d.id) },
