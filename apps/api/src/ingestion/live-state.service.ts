@@ -26,7 +26,12 @@ export class LiveStateService {
   async filterStationaryDrift(
     fleetId: string,
     bikeId: string | null,
-    incoming: { lat: number; lng: number; speedKph: number; ignition?: boolean },
+    incoming: {
+      lat: number;
+      lng: number;
+      speedKph: number;
+      ignition?: boolean;
+    },
   ): Promise<{ lat: number; lng: number; speedKph: number }> {
     let speedKph = incoming.speedKph;
     let lat = incoming.lat;

@@ -1,15 +1,16 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, CalendarDays, Filter, ShieldAlert, Lock, MapPin, ArrowRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Activity, CalendarDays, Filter, ShieldAlert, Lock, MapPin, ArrowRight, ChevronDown, Check } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { SelectField, TextField } from '@/components/ui/form-controls';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { apiFetch } from '@/lib/api/client';
@@ -40,11 +41,18 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<FleetEvent | null>(null);
 
   const [page, setPage] = useState(1);
+  const [accumulatedEvents, setAccumulatedEvents] = useState<FleetEvent[]>([]);
   const [type, setType] = useState('');
   const [severity, setSeverity] = useState('');
   const [bikeId, setBikeId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+
+  // Reset page and accumulated list when filters change
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedEvents([]);
+  }, [type, severity, bikeId, from, to]);
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'event-filter'],
@@ -67,6 +75,20 @@ export default function EventsPage() {
       ),
   });
 
+  useEffect(() => {
+    if (eventsQuery.data?.data) {
+      if (page === 1) {
+        setAccumulatedEvents(eventsQuery.data.data);
+      } else {
+        setAccumulatedEvents((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id));
+          const newEvents = (eventsQuery.data?.data ?? []).filter((e) => !existingIds.has(e.id));
+          return [...prev, ...newEvents];
+        });
+      }
+    }
+  }, [eventsQuery.data, page]);
+
   const bikeLabelById = useMemo(() => {
     const bikeMap = new Map<string, string>();
     for (const bike of bikesQuery.data?.data ?? []) {
@@ -75,7 +97,7 @@ export default function EventsPage() {
     return bikeMap;
   }, [bikesQuery.data?.data]);
 
-  const currentEvents = useMemo(() => eventsQuery.data?.data ?? [], [eventsQuery.data?.data]);
+  const currentEvents = accumulatedEvents;
   const summary = useMemo(() => {
     return {
       total: eventsQuery.data?.total ?? 0,
@@ -278,11 +300,30 @@ export default function EventsPage() {
           />
         </div>
 
-        <PaginationControls
-          page={eventsQuery.data?.page ?? page}
-          totalPages={eventsQuery.data?.totalPages ?? 1}
-          onPageChange={setPage}
-        />
+        {accumulatedEvents.length < (eventsQuery.data?.total ?? 0) && (
+          <div className="mt-6 flex justify-center border-t border-line pt-6">
+            <button
+              type="button"
+              disabled={eventsQuery.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {eventsQuery.isFetching ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : (
+                <ChevronDown size={16} className="animate-bounce" />
+              )}
+              {eventsQuery.isFetching ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
+        )}
+        {accumulatedEvents.length >= (eventsQuery.data?.total ?? 0) && (eventsQuery.data?.total ?? 0) > 0 && (
+          <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <Check size={14} /> {t('All {total} events loaded').replace('{total}', String(eventsQuery.data?.total ?? 0))}
+            </p>
+          </div>
+        )}
       </DashboardCard>
 
       {/* Event Details Drawer */}

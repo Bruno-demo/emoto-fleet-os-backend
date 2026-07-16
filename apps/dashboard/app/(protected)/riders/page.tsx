@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -22,13 +23,14 @@ import {
   Wallet,
   Banknote,
   Calendar,
+  ChevronDown,
 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { Badge } from '@/components/ui/badge';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { downloadFormattedExcel } from '@/lib/export/excel-export';
@@ -356,11 +358,25 @@ export default function RidersPage() {
   const riders = useMemo(() => ridersQuery.data?.data ?? [], [ridersQuery.data?.data]);
   const totalRiders = ridersQuery.data?.total ?? 0;
 
-  const filteredRiders = riders;
+  const [accumulatedRiders, setAccumulatedRiders] = useState<Rider[]>([]);
 
-  const activeCount = riders.filter((r) => r.status === 'ACTIVE').length;
-  const suspendedCount = riders.filter((r) => r.status === 'SUSPENDED').length;
-  const assignedCount = riders.filter(
+  useEffect(() => {
+    if (page === 1) {
+      setAccumulatedRiders(riders);
+    } else {
+      setAccumulatedRiders((prev) => {
+        const existingIds = new Set(prev.map((r) => r.id));
+        const newRiders = riders.filter((r) => !existingIds.has(r.id));
+        return [...prev, ...newRiders];
+      });
+    }
+  }, [riders, page]);
+
+  const filteredRiders = accumulatedRiders;
+
+  const activeCount = accumulatedRiders.filter((r) => r.status === 'ACTIVE').length;
+  const suspendedCount = accumulatedRiders.filter((r) => r.status === 'SUSPENDED').length;
+  const assignedCount = accumulatedRiders.filter(
     (r) => r.activeAssignments && r.activeAssignments.length > 0,
   ).length;
 
@@ -1085,11 +1101,41 @@ export default function RidersPage() {
           />
         </div>
 
-        <PaginationControls
-          page={ridersQuery.data?.page ?? page}
-          totalPages={ridersQuery.data?.totalPages ?? 1}
-          onPageChange={setPage}
-        />
+        {accumulatedRiders.length < totalRiders && (
+          <div className="flex flex-col items-center justify-center gap-3 mt-6 pt-6 border-t border-line">
+            <div className="w-64 bg-line rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-accent h-full transition-all duration-300"
+                style={{ width: `${Math.min(100, (accumulatedRiders.length / totalRiders) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-ink-muted">
+              {t('Showing {loaded} of {total} riders')
+                .replace('{loaded}', String(accumulatedRiders.length))
+                .replace('{total}', String(totalRiders))}
+            </p>
+            <button
+              type="button"
+              disabled={ridersQuery.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {ridersQuery.isFetching ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : (
+                <ChevronDown size={16} className="animate-bounce" />
+              )}
+              {ridersQuery.isFetching ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
+        )}
+        {accumulatedRiders.length >= totalRiders && totalRiders > 0 && (
+          <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <Check size={14} /> {t('All {total} riders loaded').replace('{total}', String(totalRiders))}
+            </p>
+          </div>
+        )}
       </DashboardCard>
 
       <Drawer

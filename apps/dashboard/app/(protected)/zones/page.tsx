@@ -1,8 +1,9 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Plus, ShieldCheck, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { MapPin, Plus, ShieldCheck, Trash2, ChevronDown, Check } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 import { z } from 'zod';
 import dynamic from 'next/dynamic';
 import { canManageZones } from '@/lib/auth/roles';
@@ -16,7 +17,7 @@ import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineNotice, SelectField, TextAreaField, TextField } from '@/components/ui/form-controls';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 function LoadingDrawingCanvas() {
@@ -75,6 +76,7 @@ export default function ZonesPage() {
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
+  const [accumulatedZones, setAccumulatedZones] = useState<Zone[]>([]);
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [type, setType] = useState<'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY'>('SLOW');
@@ -120,6 +122,20 @@ export default function ZonesPage() {
     retry: false,
   });
 
+  useEffect(() => {
+    if (zonesQuery.data?.data) {
+      if (page === 1) {
+        setAccumulatedZones(zonesQuery.data.data);
+      } else {
+        setAccumulatedZones((prev) => {
+          const existingIds = new Set(prev.map((z) => z.id));
+          const newZones = (zonesQuery.data?.data ?? []).filter((z) => !existingIds.has(z.id));
+          return [...prev, ...newZones];
+        });
+      }
+    }
+  }, [zonesQuery.data, page]);
+
   const liveBikesQuery = useQuery({
     queryKey: ['live-bikes'],
     queryFn: () => apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
@@ -133,19 +149,19 @@ export default function ZonesPage() {
   });
 
   const editingZone = useMemo(
-    () => (zonesQuery.data?.data ?? []).find((zone) => zone.id === editingZoneId) ?? null,
-    [editingZoneId, zonesQuery.data?.data],
+    () => accumulatedZones.find((zone) => zone.id === editingZoneId) ?? null,
+    [editingZoneId, accumulatedZones],
   );
 
   const zoneStats = useMemo(() => {
-    const zones = zonesQuery.data?.data ?? [];
+    const zones = accumulatedZones;
     return {
       total: zonesQuery.data?.total ?? 0,
       active: zones.filter((zone) => zone.active).length,
       slow: zones.filter((zone) => zone.type === 'SLOW').length,
       restricted: zones.filter((zone) => zone.type === 'NO_GO').length,
     };
-  }, [zonesQuery.data?.data, zonesQuery.data?.total]);
+  }, [accumulatedZones, zonesQuery.data?.total]);
 
   // Resets the fallback GeoJSON editor to a clean default state.
   const resetForm = () => {
@@ -241,6 +257,8 @@ export default function ZonesPage() {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['zones'] });
+      setPage(1);
+      setAccumulatedZones([]);
       resetForm();
     } catch (error: unknown) {
       if (error instanceof ApiError) {
@@ -261,6 +279,8 @@ export default function ZonesPage() {
     try {
       await apiFetch(`/zones/${deleteTarget.id}`, { method: 'DELETE' });
       await queryClient.invalidateQueries({ queryKey: ['zones'] });
+      setPage(1);
+      setAccumulatedZones([]);
       if (editingZoneId === deleteTarget.id) {
         resetForm();
       }
@@ -386,7 +406,7 @@ export default function ZonesPage() {
         <DashboardCard eyebrow={t('Zone Registry')} title={t('Geofence list')} description={t('Edit fleet boundaries with safer inline actions and a clearer GeoJSON fallback view.')}>
           <div className="mt-1">
             <DataTable
-              data={zonesQuery.data?.data ?? []}
+              data={accumulatedZones}
               columns={columns}
               keyExtractor={(zone) => zone.id}
               loading={zonesQuery.isLoading}
@@ -400,11 +420,30 @@ export default function ZonesPage() {
             />
           </div>
 
-          <PaginationControls
-            page={zonesQuery.data?.page ?? page}
-            totalPages={zonesQuery.data?.totalPages ?? 1}
-            onPageChange={setPage}
-          />
+          {accumulatedZones.length < (zonesQuery.data?.total ?? 0) && (
+            <div className="mt-6 flex justify-center border-t border-line pt-6">
+              <button
+                type="button"
+                disabled={zonesQuery.isFetching}
+                onClick={() => setPage((prev) => prev + 1)}
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {zonesQuery.isFetching ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                ) : (
+                  <ChevronDown size={16} className="animate-bounce" />
+                )}
+                {zonesQuery.isFetching ? t('Loading...') : t('Load more')}
+              </button>
+            </div>
+          )}
+          {accumulatedZones.length >= (zonesQuery.data?.total ?? 0) && (zonesQuery.data?.total ?? 0) > 0 && (
+            <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+              <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+                <Check size={14} /> {t('All {total} zones loaded').replace('{total}', String(zonesQuery.data?.total ?? 0))}
+              </p>
+            </div>
+          )}
         </DashboardCard>
 
         <DashboardCard

@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,6 +9,8 @@ import {
   FileArchive,
   ShieldAlert,
   Siren,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
@@ -23,7 +26,7 @@ import { DataTable, DataTableColumn, DataTableToolbar } from '@/components/ui/da
 import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { DrawerSkeleton, Skeleton } from '@/components/ui/skeleton';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 
 const PAGE_SIZE = 20;
 type IncidentStatusFilter = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'FALSE_ALARM' | '';
@@ -34,9 +37,16 @@ export default function IncidentsPage() {
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
+  const [accumulatedIncidents, setAccumulatedIncidents] = useState<Incident[]>([]);
   const [status, setStatus] = useState<IncidentStatusFilter>('OPEN');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+
+  // Reset page and accumulated list when filters change
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedIncidents([]);
+  }, [status, from, to]);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<IncidentAction | null>(null);
   const [notes, setNotes] = useState('');
@@ -59,6 +69,20 @@ export default function IncidentsPage() {
         })}`,
       ),
   });
+
+  useEffect(() => {
+    if (incidentsQuery.data?.data) {
+      if (page === 1) {
+        setAccumulatedIncidents(incidentsQuery.data.data);
+      } else {
+        setAccumulatedIncidents((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const newIncidents = (incidentsQuery.data?.data ?? []).filter((i) => !existingIds.has(i.id));
+          return [...prev, ...newIncidents];
+        });
+      }
+    }
+  }, [incidentsQuery.data, page]);
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'incident-labels'],
@@ -106,7 +130,7 @@ export default function IncidentsPage() {
     return bikeMap;
   }, [bikesQuery.data?.data]);
 
-  const incidents = useMemo(() => incidentsQuery.data?.data ?? [], [incidentsQuery.data?.data]);
+  const incidents = accumulatedIncidents;
   const incidentsStatsQuery = useQuery({
     queryKey: ['incidents', 'stats'],
     queryFn: () => apiFetch<IncidentStats>('/incidents/stats'),
@@ -331,11 +355,30 @@ export default function IncidentsPage() {
           />
         </div>
 
-        <PaginationControls
-          page={incidentsQuery.data?.page ?? page}
-          totalPages={incidentsQuery.data?.totalPages ?? 1}
-          onPageChange={setPage}
-        />
+        {accumulatedIncidents.length < (incidentsQuery.data?.total ?? 0) && (
+          <div className="mt-6 flex justify-center border-t border-line pt-6">
+            <button
+              type="button"
+              disabled={incidentsQuery.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {incidentsQuery.isFetching ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : (
+                <ChevronDown size={16} className="animate-bounce" />
+              )}
+              {incidentsQuery.isFetching ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
+        )}
+        {accumulatedIncidents.length >= (incidentsQuery.data?.total ?? 0) && (incidentsQuery.data?.total ?? 0) > 0 && (
+          <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <Check size={14} /> {t('All {total} incidents loaded').replace('{total}', String(incidentsQuery.data?.total ?? 0))}
+            </p>
+          </div>
+        )}
       </DashboardCard>
 
       <Drawer

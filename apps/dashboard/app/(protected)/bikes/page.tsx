@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,6 +16,8 @@ import {
   UserRound,
   X,
   Search,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -45,7 +48,7 @@ import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/
 import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InlineNotice, TextField } from '@/components/ui/form-controls';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { DrawerSkeleton } from '@/components/ui/skeleton';
 import { compressImage } from '@/lib/image';
 
@@ -62,6 +65,7 @@ export default function BikesPage() {
   const queryClient = useQueryClient();
   const { commandStatuses = [], recordCommandStatus } = useRealtime();
   const [page, setPage] = useState(1);
+  const [accumulatedBikes, setAccumulatedBikes] = useState<FleetBike[]>([]);
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [commandError, setCommandError] = useState<string | null>(null);
@@ -199,7 +203,22 @@ export default function BikesPage() {
   // Reset page to 1 when search query changes to prevent blank pages
   useEffect(() => {
     setPage(1);
+    setAccumulatedBikes([]);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (bikesQuery.data?.data) {
+      if (page === 1) {
+        setAccumulatedBikes(bikesQuery.data.data);
+      } else {
+        setAccumulatedBikes((prev) => {
+          const existingIds = new Set(prev.map((b) => b.id));
+          const newBikes = (bikesQuery.data?.data ?? []).filter((b) => !existingIds.has(b.id));
+          return [...prev, ...newBikes];
+        });
+      }
+    }
+  }, [bikesQuery.data, page]);
 
   const devicesQuery = useQuery({
     queryKey: ['devices', 'bike-join'],
@@ -343,7 +362,7 @@ export default function BikesPage() {
     [commandStatuses, selectedBikeId],
   );
 
-  const bikes = useMemo(() => bikesQuery.data?.data ?? [], [bikesQuery.data?.data]);
+  const bikes = accumulatedBikes;
   const totalAssignedDevices = bikes.filter((bike) => deviceByBikeId.has(bike.id)).length;
   const totalAssignedRiders = bikes.filter((bike) => assignmentByBikeId.has(bike.id)).length;
   const maintenanceCount = bikes.filter((bike) => bike.status === 'MAINTENANCE').length;
@@ -622,11 +641,30 @@ export default function BikesPage() {
           />
         </div>
 
-        <PaginationControls
-          page={bikesQuery.data?.page ?? page}
-          totalPages={bikesQuery.data?.totalPages ?? 1}
-          onPageChange={setPage}
-        />
+        {accumulatedBikes.length < (bikesQuery.data?.total ?? 0) && (
+          <div className="mt-6 flex justify-center border-t border-line pt-6">
+            <button
+              type="button"
+              disabled={bikesQuery.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {bikesQuery.isFetching ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : (
+                <ChevronDown size={16} className="animate-bounce" />
+              )}
+              {bikesQuery.isFetching ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
+        )}
+        {accumulatedBikes.length >= (bikesQuery.data?.total ?? 0) && (bikesQuery.data?.total ?? 0) > 0 && (
+          <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <Check size={14} /> {t('All {total} bikes loaded').replace('{total}', String(bikesQuery.data?.total ?? 0))}
+            </p>
+          </div>
+        )}
       </DashboardCard>
 
       <Drawer

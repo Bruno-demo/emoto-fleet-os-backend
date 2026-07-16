@@ -1,7 +1,8 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useQuery } from '@tanstack/react-query';
-import { Cpu, Radio, ShieldCheck, Smartphone, Link2 } from 'lucide-react';
+import { Cpu, Radio, ShieldCheck, Smartphone, Link2, ChevronDown, Check } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
@@ -10,7 +11,7 @@ import { formatTimestamp } from '@/lib/ui';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 const PAGE_SIZE = 20;
@@ -18,6 +19,7 @@ const PAGE_SIZE = 20;
 export default function DevicesPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const [accumulatedDevices, setAccumulatedDevices] = useState<Device[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
 
   const devicesQuery = useQuery({
@@ -29,6 +31,20 @@ export default function DevicesPage() {
   });
 
   useEffect(() => {
+    if (devicesQuery.data?.data) {
+      if (page === 1) {
+        setAccumulatedDevices(devicesQuery.data.data);
+      } else {
+        setAccumulatedDevices((prev) => {
+          const existingIds = new Set(prev.map((d) => d.id));
+          const newDevices = (devicesQuery.data?.data ?? []).filter((d) => !existingIds.has(d.id));
+          return [...prev, ...newDevices];
+        });
+      }
+    }
+  }, [devicesQuery.data, page]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentTime(Date.now());
     }, 0);
@@ -36,7 +52,7 @@ export default function DevicesPage() {
   }, [devicesQuery.data?.data]);
 
   const deviceStats = useMemo(() => {
-    const devices = devicesQuery.data?.data ?? [];
+    const devices = accumulatedDevices;
     const recentCutoff = currentTime - 10 * 60 * 1000;
     return {
       total: devicesQuery.data?.total ?? 0,
@@ -130,7 +146,7 @@ export default function DevicesPage() {
       <section className="w-full">
         <DashboardCard eyebrow={t('Device Registry')} title={t('Provisioned hardware')} description={t('Review assignment health and last-seen activity without leaving the dashboard.')}>
           <DataTable
-            data={devicesQuery.data?.data ?? []}
+            data={accumulatedDevices}
             columns={columns}
             keyExtractor={(device) => device.id}
             loading={devicesQuery.isLoading}
@@ -143,11 +159,30 @@ export default function DevicesPage() {
             }
           />
 
-          <PaginationControls
-            page={devicesQuery.data?.page ?? page}
-            totalPages={devicesQuery.data?.totalPages ?? 1}
-            onPageChange={setPage}
-          />
+          {accumulatedDevices.length < (devicesQuery.data?.total ?? 0) && (
+            <div className="mt-6 flex justify-center border-t border-line pt-6">
+              <button
+                type="button"
+                disabled={devicesQuery.isFetching}
+                onClick={() => setPage((prev) => prev + 1)}
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {devicesQuery.isFetching ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                ) : (
+                  <ChevronDown size={16} className="animate-bounce" />
+                )}
+                {devicesQuery.isFetching ? t('Loading...') : t('Load more')}
+              </button>
+            </div>
+          )}
+          {accumulatedDevices.length >= (devicesQuery.data?.total ?? 0) && (devicesQuery.data?.total ?? 0) > 0 && (
+            <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+              <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+                <Check size={14} /> {t('All {total} devices loaded').replace('{total}', String(devicesQuery.data?.total ?? 0))}
+              </p>
+            </div>
+          )}
         </DashboardCard>
       </section>
     </div>

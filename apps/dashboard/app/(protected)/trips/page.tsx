@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -19,13 +20,15 @@ import {
   X,
   ShieldCheck,
   Map,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { TextField } from '@/components/ui/form-controls';
 import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
@@ -89,12 +92,26 @@ export default function TripsPage() {
 
   const trips = useMemo(() => tripsQuery.data?.data ?? [], [tripsQuery.data?.data]);
 
+  const [accumulatedTrips, setAccumulatedTrips] = useState<FleetTrip[]>([]);
+
+  useEffect(() => {
+    if (page === 1) {
+      setAccumulatedTrips(trips);
+    } else {
+      setAccumulatedTrips((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const newTrips = trips.filter((t) => !existingIds.has(t.id));
+        return [...prev, ...newTrips];
+      });
+    }
+  }, [trips, page]);
+
   // Clientside filtering for searchable fields (bike label, rider name, trip ID)
-  const filteredTrips = trips;
+  const filteredTrips = accumulatedTrips;
 
   const selectedTrip = useMemo(
-    () => trips.find((t) => t.id === selectedTripId) ?? null,
-    [trips, selectedTripId],
+    () => accumulatedTrips.find((t) => t.id === selectedTripId) ?? null,
+    [accumulatedTrips, selectedTripId],
   );
 
   // Compute metric aggregates for the visible dataset
@@ -388,11 +405,41 @@ export default function TripsPage() {
         </div>
 
         {/* Pagination controls */}
-        <PaginationControls
-          page={tripsQuery.data?.page ?? page}
-          totalPages={tripsQuery.data?.totalPages ?? 1}
-          onPageChange={setPage}
-        />
+        {accumulatedTrips.length < (tripsQuery.data?.total ?? 0) && (
+          <div className="flex flex-col items-center justify-center gap-3 mt-6 pt-6 border-t border-line">
+            <div className="w-64 bg-line rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-accent h-full transition-all duration-300"
+                style={{ width: `${Math.min(100, (accumulatedTrips.length / (tripsQuery.data?.total ?? 1)) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-ink-muted">
+              {t('Showing {loaded} of {total} journeys')
+                .replace('{loaded}', String(accumulatedTrips.length))
+                .replace('{total}', String(tripsQuery.data?.total ?? 0))}
+            </p>
+            <button
+              type="button"
+              disabled={tripsQuery.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {tripsQuery.isFetching ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : (
+                <ChevronDown size={16} className="animate-bounce" />
+              )}
+              {tripsQuery.isFetching ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
+        )}
+        {accumulatedTrips.length >= (tripsQuery.data?.total ?? 0) && (tripsQuery.data?.total ?? 0) > 0 && (
+          <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <Check size={14} /> {t('All {total} journeys loaded').replace('{total}', String(tripsQuery.data?.total ?? 0))}
+            </p>
+          </div>
+        )}
       </DashboardCard>
 
       {/* Slide-out details drawer */}

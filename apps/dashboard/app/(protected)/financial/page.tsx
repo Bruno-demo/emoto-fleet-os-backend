@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
@@ -22,6 +23,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Search,
+  ChevronDown,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -40,7 +42,7 @@ import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { InlineNotice, SelectField, TextAreaField, TextField } from '@/components/ui/form-controls';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { downloadFormattedExcel } from '@/lib/export/excel-export';
@@ -346,7 +348,24 @@ export default function FinancialsPage() {
 
   const activeMatrixRiders = matrixTab === 'daily' ? dailyCollectionRiders : buyToOwnRiders;
 
-  const paymentsList = useMemo(() => paymentsQuery.data?.data ?? [], [paymentsQuery.data]);
+  const payments = useMemo(() => paymentsQuery.data?.data ?? [], [paymentsQuery.data?.data]);
+  const totalPayments = paymentsQuery.data?.total ?? 0;
+
+  const [accumulatedPayments, setAccumulatedPayments] = useState<PaymentRecord[]>([]);
+
+  useEffect(() => {
+    if (page === 1) {
+      setAccumulatedPayments(payments);
+    } else {
+      setAccumulatedPayments((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const newPayments = payments.filter((p) => !existingIds.has(p.id));
+        return [...prev, ...newPayments];
+      });
+    }
+  }, [payments, page]);
+
+  const paymentsList = accumulatedPayments;
   const summary = summaryQuery.data;
 
   const selectedRider = useMemo(() => {
@@ -1187,11 +1206,41 @@ export default function FinancialsPage() {
               />
             </div>
 
-            <PaginationControls
-              page={paymentsQuery.data?.page ?? page}
-              totalPages={paymentsQuery.data?.totalPages ?? 1}
-              onPageChange={setPage}
-            />
+            {accumulatedPayments.length < totalPayments && (
+              <div className="flex flex-col items-center justify-center gap-3 mt-6 pt-6 border-t border-line">
+                <div className="w-64 bg-line rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-accent h-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (accumulatedPayments.length / totalPayments) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-ink-muted">
+                  {t('Showing {loaded} of {total} collections')
+                    .replace('{loaded}', String(accumulatedPayments.length))
+                    .replace('{total}', String(totalPayments))}
+                </p>
+                <button
+                  type="button"
+                  disabled={paymentsQuery.isFetching}
+                  onClick={() => setPage((prev) => prev + 1)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {paymentsQuery.isFetching ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  ) : (
+                    <ChevronDown size={16} className="animate-bounce" />
+                  )}
+                  {paymentsQuery.isFetching ? t('Loading...') : t('Load more')}
+                </button>
+              </div>
+            )}
+            {accumulatedPayments.length >= totalPayments && totalPayments > 0 && (
+              <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+                <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+                  <Check size={14} /> {t('All {total} collections loaded').replace('{total}', String(totalPayments))}
+                </p>
+              </div>
+            )}
           </DashboardCard>
         </div>
       )}

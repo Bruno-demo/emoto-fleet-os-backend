@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
@@ -16,13 +17,14 @@ import {
   Check, 
   CheckCircle2, 
   AlertCircle,
-  Trash2
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { MetricCardSkeleton } from '@/components/ui/skeleton';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { Badge } from '@/components/ui/badge';
 import { Drawer } from '@/components/ui/drawer';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -80,6 +82,13 @@ export default function HqDevicesPage() {
   const [filterFleetId, setFilterFleetId] = useState('');
   const [filterAssigned, setFilterAssigned] = useState('');
   const [page, setPage] = useState(1);
+  const [accumulatedDevices, setAccumulatedDevices] = useState<HqDevice[]>([]);
+
+  // Reset page and accumulated list when filters change
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedDevices([]);
+  }, [search, filterStatus, filterFleetId, filterAssigned]);
 
   // Detail drawer state
   const [selectedDevice, setSelectedDevice] = useState<HqDevice | null>(null);
@@ -129,6 +138,20 @@ export default function HqDevicesPage() {
     },
   });
 
+  useEffect(() => {
+    if (data?.data) {
+      if (page === 1) {
+        setAccumulatedDevices(data.data);
+      } else {
+        setAccumulatedDevices((prev) => {
+          const existingIds = new Set(prev.map((d) => d.id));
+          const newDevices = (data.data ?? []).filter((d) => !existingIds.has(d.id));
+          return [...prev, ...newDevices];
+        });
+      }
+    }
+  }, [data, page]);
+
   const { data: fleetsList } = useQuery({
     queryKey: ['hq', 'fleets-list'],
     queryFn: () => apiFetch('/hq/fleets?pageSize=200', {}).then((res) => {
@@ -153,6 +176,8 @@ export default function HqDevicesPage() {
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setPage(1);
+      setAccumulatedDevices([]);
       // Update local state if the drawer is open for this device
       if (selectedDevice && selectedDevice.id === assignDeviceId) {
         setSelectedDevice((prev) => {
@@ -180,6 +205,8 @@ export default function HqDevicesPage() {
       apiFetch(`/hq/devices/${deviceId}/unassign-bike`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setPage(1);
+      setAccumulatedDevices([]);
       if (selectedDevice && selectedDevice.id === unassignTargetId) {
         setSelectedDevice((prev) => {
           if (!prev) return null;
@@ -207,6 +234,8 @@ export default function HqDevicesPage() {
     onSuccess: (res: unknown) => {
       const result = res as { deviceSecret: string; device: { deviceUid: string } };
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setPage(1);
+      setAccumulatedDevices([]);
       setIsAddModalOpen(false);
       setNewDeviceUid('');
       setNewImei('');
@@ -229,6 +258,8 @@ export default function HqDevicesPage() {
     onSuccess: (res: unknown) => {
       const result = res as { deviceSecret: string; deviceUid: string };
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setPage(1);
+      setAccumulatedDevices([]);
       setRotateConfirmOpen(false);
       setRotateTargetId(null);
       setRotateTargetUid(null);
@@ -246,6 +277,8 @@ export default function HqDevicesPage() {
       apiFetch(`/hq/devices/${deviceId}/permanent`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setPage(1);
+      setAccumulatedDevices([]);
       setDeleteTarget(null);
       setSelectedDevice(null);
     },
@@ -256,7 +289,7 @@ export default function HqDevicesPage() {
   });
 
   // Calculate client side metrics from current page
-  const devicesList = data?.data ?? [];
+  const devicesList = accumulatedDevices;
   const metrics = useMemo(() => {
     const total = data?.total ?? 0;
     const active = devicesList.filter(d => d.status === 'ACTIVE').length;
@@ -479,14 +512,29 @@ export default function HqDevicesPage() {
             onRowClick={(row) => setSelectedDevice(row)}
           />
 
-          {/* Pagination */}
-          {data && data.totalPages > 1 && (
-            <div className="pt-2">
-              <PaginationControls
-                page={page}
-                totalPages={data.totalPages}
-                onPageChange={(p) => setPage(p)}
-              />
+          {/* Load More Button */}
+          {accumulatedDevices.length < (data?.total ?? 0) && (
+            <div className="mt-6 flex justify-center border-t border-line pt-6">
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => setPage((prev) => prev + 1)}
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                ) : (
+                  <ChevronDown size={16} className="animate-bounce" />
+                )}
+                {isLoading ? t('Loading...') : t('Load more')}
+              </button>
+            </div>
+          )}
+          {accumulatedDevices.length >= (data?.total ?? 0) && (data?.total ?? 0) > 0 && (
+            <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+              <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+                <Check size={14} /> {t('All {total} devices loaded').replace('{total}', String(data?.total ?? 0))}
+              </p>
             </div>
           )}
         </div>

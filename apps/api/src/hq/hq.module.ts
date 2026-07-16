@@ -8,7 +8,13 @@ import { HqController } from './hq.controller';
 import { HqService } from './hq.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule, CommandsModule, AuditModule, EventsModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    CommandsModule,
+    AuditModule,
+    EventsModule,
+  ],
   controllers: [HqController],
   providers: [HqService],
 })

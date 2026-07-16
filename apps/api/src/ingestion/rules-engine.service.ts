@@ -847,12 +847,16 @@ export class RulesEngineService {
     zones: GeofenceZone[],
     insideZoneIds: Set<string>,
   ): Promise<void> {
-    const workZones = zones.filter((zone) => zone.type === ZoneType.WORK_BOUNDARY);
+    const workZones = zones.filter(
+      (zone) => zone.type === ZoneType.WORK_BOUNDARY,
+    );
     if (workZones.length === 0) {
       return;
     }
 
-    const isInsideAnyWorkZone = workZones.some((zone) => insideZoneIds.has(zone.id));
+    const isInsideAnyWorkZone = workZones.some((zone) =>
+      insideZoneIds.has(zone.id),
+    );
     const cooldownKey = `cooldown:geofence_exit:${device.id}`;
     // 5-minute cooldown between geofence exit alerts
     const COOLDOWN_SECONDS = 300;

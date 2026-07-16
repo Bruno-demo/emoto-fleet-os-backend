@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -17,13 +18,15 @@ import {
   Bike,
   Plus,
   Trash,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { PaginationControls } from '@/components/ui/pagination-controls';
+
 import { apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { AuditActionType, AuditLogEntry, PaginatedResponse } from '@/lib/types/dashboard';
@@ -95,6 +98,7 @@ const ACTION_TYPE_OPTIONS: AuditActionType[] = [
 export default function AuditLogPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const [accumulatedLogs, setAccumulatedLogs] = useState<AuditLogEntry[]>([]);
   const [actionFilter, setActionFilter] = useState<AuditActionType | ''>('');
 
   const logsQuery = useQuery({
@@ -109,7 +113,21 @@ export default function AuditLogPage() {
       ),
   });
 
-  const logs = useMemo(() => logsQuery.data?.data ?? [], [logsQuery.data?.data]);
+  useEffect(() => {
+    if (logsQuery.data?.data) {
+      if (page === 1) {
+        setAccumulatedLogs(logsQuery.data.data);
+      } else {
+        setAccumulatedLogs((prev) => {
+          const existingIds = new Set(prev.map((l) => l.id));
+          const newLogs = (logsQuery.data?.data ?? []).filter((l) => !existingIds.has(l.id));
+          return [...prev, ...newLogs];
+        });
+      }
+    }
+  }, [logsQuery.data, page]);
+
+  const logs = accumulatedLogs;
 
   return (
     <div className="space-y-6">
@@ -134,6 +152,7 @@ export default function AuditLogPage() {
             onChange={(e) => {
               setActionFilter(e.target.value as AuditActionType | '');
               setPage(1);
+              setAccumulatedLogs([]);
             }}
             className="rounded-xl border border-line bg-background px-3.5 py-2 text-sm text-ink outline-none focus:border-accent/50"
           >
@@ -209,11 +228,30 @@ export default function AuditLogPage() {
           </div>
         )}
 
-        <PaginationControls
-          page={logsQuery.data?.page ?? page}
-          totalPages={logsQuery.data?.totalPages ?? 1}
-          onPageChange={setPage}
-        />
+        {accumulatedLogs.length < (logsQuery.data?.total ?? 0) && (
+          <div className="mt-6 flex justify-center border-t border-line pt-6">
+            <button
+              type="button"
+              disabled={logsQuery.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {logsQuery.isFetching ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              ) : (
+                <ChevronDown size={16} className="animate-bounce" />
+              )}
+              {logsQuery.isFetching ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
+        )}
+        {accumulatedLogs.length >= (logsQuery.data?.total ?? 0) && (logsQuery.data?.total ?? 0) > 0 && (
+          <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
+            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+              <Check size={14} /> {t('All {total} entries loaded').replace('{total}', String(logsQuery.data?.total ?? 0))}
+            </p>
+          </div>
+        )}
       </DashboardCard>
     </div>
   );
