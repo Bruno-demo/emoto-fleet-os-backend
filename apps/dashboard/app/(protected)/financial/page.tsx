@@ -115,6 +115,20 @@ export default function FinancialsPage() {
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
+  const [leaseSearch, setLeaseSearch] = useState('');
+
+  const filteredLeases = useMemo(() => {
+    return leases.filter((l) => {
+      const q = leaseSearch.toLowerCase();
+      return (
+        l.riderName.toLowerCase().includes(q) ||
+        (l.riderPhone && l.riderPhone.includes(q)) ||
+        (l.bikeLabel && l.bikeLabel.toLowerCase().includes(q)) ||
+        (l.bikePlate && l.bikePlate.toLowerCase().includes(q))
+      );
+    });
+  }, [leases, leaseSearch]);
+
   const [dispatchingLockId, setDispatchingLockId] = useState<string | null>(null);
   const [commandNotification, setCommandNotification] = useState<string | null>(null);
 
@@ -1214,6 +1228,29 @@ export default function FinancialsPage() {
             eyebrow={t("Financing Ledger")}
             title={t("Buy-to-own lease portfolio")}
             description={t("Monitor driver ownership progress, arrears, and remote start controls.")}
+            actions={
+              <div className="relative max-w-xs w-full">
+                <span className="absolute inset-y-0 left-2.5 flex items-center text-ink-faint pointer-events-none">
+                  <Search size={12} />
+                </span>
+                <input
+                  type="text"
+                  placeholder={t('Search leases by name, bike...')}
+                  value={leaseSearch}
+                  onChange={(e) => setLeaseSearch(e.target.value)}
+                  className="w-full rounded-lg border border-line bg-surface pl-8 pr-7 py-1 text-xs text-ink placeholder-ink-faint focus:outline-none focus:border-accent"
+                />
+                {leaseSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLeaseSearch('')}
+                    className="absolute inset-y-0 right-2.5 flex items-center text-ink-faint hover:text-ink"
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            }
           >
             <div className="overflow-x-auto dashboard-scrollbar mt-2">
               <table className="w-full min-w-[800px] border-collapse text-left text-xs">
@@ -1229,116 +1266,124 @@ export default function FinancialsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {leases.map((lease) => (
-                    <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
-                      <td className="py-3 font-semibold text-ink">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent font-semibold text-xs shrink-0">
-                            <User size={13} />
-                          </span>
-                          <div>
-                            <p className="font-semibold text-ink leading-none">{lease.riderName}</p>
-                            <p className="text-[10px] text-ink-muted mt-1">{lease.riderPhone}</p>
-                            <p className="text-[9px] text-accent/80 font-mono mt-0.5">{lease.bikeLabel} &middot; {lease.bikePlate}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="text-xs">
-                          <p className="font-semibold text-ink">{lease.dailyRate.toLocaleString()} RWF</p>
-                          <p className="text-[10px] text-ink-muted mt-0.5">{t('per day')}</p>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {(() => {
-                          const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
-                          return (
-                            <div className="min-w-[120px] max-w-[160px] text-xs">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-ink-soft">{pct}%</span>
-                                <span className="text-[10px] text-ink-muted tabular-nums">
-                                  {lease.totalPaid.toLocaleString()} / {lease.totalPrincipal.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden border border-line">
-                                <div
-                                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                                  style={{ width: `${pct}%` }}
-                                  role="progressbar"
-                                  aria-valuenow={pct}
-                                  aria-valuemin={0}
-                                  aria-valuemax={100}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="py-3">
-                        <span className={cx(
-                          "font-mono text-xs font-bold",
-                          lease.arrears > 0 ? "text-danger-ink bg-danger-soft/20 px-2 py-1 rounded-md" : "text-ink-soft"
-                        )}>
-                          {lease.arrears.toLocaleString()} RWF
-                        </span>
-                      </td>
-                      <td className="py-3 text-center">
-                        <Badge
-                          label={t(lease.lockState === 'LOCKED' ? 'Locked' : 'Unlocked')}
-                          tone={lease.lockState === 'LOCKED' ? 'danger' : 'success'}
-                        />
-                      </td>
-                      <td className="py-3 text-center">
-                        <Badge
-                          label={t(lease.status === 'PAID_OFF' ? 'Paid Off' : lease.status === 'ACTIVE' ? 'Active' : 'Delinquent')}
-                          tone={
-                            lease.status === 'PAID_OFF'
-                              ? 'success'
-                              : lease.status === 'ACTIVE'
-                                ? 'info'
-                                : 'danger'
-                          }
-                        />
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {lease.status !== 'PAID_OFF' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const matchedRider = ridersList.find(r => r.fullName === lease.riderName);
-                                if (matchedRider) {
-                                  setFormRiderId(matchedRider.id);
-                                } else {
-                                  setFormRiderId('');
-                                }
-                                setFormAmount(String(lease.dailyRate));
-                                setShowCollectModal(true);
-                              }}
-                              className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-line bg-surface hover:bg-surface-hover text-accent transition-colors cursor-pointer"
-                            >
-                              {t('Collect payment')}
-                            </button>
-                          )}
-                          {lease.status !== 'PAID_OFF' && (
-                            <button
-                              type="button"
-                              disabled={dispatchingLockId !== null}
-                              onClick={() => handleToggleLeaseLock(lease.id)}
-                              className={cx(
-                                "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-colors cursor-pointer min-w-[85px] text-center",
-                                lease.lockState === 'UNLOCKED'
-                                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"
-                                  : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20"
-                              )}
-                            >
-                              {dispatchingLockId === lease.id ? t('Enforcing...') : lease.lockState === 'UNLOCKED' ? t('Immobilize') : t('Restore start')}
-                            </button>
-                          )}
-                        </div>
+                  {filteredLeases.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-ink-muted font-semibold">
+                        {t('No matching leases found')}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredLeases.map((lease) => (
+                      <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
+                        <td className="py-3 font-semibold text-ink">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent font-semibold text-xs shrink-0">
+                              <User size={13} />
+                            </span>
+                            <div>
+                              <p className="font-semibold text-ink leading-none">{lease.riderName}</p>
+                              <p className="text-[10px] text-ink-muted mt-1">{lease.riderPhone}</p>
+                              <p className="text-[9px] text-accent/80 font-mono mt-0.5">{lease.bikeLabel} &middot; {lease.bikePlate}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="text-xs">
+                            <p className="font-semibold text-ink">{lease.dailyRate.toLocaleString()} RWF</p>
+                            <p className="text-[10px] text-ink-muted mt-0.5">{t('per day')}</p>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          {(() => {
+                            const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
+                            return (
+                              <div className="min-w-[120px] max-w-[160px] text-xs">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-semibold text-ink-soft">{pct}%</span>
+                                  <span className="text-[10px] text-ink-muted tabular-nums">
+                                    {lease.totalPaid.toLocaleString()} / {lease.totalPrincipal.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden border border-line">
+                                  <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                    style={{ width: `${pct}%` }}
+                                    role="progressbar"
+                                    aria-valuenow={pct}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className="py-3">
+                          <span className={cx(
+                            "font-mono text-xs font-bold",
+                            lease.arrears > 0 ? "text-danger-ink bg-danger-soft/20 px-2 py-1 rounded-md" : "text-ink-soft"
+                          )}>
+                            {lease.arrears.toLocaleString()} RWF
+                          </span>
+                        </td>
+                        <td className="py-3 text-center">
+                          <Badge
+                            label={t(lease.lockState === 'LOCKED' ? 'Locked' : 'Unlocked')}
+                            tone={lease.lockState === 'LOCKED' ? 'danger' : 'success'}
+                          />
+                        </td>
+                        <td className="py-3 text-center">
+                          <Badge
+                            label={t(lease.status === 'PAID_OFF' ? 'Paid Off' : lease.status === 'ACTIVE' ? 'Active' : 'Delinquent')}
+                            tone={
+                              lease.status === 'PAID_OFF'
+                                ? 'success'
+                                : lease.status === 'ACTIVE'
+                                  ? 'info'
+                                  : 'danger'
+                            }
+                          />
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {lease.status !== 'PAID_OFF' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const matchedRider = ridersList.find(r => r.fullName === lease.riderName);
+                                  if (matchedRider) {
+                                    setFormRiderId(matchedRider.id);
+                                  } else {
+                                    setFormRiderId('');
+                                  }
+                                  setFormAmount(String(lease.dailyRate));
+                                  setShowCollectModal(true);
+                                }}
+                                className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-line bg-surface hover:bg-surface-hover text-accent transition-colors cursor-pointer"
+                              >
+                                {t('Collect payment')}
+                              </button>
+                            )}
+                            {lease.status !== 'PAID_OFF' && (
+                              <button
+                                type="button"
+                                disabled={dispatchingLockId !== null}
+                                onClick={() => handleToggleLeaseLock(lease.id)}
+                                className={cx(
+                                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-colors cursor-pointer min-w-[85px] text-center",
+                                  lease.lockState === 'UNLOCKED'
+                                    ? "bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"
+                                    : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20"
+                                )}
+                              >
+                                {dispatchingLockId === lease.id ? t('Enforcing...') : lease.lockState === 'UNLOCKED' ? t('Immobilize') : t('Restore start')}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
