@@ -48,8 +48,7 @@ export class TripsService {
     const where: Prisma.TripWhereInput = {};
 
     if (query.search) {
-      where.OR = [
-        { id: { contains: query.search, mode: 'insensitive' } },
+      const orClauses: Prisma.TripWhereInput[] = [
         {
           bike: {
             label: { contains: query.search, mode: 'insensitive' },
@@ -63,6 +62,14 @@ export class TripsService {
           },
         },
       ];
+
+      const cleanSearch = query.search.trim();
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(cleanSearch)) {
+        orClauses.push({ id: cleanSearch });
+      }
+
+      where.OR = orClauses;
     }
 
     if (user.role === 'INSURER') {
