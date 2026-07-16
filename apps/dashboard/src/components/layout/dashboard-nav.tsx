@@ -59,7 +59,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/live', label: 'Live Map', icon: Map, feature: 'live' },
       { href: '/deliveries', label: 'Deliveries', icon: Package, feature: 'overview' },
       { href: '/incidents', label: 'Incidents', icon: AlertCircle, feature: 'incidents' },
-      { href: '/events', label: 'Events', icon: Radio, feature: 'events' },
     ],
   },
   {
@@ -72,10 +71,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Intelligence',
+    links: [
+      { href: '/reports', label: 'Reports', icon: FileBarChart2, feature: 'reports' },
+      { href: '/events', label: 'Events', icon: Radio, feature: 'events' },
+    ],
+  },
+  {
     label: 'Management',
     links: [
       { href: '/zones', label: 'Zones', icon: MapPin, feature: 'zones', requiresAdmin: true },
-      { href: '/reports', label: 'Reports', icon: FileBarChart2, feature: 'reports' },
       { href: '/financial', label: 'Financials', icon: DollarSign, feature: 'financial', requiresAdmin: true },
       { href: '/audit', label: 'Audit Log', icon: ClipboardList, feature: 'audit', requiresAdmin: true },
       { href: '/settings', label: 'Settings', icon: Settings, feature: 'settings', requiresAdmin: true },
@@ -210,11 +215,14 @@ export function DashboardNav({
 
         {/* Navigation groups */}
         <nav className="dashboard-scrollbar flex-1 overflow-y-auto px-3 py-3">
-          {NAV_GROUPS.map((group) => {
+          {NAV_GROUPS.map((group, groupIdx) => {
             const visibleLinks = group.links.filter(isLinkVisible);
             if (visibleLinks.length === 0) return null;
             return (
               <div key={group.label} className="mb-5">
+                {groupIdx > 0 && (
+                  <div className={cx('my-4 border-t border-line/30', collapsed ? 'mx-1' : 'mx-3')} />
+                )}
                 {!collapsed && (
                   <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
                     {t('nav_group_' + group.label.toLowerCase(), group.label)}

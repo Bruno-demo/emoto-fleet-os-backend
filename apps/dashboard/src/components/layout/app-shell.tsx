@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { DashboardNav } from '@/components/layout/dashboard-nav';
 import { Topbar } from '@/components/layout/topbar';
 import { SubscriptionGate } from '@/components/subscription-gate';
@@ -98,11 +100,92 @@ export function AppShell({ children }: AppShellProps) {
                 statusLabel={entitlements.statusLabel}
               />
             ) : null}
+            <Breadcrumbs />
             <SubscriptionGate>{children}</SubscriptionGate>
           </div>
         </main>
       </div>
     </div>
+  );
+}
+
+function Breadcrumbs() {
+  const pathname = usePathname();
+  if (pathname === '/overview') return null;
+
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return null;
+
+  const segmentLabels: Record<string, string> = {
+    overview: 'Overview',
+    bikes: 'Bikes',
+    riders: 'Riders',
+    trips: 'Trips',
+    devices: 'Devices',
+    reports: 'Reports',
+    events: 'Events',
+    incidents: 'Incidents',
+    zones: 'Zones',
+    financial: 'Financials',
+    audit: 'Audit Log',
+    settings: 'Settings',
+    deliveries: 'Deliveries',
+    insurer: 'Insurer Lookup',
+  };
+
+  const pathGroups: Record<string, string> = {
+    overview: 'Operations',
+    live: 'Operations',
+    deliveries: 'Operations',
+    incidents: 'Operations',
+    bikes: 'Fleet',
+    riders: 'Fleet',
+    trips: 'Fleet',
+    devices: 'Fleet',
+    reports: 'Intelligence',
+    events: 'Intelligence',
+    zones: 'Management',
+    financial: 'Management',
+    audit: 'Management',
+    settings: 'Management',
+  };
+
+  const breadcrumbs = [];
+
+  const firstSegment = segments[0];
+  const group = pathGroups[firstSegment];
+  if (group) {
+    breadcrumbs.push({ label: group, href: null });
+  }
+
+  let currentPath = '';
+  segments.forEach((seg, index) => {
+    currentPath += `/${seg}`;
+    const label = segmentLabels[seg] || seg.charAt(0).toUpperCase() + seg.slice(1);
+    breadcrumbs.push({
+      label,
+      href: index === segments.length - 1 ? null : currentPath,
+    });
+  });
+
+  return (
+    <nav className="mb-4 flex items-center gap-1.5 text-xs text-ink-muted bg-surface-muted/30 border border-line/20 rounded-xl px-4 py-2 w-fit">
+      <Link href="/overview" className="hover:text-ink transition-colors font-medium">
+        Home
+      </Link>
+      {breadcrumbs.map((bc, idx) => (
+        <span key={idx} className="flex items-center gap-1.5 select-none">
+          <span className="text-ink-faint">/</span>
+          {bc.href ? (
+            <Link href={bc.href} className="hover:text-ink transition-colors">
+              {bc.label}
+            </Link>
+          ) : (
+            <span className="font-semibold text-ink-soft">{bc.label}</span>
+          )}
+        </span>
+      ))}
+    </nav>
   );
 }
 

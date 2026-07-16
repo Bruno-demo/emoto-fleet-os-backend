@@ -23,6 +23,18 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as ChartTooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -714,88 +726,71 @@ export default function FinancialsPage() {
                 }
               >
                 {summaryQuery.isLoading ? (
-                  <div className="h-[120px] w-full bg-surface-hover rounded-xl animate-pulse" />
+                  <div className="h-[180px] w-full bg-surface-hover rounded-xl animate-pulse" />
                 ) : summary && summary.dailyEarnings.length > 0 ? (
                   <div className="space-y-3">
-                    <div className="relative h-[120px] w-full overflow-visible mt-6">
-                      {/* Tooltip Overlay */}
-                      {hoveredPoint && (
-                        <div
-                          className="absolute z-10 -translate-x-1/2 -translate-y-full pointer-events-none rounded-xl border border-line bg-surface p-2.5 shadow-xl text-[10px] space-y-0.5 leading-none transition-all duration-150 text-ink animate-scale-in"
-                          style={{
-                            left: `${(hoveredPoint.x / 680) * 100}%`,
-                            top: `${(hoveredPoint.y / 110) * 120 - 12}px`,
-                          }}
+                    <div className="h-[180px] w-full mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={summary.dailyEarnings}
+                          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                         >
-                          <p className="font-semibold text-ink-muted">{hoveredPoint.date}</p>
-                          <p className="font-mono font-bold text-accent text-xs">{hoveredPoint.amount.toLocaleString()} RWF</p>
-                        </div>
-                      )}
-
-                      <svg viewBox="0 0 680 110" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="rgba(59, 130, 246, 0.2)" />
-                            <stop offset="100%" stopColor="rgba(59, 130, 246, 0.0)" />
-                          </linearGradient>
-                        </defs>
-                        {/* Fill Area */}
-                        {typeof svgChartPath === 'object' && (
-                          <path d={svgChartPath.areaPath} fill="url(#chartGrad)" />
-                        )}
-                        {/* Line path */}
-                        {typeof svgChartPath === 'object' && (
-                          <path
-                            d={svgChartPath.linePath}
-                            fill="none"
+                          <defs>
+                            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
+                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={(str) => {
+                              const d = new Date(str);
+                              return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                            }}
+                            stroke="rgba(255,255,255,0.08)"
+                            tick={{ fill: 'var(--color-ink-muted, #94A3B8)', fontSize: 10 }}
+                          />
+                          <YAxis
+                            stroke="rgba(255,255,255,0.08)"
+                            tick={{ fill: 'var(--color-ink-muted, #94A3B8)', fontSize: 10 }}
+                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                          />
+                          <ChartTooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload as { date: string; amount: number };
+                                return (
+                                  <div className="rounded-xl border border-line bg-surface p-2.5 shadow-xl text-[10px] leading-none text-ink">
+                                    <p className="font-semibold text-ink-muted">
+                                      {new Date(data.date).toLocaleDateString(undefined, {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })}
+                                    </p>
+                                    <p className="font-mono font-bold text-accent text-xs mt-1">
+                                      {data.amount.toLocaleString()} RWF
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="amount"
                             stroke="#3B82F6"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            fillOpacity={1}
+                            fill="url(#chartGrad)"
                           />
-                        )}
-                        {/* Hover guide line */}
-                        {activePointIndex !== null && typeof svgChartPath === 'object' && (
-                          <line
-                            x1={svgChartPath.points[activePointIndex].x}
-                            y1={0}
-                            x2={svgChartPath.points[activePointIndex].x}
-                            y2={110}
-                            stroke="rgba(59, 130, 246, 0.4)"
-                            strokeWidth="1.5"
-                            strokeDasharray="4 3"
-                          />
-                        )}
-                        {/* Dots */}
-                        {typeof svgChartPath === 'object' &&
-                          svgChartPath.points.map((p, i) => (
-                            <g key={i}>
-                              <circle
-                                cx={p.x}
-                                cy={p.y}
-                                r={activePointIndex === i ? 5.5 : 3.5}
-                                fill={activePointIndex === i ? "#3B82F6" : "#1E293B"}
-                                stroke="#3B82F6"
-                                strokeWidth="2"
-                                className="transition-all duration-150"
-                              />
-                              {/* Invisible hover trigger zone (wider radius) */}
-                              <circle
-                                cx={p.x}
-                                cy={p.y}
-                                r="20"
-                                fill="transparent"
-                                className="cursor-pointer"
-                                onMouseEnter={() => setActivePointIndex(i)}
-                                onMouseLeave={() => setActivePointIndex(null)}
-                              />
-                            </g>
-                          ))}
-                      </svg>
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-ink-muted px-2">
+                    <div className="flex items-center justify-between text-[10px] text-ink-muted px-2 border-t border-line/20 pt-2">
                       <span>{new Date(startDate).toLocaleDateString()}</span>
-                      <span>{t("Average collection trend active")}</span>
+                      <span className="font-medium text-ink-soft">{t("Daily Revenue Stream")}</span>
                       <span>{new Date(endDate).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -926,44 +921,40 @@ export default function FinancialsPage() {
                   <div className="h-[140px] w-full bg-surface-hover rounded-xl animate-pulse" />
                 ) : summary && summary.totalEarnedRange > 0 ? (
                   <div className="flex flex-col sm:flex-row items-center justify-around gap-4 py-2">
-                    {/* SVG Doughnut chart */}
-                    <div className="relative h-28 w-28 shrink-0">
-                      <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-                        {(() => {
-                          const total = summary.totalEarnedRange;
-                          let currentOffset = 0;
-                          return Object.entries(summary.methodBreakdown).map(([method, amount]) => {
-                            const percent = (amount / total) * 100;
-                            const strokeDash = `${percent} ${100 - percent}`;
-                            const offset = currentOffset;
-                            currentOffset += percent;
-
-                            let strokeColor = '#94A3B8'; // OTHER
-                            if (method === 'CASH') strokeColor = '#FBBF24'; // amber
-                            if (method === 'MOBILE_MONEY') strokeColor = '#34D399'; // emerald
-                            if (method === 'BANK_TRANSFER') strokeColor = '#60A5FA'; // blue
-
-                            return (
-                              <circle
-                                key={method}
-                                cx="18"
-                                cy="18"
-                                r="15.915"
-                                fill="none"
-                                stroke={strokeColor}
-                                strokeWidth="3.2"
-                                strokeDasharray={strokeDash}
-                                strokeDashoffset={100 - offset}
-                                strokeLinecap="round"
-                              />
-                            );
-                          });
-                        })()}
-                      </svg>
+                    {/* Recharts PieChart */}
+                    <div className="relative h-32 w-32 shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={Object.entries(summary.methodBreakdown).map(([method, amount]) => {
+                              let color = '#94A3B8';
+                              if (method === 'CASH') color = '#F59E0B';
+                              if (method === 'MOBILE_MONEY') color = '#10B981';
+                              if (method === 'BANK_TRANSFER') color = '#3B82F6';
+                              return { name: method, value: amount, color };
+                            })}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={34}
+                            outerRadius={46}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {Object.entries(summary.methodBreakdown).map(([method, amount]) => {
+                              let color = '#94A3B8';
+                              if (method === 'CASH') color = '#F59E0B';
+                              if (method === 'MOBILE_MONEY') color = '#10B981';
+                              if (method === 'BANK_TRANSFER') color = '#3B82F6';
+                              return <Cell key={`cell-${method}`} fill={color} />;
+                            })}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">{t("Total")}</span>
-                        <span className="text-[11px] font-bold text-ink leading-none">{summary.totalEarnedRange.toLocaleString()} RWF</span>
+                        <span className="text-[9px] font-bold text-ink-muted uppercase tracking-wider">{t("Total")}</span>
+                        <span className="text-[10px] font-bold text-ink leading-none text-center max-w-[80px] truncate">
+                          {summary.totalEarnedRange.toLocaleString()} RWF
+                        </span>
                       </div>
                     </div>
 
@@ -971,9 +962,9 @@ export default function FinancialsPage() {
                     <div className="grid gap-2 text-xs">
                       {Object.entries(summary.methodBreakdown).map(([method, val]) => {
                         let dotColor = 'bg-slate-400';
-                        if (method === 'CASH') dotColor = 'bg-amber-400';
-                        if (method === 'MOBILE_MONEY') dotColor = 'bg-emerald-400';
-                        if (method === 'BANK_TRANSFER') dotColor = 'bg-blue-400';
+                        if (method === 'CASH') dotColor = 'bg-amber-500';
+                        if (method === 'MOBILE_MONEY') dotColor = 'bg-emerald-500';
+                        if (method === 'BANK_TRANSFER') dotColor = 'bg-blue-500';
 
                         return (
                           <div key={method} className="flex items-center gap-2">
