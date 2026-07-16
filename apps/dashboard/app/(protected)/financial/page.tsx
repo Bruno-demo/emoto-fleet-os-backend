@@ -262,6 +262,42 @@ export default function FinancialsPage() {
     queryFn: () => apiFetch<PaginatedResponse<Rider>>('/riders?page=1&pageSize=200'),
   });
 
+  // 1b. Fetch Riders for Interactive matrix (with Load More pagination)
+  const [matrixPage, setMatrixPage] = useState(1);
+  const [accumulatedMatrixRiders, setAccumulatedMatrixRiders] = useState<Rider[]>([]);
+
+  const matrixRidersQuery = useQuery({
+    queryKey: ['riders', 'matrix', matrixPage, matrixSearch],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<Rider>>(
+        `/riders${buildQueryString({
+          page: matrixPage,
+          pageSize: 20,
+          search: matrixSearch.trim() || undefined,
+        })}`,
+      ),
+  });
+
+  useEffect(() => {
+    if (matrixRidersQuery.data?.data) {
+      if (matrixPage === 1) {
+        setAccumulatedMatrixRiders(matrixRidersQuery.data.data);
+      } else {
+        setAccumulatedMatrixRiders((prev) => {
+          const existingIds = new Set(prev.map((r) => r.id));
+          const newRiders = (matrixRidersQuery.data?.data ?? []).filter((r) => !existingIds.has(r.id));
+          return [...prev, ...newRiders];
+        });
+      }
+    }
+  }, [matrixRidersQuery.data, matrixPage]);
+
+  // Reset page and accumulated list when search changes
+  useEffect(() => {
+    setMatrixPage(1);
+    setAccumulatedMatrixRiders([]);
+  }, [matrixSearch]);
+
   // 2. Fetch Payments History Log
   const paymentsQuery = useQuery({
     queryKey: ['payments', page, startDate, endDate],
@@ -328,15 +364,8 @@ export default function FinancialsPage() {
   const ridersList = useMemo(() => ridersQuery.data?.data ?? [], [ridersQuery.data]);
 
   const filteredRiders = useMemo(() => {
-    return ridersList.filter((r) => {
-      const q = matrixSearch.toLowerCase();
-      return (
-        (r.fullName ?? '').toLowerCase().includes(q) ||
-        (r.phone && r.phone.includes(q)) ||
-        (r.email && r.email.toLowerCase().includes(q))
-      );
-    });
-  }, [ridersList, matrixSearch]);
+    return accumulatedMatrixRiders;
+  }, [accumulatedMatrixRiders]);
 
   const dailyCollectionRiders = useMemo(() => {
     return filteredRiders.filter((r) => !r.leaseToOwn);
@@ -1026,13 +1055,13 @@ export default function FinancialsPage() {
                 </div>
               }
             >
-              {ridersQuery.isLoading ? (
+              {matrixRidersQuery.isLoading && matrixPage === 1 ? (
                 <div className="space-y-2 animate-pulse">
                   <div className="h-10 bg-surface-muted rounded-xl" />
                   <div className="h-10 bg-surface-muted rounded-xl" />
                   <div className="h-10 bg-surface-muted rounded-xl" />
                 </div>
-              ) : ridersList.length === 0 ? (
+              ) : accumulatedMatrixRiders.length === 0 ? (
                 <EmptyState
                   icon={<Calendar size={18} />}
                   title={t("No riders registered")}
@@ -1102,70 +1131,97 @@ export default function FinancialsPage() {
                       description={t("Try refining your search query or switching tabs.")}
                     />
                   ) : (
-                    <div className="overflow-x-auto dashboard-scrollbar">
-                      <table className="w-full min-w-[500px] border-collapse text-left text-xs">
-                        <thead>
-                          <tr className="border-b border-line text-ink-faint">
-                            <th className="py-2.5 font-bold">{t('Rider')}</th>
-                            {matrixDays.map((d) => (
-                              <th key={d.dateString} className="py-2.5 text-center font-bold">
-                                <div>{t(d.dayLabel)}</div>
-                                <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeMatrixRiders.map((rider) => (
-                            <tr key={rider.id} className="border-b border-line hover:bg-surface-hover transition-colors">
-                              <td className="py-3 font-semibold text-ink">
-                                <div className="flex items-center gap-2">
-                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
-                                    {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
-                                  </span>
-                                  <div className="flex flex-col min-w-0">
-                                    <span className="truncate max-w-[120px] font-semibold">
-                                      {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
-                                    </span>
-                                    <span className="text-[10px] text-ink-muted leading-tight font-normal">
-                                      {rider.phone ?? rider.email ?? ''}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              {matrixDays.map((day) => {
-                                const status = getMatrixCellStatus(rider.id, day.dateString);
-                                return (
-                                  <td key={day.dateString} className="py-3 text-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => openCollectForMatrix(rider.id, day.dateString)}
-                                      className={cx(
-                                        'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
-                                        status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
-                                        status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
-                                        status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
-                                        status === 'unpaid' && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
-                                      )}
-                                      title={
-                                        status === 'unpaid'
-                                          ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
-                                          : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
-                                      }
-                                    >
-                                      {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
-                                      {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
-                                      {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
-                                      {status === 'unpaid' && <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />}
-                                    </button>
-                                  </td>
-                                );
-                              })}
+                    <>
+                      <div className="overflow-x-auto dashboard-scrollbar">
+                        <table className="w-full min-w-[500px] border-collapse text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-line text-ink-faint">
+                              <th className="py-2.5 font-bold">{t('Rider')}</th>
+                              {matrixDays.map((d) => (
+                                <th key={d.dateString} className="py-2.5 text-center font-bold">
+                                  <div>{t(d.dayLabel)}</div>
+                                  <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
+                                </th>
+                              ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {activeMatrixRiders.map((rider) => (
+                              <tr key={rider.id} className="border-b border-line hover:bg-surface-hover transition-colors">
+                                <td className="py-3 font-semibold text-ink">
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-[10px] font-bold">
+                                      {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
+                                    </span>
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="truncate max-w-[120px] font-semibold">
+                                        {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
+                                      </span>
+                                      <span className="text-[10px] text-ink-muted leading-tight font-normal">
+                                        {rider.phone ?? rider.email ?? ''}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                                {matrixDays.map((day) => {
+                                  const status = getMatrixCellStatus(rider.id, day.dateString);
+                                  return (
+                                    <td key={day.dateString} className="py-3 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => openCollectForMatrix(rider.id, day.dateString)}
+                                        className={cx(
+                                          'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
+                                          status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
+                                          status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
+                                          status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
+                                          status === 'unpaid' && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
+                                        )}
+                                        title={
+                                          status === 'unpaid'
+                                            ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                            : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
+                                        }
+                                      >
+                                        {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
+                                        {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
+                                        {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
+                                        {status === 'unpaid' && <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />}
+                                      </button>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Load More Button for Matrix Riders */}
+                      {accumulatedMatrixRiders.length < (matrixRidersQuery.data?.total ?? 0) && (
+                        <div className="mt-4 flex justify-center border-t border-line pt-4">
+                          <button
+                            type="button"
+                            disabled={matrixRidersQuery.isFetching}
+                            onClick={() => setMatrixPage((prev) => prev + 1)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {matrixRidersQuery.isFetching ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                            ) : (
+                              <ChevronDown size={16} className="animate-bounce" />
+                            )}
+                            {matrixRidersQuery.isFetching ? t('Loading...') : t('Load more riders')}
+                          </button>
+                        </div>
+                      )}
+                      {accumulatedMatrixRiders.length >= (matrixRidersQuery.data?.total ?? 0) && (matrixRidersQuery.data?.total ?? 0) > 0 && (
+                        <div className="flex flex-col items-center justify-center gap-1.5 mt-4 pt-4 border-t border-line">
+                          <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+                            <Check size={14} /> {t('All {total} riders loaded').replace('{total}', String(matrixRidersQuery.data?.total ?? 0))}
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
