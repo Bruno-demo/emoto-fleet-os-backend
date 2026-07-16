@@ -41,6 +41,16 @@ import { Drawer } from '@/components/ui/drawer';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 
+interface RiderPaymentLog {
+  id: string;
+  amount: number | string;
+  paidAt: string;
+  method: string;
+  status: string;
+  reference?: string | null;
+  notes?: string | null;
+}
+
 const PAGE_SIZE = 20;
 
 export default function RidersPage() {
@@ -299,16 +309,6 @@ export default function RidersPage() {
     return d.toISOString().slice(0, 10);
   });
   const [statementTo, setStatementTo] = useState(() => new Date().toISOString().slice(0, 10));
-
-  interface RiderPaymentLog {
-    id: string;
-    amount: number | string;
-    paidAt: string;
-    method: string;
-    status: string;
-    reference?: string | null;
-    notes?: string | null;
-  }
 
   // Default daily rate fallback constant
   const DAILY_LEASE_RATE = 15000;
