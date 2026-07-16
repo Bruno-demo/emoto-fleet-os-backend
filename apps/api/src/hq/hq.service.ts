@@ -188,6 +188,7 @@ export class HqService {
             phone: true,
             role: true,
             status: true,
+            updatedAt: true,
             riderProfile: {
               select: {
                 fullName: true,
@@ -211,6 +212,7 @@ export class HqService {
             status: true,
             type: true,
             imageUrl: true,
+            updatedAt: true,
             devices: {
               select: {
                 id: true,
