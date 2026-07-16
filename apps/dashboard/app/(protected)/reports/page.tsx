@@ -116,16 +116,50 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
 
-  const showFinanceSection = user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY';
-
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Tab Switcher */}
+      <div className="flex border-b border-line gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('safety')}
+          className={cx(
+            "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
+            activeTab === 'safety' || user?.role === 'INSURER'
+              ? "border-accent text-ink"
+              : "border-transparent text-ink-muted hover:text-ink"
+          )}
+        >
+          <BarChart3 size={16} />
+          {t('Operations & Safety Report')}
+        </button>
+        {user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('leases')}
+            className={cx(
+              "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
+              activeTab === 'leases'
+                ? "border-accent text-ink"
+                : "border-transparent text-ink-muted hover:text-ink"
+            )}
+          >
+            <Coins size={16} />
+            {t('Financials & Lease Repayments')}
+          </button>
+        )}
+      </div>
+
       {/* Top Header & Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
-          <h1 className="text-xl font-bold text-ink">{t('Weekly Reporting Center')}</h1>
+          <h1 className="text-xl font-bold text-ink">
+            {activeTab === 'safety' ? t('Operations & Safety Report') : t('Financials & Lease Repayments')}
+          </h1>
           <p className="text-xs text-ink-muted mt-1">
-            {t('Weekly fleet aggregates, safety trends, and asset financing details.')}
+            {activeTab === 'safety'
+              ? t('Weekly fleet aggregates, driver safety score history, and safety incident highlights.')
+              : t('Asset financing summaries, arrears, and rider equity progress.')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -134,28 +168,24 @@ export default function ReportsPage() {
             to={dateRange.to}
             onChange={setDateRange}
           />
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={!report || reportQuery.isLoading}
-            className="flex items-center justify-center gap-2 rounded-lg border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-strong hover:text-white transition disabled:opacity-50"
-          >
-            <Download size={16} />
-            {t('Export CSV')}
-          </button>
+          {activeTab === 'safety' && (
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={!report || reportQuery.isLoading}
+              className="flex items-center justify-center gap-2 rounded-lg border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-strong hover:text-white transition disabled:opacity-50"
+            >
+              <Download size={16} />
+              {t('Export CSV')}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Grid: Left (Safety) and Right (Finance) */}
-      <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
-        {/* Left Column: Operations & Safety */}
-        <div className={cx("space-y-6", !showFinanceSection && "xl:col-span-2")}>
-          <div className="flex items-center gap-2 border-b border-line pb-2">
-            <BarChart3 size={18} className="text-accent" />
-            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-ink">{t('Operations & Safety Report')}</h2>
-          </div>
-
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 lg:grid-cols-3">
+      {activeTab === 'safety' || user?.role === 'INSURER' ? (
+        <div className="space-y-6">
+          {/* Safety Metric Cards */}
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {reportQuery.isLoading ? (
               <>
                 <MetricCardSkeleton />
@@ -205,19 +235,19 @@ export default function ReportsPage() {
             )}
           </section>
 
-          {/* Visual Analytics Charts */}
+          {/* Visual Analytics Charts - VERTICAL stack */}
           {!reportQuery.isLoading && report && (
-            <section className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-6">
               <TrendChart dailyScores={report.dailyScores} />
               <EventDistributionChart eventCounts={report.eventCounts} />
-            </section>
+            </div>
           )}
 
           {/* Compliance Traffic Fines */}
           <TrafficFinesCard />
 
-          {/* Risky Rankings */}
-          <section className="grid gap-4 sm:grid-cols-2">
+          {/* Risky Rankings - VERTICAL stack */}
+          <div className="space-y-6">
             <DashboardCard
               eyebrow={t('Risk Ranking')}
               title={t('Top risky bikes')}
@@ -307,8 +337,9 @@ export default function ReportsPage() {
                 />
               )}
             </DashboardCard>
-          </section>
+          </div>
 
+          {/* Event Breakdown */}
           <DashboardCard
             eyebrow={t('Event Breakdown')}
             title={t('Weekly incident mix')}
@@ -342,146 +373,146 @@ export default function ReportsPage() {
             )}
           </DashboardCard>
         </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Financials KPI Cards */}
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {leasesQuery.isLoading ? (
+              <>
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+              </>
+            ) : (
+              <>
+                <MetricCard
+                  title={t('Active Contracts')}
+                  value={String(leaseMetrics.totalLeases)}
+                  hint={t('Total lease-to-own agreements.')}
+                  icon={<Users size={18} />}
+                  tone="info"
+                />
+                <MetricCard
+                  title={t('Asset Finance Value')}
+                  value={`${leaseMetrics.totalPrincipal.toLocaleString()} RWF`}
+                  hint={t('Sum of all financing principals.')}
+                  icon={<TrendingUp size={18} />}
+                  tone="info"
+                />
+                <MetricCard
+                  title={t('Rider Equity')}
+                  value={`${leaseMetrics.overallEquity}%`}
+                  hint={t('Average ownership equity paid.')}
+                  icon={<Wallet size={18} />}
+                  tone="success"
+                />
+                <MetricCard
+                  title={t('Overdue Arrears')}
+                  value={`${leaseMetrics.totalArrears.toLocaleString()} RWF`}
+                  hint={t('Accumulated overdue balances.')}
+                  icon={<Banknote size={18} />}
+                  tone={leaseMetrics.totalArrears > 0 ? 'warning' : 'neutral'}
+                />
+              </>
+            )}
+          </section>
 
-        {/* Right Column: Financials & Leases */}
-        {showFinanceSection && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 border-b border-line pb-2">
-              <Coins size={18} className="text-accent" />
-              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-ink">{t('Financials & Lease Repayments')}</h2>
-            </div>
-
-            <section className="grid gap-4 sm:grid-cols-2">
-              {leasesQuery.isLoading ? (
-                <>
-                  <MetricCardSkeleton />
-                  <MetricCardSkeleton />
-                  <MetricCardSkeleton />
-                  <MetricCardSkeleton />
-                </>
-              ) : (
-                <>
-                  <MetricCard
-                    title={t('Active Contracts')}
-                    value={String(leaseMetrics.totalLeases)}
-                    hint={t('Total lease-to-own agreements.')}
-                    icon={<Users size={18} />}
-                    tone="info"
-                  />
-                  <MetricCard
-                    title={t('Asset Finance Value')}
-                    value={`${leaseMetrics.totalPrincipal.toLocaleString()} RWF`}
-                    hint={t('Sum of all financing principals.')}
-                    icon={<TrendingUp size={18} />}
-                    tone="info"
-                  />
-                  <MetricCard
-                    title={t('Rider Equity')}
-                    value={`${leaseMetrics.overallEquity}%`}
-                    hint={t('Average ownership equity paid.')}
-                    icon={<Wallet size={18} />}
-                    tone="success"
-                  />
-                  <MetricCard
-                    title={t('Overdue Arrears')}
-                    value={`${leaseMetrics.totalArrears.toLocaleString()} RWF`}
-                    hint={t('Accumulated overdue balances.')}
-                    icon={<Banknote size={18} />}
-                    tone={leaseMetrics.totalArrears > 0 ? 'warning' : 'neutral'}
-                  />
-                </>
-              )}
-            </section>
-
-            <DashboardCard
-              eyebrow={t('Financing Reports')}
-              title={t('Buy-to-own portfolio summary')}
-              description={t('Track asset ownership payments, overdue balances, and driver equity milestones.')}
-            >
-              <div className="overflow-x-auto dashboard-scrollbar mt-2">
-                <table className="w-full min-w-[500px] border-collapse text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-line text-ink-faint">
-                      <th className="py-2.5 font-bold">{t('Rider')}</th>
-                      <th className="py-2.5 font-bold">{t('Ownership Equity')}</th>
-                      <th className="py-2.5 font-bold">{t('Total Arrears')}</th>
-                      <th className="py-2.5 font-bold text-right">{t('Status')}</th>
+          {/* Lease Portfolio Table */}
+          <DashboardCard
+            eyebrow={t('Financing Reports')}
+            title={t('Buy-to-own portfolio summary')}
+            description={t('Track asset ownership payments, overdue balances, and driver equity milestones.')}
+          >
+            <div className="overflow-x-auto dashboard-scrollbar mt-2">
+              <table className="w-full min-w-[700px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-line text-ink-faint">
+                    <th className="py-2.5 font-bold">{t('Rider')}</th>
+                    <th className="py-2.5 font-bold">{t('Bike details')}</th>
+                    <th className="py-2.5 font-bold">{t('Ownership Equity')}</th>
+                    <th className="py-2.5 font-bold">{t('Daily Rate')}</th>
+                    <th className="py-2.5 font-bold">{t('Total Arrears')}</th>
+                    <th className="py-2.5 font-bold text-right">{t('Status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leasesQuery.isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-ink-muted">
+                        {t('Loading leases report...')}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {leasesQuery.isLoading ? (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-ink-muted">
-                          {t('Loading leases report...')}
-                        </td>
-                      </tr>
-                    ) : leases.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-ink-muted">
-                          {t('No lease contracts registered')}
-                        </td>
-                      </tr>
-                    ) : (
-                      leases.map((lease: LeaseContract) => {
-                        const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
-                        return (
-                          <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
-                            <td className="py-3 font-semibold text-ink">
-                              <p className="font-semibold text-ink leading-tight">{lease.riderName}</p>
-                              <p className="text-[10px] text-ink-muted mt-0.5">{lease.riderPhone}</p>
-                              <p className="text-[9px] text-accent/80 font-mono mt-0.5">{lease.bikeLabel} &middot; {lease.bikePlate}</p>
-                            </td>
-                            <td className="py-3">
-                              <div className="min-w-[100px] text-xs">
-                                <div className="flex justify-between items-center mb-1">
-                                  <span className="font-semibold text-ink-soft">{pct}%</span>
-                                  <span className="text-[9px] text-ink-muted tabular-nums">
-                                    {lease.totalPaid.toLocaleString()} RWF
-                                  </span>
-                                </div>
-                                <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden border border-line">
-                                  <div
-                                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                </div>
+                  ) : leases.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-ink-muted">
+                        {t('No lease contracts registered')}
+                      </td>
+                    </tr>
+                  ) : (
+                    leases.map((lease: LeaseContract) => {
+                      const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
+                      return (
+                        <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
+                          <td className="py-3 font-semibold text-ink">
+                            <p className="font-semibold text-ink leading-tight">{lease.riderName}</p>
+                            <p className="text-[10px] text-ink-muted mt-0.5">{lease.riderPhone}</p>
+                          </td>
+                          <td className="py-3 text-xs text-ink-soft">
+                            <p className="font-semibold">{lease.bikeLabel}</p>
+                            <p className="text-[10px] text-ink-muted">{lease.bikePlate}</p>
+                          </td>
+                          <td className="py-3">
+                            <div className="min-w-[120px] max-w-[160px] text-xs">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold text-ink-soft">{pct}%</span>
+                                <span className="text-[10px] text-ink-muted tabular-nums">
+                                  {lease.totalPaid.toLocaleString()} / {lease.totalPrincipal.toLocaleString()}
+                                </span>
                               </div>
-                            </td>
-                            <td className="py-3">
-                              <span className={cx(
-                                "font-mono font-bold text-xs px-2 py-0.5 rounded",
-                                lease.arrears > 0 ? "text-danger-ink bg-danger-soft/20" : "text-ink-soft"
-                              )}>
-                                {lease.arrears.toLocaleString()} RWF
-                              </span>
-                            </td>
-                            <td className="py-3 text-right">
-                              <Badge
-                                label={t(lease.status === 'PAID_OFF' ? 'Paid Off' : lease.status === 'ACTIVE' ? 'Active' : 'Delinquent')}
-                                tone={
-                                  lease.status === 'PAID_OFF'
-                                    ? 'success'
-                                    : lease.status === 'ACTIVE'
-                                      ? 'info'
-                                      : 'danger'
-                                }
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </DashboardCard>
-          </div>
-        )}
-      </div>
+                              <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden border border-line">
+                                <div
+                                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 font-mono text-ink-soft">{lease.dailyRate.toLocaleString()} RWF</td>
+                          <td className="py-3">
+                            <span className={cx(
+                              "font-mono font-bold text-xs px-2 py-0.5 rounded",
+                              lease.arrears > 0 ? "text-danger-ink bg-danger-soft/20" : "text-ink-soft"
+                            )}>
+                              {lease.arrears.toLocaleString()} RWF
+                            </span>
+                          </td>
+                          <td className="py-3 text-right">
+                            <Badge
+                              label={t(lease.status === 'PAID_OFF' ? 'Paid Off' : lease.status === 'ACTIVE' ? 'Active' : 'Delinquent')}
+                              tone={
+                                lease.status === 'PAID_OFF'
+                                  ? 'success'
+                                  : lease.status === 'ACTIVE'
+                                    ? 'info'
+                                    : 'danger'
+                              }
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </DashboardCard>
+        </div>
+      )}
     </div>
   );
 }
-function TrendChart({
+function TrendChart({
   dailyScores,
 }: {
   dailyScores: Array<{ date: string; score: number }>;
