@@ -42,6 +42,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { InlineNotice, SelectField, TextAreaField, TextField } from '@/components/ui/form-controls';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { downloadFormattedExcel } from '@/lib/export/excel-export';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { PaginatedResponse, Rider } from '@/lib/types/dashboard';
@@ -102,7 +104,26 @@ export default function FinancialsPage() {
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
-  const [weekOffset, setWeekOffset] = useState(0);
+  
+  // Date ranges
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 14); // default 2 weeks range
+    return d.toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Shift date range by 7 days helper
+  const shiftWeek = (direction: 'prev' | 'next') => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = direction === 'prev' ? -7 : 7;
+    start.setDate(start.getDate() + days);
+    end.setDate(end.getDate() + days);
+    setStartDate(start.toISOString().slice(0, 10));
+    setEndDate(end.toISOString().slice(0, 10));
+  };
+
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
   const [matrixSearch, setMatrixSearch] = useState('');
@@ -204,14 +225,6 @@ export default function FinancialsPage() {
       document.body.style.overflow = 'unset';
     };
   }, [showCollectModal]);
-
-  // Date ranges
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14); // default 2 weeks range
-    return d.toISOString().slice(0, 10);
-  });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Collect payment form state
   const [formRiderId, setFormRiderId] = useState('');
@@ -350,61 +363,62 @@ export default function FinancialsPage() {
     setPage(1);
   }, [startDate, endDate]);
 
-  // Reset weekly offset when date range filter changes
-  useEffect(() => {
-    setWeekOffset(0);
-  }, [endDate]);
-
-  // Compute current week calendar matrix with offset support (anchored to endDate)
-  const weekDays = useMemo(() => {
-    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const current = new Date(endDate);
+  // Compute date range matrix calendar days
+  const matrixDays = useMemo(() => {
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
     
-    // Shift current date based on weekOffset (7 days per offset step)
-    current.setDate(current.getDate() + weekOffset * 7);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
-    // Monday is 1st day in grid
-    const first = current.getDate() - current.getDay() + (current.getDay() === 0 ? -6 : 1);
+    // Show up to 14 days in the matrix table
+    const numDays = Math.min(14, diffDays);
+    const resultDays = [];
     
-    return Array.from({ length: 7 }, (_, i) => {
-      const next = new Date(current.getFullYear(), current.getMonth(), first + i);
+    for (let i = 0; i < numDays; i++) {
+      const next = new Date(end);
+      next.setDate(end.getDate() - (numDays - 1 - i));
+      
       const year = next.getFullYear();
       const month = String(next.getMonth() + 1).padStart(2, '0');
       const date = String(next.getDate()).padStart(2, '0');
-      return {
-        dayLabel: daysOfWeek[i],
+      resultDays.push({
+        dayLabel: daysOfWeek[next.getDay()],
         dateString: `${year}-${month}-${date}`,
         displayDate: next.getDate(),
-      };
-    });
-  }, [weekOffset, endDate]);
+      });
+    }
+    
+    return resultDays;
+  }, [startDate, endDate]);
 
-  // Compute week range human-readable label
+  // Compute range label
   const weekRangeLabel = useMemo(() => {
-    if (weekDays.length === 0) return '';
-    const start = new Date(weekDays[0].dateString);
-    const end = new Date(weekDays[6].dateString);
+    if (matrixDays.length === 0) return '';
+    const start = new Date(matrixDays[0].dateString);
+    const end = new Date(matrixDays[matrixDays.length - 1].dateString);
     const formatOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     const startStr = start.toLocaleDateString(undefined, formatOptions);
     const endStr = end.toLocaleDateString(undefined, formatOptions);
     const yearStr = end.getFullYear();
     return `${startStr} - ${endStr}, ${yearStr}`;
-  }, [weekDays]);
+  }, [matrixDays]);
 
-  // Fetch payments for the active week to populate the payment matrix
-  const weekStartDate = weekDays[0]?.dateString;
-  const weekEndDate = weekDays[6]?.dateString;
+  // Fetch payments for the active matrix to populate the payment grid
+  const matrixStartDate = matrixDays[0]?.dateString;
+  const matrixEndDate = matrixDays[matrixDays.length - 1]?.dateString;
   const weekPaymentsQuery = useQuery({
-    queryKey: ['payments', 'week', weekStartDate, weekEndDate],
+    queryKey: ['payments', 'matrix', matrixStartDate, matrixEndDate],
     queryFn: () =>
       apiFetch<PaginatedResponse<PaymentRecord>>(
         `/financials${buildQueryString({
-          startDate: `${weekStartDate}T00:00:00.000Z`,
-          endDate: `${weekEndDate}T23:59:59.999Z`,
+          startDate: `${matrixStartDate}T00:00:00.000Z`,
+          endDate: `${matrixEndDate}T23:59:59.999Z`,
           pageSize: 200,
         })}`,
       ),
-    enabled: !!weekStartDate && !!weekEndDate,
+    enabled: !!matrixStartDate && !!matrixEndDate,
   });
   const weekPayments = weekPaymentsQuery.data?.data ?? [];
 
@@ -451,18 +465,19 @@ export default function FinancialsPage() {
   // Professional CSV/Excel Export helper
   const handleExportCSV = () => {
     if (paymentsList.length === 0) return;
-    const headers = [
-      'Rider Name',
-      'Email Address',
-      'Phone Number',
-      'Amount Collected (RWF)',
-      'Payment Date',
-      'Payment Method',
-      'Payment Status',
-      'Reference Code',
-      'Notes',
+
+    const excelColumns = [
+      { header: t('Rider Name'), key: 'riderName', type: 'text' as const },
+      { header: t('Email Address'), key: 'riderEmail', type: 'text' as const },
+      { header: t('Phone Number'), key: 'riderPhone', type: 'text' as const },
+      { header: t('Amount (RWF)'), key: 'amount', type: 'currency' as const, align: 'right' as const },
+      { header: t('Payment Date'), key: 'paidAt', type: 'text' as const },
+      { header: t('Payment Method'), key: 'method', type: 'text' as const },
+      { header: t('Payment Status'), key: 'status', type: 'status' as const, align: 'center' as const },
+      { header: t('Reference Code'), key: 'reference', type: 'text' as const },
+      { header: t('Notes'), key: 'notes', type: 'text' as const },
     ];
-    
+
     const rows = paymentsList.map((p) => {
       const date = new Date(p.paidAt);
       const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -470,31 +485,35 @@ export default function FinancialsPage() {
       const friendlyMethod = p.method.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
       const friendlyStatus = p.status.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
-      return [
-        p.riderName,
-        p.riderEmail ?? '',
-        p.riderPhone ?? '',
-        p.amount,
-        formattedDate,
-        friendlyMethod,
-        friendlyStatus,
-        p.reference ?? '',
-        p.notes ?? '',
-      ];
+      return {
+        riderName: p.riderName,
+        riderEmail: p.riderEmail ?? '',
+        riderPhone: p.riderPhone ?? '',
+        amount: Number(p.amount) || 0,
+        paidAt: formattedDate,
+        method: t(friendlyMethod),
+        status: t(friendlyStatus),
+        reference: p.reference ?? '',
+        notes: p.notes ?? '',
+      };
     });
 
-    // Excel UTF-8 BOM prefix
-    const BOM = '\uFEFF';
-    const csvString = [headers.join(','), ...rows.map((r) => r.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([BOM + csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `fleet_collections_${startDate}_to_${endDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const totalCollected = rows.reduce((sum, r) => sum + r.amount, 0);
+    const uniqueRiders = new Set(rows.map(r => r.riderName)).size;
+
+    downloadFormattedExcel({
+      title: t('Fleet Collections Report'),
+      subtitle: t('Direct Daily Collections Registry'),
+      dateRange: `${startDate} to ${endDate}`,
+      kpis: [
+        { label: t('Total Collections'), value: `${totalCollected.toLocaleString()} RWF` },
+        { label: t('Total Logs'), value: String(rows.length) },
+        { label: t('Unique Riders'), value: String(uniqueRiders) },
+      ],
+      columns: excelColumns,
+      rows,
+      sheetName: 'Collections',
+    });
   };
 
   const handleRecordPaymentSubmit = () => {
@@ -678,21 +697,14 @@ export default function FinancialsPage() {
           <h2 className="font-display text-xl font-bold text-ink">{t('Fleet Financials')}</h2>
           <p className="text-xs text-ink-muted">{t('Track rider daily rates, payments, and overall revenues.')}</p>
         </div>
-        <div className="flex items-center gap-3 bg-surface-muted border border-line rounded-2xl p-1.5 self-start sm:self-auto">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="bg-transparent text-xs font-semibold text-ink px-2 outline-none"
-          />
-          <span className="text-ink-faint text-xs">&rarr;</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="bg-transparent text-xs font-semibold text-ink px-2 outline-none"
-          />
-        </div>
+        <DateRangePicker
+          from={startDate}
+          to={endDate}
+          onChange={({ from, to }) => {
+            setStartDate(from);
+            setEndDate(to);
+          }}
+        />
       </section>
 
       {/* Tab Switcher */}
@@ -964,7 +976,7 @@ export default function FinancialsPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setWeekOffset((prev) => prev - 1)}
+                    onClick={() => shiftWeek('prev')}
                     className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
                     title={t("Previous week")}
                   >
@@ -972,7 +984,13 @@ export default function FinancialsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setWeekOffset(0)}
+                    onClick={() => {
+                      const end = new Date();
+                      const start = new Date();
+                      start.setDate(end.getDate() - 14);
+                      setStartDate(start.toISOString().slice(0, 10));
+                      setEndDate(end.toISOString().slice(0, 10));
+                    }}
                     className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface hover:bg-surface-hover border border-line text-ink-soft hover:text-ink transition-colors cursor-pointer"
                     title={t("Current week")}
                   >
@@ -980,7 +998,7 @@ export default function FinancialsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setWeekOffset((prev) => prev + 1)}
+                    onClick={() => shiftWeek('next')}
                     className="rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors border border-line cursor-pointer"
                     title={t("Next week")}
                   >
@@ -1070,7 +1088,7 @@ export default function FinancialsPage() {
                         <thead>
                           <tr className="border-b border-line text-ink-faint">
                             <th className="py-2.5 font-bold">{t('Rider')}</th>
-                            {weekDays.map((d) => (
+                            {matrixDays.map((d) => (
                               <th key={d.dateString} className="py-2.5 text-center font-bold">
                                 <div>{t(d.dayLabel)}</div>
                                 <div className="text-[10px] opacity-70 font-semibold">{d.displayDate}</div>
@@ -1096,7 +1114,7 @@ export default function FinancialsPage() {
                                   </div>
                                 </div>
                               </td>
-                              {weekDays.map((day) => {
+                              {matrixDays.map((day) => {
                                 const status = getMatrixCellStatus(rider.id, day.dateString);
                                 return (
                                   <td key={day.dateString} className="py-3 text-center">

@@ -3,13 +3,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, User, Banknote } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
+import { downloadFormattedExcel } from '@/lib/export/excel-export';
 import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
@@ -85,6 +86,65 @@ export default function ReportsPage() {
       overallEquity
     };
   }, [leases]);
+
+  const topDelinquentLeases = useMemo(() => {
+    return [...leases]
+      .filter(l => l.arrears > 0)
+      .sort((a, b) => b.arrears - a.arrears)
+      .slice(0, 5);
+  }, [leases]);
+
+  const equityBreakdownData = useMemo(() => {
+    const totalPrincipal = leases.reduce((sum, l) => sum + l.totalPrincipal, 0);
+    const totalPaid = leases.reduce((sum, l) => sum + l.totalPaid, 0);
+    const remaining = Math.max(0, totalPrincipal - totalPaid);
+    
+    return [
+      { name: t('Paid Principal'), value: totalPaid, color: '#10B981' },
+      { name: t('Remaining Balance'), value: remaining, color: '#3B82F6' },
+    ];
+  }, [leases, t]);
+
+  const handleExportLeasePortfolio = () => {
+    if (leases.length === 0) return;
+    
+    const cols = [
+      { header: t('Rider Name'), key: 'riderName', type: 'text' as const },
+      { header: t('Phone Number'), key: 'riderPhone', type: 'text' as const },
+      { header: t('Bike Label'), key: 'bikeLabel', type: 'text' as const },
+      { header: t('Bike Plate'), key: 'bikePlate', type: 'text' as const },
+      { header: t('Lease Daily Rate'), key: 'dailyRate', type: 'currency' as const, align: 'right' as const },
+      { header: t('Total Principal'), key: 'totalPrincipal', type: 'currency' as const, align: 'right' as const },
+      { header: t('Total Paid-to-Date'), key: 'totalPaid', type: 'currency' as const, align: 'right' as const },
+      { header: t('Current Arrears'), key: 'arrears', type: 'currency' as const, align: 'right' as const },
+      { header: t('Financing Status'), key: 'status', type: 'status' as const, align: 'center' as const },
+    ];
+
+    const rows = leases.map(l => ({
+      riderName: l.riderName,
+      riderPhone: l.riderPhone ?? '',
+      bikeLabel: l.bikeLabel ?? '',
+      bikePlate: l.bikePlate ?? '',
+      dailyRate: l.dailyRate || 0,
+      totalPrincipal: l.totalPrincipal || 0,
+      totalPaid: l.totalPaid || 0,
+      arrears: l.arrears || 0,
+      status: t(l.status === 'PAID_OFF' ? 'Paid Off' : l.status === 'ACTIVE' ? 'Active' : 'Delinquent'),
+    }));
+
+    downloadFormattedExcel({
+      title: t('Buy-to-Own Lease Repayments Ledger'),
+      subtitle: t('Overview of active asset financing contracts and equity accrual'),
+      kpis: [
+        { label: t('Active Contracts'), value: String(leaseMetrics.totalLeases) },
+        { label: t('Total Portfolio Value'), value: `${leaseMetrics.totalPrincipal.toLocaleString()} RWF` },
+        { label: t('Overdue Arrears'), value: `${leaseMetrics.totalArrears.toLocaleString()} RWF` },
+      ],
+      columns: cols,
+      rows,
+      sheetName: 'Lease Portfolio',
+    });
+  };
 
   const handleExport = () => {
     if (!report) return;
@@ -418,11 +478,119 @@ export default function ReportsPage() {
             )}
           </section>
 
+          {/* Summary breakdown row */}
+          <div className="grid gap-5 md:grid-cols-2">
+            {/* Portfolio Equity Pie Chart */}
+            <DashboardCard
+              eyebrow={t('Financing distribution')}
+              title={t('Portfolio principal breakdown')}
+              description={t('Total paid equity vs remaining outstanding principal')}
+            >
+              {leasesQuery.isLoading ? (
+                <div className="h-44 w-full bg-surface-muted rounded-[20px] animate-pulse" />
+              ) : leases.length > 0 ? (
+                <div className="flex flex-col sm:flex-row items-center justify-around gap-4 py-2">
+                  <div className="relative h-32 w-32 shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={equityBreakdownData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={34}
+                          outerRadius={46}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {equityBreakdownData.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-[9px] font-bold text-ink-muted uppercase tracking-wider">{t('Equity')}</span>
+                      <span className="text-xs font-bold text-ink leading-none text-center">
+                        {leaseMetrics.overallEquity}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2 text-xs">
+                     {equityBreakdownData.map(entry => (
+                       <div key={entry.name} className="flex items-center gap-2">
+                         <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                         <span className="font-semibold text-ink-soft min-w-[110px]">{entry.name}</span>
+                         <span className="font-mono text-ink font-bold">{entry.value.toLocaleString()} RWF</span>
+                       </div>
+                     ))}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<Coins size={18} />}
+                  title={t('No equity data')}
+                  description={t('Principal equity charts will appear once lease agreements exist.')}
+                />
+              )}
+            </DashboardCard>
+
+            {/* Delinquent Arrears Risk Rankings */}
+            <DashboardCard
+              eyebrow={t('Financing Risk')}
+              title={t('Top delinquent accounts')}
+              description={t('Riders with the highest outstanding arrears balances.')}
+            >
+              {leasesQuery.isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full animate-pulse rounded-[10px]" />
+                  <Skeleton className="h-10 w-full animate-pulse rounded-[10px]" />
+                </div>
+              ) : topDelinquentLeases.length > 0 ? (
+                <ul className="space-y-3 max-h-[160px] overflow-y-auto pr-1 dashboard-scrollbar">
+                  {topDelinquentLeases.map((lease, index) => (
+                    <li key={lease.id} className="rounded-xl border border-line bg-surface-muted px-4 py-2.5 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-5 w-5 rounded-full bg-surface-strong text-[10px] font-bold flex items-center justify-center text-ink-muted">
+                          {index + 1}
+                        </span>
+                        <div>
+                          <p className="font-semibold text-ink leading-none">{lease.riderName}</p>
+                          <p className="text-[10px] text-ink-muted mt-1">{lease.bikeLabel} &middot; {lease.bikePlate}</p>
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-danger-ink bg-danger-soft/20 px-2 py-0.5 rounded">
+                        {lease.arrears.toLocaleString()} RWF
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon={<TrendingUp size={18} />}
+                  title={t('No delinquent leases')}
+                  description={t('All active lease-to-own agreements have healthy payment records.')}
+                />
+              )}
+            </DashboardCard>
+          </div>
+
           {/* Lease Portfolio Table */}
           <DashboardCard
             eyebrow={t('Financing Reports')}
             title={t('Buy-to-own portfolio summary')}
             description={t('Track asset ownership payments, overdue balances, and driver equity milestones.')}
+            actions={
+              <button
+                type="button"
+                disabled={leases.length === 0}
+                onClick={handleExportLeasePortfolio}
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-muted hover:bg-surface-hover text-ink-soft hover:text-ink transition-all px-3 py-2 text-xs font-semibold disabled:opacity-50"
+              >
+                <Download size={12} />
+                {t('Export Portfolio')}
+              </button>
+            }
           >
             <div className="overflow-x-auto dashboard-scrollbar mt-2">
               <table className="w-full min-w-[700px] border-collapse text-left text-xs">

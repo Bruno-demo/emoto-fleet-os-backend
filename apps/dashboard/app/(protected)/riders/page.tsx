@@ -16,14 +16,22 @@ import {
   KeyRound,
   Trash2,
   UserX,
+  Coins,
+  Download,
+  TrendingUp,
+  Wallet,
+  Banknote,
+  Calendar,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
-import { MetricCardSkeleton } from '@/components/ui/skeleton';
+import { MetricCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { Badge } from '@/components/ui/badge';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { downloadFormattedExcel } from '@/lib/export/excel-export';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { Assignment, PaginatedResponse, Rider } from '@/lib/types/dashboard';
@@ -281,6 +289,36 @@ export default function RidersPage() {
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
   };
+
+  // Rider Financial Statement modal state
+  const [showStatementModal, setShowStatementModal] = useState(false);
+  const [statementRider, setStatementRider] = useState<Rider | null>(null);
+  const [statementFrom, setStatementFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30); // default 30 days statement range
+    return d.toISOString().slice(0, 10);
+  });
+  const [statementTo, setStatementTo] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Default daily rate fallback constant
+  const DAILY_LEASE_RATE = 15000;
+
+  // Query for rider statement payment logs in selected date range
+  const statementQuery = useQuery({
+    queryKey: ['rider-statement', statementRider?.id, statementFrom, statementTo],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<Record<string, unknown>>>(
+        `/financials${buildQueryString({
+          riderId: statementRider?.id,
+          startDate: `${statementFrom}T00:00:00.000Z`,
+          endDate: `${statementTo}T23:59:59.999Z`,
+          page: 1,
+          pageSize: 100,
+        })}`,
+      ),
+    enabled: !!statementRider && showStatementModal,
+  });
+  const statementPayments = useMemo(() => statementQuery.data?.data ?? [], [statementQuery.data]);
 
   const ridersQuery = useQuery({
     queryKey: ['riders', page],
@@ -1462,6 +1500,16 @@ export default function RidersPage() {
                     )}
                     <button
                       onClick={() => {
+                        setStatementRider(selectedRider);
+                        setShowStatementModal(true);
+                      }}
+                      className="flex items-center gap-2 rounded-xl bg-surface border border-line px-4 py-2.5 text-xs font-semibold text-accent hover:bg-accent/10 transition-colors"
+                    >
+                      <Coins size={14} />
+                      {t('Financial Statement')}
+                    </button>
+                    <button
+                      onClick={() => {
                         setDeleteTargetId(selectedRider.id);
                         setDeleteTargetName(selectedRider.fullName ?? 'Rider');
                         setDeleteConfirmOpen(true);
@@ -1521,6 +1569,226 @@ export default function RidersPage() {
           setDeleteTargetName(null);
         }}
       />
+
+      {/* Rider Financial Statement Modal */}
+      {showStatementModal && statementRider && (
+        <div
+          onClick={() => setShowStatementModal(false)}
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-[4px] p-4 cursor-pointer animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border border-line bg-surface shadow-2xl animate-scale-in overflow-hidden cursor-default"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-line p-5 shrink-0">
+              <div>
+                <h3 className="font-display text-lg font-bold text-ink">
+                  {t('Financial Statement')} &middot; {statementRider.fullName}
+                </h3>
+                <p className="text-xs text-ink-muted">
+                  {statementRider.phone ?? statementRider.email ?? ''} &middot;{' '}
+                  {statementRider.leaseToOwn ? t('Lease-to-Own Plan') : t('Daily Collection Plan')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStatementModal(false)}
+                className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 dashboard-scrollbar">
+              {/* Date Filter & Export Header */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface-muted/40 p-4 rounded-xl border border-line">
+                <div className="flex-1">
+                  <DateRangePicker
+                    from={statementFrom}
+                    to={statementTo}
+                    onChange={({ from, to }) => {
+                      setStatementFrom(from);
+                      setStatementTo(to);
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={statementPayments.length === 0}
+                  onClick={() => {
+                    const totalPaid = statementPayments
+                      .filter(p => p.status === 'PAID')
+                      .reduce((sum, p) => sum + Number(p.amount), 0);
+                    const totalArrears = statementPayments
+                      .filter(p => p.status === 'OVERDUE' || p.status === 'UNPAID')
+                      .reduce((sum, p) => sum + Number(p.amount), 0);
+                    
+                    const cols = [
+                      { header: t('Date'), key: 'paidAt', type: 'text' as const },
+                      { header: t('Amount (RWF)'), key: 'amount', type: 'currency' as const, align: 'right' as const },
+                      { header: t('Payment Method'), key: 'method', type: 'text' as const },
+                      { header: t('Status'), key: 'status', type: 'status' as const, align: 'center' as const },
+                      { header: t('Reference Code'), key: 'reference', type: 'text' as const },
+                      { header: t('Notes'), key: 'notes', type: 'text' as const },
+                    ];
+
+                    const rows = statementPayments.map(p => ({
+                      paidAt: new Date(p.paidAt).toLocaleDateString(),
+                      amount: Number(p.amount) || 0,
+                      method: t(p.method.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())),
+                      status: t(p.status),
+                      reference: p.reference ?? '',
+                      notes: p.notes ?? '',
+                    }));
+
+                    downloadFormattedExcel({
+                      title: t('Rider Financial Statement'),
+                      subtitle: `${statementRider.fullName} (${statementRider.phone ?? ''})`,
+                      dateRange: `${statementFrom} to ${statementTo}`,
+                      kpis: [
+                        { label: t('Total Paid in Period'), value: `${totalPaid.toLocaleString()} RWF` },
+                        { label: t('Outstanding Arrears'), value: `${totalArrears.toLocaleString()} RWF` },
+                        { label: t('Plan Type'), value: statementRider.leaseToOwn ? t('Lease-to-Own') : t('Daily Collection') },
+                      ],
+                      columns: cols,
+                      rows,
+                      sheetName: 'Rider Statement',
+                    });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-muted hover:bg-surface-hover text-ink-soft hover:text-ink px-4 py-3 text-xs font-semibold disabled:opacity-50 h-fit"
+                >
+                  <Download size={14} />
+                  {t('Download Statement')}
+                </button>
+              </div>
+
+              {/* Summary KPIs */}
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+                <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
+                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">{t('Total Paid')}</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-emerald-500">
+                    {statementPayments
+                      .filter(p => p.status === 'PAID')
+                      .reduce((sum, p) => sum + Number(p.amount), 0)
+                      .toLocaleString()}{' '}
+                    RWF
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-line bg-surface-muted px-4 py-3">
+                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">{t('Pending Arrears')}</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-rose-500">
+                    {statementPayments
+                      .filter(p => p.status === 'OVERDUE' || p.status === 'UNPAID')
+                      .reduce((sum, p) => sum + Number(p.amount), 0)
+                      .toLocaleString()}{' '}
+                    RWF
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-line bg-surface-muted px-4 py-3 col-span-2 md:col-span-1">
+                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">{t('Daily Rate')}</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-ink-soft">
+                    {(statementRider.leaseDailyRate ?? DAILY_LEASE_RATE).toLocaleString()} RWF
+                  </p>
+                </div>
+              </div>
+
+              {/* Buy-to-Own Equity Progress */}
+              {statementRider.leaseToOwn && (
+                <div className="rounded-xl border border-line bg-surface-muted p-4 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-ink-soft">{t('Asset Ownership Equity Milestone')}</span>
+                    <span className="font-bold text-accent">
+                      {(() => {
+                        const totalPaid = statementPayments
+                          .filter(p => p.status === 'PAID')
+                          .reduce((sum, p) => sum + Number(p.amount), 0);
+                        const principal = statementRider.leasePrincipal ?? 2500000;
+                        const pct = Math.min(100, Math.max(0, Math.round((totalPaid / principal) * 100)));
+                        return `${pct}% (${totalPaid.toLocaleString()} / ${principal.toLocaleString()} RWF)`;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-surface rounded-full overflow-hidden border border-line">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${(() => {
+                          const totalPaid = statementPayments
+                            .filter(p => p.status === 'PAID')
+                            .reduce((sum, p) => sum + Number(p.amount), 0);
+                          const principal = statementRider.leasePrincipal ?? 2500000;
+                          return Math.min(100, Math.max(0, Math.round((totalPaid / principal) * 100)));
+                        })()}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Transactions Timeline */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">{t('Timeline Transaction History')}</h4>
+                {statementQuery.isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : statementPayments.length === 0 ? (
+                  <EmptyState
+                    icon={<Coins size={18} />}
+                    title={t('No transactions in period')}
+                    description={t('Choose a different date range or presets to check logs.')}
+                  />
+                ) : (
+                  <div className="border border-line rounded-xl overflow-hidden bg-surface-muted/30">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-line bg-surface-muted text-ink-faint">
+                          <th className="p-3 font-bold">{t('Date')}</th>
+                          <th className="p-3 font-bold text-right">{t('Amount')}</th>
+                          <th className="p-3 font-bold">{t('Method')}</th>
+                          <th className="p-3 font-bold text-center">{t('Status')}</th>
+                          <th className="p-3 font-bold">{t('Reference')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {statementPayments.map(p => (
+                          <tr key={p.id} className="border-b border-line last:border-0 hover:bg-surface-hover">
+                            <td className="p-3 font-semibold text-ink-soft">{new Date(p.paidAt).toLocaleDateString()}</td>
+                            <td className="p-3 font-mono font-bold text-right text-ink">{Number(p.amount).toLocaleString()} RWF</td>
+                            <td className="p-3 text-ink-muted">
+                              {t(p.method.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()))}
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge
+                                label={t(p.status)}
+                                tone={
+                                  p.status === 'PAID'
+                                    ? 'success'
+                                    : p.status === 'PARTIAL'
+                                      ? 'warning'
+                                      : p.status === 'OVERDUE'
+                                        ? 'danger'
+                                        : 'neutral'
+                                }
+                              />
+                            </td>
+                            <td className="p-3 font-mono text-ink-faint">{p.reference ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
