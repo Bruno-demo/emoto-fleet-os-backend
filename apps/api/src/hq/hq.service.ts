@@ -199,7 +199,7 @@ export class HqService {
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { updatedAt: 'desc' },
         },
         bikes: {
           select: {
@@ -218,7 +218,7 @@ export class HqService {
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { updatedAt: 'desc' },
         },
         _count: {
           select: {
