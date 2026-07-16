@@ -100,6 +100,7 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
   // Playback timer loop
   useEffect(() => {
     if (isPlaying) {
+      const intervalDuration = Math.max(50, Math.round(1000 / playbackSpeed));
       timerRef.current = setInterval(() => {
         setCurrentIndex((prev) => {
           if (prev >= pointsCount - 1) {
@@ -107,10 +108,10 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
             if (timerRef.current) clearInterval(timerRef.current);
             return prev;
           }
-          const next = prev + playbackSpeed;
+          const next = prev + 1; // Always advance by 1 point for smooth playback
           return next >= pointsCount ? pointsCount - 1 : next;
         });
-      }, 100);
+      }, intervalDuration);
     } else {
       if (timerRef.current) {
         clearInterval(timerRef.current);
