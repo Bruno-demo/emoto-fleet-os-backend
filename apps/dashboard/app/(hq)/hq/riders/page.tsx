@@ -1,14 +1,11 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api/client';
-import { z } from 'zod';
 import {
   Bike,
   Mail,
   Phone,
-  Plus,
   Search,
   Shield,
   UserPlus,
@@ -25,7 +22,6 @@ import {
 import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
-import { EmptyState } from '@/components/ui/empty-state';
 import { MetricCardSkeleton } from '@/components/ui/skeleton';
 
 import { Badge } from '@/components/ui/badge';

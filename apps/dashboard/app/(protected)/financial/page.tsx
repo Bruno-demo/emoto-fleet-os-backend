@@ -36,7 +36,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
@@ -54,6 +53,24 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 const PAGE_SIZE = 15;
 const DAILY_LEASE_RATE = 15000; // default daily lease rate in RWF
+
+interface TrafficFine {
+  id: string;
+  riderId: string;
+  ticketNumber: string;
+  reason: string;
+  amount: number;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  finedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  rider?: {
+    phone?: string;
+    riderProfile?: {
+      fullName?: string;
+    };
+  };
+}
 
 interface PaymentRecord {
   id: string;
@@ -146,7 +163,7 @@ export default function FinancialsPage() {
 
   const { data: allFines, refetch: refetchAllFines, isLoading: isFinesLoading } = useQuery({
     queryKey: ['all-traffic-fines'],
-    queryFn: () => apiFetch<any[]>('/traffic-fines'),
+    queryFn: () => apiFetch<TrafficFine[]>('/traffic-fines'),
     enabled: activeTab === 'trafficFines',
   });
 
@@ -158,8 +175,8 @@ export default function FinancialsPage() {
       });
       await refetchAllFines();
       await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
-    } catch (err: any) {
-      alert(err.message || 'Failed to update traffic fine');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to update traffic fine');
     }
   };
 
@@ -171,8 +188,8 @@ export default function FinancialsPage() {
       });
       await refetchAllFines();
       await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
-    } catch (err: any) {
-      alert(err.message || 'Failed to update traffic fine');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to update traffic fine');
     }
   };
 
@@ -184,8 +201,8 @@ export default function FinancialsPage() {
       });
       await refetchAllFines();
       await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete traffic fine');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to delete traffic fine');
     }
   };
 
@@ -227,8 +244,8 @@ export default function FinancialsPage() {
       setFineReason('');
       setFineTicketNumber('');
       setFineRecordRiderId('');
-    } catch (err: any) {
-      setRecordFineError(err.message || 'Failed to record fine');
+    } catch (err: unknown) {
+      setRecordFineError(err instanceof Error ? err.message : 'Failed to record fine');
     } finally {
       setIsRecordingFine(false);
     }
@@ -1714,7 +1731,7 @@ export default function FinancialsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {allFines.map((fine: any) => (
+                    {allFines.map((fine: TrafficFine) => (
                       <tr key={fine.id} className="border-b border-line last:border-0 hover:bg-surface-hover transition-colors">
                         <td className="p-3.5 font-semibold text-ink-soft">{fine.ticketNumber}</td>
                         <td className="p-3.5 text-ink">
@@ -1989,7 +2006,7 @@ export default function FinancialsPage() {
                   className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50 cursor-pointer"
                 >
                   <option value="">{t('-- Select a Rider --')}</option>
-                  {accumulatedMatrixRiders.map((r: any) => (
+                  {accumulatedMatrixRiders.map((r: Rider) => (
                     <option key={r.id} value={r.id}>
                       {r.fullName ?? `Rider ${r.id.slice(0, 8)}`} ({r.phone ?? r.email ?? ''})
                     </option>

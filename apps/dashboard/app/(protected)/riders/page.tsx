@@ -19,10 +19,6 @@ import {
   UserX,
   Coins,
   Download,
-  TrendingUp,
-  Wallet,
-  Banknote,
-  Calendar,
   ChevronDown,
   Plus,
 } from 'lucide-react';
@@ -52,6 +48,24 @@ interface RiderPaymentLog {
   status: string;
   reference?: string | null;
   notes?: string | null;
+}
+
+interface TrafficFine {
+  id: string;
+  riderId: string;
+  ticketNumber: string;
+  reason: string;
+  amount: number;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  finedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  rider?: {
+    phone?: string;
+    riderProfile?: {
+      fullName?: string;
+    };
+  };
 }
 
 const PAGE_SIZE = 20;
@@ -98,7 +112,7 @@ export default function RidersPage() {
   const { data: riderFines, refetch: refetchRiderFines } = useQuery({
     queryKey: ['rider-fines', selectedRider?.id],
     queryFn: () =>
-      apiFetch<any[]>(`/traffic-fines?riderId=${selectedRider?.id}`),
+      apiFetch<TrafficFine[]>(`/traffic-fines?riderId=${selectedRider?.id}`),
     enabled: !!selectedRider,
   });
 
@@ -217,8 +231,8 @@ export default function RidersPage() {
       });
       await refetchRiderFines();
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
-    } catch (err: any) {
-      alert(err.message || 'Failed to update traffic fine');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to update traffic fine');
     }
   };
 
@@ -230,8 +244,8 @@ export default function RidersPage() {
       });
       await refetchRiderFines();
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
-    } catch (err: any) {
-      alert(err.message || 'Failed to update traffic fine');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to update traffic fine');
     }
   };
 
@@ -270,8 +284,8 @@ export default function RidersPage() {
       setFineTicketNumber('');
       setFineRecordRiderId('');
       setFineRecordRiderName('');
-    } catch (err: any) {
-      setRecordFineError(err.message || 'Failed to record fine');
+    } catch (err: unknown) {
+      setRecordFineError(err instanceof Error ? err.message : 'Failed to record fine');
     } finally {
       setIsRecordingFine(false);
     }
@@ -1601,7 +1615,7 @@ export default function RidersPage() {
                   </div>
                   {riderFines && riderFines.length > 0 ? (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                      {riderFines.map((fine: any) => (
+                      {riderFines.map((fine: TrafficFine) => (
                         <div key={fine.id} className="flex items-center justify-between p-2.5 bg-surface-muted/50 rounded-xl border border-line/40 text-xs">
                           <div className="space-y-0.5 min-w-0 pr-2">
                             <div className="flex items-center gap-1.5">
