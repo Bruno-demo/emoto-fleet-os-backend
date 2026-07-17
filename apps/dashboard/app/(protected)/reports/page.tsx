@@ -267,7 +267,7 @@ export default function ReportsPage() {
       {activeTab === 'safety' || user?.role === 'INSURER' ? (
         <div className="space-y-6">
           {/* Safety Metric Cards */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {reportQuery.isLoading ? (
               <>
                 <MetricCardSkeleton />
@@ -458,7 +458,7 @@ export default function ReportsPage() {
       ) : (
         <div className="space-y-6">
           {/* Financials KPI Cards */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {leasesQuery.isLoading ? (
               <>
                 <MetricCardSkeleton />

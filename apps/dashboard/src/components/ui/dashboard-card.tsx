@@ -82,6 +82,14 @@ export function MetricCard({
   icon,
   tone = 'info',
 }: MetricCardProps) {
+  const valueLength = value.length;
+  const valueSizeClass =
+    valueLength > 15
+      ? 'text-xl md:text-2xl'
+      : valueLength > 10
+      ? 'text-2xl md:text-3xl'
+      : 'text-3xl md:text-4xl';
+
   return (
     <article className="glass-panel group rounded-[24px] border border-line bg-surface-muted p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(59,130,246,0.15)] hover:border-line-strong relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-line-strong to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -90,7 +98,7 @@ export function MetricCard({
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-muted">
             {title}
           </p>
-          <p className="mt-4 font-display text-4xl font-bold tracking-tight text-ink drop-shadow-sm">
+          <p className={cx("mt-4 font-display font-bold tracking-tight text-ink drop-shadow-sm", valueSizeClass)}>
             {value}
           </p>
         </div>
