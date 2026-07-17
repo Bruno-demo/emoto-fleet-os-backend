@@ -1,4 +1,5 @@
 import http from 'node:http';
+import https from 'node:https';
 import { randomUUID } from 'node:crypto';
 import httpProxy from 'http-proxy';
 import jwt from 'jsonwebtoken';
@@ -271,15 +272,22 @@ function enforceRateLimit(
 // Respond to health checks by checking downstream API health.
 function handleHealth(res: http.ServerResponse): void {
   const url = `${apiUrl}/health`;
-  const apiReq = http.get(url, (apiRes) => {
-    res.writeHead(apiRes.statusCode ?? 500, { 'Content-Type': 'application/json' });
-    apiRes.pipe(res);
-  });
-  apiReq.on('error', (err) => {
-    logger.error({ err }, 'gateway_health_check_downstream_error');
+  const client = url.startsWith('https:') ? https : http;
+  try {
+    const apiReq = client.get(url, (apiRes) => {
+      res.writeHead(apiRes.statusCode ?? 500, { 'Content-Type': 'application/json' });
+      apiRes.pipe(res);
+    });
+    apiReq.on('error', (err) => {
+      logger.error({ err }, 'gateway_health_check_downstream_error');
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'error', service: 'gateway', error: err.message }));
+    });
+  } catch (err: any) {
+    logger.error({ err }, 'gateway_health_check_invocation_error');
     res.writeHead(503, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'error', service: 'gateway', error: err.message }));
-  });
+  }
 }
 
 proxy.on('proxyReq', (proxyReq, req) => {
