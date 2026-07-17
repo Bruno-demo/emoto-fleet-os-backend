@@ -7,6 +7,7 @@ primary_region = "iad"
 [env]
   PORT = "3000"
   NODE_ENV = "production"
+  CORS_ORIGINS = "https://dashboard.emotofleet.com,https://emotofleet.com,https://emoto-dashboard.fly.dev,http://localhost:3000,http://localhost:3001"
 
 [[services]]
   http_service = true
