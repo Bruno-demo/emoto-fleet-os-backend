@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsInt, IsUUID, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  IsUUID,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateTrafficFineDto {
   @ApiProperty({ example: 'f3b8b17b-bc43-4ce4-8cb2-e3e9681087e1' })

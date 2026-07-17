@@ -21,7 +21,8 @@ export class HealthService {
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
   }
 
-  private cachedResult: { response?: HealthResponse; error?: any } | null = null;
+  private cachedResult: { response?: HealthResponse; error?: any } | null =
+    null;
   private cachedTime = 0;
   private readonly CACHE_TTL_MS = 10_000; // Cache for 10 seconds
 
@@ -41,7 +42,7 @@ export class HealthService {
     }
 
     const now = Date.now();
-    if (this.cachedResult && (now - this.cachedTime < this.CACHE_TTL_MS)) {
+    if (this.cachedResult && now - this.cachedTime < this.CACHE_TTL_MS) {
       if (this.cachedResult.error) {
         throw new ServiceUnavailableException(this.cachedResult.error);
       }
@@ -155,7 +156,8 @@ export class HealthService {
   simulateFail() {
     this.failUntil = Date.now() + 3 * 60 * 1000; // 3 minutes
     return {
-      message: 'Simulated health failure activated. This instance will return 503 for the next 3 minutes.',
+      message:
+        'Simulated health failure activated. This instance will return 503 for the next 3 minutes.',
       failUntil: new Date(this.failUntil).toISOString(),
     };
   }

@@ -48,15 +48,17 @@ export class HealthController {
       },
     },
   })
-  async getLiveness() {
+  getLiveness() {
     return { status: 'ok' };
   }
 
   @Get('health/simulate-fail')
   @Public()
-  @ApiOperation({ summary: 'Simulates health check failure for 3 minutes for failover testing' })
-  async simulateFail() {
+  @ApiOperation({
+    summary:
+      'Simulates health check failure for 3 minutes for failover testing',
+  })
+  simulateFail() {
     return this.healthService.simulateFail();
   }
 }
-

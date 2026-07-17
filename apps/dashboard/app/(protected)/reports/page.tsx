@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
-import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, User, Banknote } from 'lucide-react';
+import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, Banknote } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -813,12 +813,35 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
   );
 }
 
+interface TrafficFineRecord {
+  id: string;
+  amount: number;
+  reason: string;
+  ticketNumber: string;
+  status: string;
+  finedAt: string;
+  rider?: {
+    id: string;
+    phone: string;
+    email: string;
+    riderProfile?: {
+      fullName: string;
+    } | null;
+    bikeAssignments?: Array<{
+      bike?: {
+        label: string;
+        plate?: string | null;
+      };
+    }>;
+  } | null;
+}
+
 function TrafficFinesCard() {
   const { t } = useTranslation();
 
   const { data: fines = [], isLoading } = useQuery({
     queryKey: ['traffic-fines'],
-    queryFn: () => apiFetch<any[]>('/traffic-fines'),
+    queryFn: () => apiFetch<TrafficFineRecord[]>('/traffic-fines'),
   });
 
   return (
@@ -847,7 +870,7 @@ function TrafficFinesCard() {
                 {t('No traffic fines registered')}
               </div>
             ) : (
-              fines.map((fine: any) => {
+              fines.map((fine: TrafficFineRecord) => {
                 const activeAssignment = fine.rider?.bikeAssignments?.[0];
                 const bike = activeAssignment?.bike;
                 const vehicleLabel = bike

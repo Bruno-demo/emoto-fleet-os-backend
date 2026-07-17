@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrafficFineDto } from './dto/create-traffic-fine.dto';
 import { UpdateTrafficFineDto } from './dto/update-traffic-fine.dto';
@@ -13,7 +17,11 @@ export class TrafficFinesService {
     private readonly auditService: AuditService,
   ) {}
 
-  async createFine(fleetId: string, dto: CreateTrafficFineDto, user: AuthenticatedUser) {
+  async createFine(
+    fleetId: string,
+    dto: CreateTrafficFineDto,
+    user: AuthenticatedUser,
+  ) {
     // Verify that the rider exists and belongs to the fleet
     const rider = await this.prisma.user.findFirst({
       where: {
@@ -79,7 +87,10 @@ export class TrafficFinesService {
     return fine;
   }
 
-  async listFines(fleetId: string, filters: { riderId?: string; status?: string }) {
+  async listFines(
+    fleetId: string,
+    filters: { riderId?: string; status?: string },
+  ) {
     return this.prisma.trafficFine.findMany({
       where: {
         fleetId,
@@ -161,7 +172,12 @@ export class TrafficFinesService {
     return fine;
   }
 
-  async updateFine(fleetId: string, id: string, dto: UpdateTrafficFineDto, user: AuthenticatedUser) {
+  async updateFine(
+    fleetId: string,
+    id: string,
+    dto: UpdateTrafficFineDto,
+    user: AuthenticatedUser,
+  ) {
     const fine = await this.getFineById(fleetId, id);
 
     if (dto.ticketNumber && dto.ticketNumber !== fine.ticketNumber) {
@@ -178,16 +194,23 @@ export class TrafficFinesService {
       }
     }
 
-    const updatedPaidAt = dto.status === 'PAID' && fine.status !== 'PAID'
-      ? (dto.paidAt ? new Date(dto.paidAt) : new Date())
-      : (dto.status === 'PENDING' ? null : fine.paidAt);
+    const updatedPaidAt =
+      dto.status === 'PAID' && fine.status !== 'PAID'
+        ? dto.paidAt
+          ? new Date(dto.paidAt)
+          : new Date()
+        : dto.status === 'PENDING'
+          ? null
+          : fine.paidAt;
 
     const updated = await this.prisma.trafficFine.update({
       where: { id },
       data: {
         ...(dto.amount !== undefined && { amount: dto.amount }),
         ...(dto.reason !== undefined && { reason: dto.reason }),
-        ...(dto.ticketNumber !== undefined && { ticketNumber: dto.ticketNumber }),
+        ...(dto.ticketNumber !== undefined && {
+          ticketNumber: dto.ticketNumber,
+        }),
         ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.finedAt !== undefined && { finedAt: new Date(dto.finedAt) }),
         paidAt: updatedPaidAt,
@@ -215,7 +238,7 @@ export class TrafficFinesService {
       targetId: id,
       metaJson: {
         fineId: id,
-        changes: JSON.parse(JSON.stringify(dto)),
+        changes: JSON.parse(JSON.stringify(dto)) as Record<string, unknown>,
       },
     });
 
@@ -223,7 +246,10 @@ export class TrafficFinesService {
   }
 
   async deleteFine(fleetId: string, id: string, user: AuthenticatedUser) {
-    const fine = await this.getFineById(fleetId, id);
+    const fine = (await this.getFineById(fleetId, id)) as {
+      ticketNumber: string;
+      amount: number;
+    };
 
     await this.prisma.trafficFine.delete({
       where: { id },
