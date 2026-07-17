@@ -268,10 +268,18 @@ function enforceRateLimit(
   return true;
 }
 
-// Respond to basic health checks without proxying downstream.
+// Respond to health checks by checking downstream API health.
 function handleHealth(res: http.ServerResponse): void {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'ok', service: 'gateway' }));
+  const url = `${apiUrl}/health`;
+  const apiReq = http.get(url, (apiRes) => {
+    res.writeHead(apiRes.statusCode ?? 500, { 'Content-Type': 'application/json' });
+    apiRes.pipe(res);
+  });
+  apiReq.on('error', (err) => {
+    logger.error({ err }, 'gateway_health_check_downstream_error');
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'error', service: 'gateway', error: err.message }));
+  });
 }
 
 proxy.on('proxyReq', (proxyReq, req) => {
