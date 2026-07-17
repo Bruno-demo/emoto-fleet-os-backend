@@ -36,4 +36,11 @@ export class HealthController {
   async getHealth(): Promise<HealthResponse> {
     return this.healthService.check();
   }
+
+  @Get('simulate-fail')
+  @Public()
+  @ApiOperation({ summary: 'Simulates health check failure for 3 minutes for failover testing' })
+  async simulateFail() {
+    return this.healthService.simulateFail();
+  }
 }

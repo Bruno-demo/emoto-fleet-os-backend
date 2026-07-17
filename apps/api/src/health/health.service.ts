@@ -11,6 +11,7 @@ import {
 @Injectable()
 export class HealthService {
   private readonly mqttDisabled: boolean;
+  private failUntil = 0;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -22,6 +23,19 @@ export class HealthService {
 
   // Checks database, Redis, and optionally MQTT connectivity and returns a combined health snapshot.
   async check(): Promise<HealthResponse> {
+    if (Date.now() < this.failUntil) {
+      throw new ServiceUnavailableException({
+        status: 'error',
+        checks: {
+          db: 'down',
+          redis: 'down',
+        },
+        errors: {
+          simulation: 'Simulated health failure active for testing failover',
+        },
+      });
+    }
+
     const checks: HealthChecks = {
       db: 'down',
       redis: 'down',
@@ -108,6 +122,14 @@ export class HealthService {
         reject(err);
       });
     });
+  }
+
+  simulateFail() {
+    this.failUntil = Date.now() + 3 * 60 * 1000; // 3 minutes
+    return {
+      message: 'Simulated health failure activated. This instance will return 503 for the next 3 minutes.',
+      failUntil: new Date(this.failUntil).toISOString(),
+    };
   }
 
   // Normalizes unknown thrown values into a safe message string.
