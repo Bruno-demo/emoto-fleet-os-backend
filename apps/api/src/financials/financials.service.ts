@@ -400,6 +400,7 @@ export class FinancialsService {
       },
       include: {
         riderProfile: true,
+        trafficFines: true,
         bikeAssignments: {
           where: {
             active: true,
@@ -463,6 +464,12 @@ export class FinancialsService {
         const expected = daysDiff * dailyRate;
         arrears = Math.max(0, expected - totalPaid);
       }
+
+      const totalPendingFines = rider.trafficFines
+        .filter((f) => f.status === 'PENDING')
+        .reduce((sum, f) => sum + f.amount, 0);
+
+      arrears += totalPendingFines;
 
       let status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT' = 'ACTIVE';
       if (totalPaid >= totalPrincipal) {

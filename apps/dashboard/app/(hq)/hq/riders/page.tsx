@@ -281,10 +281,10 @@ export default function HqRidersPage() {
         setCreateError(t('Lease principal must be a positive number.'));
         return;
       }
-      if (!leaseDailyRate || parseFloat(leaseDailyRate) <= 0) {
-        setCreateError(t('Lease daily rate must be a positive number.'));
-        return;
-      }
+    }
+    if (!leaseDailyRate || parseFloat(leaseDailyRate) <= 0) {
+      setCreateError(t('Lease daily rate must be a positive number.'));
+      return;
     }
 
     try {
@@ -304,7 +304,7 @@ export default function HqRidersPage() {
           identityCardPhoto: newIdentityCardPhoto || undefined,
           leaseToOwn,
           leasePrincipal: leaseToOwn ? Number(leasePrincipal) : undefined,
-          leaseDailyRate: leaseToOwn ? Number(leaseDailyRate) : undefined,
+          leaseDailyRate: Number(leaseDailyRate),
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['hq', 'riders'] });
@@ -666,27 +666,25 @@ export default function HqRidersPage() {
                       </select>
                     </label>
                     {leaseToOwn && (
-                      <>
-                        <label className="block text-xs font-semibold text-ink">
-                          {t('Lease Principal Amount (RWF)')}
-                          <input
-                            type="number"
-                            value={leasePrincipal}
-                            onChange={(e) => setLeasePrincipal(e.target.value)}
-                            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
-                          />
-                        </label>
-                        <label className="block text-xs font-semibold text-ink">
-                          {t('Lease Daily Rate (RWF)')}
-                          <input
-                            type="number"
-                            value={leaseDailyRate}
-                            onChange={(e) => setLeaseDailyRate(e.target.value)}
-                            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
-                          />
-                        </label>
-                      </>
+                      <label className="block text-xs font-semibold text-ink">
+                        {t('Lease Principal Amount (RWF)')}
+                        <input
+                          type="number"
+                          value={leasePrincipal}
+                          onChange={(e) => setLeasePrincipal(e.target.value)}
+                          className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
+                        />
+                      </label>
                     )}
+                    <label className="block text-xs font-semibold text-ink">
+                      {t('Lease Daily Rate (RWF)')}
+                      <input
+                        type="number"
+                        value={leaseDailyRate}
+                        onChange={(e) => setLeaseDailyRate(e.target.value)}
+                        className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
+                      />
+                    </label>
                   </div>
 
                   {/* Image uploads grid */}

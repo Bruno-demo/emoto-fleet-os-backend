@@ -28,6 +28,7 @@ import { FinancialsModule } from './financials/financials.module';
 import { MailModule } from './mail/mail.module';
 import { BillingModule } from './billing/billing.module';
 import { DeliveriesModule } from './deliveries/deliveries.module';
+import { TrafficFinesModule } from './traffic-fines/traffic-fines.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { DeliveriesModule } from './deliveries/deliveries.module';
     MailModule,
     BillingModule,
     DeliveriesModule,
+    TrafficFinesModule,
   ],
   providers: [
     {

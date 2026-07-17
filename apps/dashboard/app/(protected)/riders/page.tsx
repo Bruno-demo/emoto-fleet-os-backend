@@ -24,6 +24,7 @@ import {
   Banknote,
   Calendar,
   ChevronDown,
+  Plus,
 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -81,7 +82,25 @@ export default function RidersPage() {
   const [isCompresingLicence, setIsCompresingLicence] = useState(false);
   const [isCompresingIdentity, setIsCompresingIdentity] = useState(false);
 
+  // Traffic Fines record states
+  const [showRecordFineModal, setShowRecordFineModal] = useState(false);
+  const [fineRecordRiderId, setFineRecordRiderId] = useState('');
+  const [fineRecordRiderName, setFineRecordRiderName] = useState('');
+  const [fineAmount, setFineAmount] = useState('');
+  const [fineReason, setFineReason] = useState('');
+  const [fineTicketNumber, setFineTicketNumber] = useState('');
+  const [fineDate, setFineDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [recordFineError, setRecordFineError] = useState<string | null>(null);
+  const [isRecordingFine, setIsRecordingFine] = useState(false);
+
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
+
+  const { data: riderFines, refetch: refetchRiderFines } = useQuery({
+    queryKey: ['rider-fines', selectedRider?.id],
+    queryFn: () =>
+      apiFetch<any[]>(`/traffic-fines?riderId=${selectedRider?.id}`),
+    enabled: !!selectedRider,
+  });
 
   // ConfirmModals states
   const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
@@ -190,6 +209,74 @@ export default function RidersPage() {
     setIsEditing(true);
   };
 
+  const handlePayFine = async (fineId: string) => {
+    try {
+      await apiFetch(`/traffic-fines/${fineId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'PAID' }),
+      });
+      await refetchRiderFines();
+      await queryClient.invalidateQueries({ queryKey: ['riders'] });
+    } catch (err: any) {
+      alert(err.message || 'Failed to update traffic fine');
+    }
+  };
+
+  const handleCancelFine = async (fineId: string) => {
+    try {
+      await apiFetch(`/traffic-fines/${fineId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+      await refetchRiderFines();
+      await queryClient.invalidateQueries({ queryKey: ['riders'] });
+    } catch (err: any) {
+      alert(err.message || 'Failed to update traffic fine');
+    }
+  };
+
+  const handleRecordFine = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fineAmount || parseFloat(fineAmount) <= 0) {
+      setRecordFineError(t('Fine amount must be a positive number.'));
+      return;
+    }
+    if (!fineReason) {
+      setRecordFineError(t('Reason is required.'));
+      return;
+    }
+    if (!fineTicketNumber) {
+      setRecordFineError(t('Ticket number is required.'));
+      return;
+    }
+    try {
+      setIsRecordingFine(true);
+      setRecordFineError(null);
+      await apiFetch('/traffic-fines', {
+        method: 'POST',
+        body: JSON.stringify({
+          riderId: fineRecordRiderId,
+          amount: Number(fineAmount),
+          reason: fineReason,
+          ticketNumber: fineTicketNumber,
+          finedAt: `${fineDate}T12:00:00.000Z`,
+        }),
+      });
+      await refetchRiderFines();
+      await queryClient.invalidateQueries({ queryKey: ['riders'] });
+      setShowRecordFineModal(false);
+      setFineAmount('');
+      setFineReason('');
+      setFineTicketNumber('');
+      setFineRecordRiderId('');
+      setFineRecordRiderName('');
+    } catch (err: any) {
+      setRecordFineError(err.message || 'Failed to record fine');
+    } finally {
+      setIsRecordingFine(false);
+    }
+  };
+
   const handleUpdateRider = async () => {
     if (!selectedRider) return;
     setEditError(null);
@@ -230,10 +317,10 @@ export default function RidersPage() {
         setEditError(t('Lease principal must be a positive number.'));
         return;
       }
-      if (!editLeaseDailyRate || parseFloat(editLeaseDailyRate) <= 0) {
-        setEditError(t('Lease daily rate must be a positive number.'));
-        return;
-      }
+    }
+    if (!editLeaseDailyRate || parseFloat(editLeaseDailyRate) <= 0) {
+      setEditError(t('Lease daily rate must be a positive number.'));
+      return;
     }
 
     updateMutation.mutate({
@@ -249,8 +336,8 @@ export default function RidersPage() {
         licencePhoto: editLicencePhoto || undefined,
         identityCardPhoto: editIdentityCardPhoto || undefined,
         leaseToOwn: editLeaseToOwn,
-        leasePrincipal: editLeaseToOwn ? Number(editLeasePrincipal) : undefined,
-        leaseDailyRate: editLeaseToOwn ? Number(editLeaseDailyRate) : undefined,
+        leasePrincipal: editLeaseToOwn ? Number(editLeasePrincipal) : null,
+        leaseDailyRate: Number(editLeaseDailyRate),
       }
     });
   };
@@ -443,10 +530,10 @@ export default function RidersPage() {
         setCreateError(t('Lease principal must be a positive number.'));
         return;
       }
-      if (!leaseDailyRate || parseFloat(leaseDailyRate) <= 0) {
-        setCreateError(t('Lease daily rate must be a positive number.'));
-        return;
-      }
+    }
+    if (!leaseDailyRate || parseFloat(leaseDailyRate) <= 0) {
+      setCreateError(t('Lease daily rate must be a positive number.'));
+      return;
     }
     try {
       setIsCreating(true);
@@ -464,7 +551,7 @@ export default function RidersPage() {
           identityCardPhoto: newIdentityCardPhoto || undefined,
           leaseToOwn,
           leasePrincipal: leaseToOwn ? Number(leasePrincipal) : undefined,
-          leaseDailyRate: leaseToOwn ? Number(leaseDailyRate) : undefined,
+          leaseDailyRate: Number(leaseDailyRate),
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
@@ -783,27 +870,25 @@ export default function RidersPage() {
                     </select>
                   </label>
                   {leaseToOwn && (
-                    <>
-                      <label className="block text-sm font-medium text-ink">
-                        {t("Lease Principal Amount (RWF)")}
-                        <input
-                          type="number"
-                          value={leasePrincipal}
-                          onChange={(e) => setLeasePrincipal(e.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                        />
-                      </label>
-                      <label className="block text-sm font-medium text-ink">
-                        {t("Lease Daily Rate (RWF)")}
-                        <input
-                          type="number"
-                          value={leaseDailyRate}
-                          onChange={(e) => setLeaseDailyRate(e.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                        />
-                      </label>
-                    </>
+                    <label className="block text-sm font-medium text-ink">
+                      {t("Lease Principal Amount (RWF)")}
+                      <input
+                        type="number"
+                        value={leasePrincipal}
+                        onChange={(e) => setLeasePrincipal(e.target.value)}
+                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      />
+                    </label>
                   )}
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Lease Daily Rate (RWF)")}
+                    <input
+                      type="number"
+                      value={leaseDailyRate}
+                      onChange={(e) => setLeaseDailyRate(e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    />
+                  </label>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3 mt-4">
@@ -1225,27 +1310,25 @@ export default function RidersPage() {
                     </select>
                   </label>
                   {editLeaseToOwn && (
-                    <>
-                      <label className="block text-sm font-medium text-ink">
-                        {t("Lease Principal Amount (RWF)")}
-                        <input
-                          type="number"
-                          value={editLeasePrincipal}
-                          onChange={(e) => setEditLeasePrincipal(e.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                        />
-                      </label>
-                      <label className="block text-sm font-medium text-ink">
-                        {t("Lease Daily Rate (RWF)")}
-                        <input
-                          type="number"
-                          value={editLeaseDailyRate}
-                          onChange={(e) => setEditLeaseDailyRate(e.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                        />
-                      </label>
-                    </>
+                    <label className="block text-sm font-medium text-ink">
+                      {t("Lease Principal Amount (RWF)")}
+                      <input
+                        type="number"
+                        value={editLeasePrincipal}
+                        onChange={(e) => setEditLeasePrincipal(e.target.value)}
+                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      />
+                    </label>
                   )}
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Lease Daily Rate (RWF)")}
+                    <input
+                      type="number"
+                      value={editLeaseDailyRate}
+                      onChange={(e) => setEditLeaseDailyRate(e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    />
+                  </label>
                 </div>
 
                 {/* Edit Photo Uploads */}
@@ -1501,8 +1584,65 @@ export default function RidersPage() {
                   </div>
                 </div>
 
+                {/* Traffic Fines Section */}
+                <div className="rounded-2xl border border-line bg-surface p-4 space-y-3 mt-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">{t('Traffic Fines')}</h3>
+                    <button
+                      onClick={() => {
+                        setFineRecordRiderId(selectedRider.id);
+                        setFineRecordRiderName(selectedRider.fullName ?? '');
+                        setShowRecordFineModal(true);
+                      }}
+                      className="text-xs text-accent hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      <Plus size={12} /> {t('Record Fine')}
+                    </button>
+                  </div>
+                  {riderFines && riderFines.length > 0 ? (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                      {riderFines.map((fine: any) => (
+                        <div key={fine.id} className="flex items-center justify-between p-2.5 bg-surface-muted/50 rounded-xl border border-line/40 text-xs">
+                          <div className="space-y-0.5 min-w-0 pr-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-ink truncate max-w-[120px]">{fine.ticketNumber}</span>
+                              <Badge
+                                label={t(fine.status)}
+                                tone={fine.status === 'PAID' ? 'success' : fine.status === 'CANCELLED' ? 'neutral' : 'warning'}
+                              />
+                            </div>
+                            <p className="text-ink-muted truncate" title={fine.reason}>{fine.reason}</p>
+                            <p className="text-[10px] text-ink-faint">{new Date(fine.finedAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right shrink-0 space-y-1">
+                            <p className="font-mono font-bold text-ink">{fine.amount.toLocaleString()} RWF</p>
+                            {fine.status === 'PENDING' && (
+                              <div className="flex gap-1.5 justify-end">
+                                <button
+                                  onClick={() => handlePayFine(fine.id)}
+                                  className="text-[10px] font-bold text-success-ink hover:underline cursor-pointer"
+                                >
+                                  {t('Pay')}
+                                </button>
+                                <button
+                                  onClick={() => handleCancelFine(fine.id)}
+                                  className="text-[10px] font-bold text-zinc-500 hover:underline cursor-pointer"
+                                >
+                                  {t('Cancel')}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-ink-faint italic">{t('No traffic fines recorded for this rider.')}</p>
+                  )}
+                </div>
+
                 {/* Quick Actions Panel */}
-                <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3 pt-3">
+                <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3 mt-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t('Rider Management')}</h3>
                   <div className="flex flex-wrap gap-2.5">
                     <button
@@ -1612,6 +1752,90 @@ export default function RidersPage() {
           setDeleteTargetName(null);
         }}
       />
+
+      {showRecordFineModal && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/45 backdrop-blur-[4px]" onClick={() => setShowRecordFineModal(false)} />
+          <div className="relative w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowRecordFineModal(false)}
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+            >
+              <X size={16} />
+            </button>
+            <h2 className="text-base font-bold text-ink mb-4">{t('Record Traffic Fine')}</h2>
+            <p className="text-xs text-ink-muted mb-4">{t('Fining rider')}: <span className="font-semibold text-ink">{fineRecordRiderName}</span></p>
+
+            <form onSubmit={handleRecordFine} className="space-y-4">
+              {recordFineError && (
+                <div className="rounded-xl border border-danger-ink/20 bg-danger-soft p-3 text-xs text-danger-ink">
+                  {recordFineError}
+                </div>
+              )}
+              <label className="block text-sm font-medium text-ink">
+                {t('Ticket / Citation Number')}
+                <input
+                  type="text"
+                  required
+                  value={fineTicketNumber}
+                  onChange={(e) => setFineTicketNumber(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                  placeholder="e.g. TKT-12345"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Fine Amount (RWF)')}
+                <input
+                  type="number"
+                  required
+                  value={fineAmount}
+                  onChange={(e) => setFineAmount(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                  placeholder="e.g. 25000"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Violation Date')}
+                <input
+                  type="date"
+                  required
+                  value={fineDate}
+                  onChange={(e) => setFineDate(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Reason / Description')}
+                <textarea
+                  required
+                  rows={3}
+                  value={fineReason}
+                  onChange={(e) => setFineReason(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50 resize-none"
+                  placeholder={t('Describe the violation...')}
+                />
+              </label>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRecordFineModal(false)}
+                  className="w-1/2 rounded-xl border border-line bg-surface py-2.5 text-sm font-semibold text-ink hover:bg-surface-hover transition-colors"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRecordingFine}
+                  className="w-1/2 rounded-xl bg-accent py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:brightness-95 transition-all shadow-md shadow-accent/15 flex items-center justify-center"
+                >
+                  {isRecordingFine ? t('Recording...') : t('Record Fine')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Rider Financial Statement Modal */}
       {showStatementModal && statementRider && (

@@ -132,7 +132,107 @@ export default function FinancialsPage() {
   const [matrixTab, setMatrixTab] = useState<'daily' | 'lease'>('daily');
   
   // Buy-to-Own leases tab & backend data management
-  const [activeTab, setActiveTab] = useState<'collections' | 'buyToOwn'>('collections');
+  const [activeTab, setActiveTab] = useState<'collections' | 'buyToOwn' | 'trafficFines'>('collections');
+
+  // Traffic Fines state hooks
+  const [showRecordFineModal, setShowRecordFineModal] = useState(false);
+  const [fineRecordRiderId, setFineRecordRiderId] = useState('');
+  const [fineAmount, setFineAmount] = useState('');
+  const [fineReason, setFineReason] = useState('');
+  const [fineTicketNumber, setFineTicketNumber] = useState('');
+  const [fineDate, setFineDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [recordFineError, setRecordFineError] = useState<string | null>(null);
+  const [isRecordingFine, setIsRecordingFine] = useState(false);
+
+  const { data: allFines, refetch: refetchAllFines, isLoading: isFinesLoading } = useQuery({
+    queryKey: ['all-traffic-fines'],
+    queryFn: () => apiFetch<any[]>('/traffic-fines'),
+    enabled: activeTab === 'trafficFines',
+  });
+
+  const handlePayFine = async (fineId: string) => {
+    try {
+      await apiFetch(`/traffic-fines/${fineId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'PAID' }),
+      });
+      await refetchAllFines();
+      await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
+    } catch (err: any) {
+      alert(err.message || 'Failed to update traffic fine');
+    }
+  };
+
+  const handleCancelFine = async (fineId: string) => {
+    try {
+      await apiFetch(`/traffic-fines/${fineId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+      await refetchAllFines();
+      await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
+    } catch (err: any) {
+      alert(err.message || 'Failed to update traffic fine');
+    }
+  };
+
+  const handleDeleteFine = async (fineId: string) => {
+    if (!confirm(t('Are you sure you want to delete this traffic fine citation?'))) return;
+    try {
+      await apiFetch(`/traffic-fines/${fineId}`, {
+        method: 'DELETE',
+      });
+      await refetchAllFines();
+      await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete traffic fine');
+    }
+  };
+
+  const handleRecordFine = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fineRecordRiderId) {
+      setRecordFineError(t('Please select a rider.'));
+      return;
+    }
+    if (!fineAmount || parseFloat(fineAmount) <= 0) {
+      setRecordFineError(t('Fine amount must be a positive number.'));
+      return;
+    }
+    if (!fineReason) {
+      setRecordFineError(t('Reason is required.'));
+      return;
+    }
+    if (!fineTicketNumber) {
+      setRecordFineError(t('Ticket number is required.'));
+      return;
+    }
+    try {
+      setIsRecordingFine(true);
+      setRecordFineError(null);
+      await apiFetch('/traffic-fines', {
+        method: 'POST',
+        body: JSON.stringify({
+          riderId: fineRecordRiderId,
+          amount: Number(fineAmount),
+          reason: fineReason,
+          ticketNumber: fineTicketNumber,
+          finedAt: `${fineDate}T12:00:00.000Z`,
+        }),
+      });
+      await refetchAllFines();
+      await queryClient.invalidateQueries({ queryKey: ['financials-summary'] });
+      setShowRecordFineModal(false);
+      setFineAmount('');
+      setFineReason('');
+      setFineTicketNumber('');
+      setFineRecordRiderId('');
+    } catch (err: any) {
+      setRecordFineError(err.message || 'Failed to record fine');
+    } finally {
+      setIsRecordingFine(false);
+    }
+  };
   const leasesQuery = useQuery({
     queryKey: ['leases'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
@@ -780,6 +880,18 @@ export default function FinancialsPage() {
           )}
         >
           {t('Buy-to-Own Leases')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('trafficFines')}
+          className={cx(
+            'px-4 py-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-all cursor-pointer outline-none',
+            activeTab === 'trafficFines'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-ink-muted hover:text-ink-soft'
+          )}
+        >
+          {t('Traffic Fines')}
         </button>
       </div>
 
@@ -1512,6 +1624,152 @@ export default function FinancialsPage() {
         </div>
       )}
 
+      {/* Traffic Fines Tab Content */}
+      {activeTab === 'trafficFines' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Fines KPI summaries */}
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              title={t("Total Fines Count")}
+              value={String(allFines?.length ?? 0)}
+              hint={t("Total citations logged")}
+              icon={<Users size={18} />}
+              tone="info"
+            />
+            <MetricCard
+              title={t("Pending Fines Sum")}
+              value={`${(allFines?.filter(f => f.status === 'PENDING').reduce((acc, f) => acc + f.amount, 0) ?? 0).toLocaleString()} RWF`}
+              hint={t("Total active/unpaid fines")}
+              icon={<TrendingUp size={18} />}
+              tone="warning"
+            />
+            <MetricCard
+              title={t("Paid Fines Sum")}
+              value={`${(allFines?.filter(f => f.status === 'PAID').reduce((acc, f) => acc + f.amount, 0) ?? 0).toLocaleString()} RWF`}
+              hint={t("Total recovered fines")}
+              icon={<Coins size={18} />}
+              tone="success"
+            />
+            <MetricCard
+              title={t("Fines Collection Rate")}
+              value={allFines && allFines.length > 0
+                ? `${Math.round((allFines.filter(f => f.status === 'PAID').length / allFines.length) * 100)}%`
+                : '100%'
+              }
+              hint={t("Percentage of paid fines")}
+              icon={<Coins size={18} />}
+              tone="info"
+            />
+          </section>
+
+          {/* Fines Table */}
+          <DashboardCard
+            eyebrow={t("Citations Registry")}
+            title={t("Active & Paid Fines")}
+            actions={
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRecordFineModal(true)}
+                  className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white hover:brightness-110 transition shadow-md shadow-accent/15 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  {t('Record Traffic Fine')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void refetchAllFines()}
+                  className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover transition border border-line cursor-pointer"
+                  title={t("Refresh list")}
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+            }
+          >
+            {isFinesLoading ? (
+              <div className="space-y-2 animate-pulse py-4">
+                <div className="h-10 bg-surface-muted rounded-xl" />
+                <div className="h-10 bg-surface-muted rounded-xl" />
+                <div className="h-10 bg-surface-muted rounded-xl" />
+              </div>
+            ) : !allFines || allFines.length === 0 ? (
+              <EmptyState
+                icon={<Coins size={22} />}
+                title={t("No traffic fines found")}
+                description={t("There are no registered traffic fine citations for this fleet.")}
+              />
+            ) : (
+              <div className="overflow-x-auto select-text">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-line text-ink-muted">
+                      <th className="p-3.5 font-bold">{t('Ticket Number')}</th>
+                      <th className="p-3.5 font-bold">{t('Rider')}</th>
+                      <th className="p-3.5 font-bold">{t('Reason')}</th>
+                      <th className="p-3.5 font-bold text-right">{t('Amount')}</th>
+                      <th className="p-3.5 font-bold text-center">{t('Status')}</th>
+                      <th className="p-3.5 font-bold">{t('Fined Date')}</th>
+                      <th className="p-3.5 font-bold text-right">{t('Actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allFines.map((fine: any) => (
+                      <tr key={fine.id} className="border-b border-line last:border-0 hover:bg-surface-hover transition-colors">
+                        <td className="p-3.5 font-semibold text-ink-soft">{fine.ticketNumber}</td>
+                        <td className="p-3.5 text-ink">
+                          {fine.rider?.riderProfile?.fullName ?? `Rider ${fine.riderId.slice(0, 8)}`}
+                          <span className="block text-[10px] text-ink-muted mt-0.5">{fine.rider?.phone ?? ''}</span>
+                        </td>
+                        <td className="p-3.5 text-ink-muted max-w-xs truncate" title={fine.reason}>{fine.reason}</td>
+                        <td className="p-3.5 font-mono font-bold text-right text-ink">{fine.amount.toLocaleString()} RWF</td>
+                        <td className="p-3.5 text-center">
+                          <Badge
+                            label={t(fine.status)}
+                            tone={fine.status === 'PAID' ? 'success' : fine.status === 'CANCELLED' ? 'neutral' : 'warning'}
+                          />
+                        </td>
+                        <td className="p-3.5 text-ink-muted">{new Date(fine.finedAt).toLocaleDateString()}</td>
+                        <td className="p-3.5 text-right">
+                          <div className="flex gap-2 justify-end">
+                            {fine.status === 'PENDING' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handlePayFine(fine.id)}
+                                  className="rounded-lg border border-line bg-surface px-3 py-1.5 font-bold text-success-ink hover:bg-success-soft transition-colors cursor-pointer"
+                                >
+                                  {t('Pay')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelFine(fine.id)}
+                                  className="rounded-lg border border-line bg-surface px-3 py-1.5 font-bold text-zinc-500 hover:bg-surface-hover transition-colors cursor-pointer"
+                                >
+                                  {t('Cancel')}
+                                </button>
+                              </>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFine(fine.id)}
+                              className="rounded-lg border border-line bg-surface p-1.5 text-danger-ink hover:bg-danger-soft transition-colors cursor-pointer"
+                              title={t("Delete Fine")}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DashboardCard>
+        </div>
+      )}
+
       {/* Quick Collect lease Modal */}
       {showCollectModal && (
         <div
@@ -1700,6 +1958,105 @@ export default function FinancialsPage() {
                 {recordPaymentMutation.isPending ? t('Saving...') : t('Confirm Collection')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showRecordFineModal && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/45 backdrop-blur-[4px]" onClick={() => setShowRecordFineModal(false)} />
+          <div className="relative w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowRecordFineModal(false)}
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+            >
+              <X size={16} />
+            </button>
+            <h2 className="text-base font-bold text-ink mb-4">{t('Record Traffic Fine')}</h2>
+
+            <form onSubmit={handleRecordFine} className="space-y-4">
+              {recordFineError && (
+                <div className="rounded-xl border border-danger-ink/20 bg-danger-soft p-3 text-xs text-danger-ink">
+                  {recordFineError}
+                </div>
+              )}
+              <label className="block text-sm font-medium text-ink">
+                {t('Select Rider')}
+                <select
+                  required
+                  value={fineRecordRiderId}
+                  onChange={(e) => setFineRecordRiderId(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50 cursor-pointer"
+                >
+                  <option value="">{t('-- Select a Rider --')}</option>
+                  {accumulatedMatrixRiders.map((r: any) => (
+                    <option key={r.id} value={r.id}>
+                      {r.fullName ?? `Rider ${r.id.slice(0, 8)}`} ({r.phone ?? r.email ?? ''})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Ticket / Citation Number')}
+                <input
+                  type="text"
+                  required
+                  value={fineTicketNumber}
+                  onChange={(e) => setFineTicketNumber(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                  placeholder="e.g. TKT-12345"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Fine Amount (RWF)')}
+                <input
+                  type="number"
+                  required
+                  value={fineAmount}
+                  onChange={(e) => setFineAmount(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                  placeholder="e.g. 25000"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Violation Date')}
+                <input
+                  type="date"
+                  required
+                  value={fineDate}
+                  onChange={(e) => setFineDate(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                {t('Reason / Description')}
+                <textarea
+                  required
+                  rows={3}
+                  value={fineReason}
+                  onChange={(e) => setFineReason(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50 resize-none"
+                  placeholder={t('Describe the violation...')}
+                />
+              </label>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRecordFineModal(false)}
+                  className="w-1/2 rounded-xl border border-line bg-surface py-2.5 text-sm font-semibold text-ink hover:bg-surface-hover transition-colors"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRecordingFine}
+                  className="w-1/2 rounded-xl bg-accent py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:brightness-95 transition-all shadow-md shadow-accent/15 flex items-center justify-center"
+                >
+                  {isRecordingFine ? t('Recording...') : t('Record Fine')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

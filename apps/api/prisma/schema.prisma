@@ -229,6 +229,9 @@ enum AuditActionType {
   DELIVERY_CREATED
   DELIVERY_ASSIGNED
   DELIVERY_STATUS_CHANGED
+  TRAFFIC_FINE_CREATED
+  TRAFFIC_FINE_UPDATED
+  TRAFFIC_FINE_DELETED
 }
 
 model Fleet {
@@ -268,6 +271,7 @@ model Fleet {
   billingPayments   BillingPayment[]
   fleetDiscounts    Discount[]           @relation("FleetDiscount")
   deliveries        Delivery[]
+  trafficFines      TrafficFine[]
 }
 
 model User {
@@ -295,6 +299,7 @@ model User {
   payments              RiderPayment[]
   billingPayments       BillingPayment[]
   deliveries            Delivery[]           @relation("DeliveryRider")
+  trafficFines          TrafficFine[]        @relation("RiderTrafficFines")
 
 
   @@unique([fleetId, email])
@@ -926,6 +931,27 @@ model Delivery {
   fleet            Fleet          @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   rider            User?          @relation("DeliveryRider", fields: [riderId], references: [id], onDelete: SetNull)
 
+  @@index([fleetId])
+  @@index([riderId])
+  @@index([status])
+}
+
+model TrafficFine {
+  id            String       @id @default(uuid()) @db.Uuid
+  fleetId       String       @db.Uuid
+  riderId       String       @db.Uuid
+  amount        Int
+  reason        String
+  ticketNumber  String
+  status        String       @default("PENDING") // PENDING, PAID, CANCELLED
+  finedAt       DateTime     @db.Timestamptz(6)
+  paidAt        DateTime?    @db.Timestamptz(6)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6)
+  fleet         Fleet        @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  rider         User         @relation("RiderTrafficFines", fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@unique([fleetId, ticketNumber])
   @@index([fleetId])
   @@index([riderId])
   @@index([status])
