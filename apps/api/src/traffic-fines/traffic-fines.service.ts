@@ -8,7 +8,7 @@ import { CreateTrafficFineDto } from './dto/create-traffic-fine.dto';
 import { UpdateTrafficFineDto } from './dto/update-traffic-fine.dto';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
-import { AuditActionType } from '@prisma/client';
+import { AuditActionType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class TrafficFinesService {
@@ -238,7 +238,7 @@ export class TrafficFinesService {
       targetId: id,
       metaJson: {
         fineId: id,
-        changes: JSON.parse(JSON.stringify(dto)) as Record<string, unknown>,
+        changes: JSON.parse(JSON.stringify(dto)) as Prisma.JsonObject,
       },
     });
 
