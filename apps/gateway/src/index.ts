@@ -336,7 +336,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (pathname === '/health' || pathname === '/healthz') {
+  if (pathname === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', service: 'gateway' }));
+    return;
+  }
+
+  if (pathname === '/health') {
     handleHealth(res);
     return;
   }
