@@ -21,6 +21,10 @@ export class HealthService {
     this.mqttDisabled = this.configService.get<boolean>('MQTT_DISABLED', false);
   }
 
+  private cachedResult: { response?: HealthResponse; error?: any } | null = null;
+  private cachedTime = 0;
+  private readonly CACHE_TTL_MS = 10_000; // Cache for 10 seconds
+
   // Checks database, Redis, and optionally MQTT connectivity and returns a combined health snapshot.
   async check(): Promise<HealthResponse> {
     if (Date.now() < this.failUntil) {
@@ -36,6 +40,30 @@ export class HealthService {
       });
     }
 
+    const now = Date.now();
+    if (this.cachedResult && (now - this.cachedTime < this.CACHE_TTL_MS)) {
+      if (this.cachedResult.error) {
+        throw new ServiceUnavailableException(this.cachedResult.error);
+      }
+      return this.cachedResult.response!;
+    }
+
+    try {
+      const response = await this.performCheck();
+      this.cachedResult = { response };
+      this.cachedTime = now;
+      return response;
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        this.cachedResult = { error: error.getResponse() };
+        this.cachedTime = now;
+      }
+      throw error;
+    }
+  }
+
+  // Performs the actual connectivity tests for database, Redis, and MQTT broker.
+  private async performCheck(): Promise<HealthResponse> {
     const checks: HealthChecks = {
       db: 'down',
       redis: 'down',
