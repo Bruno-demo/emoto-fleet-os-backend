@@ -162,32 +162,40 @@ export default function ReportsPage() {
 
   const handleExport = () => {
     if (!report) return;
-    const headers = ['Date Range', 'Metric', 'Value'];
-    const rows = [
-      [`${dateRange.from} to ${dateRange.to}`, 'Average Fleet Score', report.avgScore.toFixed(1)],
-      ['', 'Total Trips', report.tripCount],
-      ['', 'Overspeed Events', report.eventCounts.OVERSPEED ?? 0],
-      ['', 'Speed Limit Violations', report.eventCounts.SPEED_LIMIT_VIOLATION ?? 0],
-      ['', 'School Zone Breaches', report.eventCounts.SCHOOL_ZONE_SPEED ?? 0],
-      ['', 'Hospital Zone Breaches', report.eventCounts.HOSPITAL_ZONE_SPEED ?? 0],
-      ['', 'Market Zone Breaches', report.eventCounts.MARKET_ZONE_SPEED ?? 0],
-      ['', 'Crash Alerts', report.eventCounts.CRASH ?? 0],
-      ['', 'SOS Signals', report.eventCounts.SOS ?? 0],
+
+    const cols = [
+      { header: t('Report Dimension'), key: 'metric', type: 'text' as const, align: 'left' as const },
+      { header: t('Description'), key: 'description', type: 'text' as const, align: 'left' as const },
+      { header: t('Aggregate Value'), key: 'value', type: 'number' as const, align: 'right' as const },
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(val => `"${val}"`).join(','))
-    ].join('\n');
+    const rows = [
+      { metric: t('Average Safety Score'), description: t('Average fleet-wide safety score calculated from telematics data'), value: Number(report.avgScore.toFixed(1)) },
+      { metric: t('Total Trips Logged'), description: t('Total number of completed vehicle trips recorded in period'), value: report.tripCount },
+      { metric: t('Overspeed Incidents'), description: t('Instances of speed breaching standard road thresholds'), value: report.eventCounts.OVERSPEED ?? 0 },
+      { metric: t('Speed Limit Violations'), description: t('Instances of speed breaching local GPS map limits'), value: report.eventCounts.SPEED_LIMIT_VIOLATION ?? 0 },
+      { metric: t('School Zone Speeding'), description: t('Speed limit breaches detected in designated school zones'), value: report.eventCounts.SCHOOL_ZONE_SPEED ?? 0 },
+      { metric: t('Hospital Zone Speeding'), description: t('Speed limit breaches detected in designated hospital zones'), value: report.eventCounts.HOSPITAL_ZONE_SPEED ?? 0 },
+      { metric: t('Market Zone Speeding'), description: t('Speed limit breaches detected in busy market zones'), value: report.eventCounts.MARKET_ZONE_SPEED ?? 0 },
+      { metric: t('Crash Alerts'), description: t('High-gravity accelerometer trigger alerts indicating potential crashes'), value: report.eventCounts.CRASH ?? 0 },
+      { metric: t('SOS Emergency Requests'), description: t('Manual SOS button activations or emergency alert signals'), value: report.eventCounts.SOS ?? 0 },
+      { metric: t('Total Safety Events'), description: t('Sum of all telemetry safety incidents and violations logged'), value: totalEvents },
+    ];
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `eMoto_Weekly_Report_${dateRange.from}_to_${dateRange.to}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadFormattedExcel({
+      title: t('Fleet Operations & Safety Audit Report'),
+      subtitle: t('Weekly telematics aggregates, speed limit violations, and crash/SOS emergency signals'),
+      dateRange: `${dateRange.from} ${t('to')} ${dateRange.to}`,
+      kpis: [
+        { label: t('Avg Safety Score'), value: report.avgScore.toFixed(1), tone: report.avgScore >= 80 ? 'success' : report.avgScore >= 60 ? 'warning' : 'danger' },
+        { label: t('Trips Logged'), value: String(report.tripCount), tone: 'info' },
+        { label: t('Critical Crashes/SOS'), value: String(crashAndSosCount), tone: crashAndSosCount > 0 ? 'danger' : 'success' },
+        { label: t('Traffic Violations'), value: String(totalEvents), tone: totalEvents > 5 ? 'warning' : 'neutral' },
+      ],
+      columns: cols,
+      rows,
+      sheetName: 'Safety aggregates',
+    });
   };
 
   return (
@@ -250,7 +258,7 @@ export default function ReportsPage() {
               className="flex items-center justify-center gap-2 rounded-lg border border-line bg-surface-muted px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-strong hover:text-white transition disabled:opacity-50"
             >
               <Download size={16} />
-              {t('Export CSV')}
+              {t('Export Spreadsheet')}
             </button>
           )}
         </div>
@@ -309,9 +317,9 @@ export default function ReportsPage() {
             )}
           </section>
 
-          {/* Visual Analytics Charts - VERTICAL stack */}
+          {/* Visual Analytics Charts - Side-by-Side grid */}
           {!reportQuery.isLoading && report && (
-            <div className="space-y-6">
+            <div className="grid gap-5 md:grid-cols-2">
               <TrendChart dailyScores={report.dailyScores} />
               <EventDistributionChart eventCounts={report.eventCounts} />
             </div>
@@ -320,8 +328,8 @@ export default function ReportsPage() {
           {/* Compliance Traffic Fines */}
           <TrafficFinesCard />
 
-          {/* Risky Rankings - VERTICAL stack */}
-          <div className="space-y-6">
+          {/* Risky Rankings - Side-by-Side grid */}
+          <div className="grid gap-5 md:grid-cols-2">
             <DashboardCard
               eyebrow={t('Risk Ranking')}
               title={t('Top risky bikes')}
