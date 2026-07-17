@@ -29,6 +29,7 @@ interface LeaseContract {
   status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
   lockState: 'LOCKED' | 'UNLOCKED';
   bikeId: string | null;
+  pendingFines?: number;
 }
 
 function getDefaultRange() {
@@ -77,12 +78,16 @@ export default function ReportsPage() {
     const totalPrincipal = leases.reduce((sum, l) => sum + l.totalPrincipal, 0);
     const totalPaid = leases.reduce((sum, l) => sum + l.totalPaid, 0);
     const totalArrears = leases.reduce((sum, l) => sum + l.arrears, 0);
+    const totalFines = leases.reduce((sum, l) => sum + (l.pendingFines || 0), 0);
+    const leaseArrears = Math.max(0, totalArrears - totalFines);
     const overallEquity = totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((totalPaid / totalPrincipal) * 100))) : 0;
     return {
       totalLeases,
       totalPrincipal,
       totalPaid,
       totalArrears,
+      totalFines,
+      leaseArrears,
       overallEquity
     };
   }, [leases]);
@@ -116,21 +121,29 @@ export default function ReportsPage() {
       { header: t('Lease Daily Rate'), key: 'dailyRate', type: 'currency' as const, align: 'right' as const },
       { header: t('Total Principal'), key: 'totalPrincipal', type: 'currency' as const, align: 'right' as const },
       { header: t('Total Paid-to-Date'), key: 'totalPaid', type: 'currency' as const, align: 'right' as const },
-      { header: t('Current Arrears'), key: 'arrears', type: 'currency' as const, align: 'right' as const },
+      { header: t('Lease Arrears'), key: 'leaseArrears', type: 'currency' as const, align: 'right' as const },
+      { header: t('Traffic Fines'), key: 'trafficFines', type: 'currency' as const, align: 'right' as const },
+      { header: t('Total Arrears'), key: 'arrears', type: 'currency' as const, align: 'right' as const },
       { header: t('Financing Status'), key: 'status', type: 'status' as const, align: 'center' as const },
     ];
 
-    const rows = leases.map(l => ({
-      riderName: l.riderName,
-      riderPhone: l.riderPhone ?? '',
-      bikeLabel: l.bikeLabel ?? '',
-      bikePlate: l.bikePlate ?? '',
-      dailyRate: l.dailyRate || 0,
-      totalPrincipal: l.totalPrincipal || 0,
-      totalPaid: l.totalPaid || 0,
-      arrears: l.arrears || 0,
-      status: t(l.status === 'PAID_OFF' ? 'Paid Off' : l.status === 'ACTIVE' ? 'Active' : 'Delinquent'),
-    }));
+    const rows = leases.map(l => {
+      const fines = l.pendingFines || 0;
+      const lArrears = Math.max(0, l.arrears - fines);
+      return {
+        riderName: l.riderName,
+        riderPhone: l.riderPhone ?? '',
+        bikeLabel: l.bikeLabel ?? '',
+        bikePlate: l.bikePlate ?? '',
+        dailyRate: l.dailyRate || 0,
+        totalPrincipal: l.totalPrincipal || 0,
+        totalPaid: l.totalPaid || 0,
+        leaseArrears: lArrears,
+        trafficFines: fines,
+        arrears: l.arrears || 0,
+        status: t(l.status === 'PAID_OFF' ? 'Paid Off' : l.status === 'ACTIVE' ? 'Active' : 'Delinquent'),
+      };
+    });
 
     downloadFormattedExcel({
       title: t('Buy-to-Own Lease Repayments Ledger'),
@@ -138,7 +151,8 @@ export default function ReportsPage() {
       kpis: [
         { label: t('Active Contracts'), value: String(leaseMetrics.totalLeases) },
         { label: t('Total Portfolio Value'), value: `${leaseMetrics.totalPrincipal.toLocaleString()} RWF` },
-        { label: t('Overdue Arrears'), value: `${leaseMetrics.totalArrears.toLocaleString()} RWF` },
+        { label: t('Lease Arrears'), value: `${leaseMetrics.leaseArrears.toLocaleString()} RWF` },
+        { label: t('Traffic Fines'), value: `${leaseMetrics.totalFines.toLocaleString()} RWF` },
       ],
       columns: cols,
       rows,
@@ -436,9 +450,10 @@ export default function ReportsPage() {
       ) : (
         <div className="space-y-6">
           {/* Financials KPI Cards */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {leasesQuery.isLoading ? (
               <>
+                <MetricCardSkeleton />
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
@@ -468,11 +483,18 @@ export default function ReportsPage() {
                   tone="success"
                 />
                 <MetricCard
-                  title={t('Overdue Arrears')}
-                  value={`${leaseMetrics.totalArrears.toLocaleString()} RWF`}
-                  hint={t('Accumulated overdue balances.')}
+                  title={t('Lease Arrears')}
+                  value={`${leaseMetrics.leaseArrears.toLocaleString()} RWF`}
+                  hint={t('Accumulated overdue lease payments.')}
                   icon={<Banknote size={18} />}
-                  tone={leaseMetrics.totalArrears > 0 ? 'warning' : 'neutral'}
+                  tone={leaseMetrics.leaseArrears > 0 ? 'warning' : 'neutral'}
+                />
+                <MetricCard
+                  title={t('Traffic Fines')}
+                  value={`${leaseMetrics.totalFines.toLocaleString()} RWF`}
+                  hint={t('Accumulated unpaid traffic fines.')}
+                  icon={<AlertTriangle size={18} />}
+                  tone={leaseMetrics.totalFines > 0 ? 'warning' : 'neutral'}
                 />
               </>
             )}
@@ -600,26 +622,29 @@ export default function ReportsPage() {
                     <th className="py-2.5 font-bold">{t('Bike details')}</th>
                     <th className="py-2.5 font-bold">{t('Ownership Equity')}</th>
                     <th className="py-2.5 font-bold">{t('Daily Rate')}</th>
-                    <th className="py-2.5 font-bold">{t('Total Arrears')}</th>
+                    <th className="py-2.5 font-bold">{t('Lease Arrears')}</th>
+                    <th className="py-2.5 font-bold">{t('Traffic Fines')}</th>
                     <th className="py-2.5 font-bold text-right">{t('Status')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {leasesQuery.isLoading ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-ink-muted">
+                      <td colSpan={7} className="py-8 text-center text-ink-muted">
                         {t('Loading leases report...')}
                       </td>
                     </tr>
                   ) : leases.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-ink-muted">
+                      <td colSpan={7} className="py-8 text-center text-ink-muted">
                         {t('No lease contracts registered')}
                       </td>
                     </tr>
                   ) : (
                     leases.map((lease: LeaseContract) => {
                       const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
+                      const fines = lease.pendingFines || 0;
+                      const lArrears = Math.max(0, lease.arrears - fines);
                       return (
                         <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
                           <td className="py-3 font-semibold text-ink">
@@ -650,9 +675,17 @@ export default function ReportsPage() {
                           <td className="py-3">
                             <span className={cx(
                               "font-mono font-bold text-xs px-2 py-0.5 rounded",
-                              lease.arrears > 0 ? "text-danger-ink bg-danger-soft/20" : "text-ink-soft"
+                              lArrears > 0 ? "text-danger-ink bg-danger-soft/20" : "text-ink-soft"
                             )}>
-                              {lease.arrears.toLocaleString()} RWF
+                              {lArrears.toLocaleString()} RWF
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <span className={cx(
+                              "font-mono font-bold text-xs px-2 py-0.5 rounded",
+                              fines > 0 ? "text-danger-ink bg-danger-soft/20" : "text-ink-soft"
+                            )}>
+                              {fines.toLocaleString()} RWF
                             </span>
                           </td>
                           <td className="py-3 text-right">
@@ -783,11 +816,10 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
 function TrafficFinesCard() {
   const { t } = useTranslation();
 
-  const mockFines = [
-    { vehicle: 'KGL-B-005 (RA 1005 A)', reason: t('Speed limit breach (School zone)'), amount: '10,000 RWF', status: 'UNPAID', issued: '2026-07-14' },
-    { vehicle: 'KGL-B-012 (RA 1012 A)', reason: t('Illegal zone access'), amount: '25,000 RWF', status: 'PAID', issued: '2026-07-12' },
-    { vehicle: 'KGL-B-024 (RA 1024 A)', reason: t('Overspeeding 80km/h in 60km/h'), amount: '10,000 RWF', status: 'UNPAID', issued: '2026-07-10' },
-  ];
+  const { data: fines = [], isLoading } = useQuery({
+    queryKey: ['traffic-fines'],
+    queryFn: () => apiFetch<any[]>('/traffic-fines'),
+  });
 
   return (
     <DashboardCard
@@ -806,20 +838,40 @@ function TrafficFinesCard() {
           </div>
 
           <div className="mt-3 space-y-3">
-            {mockFines.map((fine, idx) => (
-              <div key={idx} className="grid grid-cols-[1.2fr_1.5fr_1fr_1fr_1fr] gap-3 text-xs text-ink-soft items-center border-b border-white/[0.02] pb-2 last:border-0 last:pb-0">
-                <span className="font-semibold text-ink">{fine.vehicle}</span>
-                <span>{fine.reason}</span>
-                <span className="font-mono">{fine.amount}</span>
-                <span>
-                  <Badge
-                    label={t(fine.status)}
-                    tone={fine.status === 'PAID' ? 'success' : 'danger'}
-                  />
-                </span>
-                <span className="font-mono text-[11px] text-ink-muted">{fine.issued}</span>
+            {isLoading ? (
+              <div className="text-center py-4 text-xs text-ink-muted">
+                {t('Loading traffic fines...')}
               </div>
-            ))}
+            ) : fines.length === 0 ? (
+              <div className="text-center py-4 text-xs text-ink-muted">
+                {t('No traffic fines registered')}
+              </div>
+            ) : (
+              fines.map((fine: any) => {
+                const activeAssignment = fine.rider?.bikeAssignments?.[0];
+                const bike = activeAssignment?.bike;
+                const vehicleLabel = bike
+                  ? `${bike.label} (${bike.plate || 'N/A'})`
+                  : `${fine.rider?.riderProfile?.fullName ?? t('Unknown Rider')} (No assigned bike)`;
+
+                return (
+                  <div key={fine.id} className="grid grid-cols-[1.2fr_1.5fr_1fr_1fr_1fr] gap-3 text-xs text-ink-soft items-center border-b border-white/[0.02] pb-2 last:border-0 last:pb-0">
+                    <span className="font-semibold text-ink">{vehicleLabel}</span>
+                    <span>{t(fine.reason)}</span>
+                    <span className="font-mono">{fine.amount.toLocaleString()} RWF</span>
+                    <span>
+                      <Badge
+                        label={t(fine.status)}
+                        tone={fine.status === 'PAID' ? 'success' : 'danger'}
+                      />
+                    </span>
+                    <span className="font-mono text-[11px] text-ink-muted">
+                      {new Date(fine.finedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

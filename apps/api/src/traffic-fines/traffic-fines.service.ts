@@ -97,6 +97,19 @@ export class TrafficFinesService {
                 fullName: true,
               },
             },
+            bikeAssignments: {
+              where: {
+                active: true,
+              },
+              include: {
+                bike: {
+                  select: {
+                    label: true,
+                    plate: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -121,6 +134,19 @@ export class TrafficFinesService {
             riderProfile: {
               select: {
                 fullName: true,
+              },
+            },
+            bikeAssignments: {
+              where: {
+                active: true,
+              },
+              include: {
+                bike: {
+                  select: {
+                    label: true,
+                    plate: true,
+                  },
+                },
               },
             },
           },

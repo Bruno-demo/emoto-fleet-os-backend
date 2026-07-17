@@ -491,6 +491,7 @@ export class FinancialsService {
         status,
         lockState,
         bikeId: activeAssignment?.bikeId || null,
+        pendingFines: totalPendingFines,
       };
     });
   }
