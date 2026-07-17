@@ -10,11 +10,11 @@ import { HealthService } from './health.service';
 import { HealthResponse } from './health.types';
 
 @ApiTags('health')
-@Controller('health')
+@Controller()
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
-  @Get()
+  @Get('health')
   @Public()
   @ApiOperation({ summary: 'Returns service health and dependency checks' })
   @ApiOkResponse({
@@ -37,10 +37,26 @@ export class HealthController {
     return this.healthService.check();
   }
 
-  @Get('simulate-fail')
+  @Get('healthz')
+  @Public()
+  @ApiOperation({ summary: 'Returns liveness check status directly' })
+  @ApiOkResponse({
+    description: 'Service is alive.',
+    schema: {
+      example: {
+        status: 'ok',
+      },
+    },
+  })
+  async getLiveness() {
+    return { status: 'ok' };
+  }
+
+  @Get('health/simulate-fail')
   @Public()
   @ApiOperation({ summary: 'Simulates health check failure for 3 minutes for failover testing' })
   async simulateFail() {
     return this.healthService.simulateFail();
   }
 }
+
