@@ -16,10 +16,7 @@ setup_hypertables() {
   fi
 
   echo "Configuring TimescaleDB hypertables..."
-  if ! psql "${DATABASE_URL}" <<'SQL'; then
-    echo "WARNING: Failed to configure TimescaleDB hypertables or policies. Continuing startup..."
-    return 0
-  fi
+  psql "${DATABASE_URL}" <<'SQL'
     SELECT create_hypertable(
       '"TelemetryPoint"', 'ts',
       if_not_exists => TRUE,
@@ -38,6 +35,12 @@ setup_hypertables() {
       if_not_exists => TRUE
     );
 SQL
+
+  if [ $? -ne 0 ]; then
+    echo "WARNING: Failed to configure TimescaleDB hypertables or policies. Continuing startup..."
+    return 0
+  fi
+
   echo "TimescaleDB hypertables configured"
 }
 
