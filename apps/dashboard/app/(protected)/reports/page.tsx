@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { apiFetch } from '@/lib/api/client';
 import { downloadFormattedExcel } from '@/lib/export/excel-export';
 import type { WeeklyReport } from '@/lib/types/dashboard';
-import { cx, formatEnumLabel } from '@/lib/ui';
+import { cx, formatEnumLabel, getLocalDateString } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 
@@ -37,8 +37,8 @@ function getDefaultRange() {
   const from = new Date();
   from.setDate(from.getDate() - 7);
   return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
+    from: getLocalDateString(from),
+    to: getLocalDateString(to),
   };
 }
 

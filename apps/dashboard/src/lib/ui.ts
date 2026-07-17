@@ -32,3 +32,17 @@ export function formatTimeAgo(value: string) {
   }
   return `${Math.round(deltaSeconds / 86400)}d ago`;
 }
+
+// Returns the local date string (YYYY-MM-DD) in timezone-safe format
+export function getLocalDateString(date: Date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+// Returns the local datetime string (YYYY-MM-DDTHH:mm) in timezone-safe format
+export function getLocalDatetimeString(date: Date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 16);
+}

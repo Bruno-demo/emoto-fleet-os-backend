@@ -48,7 +48,7 @@ import { downloadFormattedExcel } from '@/lib/export/excel-export';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { PaginatedResponse, Rider } from '@/lib/types/dashboard';
-import { cx } from '@/lib/ui';
+import { cx, getLocalDateString, getLocalDatetimeString } from '@/lib/ui';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 const PAGE_SIZE = 15;
@@ -128,9 +128,9 @@ export default function FinancialsPage() {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 14); // default 2 weeks range
-    return d.toISOString().slice(0, 10);
+    return getLocalDateString(d);
   });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => getLocalDateString(new Date()));
 
   // Shift date range by 7 days helper
   const shiftWeek = (direction: 'prev' | 'next') => {
@@ -139,8 +139,8 @@ export default function FinancialsPage() {
     const days = direction === 'prev' ? -7 : 7;
     start.setDate(start.getDate() + days);
     end.setDate(end.getDate() + days);
-    setStartDate(start.toISOString().slice(0, 10));
-    setEndDate(end.toISOString().slice(0, 10));
+    setStartDate(getLocalDateString(start));
+    setEndDate(getLocalDateString(end));
   };
 
   const [showCollectModal, setShowCollectModal] = useState(false);
@@ -157,7 +157,7 @@ export default function FinancialsPage() {
   const [fineAmount, setFineAmount] = useState('');
   const [fineReason, setFineReason] = useState('');
   const [fineTicketNumber, setFineTicketNumber] = useState('');
-  const [fineDate, setFineDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fineDate, setFineDate] = useState(() => getLocalDateString(new Date()));
   const [recordFineError, setRecordFineError] = useState<string | null>(null);
   const [isRecordingFine, setIsRecordingFine] = useState(false);
 
@@ -348,7 +348,7 @@ export default function FinancialsPage() {
   // Collect payment form state
   const [formRiderId, setFormRiderId] = useState('');
   const [formAmount, setFormAmount] = useState(String(DAILY_LEASE_RATE));
-  const [formPaidAt, setFormPaidAt] = useState(() => new Date().toISOString().slice(0, 16));
+  const [formPaidAt, setFormPaidAt] = useState(() => getLocalDatetimeString(new Date()));
   const [formMethod, setFormMethod] = useState<'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER'>('CASH');
   const [formStatus, setFormStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE'>('PAID');
   const [formReference, setFormReference] = useState('');
@@ -470,7 +470,7 @@ export default function FinancialsPage() {
   const resetForm = () => {
     setFormRiderId('');
     setFormAmount(String(DAILY_LEASE_RATE));
-    setFormPaidAt(new Date().toISOString().slice(0, 16));
+    setFormPaidAt(getLocalDatetimeString(new Date()));
     setFormMethod('CASH');
     setFormStatus('PAID');
     setFormReference('');
@@ -1165,8 +1165,8 @@ export default function FinancialsPage() {
                       const end = new Date();
                       const start = new Date();
                       start.setDate(end.getDate() - 14);
-                      setStartDate(start.toISOString().slice(0, 10));
-                      setEndDate(end.toISOString().slice(0, 10));
+                      setStartDate(getLocalDateString(start));
+                      setEndDate(getLocalDateString(end));
                     }}
                     className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-surface hover:bg-surface-hover border border-line text-ink-soft hover:text-ink transition-colors cursor-pointer"
                     title={t("Current week")}

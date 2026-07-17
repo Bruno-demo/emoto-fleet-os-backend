@@ -2,7 +2,7 @@
 
 import { Calendar } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { cx } from '@/lib/ui';
+import { cx, getLocalDateString } from '@/lib/ui';
 
 interface DateRangePickerProps {
   from: string; // ISO date string
@@ -13,7 +13,7 @@ interface DateRangePickerProps {
 type Preset = '7d' | '14d' | '30d' | 'month' | 'custom';
 
 function toISODate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return getLocalDateString(date);
 }
 
 function getPresetRange(preset: Exclude<Preset, 'custom'>): { from: string; to: string } {

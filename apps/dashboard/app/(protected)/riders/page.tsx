@@ -34,7 +34,7 @@ import { downloadFormattedExcel } from '@/lib/export/excel-export';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import type { Assignment, PaginatedResponse, Rider } from '@/lib/types/dashboard';
-import { cx, formatEnumLabel } from '@/lib/ui';
+import { cx, formatEnumLabel, getLocalDateString } from '@/lib/ui';
 import { compressImage } from '@/lib/image';
 import { Drawer } from '@/components/ui/drawer';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -103,7 +103,7 @@ export default function RidersPage() {
   const [fineAmount, setFineAmount] = useState('');
   const [fineReason, setFineReason] = useState('');
   const [fineTicketNumber, setFineTicketNumber] = useState('');
-  const [fineDate, setFineDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fineDate, setFineDate] = useState(() => getLocalDateString(new Date()));
   const [recordFineError, setRecordFineError] = useState<string | null>(null);
   const [isRecordingFine, setIsRecordingFine] = useState(false);
 
@@ -409,9 +409,9 @@ export default function RidersPage() {
   const [statementFrom, setStatementFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30); // default 30 days statement range
-    return d.toISOString().slice(0, 10);
+    return getLocalDateString(d);
   });
-  const [statementTo, setStatementTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [statementTo, setStatementTo] = useState(() => getLocalDateString(new Date()));
 
   // Default daily rate fallback constant
   const DAILY_LEASE_RATE = 15000;
