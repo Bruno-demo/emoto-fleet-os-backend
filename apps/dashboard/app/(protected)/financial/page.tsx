@@ -146,7 +146,17 @@ export default function FinancialsPage() {
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
   const [matrixSearch, setMatrixSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [matrixTab, setMatrixTab] = useState<'daily' | 'lease'>('daily');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(matrixSearch);
+    }, 400);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [matrixSearch]);
   
   // Buy-to-Own leases tab & backend data management
   const [activeTab, setActiveTab] = useState<'collections' | 'buyToOwn' | 'trafficFines'>('collections');
@@ -379,22 +389,22 @@ export default function FinancialsPage() {
     queryFn: () => apiFetch<PaginatedResponse<Rider>>('/riders?page=1&pageSize=200'),
   });
 
-  // 1b. Fetch Riders for Interactive matrix (with Load More pagination using useInfiniteQuery)
+  // 1b. Independent Fetch queries for Daily and Lease matrix riders to prevent conflicts/reloading
   const {
-    data: matrixRidersData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isMatrixLoading,
+    data: dailyRidersData,
+    fetchNextPage: fetchNextDailyPage,
+    hasNextPage: hasNextDailyPage,
+    isFetchingNextPage: isFetchingNextDailyPage,
+    isLoading: isDailyLoading,
   } = useInfiniteQuery({
-    queryKey: ['riders', 'matrix', matrixSearch, matrixTab],
+    queryKey: ['riders', 'matrix-daily', debouncedSearch],
     queryFn: ({ pageParam = 1 }) =>
       apiFetch<PaginatedResponse<Rider>>(
         `/riders${buildQueryString({
           page: pageParam,
           pageSize: 20,
-          search: matrixSearch.trim() || undefined,
-          leaseToOwn: matrixTab === 'lease',
+          search: debouncedSearch.trim() || undefined,
+          leaseToOwn: false,
         })}`,
       ),
     getNextPageParam: (lastPage) => {
@@ -406,13 +416,56 @@ export default function FinancialsPage() {
     initialPageParam: 1,
   });
 
-  const accumulatedMatrixRiders = useMemo(() => {
-    return matrixRidersData?.pages.flatMap((page) => page.data) ?? [];
-  }, [matrixRidersData]);
+  const dailyRidersList = useMemo(() => {
+    return dailyRidersData?.pages.flatMap((page) => page.data) ?? [];
+  }, [dailyRidersData]);
 
-  const totalMatrixRiders = useMemo(() => {
-    return matrixRidersData?.pages[0]?.total ?? 0;
-  }, [matrixRidersData]);
+  const totalDailyRiders = useMemo(() => {
+    return dailyRidersData?.pages[0]?.total ?? 0;
+  }, [dailyRidersData]);
+
+  const {
+    data: leaseRidersData,
+    fetchNextPage: fetchNextLeasePage,
+    hasNextPage: hasNextLeasePage,
+    isFetchingNextPage: isFetchingNextLeasePage,
+    isLoading: isLeaseLoading,
+  } = useInfiniteQuery({
+    queryKey: ['riders', 'matrix-lease', debouncedSearch],
+    queryFn: ({ pageParam = 1 }) =>
+      apiFetch<PaginatedResponse<Rider>>(
+        `/riders${buildQueryString({
+          page: pageParam,
+          pageSize: 20,
+          search: debouncedSearch.trim() || undefined,
+          leaseToOwn: true,
+        })}`,
+      ),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+  });
+
+  const leaseRidersList = useMemo(() => {
+    return leaseRidersData?.pages.flatMap((page) => page.data) ?? [];
+  }, [leaseRidersData]);
+
+  const totalLeaseRiders = useMemo(() => {
+    return leaseRidersData?.pages[0]?.total ?? 0;
+  }, [leaseRidersData]);
+
+  const activeMatrixRiders = matrixTab === 'daily' ? dailyRidersList : leaseRidersList;
+  const isMatrixLoading = matrixTab === 'daily' ? isDailyLoading : isLeaseLoading;
+  const hasNextPage = matrixTab === 'daily' ? hasNextDailyPage : hasNextLeasePage;
+  const fetchNextPage = matrixTab === 'daily' ? fetchNextDailyPage : fetchNextLeasePage;
+  const isFetchingNextPage = matrixTab === 'daily' ? isFetchingNextDailyPage : isFetchingNextLeasePage;
+  const totalMatrixRiders = matrixTab === 'daily' ? totalDailyRiders : totalLeaseRiders;
+
+  const accumulatedMatrixRiders = activeMatrixRiders;
 
   // 2. Fetch Payments History Log
   const paymentsQuery = useQuery({
@@ -479,19 +532,8 @@ export default function FinancialsPage() {
 
   const ridersList = useMemo(() => ridersQuery.data?.data ?? [], [ridersQuery.data]);
 
-  const filteredRiders = useMemo(() => {
-    return accumulatedMatrixRiders;
-  }, [accumulatedMatrixRiders]);
-
-  const dailyCollectionRiders = useMemo(() => {
-    return filteredRiders.filter((r) => !r.leaseToOwn);
-  }, [filteredRiders]);
-
-  const buyToOwnRiders = useMemo(() => {
-    return filteredRiders.filter((r) => r.leaseToOwn);
-  }, [filteredRiders]);
-
-  const activeMatrixRiders = matrixTab === 'daily' ? dailyCollectionRiders : buyToOwnRiders;
+  const dailyCollectionRiders = dailyRidersList;
+  const buyToOwnRiders = leaseRidersList;
 
   const payments = useMemo(() => paymentsQuery.data?.data ?? [], [paymentsQuery.data?.data]);
   const totalPayments = paymentsQuery.data?.total ?? 0;
