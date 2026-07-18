@@ -384,13 +384,14 @@ export default function FinancialsPage() {
   const [accumulatedMatrixRiders, setAccumulatedMatrixRiders] = useState<Rider[]>([]);
 
   const matrixRidersQuery = useQuery({
-    queryKey: ['riders', 'matrix', matrixPage, matrixSearch],
+    queryKey: ['riders', 'matrix', matrixPage, matrixSearch, matrixTab],
     queryFn: () =>
       apiFetch<PaginatedResponse<Rider>>(
         `/riders${buildQueryString({
           page: matrixPage,
           pageSize: 20,
           search: matrixSearch.trim() || undefined,
+          leaseToOwn: matrixTab === 'lease',
         })}`,
       ),
   });
@@ -409,11 +410,11 @@ export default function FinancialsPage() {
     }
   }, [matrixRidersQuery.data, matrixPage]);
 
-  // Reset page and accumulated list when search changes
+  // Reset page and accumulated list when search or tab changes
   useEffect(() => {
     setMatrixPage(1);
     setAccumulatedMatrixRiders([]);
-  }, [matrixSearch]);
+  }, [matrixSearch, matrixTab]);
 
   // 2. Fetch Payments History Log
   const paymentsQuery = useQuery({

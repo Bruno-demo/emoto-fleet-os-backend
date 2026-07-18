@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID } from 'class-validator';
+import { IsOptional, IsUUID, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class ListRidersDto extends PaginationQueryDto {
@@ -10,4 +11,12 @@ export class ListRidersDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   bikeId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by leaseToOwn rider profile type',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  leaseToOwn?: boolean;
 }

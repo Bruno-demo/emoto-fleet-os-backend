@@ -356,6 +356,12 @@ export class RidersService {
       };
     }
 
+    if (query.leaseToOwn !== undefined) {
+      where.riderProfile = {
+        leaseToOwn: query.leaseToOwn,
+      };
+    }
+
     if (query.search) {
       where.OR = [
         { email: { contains: query.search, mode: 'insensitive' } },
