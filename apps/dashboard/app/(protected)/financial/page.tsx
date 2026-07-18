@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import {
   Banknote,
@@ -379,42 +379,40 @@ export default function FinancialsPage() {
     queryFn: () => apiFetch<PaginatedResponse<Rider>>('/riders?page=1&pageSize=200'),
   });
 
-  // 1b. Fetch Riders for Interactive matrix (with Load More pagination)
-  const [matrixPage, setMatrixPage] = useState(1);
-  const [accumulatedMatrixRiders, setAccumulatedMatrixRiders] = useState<Rider[]>([]);
-
-  const matrixRidersQuery = useQuery({
-    queryKey: ['riders', 'matrix', matrixPage, matrixSearch, matrixTab],
-    queryFn: () =>
+  // 1b. Fetch Riders for Interactive matrix (with Load More pagination using useInfiniteQuery)
+  const {
+    data: matrixRidersData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isMatrixLoading,
+  } = useInfiniteQuery({
+    queryKey: ['riders', 'matrix', matrixSearch, matrixTab],
+    queryFn: ({ pageParam = 1 }) =>
       apiFetch<PaginatedResponse<Rider>>(
         `/riders${buildQueryString({
-          page: matrixPage,
+          page: pageParam,
           pageSize: 20,
           search: matrixSearch.trim() || undefined,
           leaseToOwn: matrixTab === 'lease',
         })}`,
       ),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
   });
 
-  useEffect(() => {
-    if (matrixRidersQuery.data?.data) {
-      if (matrixPage === 1) {
-        setAccumulatedMatrixRiders(matrixRidersQuery.data.data);
-      } else {
-        setAccumulatedMatrixRiders((prev) => {
-          const existingIds = new Set(prev.map((r) => r.id));
-          const newRiders = (matrixRidersQuery.data?.data ?? []).filter((r) => !existingIds.has(r.id));
-          return [...prev, ...newRiders];
-        });
-      }
-    }
-  }, [matrixRidersQuery.data, matrixPage]);
+  const accumulatedMatrixRiders = useMemo(() => {
+    return matrixRidersData?.pages.flatMap((page) => page.data) ?? [];
+  }, [matrixRidersData]);
 
-  // Reset page and accumulated list when search or tab changes
-  useEffect(() => {
-    setMatrixPage(1);
-    setAccumulatedMatrixRiders([]);
-  }, [matrixSearch, matrixTab]);
+  const totalMatrixRiders = useMemo(() => {
+    return matrixRidersData?.pages[0]?.total ?? 0;
+  }, [matrixRidersData]);
 
   // 2. Fetch Payments History Log
   const paymentsQuery = useQuery({
@@ -1185,7 +1183,7 @@ export default function FinancialsPage() {
                 </div>
               }
             >
-              {matrixRidersQuery.isLoading && matrixPage === 1 ? (
+              {isMatrixLoading ? (
                 <div className="space-y-2 animate-pulse">
                   <div className="h-10 bg-surface-muted rounded-xl" />
                   <div className="h-10 bg-surface-muted rounded-xl" />
@@ -1327,27 +1325,27 @@ export default function FinancialsPage() {
                         </table>
                       </div>
                       {/* Load More Button for Matrix Riders */}
-                      {accumulatedMatrixRiders.length < (matrixRidersQuery.data?.total ?? 0) && (
+                      {hasNextPage && (
                         <div className="mt-4 flex justify-center border-t border-line pt-4">
                           <button
                             type="button"
-                            disabled={matrixRidersQuery.isFetching}
-                            onClick={() => setMatrixPage((prev) => prev + 1)}
+                            disabled={isFetchingNextPage}
+                            onClick={() => void fetchNextPage()}
                             className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {matrixRidersQuery.isFetching ? (
+                            {isFetchingNextPage ? (
                               <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
                             ) : (
                               <ChevronDown size={16} className="animate-bounce" />
                             )}
-                            {matrixRidersQuery.isFetching ? t('Loading...') : t('Load more riders')}
+                            {isFetchingNextPage ? t('Loading...') : t('Load more riders')}
                           </button>
                         </div>
                       )}
-                      {accumulatedMatrixRiders.length >= (matrixRidersQuery.data?.total ?? 0) && (matrixRidersQuery.data?.total ?? 0) > 0 && (
+                      {!hasNextPage && totalMatrixRiders > 0 && (
                         <div className="flex flex-col items-center justify-center gap-1.5 mt-4 pt-4 border-t border-line">
                           <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-                            <Check size={14} /> {t('All {total} riders loaded').replace('{total}', String(matrixRidersQuery.data?.total ?? 0))}
+                            <Check size={14} /> {t('All {total} riders loaded').replace('{total}', String(totalMatrixRiders))}
                           </p>
                         </div>
                       )}
