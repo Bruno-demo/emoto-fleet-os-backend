@@ -2,7 +2,7 @@
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer, LayersControl } from 'react-leaflet';
 
 const eventMarkerIcon = L.divIcon({
   className: 'event-marker',
@@ -44,10 +44,26 @@ export function EventMap({ lat, lng }: EventMapProps) {
         className="h-full w-full"
         zoomControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="Map">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Satellite">
+            <TileLayer
+              attribution='&copy; Google'
+              url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Hybrid">
+            <TileLayer
+              attribution='&copy; Google'
+              url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
         <Marker position={[lat, lng]} icon={eventMarkerIcon} />
       </MapContainer>
     </div>

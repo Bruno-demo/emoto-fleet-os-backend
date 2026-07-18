@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -207,10 +207,26 @@ export function PublicTrackMap({ pickup, dropoff, rider }: PublicTrackMapProps) 
         style={{ width: '100%', height: '100%' }}
         zoomControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="Map">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Satellite">
+            <TileLayer
+              attribution='&copy; Google'
+              url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Hybrid">
+            <TileLayer
+              attribution='&copy; Google'
+              url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
 
         <Marker position={[pickup.lat, pickup.lng]} icon={pickupIcon} />
         <Marker position={[dropoff.lat, dropoff.lng]} icon={dropoffIcon} />

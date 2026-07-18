@@ -401,12 +401,10 @@ export default function EventsPage() {
                   )}
                 </div>
 
-                {/* Technical Diagnostic Metadata */}
+                {/* Event Metadata Details */}
                 <div>
-                  <h4 className="text-sm font-bold text-white mb-3">{t('Technical Diagnostics')}</h4>
-                  <div className="rounded-2xl border border-line bg-[#09090b] p-4 font-mono text-xs text-zinc-400 overflow-x-auto">
-                    <pre>{JSON.stringify(selectedEvent.metaJson, null, 2)}</pre>
-                  </div>
+                  <h4 className="text-sm font-bold text-white mb-3">{t('Event Details')}</h4>
+                  {renderEventMeta(selectedEvent.metaJson as Record<string, unknown> | null, t)}
                 </div>
 
                 {/* Actions */}
@@ -543,5 +541,55 @@ function toIsoUtcOrUndefined(value: string): string | undefined {
   }
 
   return parsedDate.toISOString();
+}
+
+function renderEventMeta(meta: Record<string, unknown> | null | undefined, t: (key: string) => string) {
+  if (!meta || Object.keys(meta).length === 0) {
+    return <p className="text-xs text-zinc-500">{t('No additional metadata recorded.')}</p>;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const keyLabels: Record<string, { label: string; format: (val: any) => string }> = {
+    speedLimitKph: { label: t('Speed Limit'), format: (val) => `${val} KM/H` },
+    speedKph: { label: t('Current Speed'), format: (val) => `${val} KM/H` },
+    zoneName: { label: t('Zone Name'), format: (val) => String(val) },
+    gpsGForce: { label: t('Impact Force'), format: (val) => `${val} G` },
+    gForce: { label: t('Impact Force'), format: (val) => `${Number(val).toFixed(2)} G` },
+    accelX: { label: t('Acceleration G-Force'), format: (val) => `${val} G` },
+    speedDeltaKph: { label: t('Speed Difference'), format: (val) => `${val} KM/H` },
+    speedDropKph: { label: t('Speed Deceleration'), format: (val) => `${Number(val).toFixed(2)} KM/H` },
+    reason: { 
+      label: t('Trigger Reason'), 
+      format: (val) => val === 'movement_while_ignition_off' ? t('Movement while ignition is OFF') : String(val) 
+    },
+    batteryPct: { label: t('Battery Level'), format: (val) => `${val}%` },
+    ignition: { label: t('Ignition Status'), format: (val) => val ? t('ON') : t('OFF') },
+    lastSeenAt: { label: t('Last Active'), format: (val) => new Date(val).toLocaleString() },
+  };
+
+  const items = Object.entries(meta).map(([key, val]) => {
+    if (key === 'lat' || key === 'lng') return null;
+
+    const spec = keyLabels[key];
+    const displayLabel = spec ? spec.label : formatEnumLabel(key);
+    const displayValue = spec ? spec.format(val) : String(val);
+
+    return (
+      <div key={key} className="flex justify-between items-center py-2 border-b border-line/40 last:border-0 text-xs">
+        <span className="text-zinc-400 font-semibold">{displayLabel}</span>
+        <span className="text-white font-medium bg-zinc-800 px-2.5 py-1 rounded-lg border border-line">{displayValue}</span>
+      </div>
+    );
+  }).filter(Boolean);
+
+  if (items.length === 0) {
+    return <p className="text-xs text-zinc-500">{t('No metadata to display.')}</p>;
+  }
+
+  return (
+    <div className="rounded-2xl border border-line bg-surface-muted/40 p-4 space-y-1">
+      {items}
+    </div>
+  );
 }
 

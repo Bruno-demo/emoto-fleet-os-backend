@@ -17,6 +17,7 @@ import {
   Polyline,
   TileLayer,
   useMap,
+  LayersControl,
 } from 'react-leaflet';
 import { formatTimestamp } from '@/lib/ui';
 
@@ -74,11 +75,39 @@ function FitBounds({ polyline }: { polyline: [number, number][] }) {
   return null;
 }
 
+// Component to pan map to keep vehicle marker centered during replay
+function FollowMarker({ position, isPlaying }: { position: [number, number]; isPlaying: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (isPlaying) {
+      map.panTo(position);
+    }
+  }, [map, position, isPlaying]);
+  return null;
+}
+
 export function TripReplayMap({ route }: TripReplayMapProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [prevRoute, setPrevRoute] = useState(route);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (route.length > 0) {
+      const firstMovingIndex = route.findIndex(
+        (p) => p.lat !== route[0].lat || p.lng !== route[0].lng || p.speedKph > 0.5
+      );
+      return firstMovingIndex !== -1 ? firstMovingIndex : 0;
+    }
+    return 0;
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // multiplier (1, 2, 5, 10)
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  if (route !== prevRoute) {
+    setPrevRoute(route);
+    const firstMovingIndex = route.findIndex(
+      (p) => p.lat !== route[0]?.lat || p.lng !== route[0]?.lng || p.speedKph > 0.5
+    );
+    setCurrentIndex(firstMovingIndex !== -1 ? firstMovingIndex : 0);
+  }
 
   const pointsCount = route.length;
   const latLngs = route.map((p) => [p.lat, p.lng] as [number, number]);
@@ -90,7 +119,10 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
 
   const handleReset = () => {
     setIsPlaying(false);
-    setCurrentIndex(0);
+    const firstMovingIndex = route.findIndex(
+      (p) => p.lat !== route[0].lat || p.lng !== route[0].lng || p.speedKph > 0.5
+    );
+    setCurrentIndex(firstMovingIndex !== -1 ? firstMovingIndex : 0);
   };
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,10 +175,26 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
           className="h-full w-full"
           zoomControl={false}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          />
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name="Map">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Satellite">
+              <TileLayer
+                attribution='&copy; Google'
+                url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Hybrid">
+              <TileLayer
+                attribution='&copy; Google'
+                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
 
           {/* Polyline Route Track */}
           <Polyline
@@ -164,6 +212,14 @@ export function TripReplayMap({ route }: TripReplayMapProps) {
             <Marker
               position={[activePoint.lat, activePoint.lng]}
               icon={bikeMarkerIcon}
+            />
+          )}
+
+          {/* Follow Active Marker */}
+          {activePoint && (
+            <FollowMarker
+              position={[activePoint.lat, activePoint.lng]}
+              isPlaying={isPlaying}
             />
           )}
 
