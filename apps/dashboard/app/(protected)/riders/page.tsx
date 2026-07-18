@@ -1688,7 +1688,7 @@ export default function RidersPage() {
                             setStatusTargetNext('ACTIVE');
                             setStatusConfirmOpen(true);
                           }}
-                          className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/15"
+                          className="flex items-center gap-2 rounded-xl bg-accent-strong px-4 py-2.5 text-xs font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/15"
                         >
                           <UserRound size={14} />
                           {t('Reactivate Rider')}
@@ -1841,7 +1841,7 @@ export default function RidersPage() {
                 <button
                   type="submit"
                   disabled={isRecordingFine}
-                  className="w-1/2 rounded-xl bg-accent py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:brightness-95 transition-all shadow-md shadow-accent/15 flex items-center justify-center"
+                  className="w-1/2 rounded-xl bg-accent-strong py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:brightness-95 transition-all shadow-md shadow-accent/15 flex items-center justify-center"
                 >
                   {isRecordingFine ? t('Recording...') : t('Record Fine')}
                 </button>

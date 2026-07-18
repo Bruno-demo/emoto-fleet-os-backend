@@ -360,8 +360,8 @@ export default function EventsPage() {
 
                 {/* Event Explanation */}
                 <div className="rounded-2xl border border-line bg-surface-muted p-4">
-                  <h4 className="text-sm font-bold text-white mb-2">{t('Event Explanation')}</h4>
-                  <p className="text-sm text-zinc-300 leading-relaxed">
+                  <h4 className="text-sm font-bold text-ink mb-2">{t('Event Explanation')}</h4>
+                  <p className="text-sm text-ink-soft leading-relaxed">
                     {getEventDescription(selectedEvent.type, selectedEvent.metaJson as Record<string, unknown> | null, t)}
                   </p>
                 </div>
@@ -403,7 +403,7 @@ export default function EventsPage() {
 
                 {/* Event Metadata Details */}
                 <div>
-                  <h4 className="text-sm font-bold text-white mb-3">{t('Event Details')}</h4>
+                  <h4 className="text-sm font-bold text-ink mb-3">{t('Event Details')}</h4>
                   {renderEventMeta(selectedEvent.metaJson as Record<string, unknown> | null, t)}
                 </div>
 
@@ -576,8 +576,8 @@ function renderEventMeta(meta: Record<string, unknown> | null | undefined, t: (k
 
     return (
       <div key={key} className="flex justify-between items-center py-2 border-b border-line/40 last:border-0 text-xs">
-        <span className="text-zinc-400 font-semibold">{displayLabel}</span>
-        <span className="text-white font-medium bg-zinc-800 px-2.5 py-1 rounded-lg border border-line">{displayValue}</span>
+        <span className="text-ink-muted font-semibold">{displayLabel}</span>
+        <span className="text-ink font-medium bg-surface px-2.5 py-1 rounded-lg border border-line">{displayValue}</span>
       </div>
     );
   }).filter(Boolean);
