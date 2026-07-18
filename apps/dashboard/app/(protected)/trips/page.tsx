@@ -674,7 +674,8 @@ function TripRouteReplay({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
   const routeQuery = useQuery({
     queryKey: ['trips', tripId, 'route'],
-    queryFn: () => apiFetch<TripRoutePoint[]>(`/trips/${tripId}/route`),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryFn: () => apiFetch<any>(`/trips/${tripId}/route`),
     enabled: !!tripId,
   });
 
@@ -694,8 +695,11 @@ function TripRouteReplay({ tripId }: { tripId: string }) {
     );
   }
 
-  const route = routeQuery.data ?? [];
-  return <TripReplayMap route={route} />;
+  const rawData = routeQuery.data;
+  const route = Array.isArray(rawData) ? rawData : (rawData?.route ?? []);
+  const events = Array.isArray(rawData) ? [] : (rawData?.events ?? []);
+
+  return <TripReplayMap route={route} events={events} />;
 }
 
 // Helper to translate browser local datetime string to ISO UTC

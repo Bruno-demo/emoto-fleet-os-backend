@@ -308,7 +308,7 @@ export class TripsService {
   async getTripRouteForUser(
     user: AuthenticatedUser,
     id: string,
-  ): Promise<any[]> {
+  ): Promise<any> {
     // 1. Enforce subscription plan validation
     if (user.fleetPlan === 'DEMO') {
       throw new ForbiddenException(
@@ -351,7 +351,7 @@ export class TripsService {
     });
 
     if (!device) {
-      return [];
+      return { route: [], events: [] };
     }
 
     // 4. Query telemetry points during the trip duration
@@ -376,15 +376,45 @@ export class TripsService {
       },
     });
 
-    // 5. Convert Decimal structures to standard numeric formats for the response
-    return points.map((p) => ({
-      ts: p.ts.toISOString(),
-      lat: Number(p.lat),
-      lng: Number(p.lng),
-      speedKph: Number(p.speedKph),
-      batteryPct: p.batteryPct,
-      ignition: p.ignition,
-    }));
+    // 5. Query safety events during the trip duration
+    const events = await this.prismaService.event.findMany({
+      where: {
+        bikeId: trip.bikeId,
+        ts: {
+          gte: trip.startTs,
+          lte: trip.endTs || new Date(),
+        },
+      },
+      select: {
+        id: true,
+        ts: true,
+        type: true,
+        severity: true,
+        metaJson: true,
+      },
+      orderBy: {
+        ts: 'asc',
+      },
+    });
+
+    // 6. Return combined route points and safety events
+    return {
+      route: points.map((p) => ({
+        ts: p.ts.toISOString(),
+        lat: Number(p.lat),
+        lng: Number(p.lng),
+        speedKph: Number(p.speedKph),
+        batteryPct: p.batteryPct,
+        ignition: p.ignition,
+      })),
+      events: events.map((e) => ({
+        id: e.id.toString(),
+        ts: e.ts.toISOString(),
+        type: e.type,
+        severity: e.severity,
+        metaJson: e.metaJson,
+      })),
+    };
   }
 
   // Converts persisted trip plus event aggregates into API response object.

@@ -80,7 +80,7 @@ export class TripsController {
   async getTripRoute(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) tripId: string,
-  ): Promise<any[]> {
+  ): Promise<any> {
     return this.tripsService.getTripRouteForUser(user, tripId);
   }
 }
