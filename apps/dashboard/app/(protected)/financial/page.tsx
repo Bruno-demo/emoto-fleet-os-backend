@@ -1225,13 +1225,7 @@ export default function FinancialsPage() {
                 </div>
               }
             >
-              {isMatrixLoading ? (
-                <div className="space-y-2 animate-pulse">
-                  <div className="h-10 bg-surface-muted rounded-xl" />
-                  <div className="h-10 bg-surface-muted rounded-xl" />
-                  <div className="h-10 bg-surface-muted rounded-xl" />
-                </div>
-              ) : accumulatedMatrixRiders.length === 0 ? (
+              {!isMatrixLoading && totalDailyRiders === 0 && totalLeaseRiders === 0 && debouncedSearch === '' ? (
                 <EmptyState
                   icon={<Calendar size={18} />}
                   title={t("No riders registered")}
@@ -1253,7 +1247,7 @@ export default function FinancialsPage() {
                             : 'text-ink-muted hover:text-ink'
                         )}
                       >
-                        {t('Daily Collections')} ({dailyCollectionRiders.length})
+                        {t('Daily Collections')} ({totalDailyRiders})
                       </button>
                       <button
                         type="button"
@@ -1265,7 +1259,7 @@ export default function FinancialsPage() {
                             : 'text-ink-muted hover:text-ink'
                         )}
                       >
-                        {t('Buy-to-Own Leases')} ({buyToOwnRiders.length})
+                        {t('Buy-to-Own Leases')} ({totalLeaseRiders})
                       </button>
                     </div>
 
@@ -1293,8 +1287,14 @@ export default function FinancialsPage() {
                     </div>
                   </div>
 
-                  {/* Matrix Table */}
-                  {activeMatrixRiders.length === 0 ? (
+                  {/* Matrix Table / Skeleton / Empty State Area */}
+                  {isMatrixLoading ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-10 bg-surface-muted rounded-xl" />
+                      <div className="h-10 bg-surface-muted rounded-xl" />
+                      <div className="h-10 bg-surface-muted rounded-xl" />
+                    </div>
+                  ) : activeMatrixRiders.length === 0 ? (
                     <EmptyState
                       icon={<Users size={16} />}
                       title={t("No matching riders found")}
