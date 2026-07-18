@@ -549,26 +549,16 @@ export function LiveMapPanel() {
                   {mapStyle === 'satellite' && (
                     <TileLayer
                       key="satellite"
-                      attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                      attribution='&copy; Google'
+                      url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
                     />
                   )}
                   {mapStyle === 'hybrid' && (
-                    <>
-                      <TileLayer
-                        key="hybrid-base"
-                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                      />
-                      <TileLayer
-                        key="hybrid-labels"
-                        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                        url={resolvedTheme === 'light'
-                          ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png'
-                          : 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'}
-                        zIndex={10}
-                      />
-                    </>
+                    <TileLayer
+                      key="hybrid"
+                      attribution='&copy; Google'
+                      url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                    />
                   )}
                   <MapSizeController />
                   <MapViewportController
