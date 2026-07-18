@@ -237,10 +237,28 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
     };
 
     await this.prismaService.$transaction([
-      this.prismaService.telemetryPoint.create({
-        data: {
+      this.prismaService.telemetryPoint.upsert({
+        where: {
+          deviceId_ts: {
+            deviceId: device.id,
+            ts: telemetryTimestamp,
+          },
+        },
+        create: {
           deviceId: device.id,
           ts: telemetryTimestamp,
+          lat: filteredPayload.lat,
+          lng: filteredPayload.lng,
+          speedKph: filteredPayload.speedKph,
+          heading: filteredPayload.heading,
+          accelX: filteredPayload.accel?.x,
+          accelY: filteredPayload.accel?.y,
+          accelZ: filteredPayload.accel?.z,
+          batteryV: filteredPayload.batteryV,
+          batteryPct: filteredPayload.batteryPct,
+          ignition: filteredPayload.ignition,
+        },
+        update: {
           lat: filteredPayload.lat,
           lng: filteredPayload.lng,
           speedKph: filteredPayload.speedKph,

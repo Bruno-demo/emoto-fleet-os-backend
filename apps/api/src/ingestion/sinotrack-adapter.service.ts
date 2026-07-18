@@ -459,12 +459,24 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       sig: 'bypassed-sinotrack-secure-local-adapter',
     };
 
-    // Execute standard TimescaleDB and Prisma transaction
     await this.prismaService.$transaction([
-      this.prismaService.telemetryPoint.create({
-        data: {
+      this.prismaService.telemetryPoint.upsert({
+        where: {
+          deviceId_ts: {
+            deviceId: device.id,
+            ts,
+          },
+        },
+        create: {
           deviceId: device.id,
           ts,
+          lat: filtered.lat,
+          lng: filtered.lng,
+          speedKph: filtered.speedKph,
+          heading: isNaN(heading) ? null : heading,
+          ignition,
+        },
+        update: {
           lat: filtered.lat,
           lng: filtered.lng,
           speedKph: filtered.speedKph,
