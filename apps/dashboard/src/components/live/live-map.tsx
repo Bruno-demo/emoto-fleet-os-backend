@@ -844,10 +844,12 @@ export function LiveMapPanel() {
                 label={t("Battery")}
                 value={
                   selectedState?.batteryPct !== undefined
-                    ? `${selectedState.batteryPct.toFixed(0)}%${selectedState.batteryV !== undefined ? ` (${selectedState.batteryV.toFixed(1)}V)` : ''}`
-                    : selectedState?.batteryV !== undefined
+                    ? `${selectedState.batteryPct.toFixed(0)}%${selectedState.batteryV !== undefined && selectedState.batteryV > 5 ? ` (${selectedState.batteryV.toFixed(1)}V)` : ''}`
+                    : selectedState?.batteryV !== undefined && selectedState.batteryV > 5
                       ? `${selectedState.batteryV.toFixed(1)} V`
-                      : '--'
+                      : selectedState?.batteryV !== undefined && selectedState.batteryV <= 1.0
+                        ? `${Math.round((selectedState.batteryV === 0.6 ? 1 : selectedState.batteryV) * 100)}%`
+                        : '--'
                 }
               />
               <KeyMetric

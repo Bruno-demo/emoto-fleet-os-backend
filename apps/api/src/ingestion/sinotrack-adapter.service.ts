@@ -705,6 +705,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           } else if (num > 120 && num <= 120000 && batteryV === undefined) {
             // Voltage in mV (e.g. 72800 = 72.8V, 65000 = 65.0V, 4150 = 4.15V)
             batteryV = num / 1000;
+          } else if (num > 0 && num <= 1.0 && batteryPct === undefined) {
+            // Status level ratio (e.g. 0.6 = level 6/6 full 100%)
+            batteryPct = num === 0.6 ? 100 : Math.round(num * 100);
           }
         }
       }
@@ -739,8 +742,15 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
     // 3. Compute accurate E-Bike State of Charge (SoC / Percentage) from Voltage (batteryV):
     if (batteryV !== undefined) {
+      // Clean up low decimal ratio artifacts (< 3.0V)
+      if (batteryV < 3.0) {
+        if (batteryPct === undefined) {
+          batteryPct = batteryV === 0.6 ? 100 : Math.round(batteryV * 100);
+        }
+        batteryV = undefined;
+      }
       // 72V E-Bike System (Max: 84.0V full charge, Cutoff: 60.0V empty)
-      if (batteryV > 58.0 && batteryV <= 90.0) {
+      else if (batteryV > 58.0 && batteryV <= 90.0) {
         const pct = ((batteryV - 60.0) / 24.0) * 100;
         batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
       }
