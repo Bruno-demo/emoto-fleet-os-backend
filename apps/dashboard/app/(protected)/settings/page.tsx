@@ -1070,7 +1070,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className="text-xl font-bold text-ink print:text-black">eMoto Fleet OS</h2>
                 <p className="text-xs text-ink-muted print:text-gray-600">Official Subscription Tax Invoice</p>
-                <p className="text-[11px] text-ink-soft mt-1 print:text-gray-600">eMoto Rwanda Ltd · Kigali, Rwanda</p>
+                <p className="text-[11px] text-ink-soft mt-1 print:text-gray-600">Emotofleet OS LTD · TIN: 156542452 · Kigali, Rwanda</p>
               </div>
               <div className="text-right">
                 <span className="inline-block rounded-lg bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono font-bold text-accent print:border print:border-black print:text-black">
