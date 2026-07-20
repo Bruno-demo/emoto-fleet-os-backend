@@ -661,8 +661,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Helper to extract battery voltage (batteryV) and battery percentage (batteryPct)
+   * Helper to extract battery voltage (batteryV) and calculate accurate battery percentage (batteryPct)
    * from SinoTrack ST-901 ASCII GPRS packet parts and statusHex.
+   *
+   * Handles high-voltage E-Bike battery wiring (72V, 60V, 48V E-Motos) as well as 12V ICE bikes
+   * and 3.7V internal tracker backup batteries.
    */
   private extractBatteryInfo(
     statusHex?: string,
@@ -677,7 +680,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         const p = parts[i]?.trim();
         if (!p) continue;
 
-        // Check if string ends with 'V' or 'v' (e.g. "12.4V" or "72.8V" or "4.1V")
+        // Check if string ends with 'V' or 'v' (e.g. "72.8V", "65.0V", "12.4V", "4.1V")
         if (/^\d+(\.\d+)?v$/i.test(p)) {
           const val = parseFloat(p.replace(/v$/i, ''));
           if (!isNaN(val) && val > 0 && val <= 200) {
@@ -694,12 +697,13 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           }
         }
 
-        // Check for direct numeric voltage in volts (e.g. 12.4 or 72.8 or 4.15)
+        // Check for direct numeric voltage in volts or mV
         const num = parseFloat(p);
         if (!isNaN(num)) {
-          if (num >= 3.0 && num <= 100.0 && batteryV === undefined) {
+          if (num >= 3.0 && num <= 120.0 && batteryV === undefined) {
             batteryV = num;
-          } else if (num > 100 && num <= 100000 && batteryV === undefined) {
+          } else if (num > 120 && num <= 120000 && batteryV === undefined) {
+            // Voltage in mV (e.g. 72800 = 72.8V, 65000 = 65.0V, 4150 = 4.15V)
             batteryV = num / 1000;
           }
         }
@@ -708,13 +712,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
     // 2. Decode battery level & percentage from statusHex (8 hex chars = 4 bytes)
     if (statusHex && statusHex.length >= 4) {
-      // Byte 1 (chars 2..4) contains GT06 / SinoTrack Battery Level / Percentage
       const secondByteHex = statusHex.substring(2, 4);
       const secondByte = parseInt(secondByteHex, 16);
 
       if (!isNaN(secondByte)) {
         if (secondByte >= 0x00 && secondByte <= 0x06) {
-          // Standard GT06 battery level enum (0..6)
           const levelMap: Record<number, number> = {
             0: 0,
             1: 10,
@@ -727,31 +729,40 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           if (batteryPct === undefined) {
             batteryPct = levelMap[secondByte];
           }
-          if (batteryV === undefined && batteryPct !== undefined) {
-            batteryV = parseFloat((3.5 + (batteryPct / 100) * 0.7).toFixed(2));
-          }
         } else if (secondByte > 0x06 && secondByte <= 0x64) {
           if (batteryPct === undefined) {
             batteryPct = secondByte;
-          }
-          if (batteryV === undefined) {
-            batteryV = parseFloat((3.5 + (batteryPct / 100) * 0.7).toFixed(2));
           }
         }
       }
     }
 
-    // 3. If batteryV is set but batteryPct is missing, calculate percentage relative to battery voltage range
-    if (batteryV !== undefined && batteryPct === undefined) {
-      if (batteryV <= 4.5) {
-        // Internal 3.7V battery (3.5V to 4.2V)
-        batteryPct = Math.min(100, Math.max(0, Math.round(((batteryV - 3.5) / 0.7) * 100)));
-      } else if (batteryV <= 15) {
-        // 12V motorcycle battery (10.5V to 13.8V)
-        batteryPct = Math.min(100, Math.max(0, Math.round(((batteryV - 10.5) / 3.3) * 100)));
-      } else if (batteryV <= 90) {
-        // 72V E-bike battery (60V to 84V)
-        batteryPct = Math.min(100, Math.max(0, Math.round(((batteryV - 60) / 24) * 100)));
+    // 3. Compute accurate E-Bike State of Charge (SoC / Percentage) from Voltage (batteryV):
+    if (batteryV !== undefined) {
+      // 72V E-Bike System (Max: 84.0V full charge, Cutoff: 60.0V empty)
+      if (batteryV > 58.0 && batteryV <= 90.0) {
+        const pct = ((batteryV - 60.0) / 24.0) * 100;
+        batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
+      }
+      // 60V E-Bike System (Max: 70.0V full charge, Cutoff: 50.0V empty)
+      else if (batteryV > 45.0 && batteryV <= 58.0) {
+        const pct = ((batteryV - 50.0) / 20.0) * 100;
+        batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
+      }
+      // 48V E-Bike System (Max: 54.6V full charge, Cutoff: 40.0V empty)
+      else if (batteryV > 20.0 && batteryV <= 45.0) {
+        const pct = ((batteryV - 40.0) / 14.6) * 100;
+        batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
+      }
+      // 12V ICE Motorcycle System (Max: 13.8V, Cutoff: 10.5V)
+      else if (batteryV > 6.0 && batteryV <= 20.0) {
+        const pct = ((batteryV - 10.5) / 3.3) * 100;
+        batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
+      }
+      // 3.7V Internal Tracker Backup Battery (Max: 4.2V, Cutoff: 3.5V)
+      else if (batteryV >= 3.0 && batteryV <= 6.0) {
+        const pct = ((batteryV - 3.5) / 0.7) * 100;
+        batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
       }
     }
 
