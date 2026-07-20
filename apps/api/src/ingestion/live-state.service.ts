@@ -8,6 +8,7 @@ import {
 import { EventsGateway } from '../events/events.gateway';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BatterySwapDetectorService } from '../financials/battery-swap-detector.service';
 import { LiveBikeState } from './ingestion.types';
 
 const LIVE_STATE_TTL_SECONDS = 60 * 60;
@@ -20,6 +21,7 @@ export class LiveStateService {
     private readonly redisService: RedisService,
     private readonly eventsGateway: EventsGateway,
     private readonly prismaService: PrismaService,
+    private readonly batterySwapDetectorService: BatterySwapDetectorService,
   ) {}
 
   // Filters out stationary GPS drift and clamps speed when ignition is off.
@@ -98,6 +100,18 @@ export class LiveStateService {
       LIVE_STATE_TTL_SECONDS,
     );
     this.eventsGateway.emitBikeState(state);
+
+    // Evaluate telemetry for automatic battery swap detection
+    try {
+      await this.batterySwapDetectorService.evaluateTelemetryForSwap(
+        existing,
+        state,
+      );
+    } catch (err: unknown) {
+      this.logger.error(
+        `Failed to evaluate automatic battery swap for bike ${state.bikeId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   // Loads a single latest bike state from Redis cache.

@@ -927,7 +927,14 @@ export default function ReportsPage() {
                           {swap.rider?.riderProfile?.fullName || swap.rider?.phone || '--'}
                         </td>
                         <td className="py-3 px-4 font-medium text-ink">
-                          {swap.swapStation}
+                          <div className="flex flex-col gap-0.5">
+                            <span>{swap.swapStation}</span>
+                            {swap.notes?.includes('[Auto-Detected]') && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                                ✨ Auto-Detected
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <span

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CommandsModule } from '../commands/commands.module';
 import { EventsModule } from '../events/events.module';
+import { FinancialsModule } from '../financials/financials.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { RoadsModule } from '../roads/roads.module';
@@ -18,6 +19,7 @@ import { SinoTrackAdapterService } from './sinotrack-adapter.service';
     EventsModule,
     CommandsModule,
     RoadsModule,
+    FinancialsModule,
   ],
   controllers: [LiveController],
   providers: [
