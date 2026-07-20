@@ -531,6 +531,12 @@ export default function HqBillingPage() {
                               )}>
                                 {fleet.plan === 'PREMIUM' ? 'Plus' : fleet.plan === 'INSURANCE' ? 'Insurance' : 'Core'}
                               </span>
+                              {fleet.trialEndsAt && new Date(fleet.trialEndsAt) > new Date() && (
+                                <span className="rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                  <Sparkles size={9} className="text-cyan-400" />
+                                  TRIAL ({Math.max(1, Math.ceil((new Date(fleet.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}d)
+                                </span>
+                              )}
                               <span className="text-[10px] text-zinc-600">{fleet._count.users}u · {fleet._count.bikes}b</span>
                             </div>
                           </div>

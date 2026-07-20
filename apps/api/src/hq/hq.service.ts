@@ -2529,15 +2529,19 @@ export class HqService {
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + durationDays);
 
+    const previousStatus = fleet.subscriptionStatus;
+
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         trialStartedAt,
         trialEndsAt,
+        subscriptionStatus: FleetSubscriptionStatus.ACTIVE,
       },
       select: {
         id: true,
         name: true,
+        subscriptionStatus: true,
         trialStartedAt: true,
         trialEndsAt: true,
       },
@@ -2554,6 +2558,8 @@ export class HqService {
         durationDays,
         trialStartedAt,
         trialEndsAt,
+        previousSubscriptionStatus: previousStatus,
+        newSubscriptionStatus: FleetSubscriptionStatus.ACTIVE,
       },
     });
 

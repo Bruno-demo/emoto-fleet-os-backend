@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Building2, Search, Funnel, MoreHorizontal, User, Bike, Calendar, X } from 'lucide-react';
+import { Building2, Search, Funnel, MoreHorizontal, User, Bike, Calendar, X, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -15,6 +15,7 @@ const fleetsSchema = z.array(
     plan: z.string(),
     subscriptionStatus: z.string(),
     createdAt: z.string(),
+    trialEndsAt: z.string().nullable().optional(),
     bikeRange: z.string().nullable().optional(),
     _count: z.object({
       users: z.number(),
@@ -225,6 +226,12 @@ export default function HqFleetsPage() {
                         <span className={`text-xs font-bold ${fleet.subscriptionStatus === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {fleet.subscriptionStatus}
                         </span>
+                        {fleet.trialEndsAt && new Date(fleet.trialEndsAt) > new Date() && (
+                          <span className="rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-cyan-300 flex items-center gap-1 shadow-sm">
+                            <Sparkles size={10} className="text-cyan-400" />
+                            TRIAL
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-8 py-6">
