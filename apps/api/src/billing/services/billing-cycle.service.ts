@@ -154,10 +154,18 @@ export class BillingCycleService {
       periodStart = new Date(fleet.createdAt);
     }
 
+    const now = new Date();
+    if (periodStart > now) {
+      throw new BadRequestException(
+        `Cannot generate billing cycle #${cycleNumber}: cycle start date (${periodStart.toISOString().slice(0, 10)}) has not arrived yet. Invoices cannot be generated for future billing periods.`,
+      );
+    }
+
     const periodEnd = new Date(periodStart);
     periodEnd.setDate(periodEnd.getDate() + cycleDays);
 
-    const dueDate = new Date(periodStart);
+    // Set invoice due date to periodEnd (end of billing cycle month) instead of periodStart
+    const dueDate = new Date(periodEnd);
 
     const bikeCount = fleet.bikes.length;
     const subtotal = bikeCount * ratePerBike;

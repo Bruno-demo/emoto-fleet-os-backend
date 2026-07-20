@@ -21,6 +21,7 @@ import {
   Trash,
   Copy,
   Check,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
@@ -32,7 +33,7 @@ import { DashboardCard } from '@/components/ui/dashboard-card';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { getSubscriptionEntitlements } from '@/lib/subscription';
-import { cx, formatEnumLabel } from '@/lib/ui';
+import { cx, formatEnumLabel, formatTimestamp } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 interface BillingCycleData {
@@ -180,6 +181,15 @@ export default function SettingsPage() {
     }
   });
 
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const updateNotifPref = async (key: keyof typeof notifPrefs) => {
     if (savingNotifPref) return;
     setSavingNotifPref(true);
@@ -292,6 +302,15 @@ export default function SettingsPage() {
                   });
                 }}
               />
+              <div className="rounded-xl border border-line bg-surface-muted p-3 text-xs flex items-center justify-between shadow-xs">
+                <span className="text-ink-soft flex items-center gap-1.5 font-medium">
+                  <Clock size={14} className="text-accent" />
+                  {t("Active System Time")}
+                </span>
+                <span className="font-mono font-bold text-ink bg-surface px-2.5 py-1 rounded-lg border border-line">
+                  {formatTimestamp(currentTime)}
+                </span>
+              </div>
             </div>
           </DashboardCard>
         </div>

@@ -68,6 +68,71 @@ export class BillingCronService {
     this.logger.log('Starting auto-mark overdue cron job...');
     const config = await this.billingConfigService.getConfig();
     const gracePeriodDays = config.gracePeriodDays;
+    const now = new Date();
+
+    // 1. Heal legacy billing cycles where dueDate was incorrectly set to periodStart instead of periodEnd
+    const cyclesToHeal = await this.prisma.billingCycle.findMany({
+      where: {
+        status: {
+          in: [
+            BillingCycleStatus.PENDING,
+            BillingCycleStatus.PARTIAL,
+            BillingCycleStatus.OVERDUE,
+          ],
+        },
+      },
+    });
+
+    for (const c of cyclesToHeal) {
+      if (c.dueDate.getTime() < c.periodEnd.getTime()) {
+        await this.prisma.billingCycle.update({
+          where: { id: c.id },
+          data: { dueDate: c.periodEnd },
+        });
+      }
+    }
+
+    // 2. Heal fleets that were prematurely set to PAST_DUE before their invoice periodEnd + grace period passed
+    const pastDueFleets = await this.prisma.fleet.findMany({
+      where: { subscriptionStatus: FleetSubscriptionStatus.PAST_DUE },
+      include: {
+        billingCycles: {
+          where: {
+            status: {
+              in: [
+                BillingCycleStatus.PENDING,
+                BillingCycleStatus.PARTIAL,
+                BillingCycleStatus.OVERDUE,
+              ],
+            },
+          },
+        },
+      },
+    });
+
+    for (const fleet of pastDueFleets) {
+      let genuinelyOverdueCount = 0;
+      for (const cycle of fleet.billingCycles) {
+        const cycleGraceEnd = new Date(cycle.periodEnd);
+        cycleGraceEnd.setDate(cycleGraceEnd.getDate() + gracePeriodDays);
+        if (now >= cycleGraceEnd) {
+          genuinelyOverdueCount++;
+        } else if (cycle.status === BillingCycleStatus.OVERDUE) {
+          // Revert premature OVERDUE status back to PENDING if active month is still ongoing
+          await this.prisma.billingCycle.update({
+            where: { id: cycle.id },
+            data: { status: BillingCycleStatus.PENDING },
+          });
+        }
+      }
+
+      if (genuinelyOverdueCount === 0) {
+        await this.prisma.fleet.update({
+          where: { id: fleet.id },
+          data: { subscriptionStatus: FleetSubscriptionStatus.ACTIVE },
+        });
+      }
+    }
 
     const limitDate = new Date();
     limitDate.setDate(limitDate.getDate() - gracePeriodDays);
