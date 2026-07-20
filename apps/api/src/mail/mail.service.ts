@@ -295,4 +295,120 @@ export class MailService {
 
     return this.sendMail(email, subject, htmlContent);
   }
+
+  /**
+   * Sends a styled operational/billing notification email
+   */
+  async sendNotificationEmail(
+    email: string,
+    subject: string,
+    title: string,
+    message: string,
+  ): Promise<boolean> {
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #0d0d0e;
+      color: #e4e4e7;
+    }
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: #0d0d0e;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 580px;
+      margin: 0 auto;
+      background-color: #161617;
+      border: 1px solid #27272a;
+      border-radius: 20px;
+      padding: 40px;
+      box-sizing: border-box;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: #00c853;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-top: 5px;
+    }
+    .notification-card {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+    }
+    .notification-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #3b82f6;
+      margin: 0 0 10px 0;
+    }
+    .notification-body {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #d4d4d8;
+      margin: 0;
+    }
+    .footer {
+      border-top: 1px solid #27272a;
+      padding-top: 20px;
+      font-size: 12px;
+      color: #71717a;
+      text-align: center;
+      line-height: 1.5;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1 class="logo-text">eMoto</h1>
+        <div class="subtitle">Fleet Operations OS</div>
+      </div>
+      
+      <div class="notification-card">
+        <h2 class="notification-title">${title}</h2>
+        <p class="notification-body">${message}</p>
+      </div>
+      
+      <div class="footer">
+        <p>&copy; ${new Date().getFullYear()} eMoto. All rights reserved.</p>
+        <p>This is an automated operational notification. Please do not reply directly to this email.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    return this.sendMail(email, subject, htmlContent);
+  }
 }

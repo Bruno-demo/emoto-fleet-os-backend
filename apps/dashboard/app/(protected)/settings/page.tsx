@@ -22,6 +22,8 @@ import {
   Copy,
   Check,
   Clock,
+  FileText,
+  Printer,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
@@ -45,6 +47,10 @@ interface BillingCycleData {
   totalPaid: number;
   status: string;
   dueDate: string;
+  bikeCount?: number;
+  ratePerBike?: number;
+  isTrial?: boolean;
+  notes?: string | null;
 }
 
 interface PricingTier {
@@ -189,6 +195,8 @@ export default function SettingsPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const [selectedInvoiceModal, setSelectedInvoiceModal] = useState<BillingCycleData | null>(null);
 
   const updateNotifPref = async (key: keyof typeof notifPrefs) => {
     if (savingNotifPref) return;
@@ -450,6 +458,7 @@ export default function SettingsPage() {
                       <th className="py-3 px-4 whitespace-nowrap">{t("Amount Paid")}</th>
                       <th className="py-3 px-4 whitespace-nowrap">{t("Status")}</th>
                       <th className="py-3 px-4 whitespace-nowrap">{t("Due Date")}</th>
+                      <th className="py-3 px-4 text-right whitespace-nowrap">{t("Action")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line text-ink-soft">
@@ -479,6 +488,16 @@ export default function SettingsPage() {
                         </td>
                         <td className="py-3 px-4">
                           {new Date(cycle.dueDate).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInvoiceModal(cycle)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-muted px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover transition cursor-pointer"
+                          >
+                            <FileText size={12} className="text-accent" />
+                            {t("View / Print")}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1040,6 +1059,121 @@ export default function SettingsPage() {
             )}
           </DashboardCard>
         </div>
+      )}
+
+      {/* Printable Tax Invoice Modal */}
+      {selectedInvoiceModal && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm print:p-0 print:bg-white animate-fade-in">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-line bg-surface p-6 shadow-2xl space-y-6 print:border-none print:shadow-none print:text-black print:bg-white text-ink">
+            {/* Invoice Header */}
+            <div className="flex items-start justify-between border-b border-line pb-4 print:border-black">
+              <div>
+                <h2 className="text-xl font-bold text-ink print:text-black">eMoto Fleet OS</h2>
+                <p className="text-xs text-ink-muted print:text-gray-600">Official Subscription Tax Invoice</p>
+                <p className="text-[11px] text-ink-soft mt-1 print:text-gray-600">eMoto Rwanda Ltd · Kigali, Rwanda</p>
+              </div>
+              <div className="text-right">
+                <span className="inline-block rounded-lg bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono font-bold text-accent print:border print:border-black print:text-black">
+                  INV-{new Date(selectedInvoiceModal.periodStart).getFullYear()}-{String(selectedInvoiceModal.cycleNumber).padStart(3, '0')}
+                </span>
+                <p className="text-xs text-ink-muted mt-1 print:text-gray-600">
+                  {t("Issued")}: {new Date(selectedInvoiceModal.periodStart).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Customer & Cycle Info */}
+            <div className="grid grid-cols-2 gap-4 text-xs bg-surface-muted p-4 rounded-xl print:bg-gray-100 print:border print:border-gray-300">
+              <div>
+                <p className="font-bold text-ink-muted uppercase tracking-wider text-[10px] print:text-gray-700">{t("Billed To")}</p>
+                <p className="font-bold text-ink text-sm mt-0.5 print:text-black">{user?.fleetName ?? 'Fleet Operator'}</p>
+                <p className="text-ink-soft print:text-gray-600">{t("Fleet ID")}: {user?.fleetId}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-ink-muted uppercase tracking-wider text-[10px] print:text-gray-700">{t("Billing Period")}</p>
+                <p className="font-semibold text-ink mt-0.5 print:text-black">
+                  {new Date(selectedInvoiceModal.periodStart).toLocaleDateString()} – {new Date(selectedInvoiceModal.periodEnd).toLocaleDateString()}
+                </p>
+                <p className="text-ink-soft mt-1 print:text-gray-600">
+                  {t("Due Date")}: <span className="font-bold text-ink print:text-black">{new Date(selectedInvoiceModal.dueDate).toLocaleDateString()}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Line Item Table */}
+            <div className="border border-line rounded-xl overflow-hidden print:border-gray-300">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead className="bg-surface-muted border-b border-line text-ink-muted font-bold uppercase print:bg-gray-200 print:text-black">
+                  <tr>
+                    <th className="py-2.5 px-4">{t("Item / Description")}</th>
+                    <th className="py-2.5 px-4 text-center">{t("Bikes")}</th>
+                    <th className="py-2.5 px-4 text-right">{t("Rate / Bike")}</th>
+                    <th className="py-2.5 px-4 text-right">{t("Total")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line print:divide-gray-300 print:text-black">
+                  <tr>
+                    <td className="py-3 px-4 font-medium">
+                      {t("E-Moto Fleet OS Subscription")} ({entitlements.planLabel})
+                    </td>
+                    <td className="py-3 px-4 text-center font-bold">
+                      {selectedInvoiceModal.bikeCount ?? 1}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono">
+                      {(selectedInvoiceModal.ratePerBike ?? (selectedInvoiceModal.totalDue / (selectedInvoiceModal.bikeCount || 1))).toLocaleString()} RWF
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-bold">
+                      {selectedInvoiceModal.totalDue.toLocaleString()} RWF
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Summary & Totals */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 text-xs">
+              <div className="space-y-1 text-ink-soft print:text-gray-600">
+                <p className="font-bold text-ink print:text-black">{t("Payment Status")}: <span className="uppercase text-accent font-bold">{selectedInvoiceModal.status}</span></p>
+                <p>{t("Payment Method")}: MTN Mobile Money / Bank Transfer</p>
+                <p>{t("MoMo Pay Merchant Code")}: <span className="font-mono font-bold text-ink print:text-black">*182*8*1# (Code: 881234)</span></p>
+              </div>
+              <div className="text-right space-y-1.5 border-t border-line pt-2 w-full sm:w-56 print:border-gray-300">
+                <div className="flex justify-between text-ink-soft">
+                  <span>{t("Subtotal")}:</span>
+                  <span className="font-mono">{selectedInvoiceModal.totalDue.toLocaleString()} RWF</span>
+                </div>
+                <div className="flex justify-between text-ink-soft">
+                  <span>{t("Amount Paid")}:</span>
+                  <span className="font-mono text-success-ink">{selectedInvoiceModal.totalPaid.toLocaleString()} RWF</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm text-ink print:text-black border-t border-line pt-1">
+                  <span>{t("Balance Due")}:</span>
+                  <span className="font-mono text-accent">{(selectedInvoiceModal.totalDue - selectedInvoiceModal.totalPaid).toLocaleString()} RWF</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-3 border-t border-line pt-4 print:hidden">
+              <button
+                type="button"
+                onClick={() => setSelectedInvoiceModal(null)}
+                className="rounded-xl border border-line bg-surface-muted px-4 py-2 text-xs font-bold text-ink hover:bg-surface-hover transition cursor-pointer"
+              >
+                {t("Close")}
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white hover:brightness-110 transition cursor-pointer shadow-md shadow-accent/20"
+              >
+                <Printer size={14} />
+                {t("Print / Save PDF")}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

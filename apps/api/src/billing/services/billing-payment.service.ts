@@ -111,10 +111,11 @@ export class BillingPaymentService {
 
       for (const fUser of fleetUsers) {
         if (fUser.email) {
-          await this.mailService.sendOtpEmail(
+          await this.mailService.sendNotificationEmail(
             fUser.email,
             `Invoice Paid Confirmation - ${cycle.fleet.name}`,
-            `Thank you for your payment of ${dto.amount} RWF for invoice #${cycle.cycleNumber}. Your invoice is now ${newStatus.toLowerCase()}.`,
+            'Payment Received',
+            `Thank you for your payment of ${dto.amount.toLocaleString()} RWF for invoice #${cycle.cycleNumber}. Your invoice is now ${newStatus.toLowerCase()}.`,
           );
         }
       }

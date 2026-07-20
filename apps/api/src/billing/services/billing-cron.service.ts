@@ -222,10 +222,11 @@ export class BillingCronService {
 
           for (const fUser of fleetUsers) {
             if (fUser.email) {
-              await this.mailService.sendOtpEmail(
+              await this.mailService.sendNotificationEmail(
                 fUser.email,
                 `Upcoming Subscription Renewal - ${cycle.fleet.name}`,
-                `Your Fleet OS subscription renewal invoice of ${cycle.totalDue} RWF is due on ${cycle.dueDate.toLocaleDateString()}. Please ensure payment setup is completed.`,
+                'Upcoming Subscription Renewal',
+                `Your Fleet OS subscription renewal invoice of ${cycle.totalDue.toLocaleString()} RWF is due on ${new Date(cycle.dueDate).toLocaleDateString()}. Please ensure payment setup is completed.`,
               );
             }
           }
@@ -299,10 +300,11 @@ export class BillingCronService {
 
           for (const fUser of fleetUsers) {
             if (fUser.email) {
-              await this.mailService.sendOtpEmail(
+              await this.mailService.sendNotificationEmail(
                 fUser.email,
                 `URGENT: Subscription Invoice Overdue - ${cycle.fleet.name}`,
-                `Your Fleet OS subscription invoice #${cycle.cycleNumber} of ${cycle.totalDue} RWF is now ${days} days overdue. Access to premium features may be suspended. Please complete payment setup immediately.`,
+                'Subscription Invoice Overdue',
+                `Your Fleet OS subscription invoice #${cycle.cycleNumber} of ${cycle.totalDue.toLocaleString()} RWF is now ${days} days overdue. Access to premium features may be suspended. Please complete payment setup immediately.`,
               );
             }
           }
@@ -382,9 +384,10 @@ export class BillingCronService {
 
         for (const fUser of fleetUsers) {
           if (fUser.email) {
-            await this.mailService.sendOtpEmail(
+            await this.mailService.sendNotificationEmail(
               fUser.email,
               `Your Free Trial Has Ended - ${fleet.name}`,
+              'Free Trial Ended',
               `Your free trial of E-Moto Fleet OS has ended. A new billing invoice has been generated. Please subscribe to continue using premium features.`,
             );
           }
