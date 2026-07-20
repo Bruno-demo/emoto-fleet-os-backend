@@ -1557,7 +1557,12 @@ function mergeLiveStates(
   for (const state of realtimeStates) {
     const current = merged.get(state.bikeId);
     if (!current || current.ts.localeCompare(state.ts) <= 0) {
-      merged.set(state.bikeId, state);
+      merged.set(state.bikeId, {
+        ...current,
+        ...state,
+        batteryV: state.batteryV !== undefined ? state.batteryV : current?.batteryV,
+        batteryPct: state.batteryPct !== undefined ? state.batteryPct : current?.batteryPct,
+      });
     }
   }
 

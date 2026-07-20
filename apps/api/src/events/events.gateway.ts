@@ -306,6 +306,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection {
       speedKph: state.speedKph,
       heading: state.heading,
       batteryV: state.batteryV,
+      batteryPct: state.batteryPct,
       ignition: state.ignition,
     };
   }
