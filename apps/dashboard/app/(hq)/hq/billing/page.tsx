@@ -277,6 +277,8 @@ export default function HqBillingPage() {
     },
   });
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const generateCycleMutation = useMutation({
     mutationFn: (fleetId: string) =>
       apiFetch('/billing/cycles/generate', {
@@ -284,8 +286,12 @@ export default function HqBillingPage() {
         body: JSON.stringify({ fleetId }),
       }),
     onSuccess: () => {
+      setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['hq', 'fleet-cycles'] });
       queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
+    },
+    onError: (err: Error) => {
+      setActionError(err.message || 'Failed to generate invoice cycle.');
     },
   });
 
@@ -1006,6 +1012,13 @@ export default function HqBillingPage() {
                 </div>
               </div>
             </div>
+
+            {actionError && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 flex items-center justify-between">
+                <span>{actionError}</span>
+                <button onClick={() => setActionError(null)} className="text-red-400 font-bold hover:text-white ml-2">✕</button>
+              </div>
+            )}
 
             {/* Invoices List */}
             <div className="space-y-3">

@@ -155,9 +155,9 @@ export class BillingCycleService {
     }
 
     const now = new Date();
-    if (periodStart > now) {
+    if (!isManual && periodStart > now) {
       throw new BadRequestException(
-        `Cannot generate billing cycle #${cycleNumber}: cycle start date (${periodStart.toISOString().slice(0, 10)}) has not arrived yet. Invoices cannot be generated for future billing periods.`,
+        `Cannot generate billing cycle #${cycleNumber}: cycle start date (${periodStart.toISOString().slice(0, 10)}) has not arrived yet. Automated invoices cannot be generated for future billing periods.`,
       );
     }
 
