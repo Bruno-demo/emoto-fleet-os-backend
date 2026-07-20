@@ -842,7 +842,13 @@ export function LiveMapPanel() {
               />
               <KeyMetric
                 label={t("Battery")}
-                value={selectedState?.batteryV !== undefined ? `${selectedState.batteryV.toFixed(1)} V` : '--'}
+                value={
+                  selectedState?.batteryPct !== undefined
+                    ? `${selectedState.batteryPct.toFixed(0)}%${selectedState.batteryV !== undefined ? ` (${selectedState.batteryV.toFixed(1)}V)` : ''}`
+                    : selectedState?.batteryV !== undefined
+                      ? `${selectedState.batteryV.toFixed(1)} V`
+                      : '--'
+                }
               />
               <KeyMetric
                 label={t("Last seen")}

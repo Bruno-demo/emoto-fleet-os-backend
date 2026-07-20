@@ -368,6 +368,7 @@ export class TripsService {
         lat: true,
         lng: true,
         speedKph: true,
+        batteryV: true,
         batteryPct: true,
         ignition: true,
       },

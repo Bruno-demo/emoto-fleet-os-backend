@@ -435,6 +435,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
+    // Extract battery voltage and percentage from statusHex and extended packet parts
+    const { batteryV, batteryPct } = this.extractBatteryInfo(statusHex, parts);
+
     // Apply stationary GPS drift filtering and speed clamping
     const filtered = await this.liveStateService.filterStationaryDrift(
       device.fleetId,
@@ -454,6 +457,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       lng: filtered.lng,
       speedKph: filtered.speedKph,
       heading: isNaN(heading) ? undefined : heading,
+      batteryV,
+      batteryPct,
       ignition,
       nonce: `sinotrack-${device.id}-${ts.getTime()}`,
       sig: 'bypassed-sinotrack-secure-local-adapter',
@@ -474,6 +479,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           lng: filtered.lng,
           speedKph: filtered.speedKph,
           heading: isNaN(heading) ? null : heading,
+          batteryV: batteryV !== undefined ? batteryV : null,
+          batteryPct: batteryPct !== undefined ? batteryPct : null,
           ignition,
         },
         update: {
@@ -481,6 +488,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           lng: filtered.lng,
           speedKph: filtered.speedKph,
           heading: isNaN(heading) ? null : heading,
+          batteryV: batteryV !== undefined ? batteryV : null,
+          batteryPct: batteryPct !== undefined ? batteryPct : null,
           ignition,
         },
       }),
@@ -504,6 +513,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         lng: filtered.lng,
         speedKph: filtered.speedKph,
         heading: telemetryPayload.heading,
+        batteryV,
+        batteryPct,
         ignition,
       };
       await this.liveStateService.setLatestBikeState(latestState);
@@ -647,6 +658,104 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     }
 
     return dateObj;
+  }
+
+  /**
+   * Helper to extract battery voltage (batteryV) and battery percentage (batteryPct)
+   * from SinoTrack ST-901 ASCII GPRS packet parts and statusHex.
+   */
+  private extractBatteryInfo(
+    statusHex?: string,
+    parts?: string[],
+  ): { batteryV?: number; batteryPct?: number } {
+    let batteryV: number | undefined = undefined;
+    let batteryPct: number | undefined = undefined;
+
+    // 1. Check extended fields in parts (parts[13] to parts[20])
+    if (parts && parts.length > 13) {
+      for (let i = 13; i < parts.length; i++) {
+        const p = parts[i]?.trim();
+        if (!p) continue;
+
+        // Check if string ends with 'V' or 'v' (e.g. "12.4V" or "72.8V" or "4.1V")
+        if (/^\d+(\.\d+)?v$/i.test(p)) {
+          const val = parseFloat(p.replace(/v$/i, ''));
+          if (!isNaN(val) && val > 0 && val <= 200) {
+            batteryV = val;
+            break;
+          }
+        }
+
+        // Check if explicit percentage string (e.g. "85%")
+        if (/^\d+%/i.test(p)) {
+          const pct = parseFloat(p.replace(/%/i, ''));
+          if (!isNaN(pct) && pct >= 0 && pct <= 100) {
+            batteryPct = pct;
+          }
+        }
+
+        // Check for direct numeric voltage in volts (e.g. 12.4 or 72.8 or 4.15)
+        const num = parseFloat(p);
+        if (!isNaN(num)) {
+          if (num >= 3.0 && num <= 100.0 && batteryV === undefined) {
+            batteryV = num;
+          } else if (num > 100 && num <= 100000 && batteryV === undefined) {
+            batteryV = num / 1000;
+          }
+        }
+      }
+    }
+
+    // 2. Decode battery level & percentage from statusHex (8 hex chars = 4 bytes)
+    if (statusHex && statusHex.length >= 4) {
+      // Byte 1 (chars 2..4) contains GT06 / SinoTrack Battery Level / Percentage
+      const secondByteHex = statusHex.substring(2, 4);
+      const secondByte = parseInt(secondByteHex, 16);
+
+      if (!isNaN(secondByte)) {
+        if (secondByte >= 0x00 && secondByte <= 0x06) {
+          // Standard GT06 battery level enum (0..6)
+          const levelMap: Record<number, number> = {
+            0: 0,
+            1: 10,
+            2: 25,
+            3: 50,
+            4: 70,
+            5: 85,
+            6: 100,
+          };
+          if (batteryPct === undefined) {
+            batteryPct = levelMap[secondByte];
+          }
+          if (batteryV === undefined && batteryPct !== undefined) {
+            batteryV = parseFloat((3.5 + (batteryPct / 100) * 0.7).toFixed(2));
+          }
+        } else if (secondByte > 0x06 && secondByte <= 0x64) {
+          if (batteryPct === undefined) {
+            batteryPct = secondByte;
+          }
+          if (batteryV === undefined) {
+            batteryV = parseFloat((3.5 + (batteryPct / 100) * 0.7).toFixed(2));
+          }
+        }
+      }
+    }
+
+    // 3. If batteryV is set but batteryPct is missing, calculate percentage relative to battery voltage range
+    if (batteryV !== undefined && batteryPct === undefined) {
+      if (batteryV <= 4.5) {
+        // Internal 3.7V battery (3.5V to 4.2V)
+        batteryPct = Math.min(100, Math.max(0, Math.round(((batteryV - 3.5) / 0.7) * 100)));
+      } else if (batteryV <= 15) {
+        // 12V motorcycle battery (10.5V to 13.8V)
+        batteryPct = Math.min(100, Math.max(0, Math.round(((batteryV - 10.5) / 3.3) * 100)));
+      } else if (batteryV <= 90) {
+        // 72V E-bike battery (60V to 84V)
+        batteryPct = Math.min(100, Math.max(0, Math.round(((batteryV - 60) / 24) * 100)));
+      }
+    }
+
+    return { batteryV, batteryPct };
   }
 
   private async loadDeviceByImei(

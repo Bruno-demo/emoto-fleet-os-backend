@@ -27,6 +27,7 @@ const bikeStateSchema = z.object({
   speedKph: z.number(),
   heading: z.number().optional(),
   batteryV: z.number().optional(),
+  batteryPct: z.number().optional(),
   ignition: z.boolean().optional(),
 });
 
