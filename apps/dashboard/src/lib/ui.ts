@@ -12,8 +12,22 @@ export function formatEnumLabel(value: string) {
 }
 
 // Formats date-like values into a concise operator-facing timestamp.
-export function formatTimestamp(value: string) {
-  return new Date(value).toLocaleString();
+export function formatTimestamp(value: string | Date) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  if (typeof window !== 'undefined') {
+    try {
+      const tzPref = localStorage.getItem('emoto-use-local-tz');
+      if (tzPref === 'false') {
+        return `${date.toLocaleString(undefined, { timeZone: 'UTC' })} UTC`;
+      }
+    } catch {
+      // Fallback to local browser timezone on storage failure
+    }
+  }
+
+  return date.toLocaleString();
 }
 
 // Formats a relative age string for volatile telemetry surfaces.

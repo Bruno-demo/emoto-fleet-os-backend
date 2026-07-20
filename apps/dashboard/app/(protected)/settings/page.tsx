@@ -277,12 +277,18 @@ export default function SettingsPage() {
               <SettingsToggle
                 icon={<Globe size={15} />}
                 label={t("Timezone")}
-                description={t("Dates display in your browser's local timezone")}
+                description={
+                  useLocalTimezone
+                    ? t("Dates display in your browser's local timezone")
+                    : t("Dates display in Coordinated Universal Time (UTC)")
+                }
                 checked={useLocalTimezone}
                 onChange={() => {
                   setUseLocalTimezone((v) => {
-                    localStorage.setItem('emoto-use-local-tz', String(!v));
-                    return !v;
+                    const next = !v;
+                    localStorage.setItem('emoto-use-local-tz', String(next));
+                    window.dispatchEvent(new Event('storage'));
+                    return next;
                   });
                 }}
               />
