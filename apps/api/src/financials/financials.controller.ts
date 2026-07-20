@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Query,
   ForbiddenException,
@@ -16,6 +18,8 @@ import { FinancialsService } from './financials.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { ListPaymentsDto } from './dto/list-payments.dto';
 import { RecordDeliveryPayoutDto } from './dto/record-delivery-payout.dto';
+import { CreateBatterySwapDto } from './dto/create-battery-swap.dto';
+import { ListBatterySwapsDto } from './dto/list-battery-swaps.dto';
 
 @ApiTags('financials')
 @ApiBearerAuth()
@@ -120,5 +124,41 @@ export class FinancialsController {
       );
     }
     return this.financialsService.recordDeliveryPayout(user, dto);
+  }
+
+  @Get('battery-swaps')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+  )
+  @ApiOperation({ summary: 'List and filter recorded battery swaps' })
+  async listBatterySwaps(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListBatterySwapsDto,
+  ) {
+    return this.financialsService.listBatterySwaps(user, query);
+  }
+
+  @Post('battery-swaps')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
+  @ApiOperation({ summary: 'Record a new battery swap transaction' })
+  async createBatterySwap(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateBatterySwapDto,
+  ) {
+    return this.financialsService.createBatterySwap(user, dto);
+  }
+
+  @Delete('battery-swaps/:id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete or void a battery swap record' })
+  async deleteBatterySwap(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.financialsService.deleteBatterySwap(user, id);
   }
 }

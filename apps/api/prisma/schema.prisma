@@ -272,6 +272,7 @@ model Fleet {
   fleetDiscounts    Discount[]           @relation("FleetDiscount")
   deliveries        Delivery[]
   trafficFines      TrafficFine[]
+  batterySwaps      BatterySwap[]
 }
 
 model User {
@@ -300,6 +301,7 @@ model User {
   billingPayments       BillingPayment[]
   deliveries            Delivery[]           @relation("DeliveryRider")
   trafficFines          TrafficFine[]        @relation("RiderTrafficFines")
+  batterySwaps          BatterySwap[]        @relation("BatterySwapRider")
 
 
   @@unique([fleetId, email])
@@ -350,6 +352,7 @@ model Bike {
   commands      DeviceCommand[]
   incidents     Incident[]
   assignments   BikeAssignment[]
+  batterySwaps  BatterySwap[]
 
   @@unique([fleetId, label])
   @@unique([fleetId, plate])
@@ -955,6 +958,35 @@ model TrafficFine {
   @@index([fleetId])
   @@index([riderId])
   @@index([status])
+}
+
+model BatterySwap {
+  id               String   @id @default(uuid()) @db.Uuid
+  fleetId          String   @db.Uuid
+  bikeId           String?  @db.Uuid
+  riderId          String?  @db.Uuid
+  swapStation      String   @default("Kigali Central Hub")
+  swapType         String   @default("FULL") // FULL, HALF, QUARTER, CUSTOM
+  fraction         Float    @default(1.0)    // 1.0 = 100%, 0.5 = 50%, 0.25 = 25%
+  unitPriceRwf     Int      @default(2500)   // 2500 RWF per full swap
+  totalCostRwf     Int      @default(2500)   // Calculated: Math.round(unitPriceRwf * fraction)
+  batterySerialOut String?
+  batterySerialIn  String?
+  soCOutPct        Float?
+  soCInPct         Float?
+  ts               DateTime @default(now()) @db.Timestamptz(6)
+  notes            String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+  fleet            Fleet    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  bike             Bike?    @relation(fields: [bikeId], references: [id], onDelete: SetNull)
+  rider            User?    @relation("BatterySwapRider", fields: [riderId], references: [id], onDelete: SetNull)
+
+  @@index([fleetId])
+  @@index([bikeId])
+  @@index([riderId])
+  @@index([ts])
+  @@index([fleetId, ts])
 }
 
 

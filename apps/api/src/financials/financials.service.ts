@@ -14,6 +14,8 @@ import { AuditService } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { ListPaymentsDto } from './dto/list-payments.dto';
+import { CreateBatterySwapDto } from './dto/create-battery-swap.dto';
+import { ListBatterySwapsDto } from './dto/list-battery-swaps.dto';
 import {
   PaginatedResponse,
   createPaginatedResponse,
@@ -635,6 +637,179 @@ export class FinancialsService {
     });
 
     return { success: true, count: unpaidCommissions.length };
+  }
+
+  async listBatterySwaps(user: AuthenticatedUser, query: ListBatterySwapsDto) {
+    const pagination = getPaginationParams(query);
+    const where: Prisma.BatterySwapWhereInput = {
+      fleetId: user.fleetId,
+    };
+
+    if (query.bikeId) where.bikeId = query.bikeId;
+    if (query.riderId) where.riderId = query.riderId;
+
+    if (query.startDate || query.endDate) {
+      where.ts = {};
+      if (query.startDate) {
+        where.ts.gte = query.startDate.includes('T')
+          ? new Date(query.startDate)
+          : new Date(query.startDate + 'T00:00:00.000Z');
+      }
+      if (query.endDate) {
+        where.ts.lte = query.endDate.includes('T')
+          ? new Date(query.endDate)
+          : new Date(query.endDate + 'T23:59:59.999Z');
+      }
+    }
+
+    if (query.search) {
+      where.OR = [
+        { swapStation: { contains: query.search, mode: 'insensitive' } },
+        { notes: { contains: query.search, mode: 'insensitive' } },
+        { bike: { label: { contains: query.search, mode: 'insensitive' } } },
+        { bike: { plate: { contains: query.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [swaps, total, aggregations] = await Promise.all([
+      this.prisma.batterySwap.findMany({
+        where,
+        orderBy: { ts: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+        include: {
+          bike: {
+            select: { id: true, label: true, plate: true, serial: true },
+          },
+          rider: {
+            select: {
+              id: true,
+              email: true,
+              phone: true,
+              riderProfile: { select: { fullName: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.batterySwap.count({ where }),
+      this.prisma.batterySwap.aggregate({
+        where,
+        _sum: { totalCostRwf: true, fraction: true },
+        _count: { id: true },
+      }),
+    ]);
+
+    const typeCounts = await this.prisma.batterySwap.groupBy({
+      by: ['swapType'],
+      where,
+      _count: { id: true },
+      _sum: { totalCostRwf: true },
+    });
+
+    const breakdown: Record<string, { count: number; totalCost: number }> = {
+      FULL: { count: 0, totalCost: 0 },
+      HALF: { count: 0, totalCost: 0 },
+      QUARTER: { count: 0, totalCost: 0 },
+      CUSTOM: { count: 0, totalCost: 0 },
+    };
+
+    typeCounts.forEach((tc) => {
+      if (breakdown[tc.swapType]) {
+        breakdown[tc.swapType] = {
+          count: tc._count.id,
+          totalCost: tc._sum.totalCostRwf || 0,
+        };
+      }
+    });
+
+    const totalCostRwf = aggregations._sum.totalCostRwf || 0;
+    const totalUnits = aggregations._sum.fraction || 0;
+
+    return {
+      data: swaps,
+      meta: {
+        total,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: Math.ceil(total / pagination.pageSize),
+      },
+      summary: {
+        totalSwaps: total,
+        totalCostRwf,
+        totalUnits: Math.round(totalUnits * 100) / 100,
+        avgCostPerSwap: total > 0 ? Math.round(totalCostRwf / total) : 0,
+        breakdown,
+      },
+    };
+  }
+
+  async createBatterySwap(user: AuthenticatedUser, dto: CreateBatterySwapDto) {
+    const unitPrice = dto.unitPriceRwf ?? 2500;
+    let fraction = 1.0;
+
+    if (dto.swapType === 'FULL') {
+      fraction = 1.0;
+    } else if (dto.swapType === 'HALF') {
+      fraction = 0.5;
+    } else if (dto.swapType === 'QUARTER') {
+      fraction = 0.25;
+    } else if (dto.swapType === 'CUSTOM') {
+      fraction = dto.fraction && dto.fraction > 0 ? dto.fraction : 1.0;
+    }
+
+    const totalCostRwf = Math.round(unitPrice * fraction);
+    const timestamp = dto.ts ? new Date(dto.ts) : new Date();
+
+    const swap = await this.prisma.batterySwap.create({
+      data: {
+        fleetId: user.fleetId,
+        bikeId: dto.bikeId || null,
+        riderId: dto.riderId || null,
+        swapStation: dto.swapStation || 'Kigali Central Hub',
+        swapType: dto.swapType,
+        fraction,
+        unitPriceRwf: unitPrice,
+        totalCostRwf,
+        batterySerialOut: dto.batterySerialOut || null,
+        batterySerialIn: dto.batterySerialIn || null,
+        soCOutPct: dto.soCOutPct !== undefined ? dto.soCOutPct : null,
+        soCInPct: dto.soCInPct !== undefined ? dto.soCInPct : null,
+        ts: timestamp,
+        notes: dto.notes || null,
+      },
+      include: {
+        bike: { select: { id: true, label: true, plate: true } },
+        rider: { select: { id: true, riderProfile: { select: { fullName: true } } } },
+      },
+    });
+
+    await this.auditService.createAuditLog({
+      fleetId: user.fleetId,
+      actorUserId: user.id,
+      actionType: AuditActionType.RIDER_PAYMENT_RECORDED,
+      targetType: 'BATTERY_SWAP',
+      targetId: swap.id,
+      metaJson: {
+        swapType: dto.swapType,
+        fraction,
+        totalCostRwf,
+        bikeId: dto.bikeId,
+        riderId: dto.riderId,
+      },
+    });
+
+    return swap;
+  }
+
+  async deleteBatterySwap(user: AuthenticatedUser, id: string) {
+    const swap = await this.prisma.batterySwap.findFirst({
+      where: { id, fleetId: user.fleetId },
+    });
+    if (!swap) {
+      throw new NotFoundException('Battery swap record not found');
+    }
+    await this.prisma.batterySwap.delete({ where: { id } });
+    return { success: true, id };
   }
 }
 

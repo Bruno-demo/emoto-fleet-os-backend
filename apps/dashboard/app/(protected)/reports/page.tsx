@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
-import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, Banknote } from 'lucide-react';
+import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, Banknote, Zap, BatteryCharging, Plus, Trash2, Battery, X, RefreshCw } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -32,6 +32,38 @@ interface LeaseContract {
   pendingFines?: number;
 }
 
+interface BatterySwapRecord {
+  id: string;
+  fleetId: string;
+  bikeId: string | null;
+  riderId: string | null;
+  swapStation: string;
+  swapType: 'FULL' | 'HALF' | 'QUARTER' | 'CUSTOM';
+  fraction: number;
+  unitPriceRwf: number;
+  totalCostRwf: number;
+  batterySerialOut?: string;
+  batterySerialIn?: string;
+  soCOutPct?: number;
+  soCInPct?: number;
+  ts: string;
+  notes?: string;
+  bike?: { id: string; label: string; plate: string; serial: string };
+  rider?: { id: string; email: string; phone: string; riderProfile?: { fullName: string } };
+}
+
+interface BatterySwapResponse {
+  data: BatterySwapRecord[];
+  meta: { total: number; page: number; pageSize: number; totalPages: number };
+  summary: {
+    totalSwaps: number;
+    totalCostRwf: number;
+    totalUnits: number;
+    avgCostPerSwap: number;
+    breakdown: Record<string, { count: number; totalCost: number }>;
+  };
+}
+
 function getDefaultRange() {
   const to = new Date();
   const from = new Date();
@@ -46,7 +78,9 @@ export default function ReportsPage() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUser();
   const [dateRange, setDateRange] = useState(getDefaultRange);
-  const [activeTab, setActiveTab] = useState<'safety' | 'leases'>('safety');
+  const [activeTab, setActiveTab] = useState<'safety' | 'leases' | 'swaps'>('safety');
+  const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [swapSearch, setSwapSearch] = useState('');
 
   const reportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
@@ -72,6 +106,51 @@ export default function ReportsPage() {
     enabled: activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
+
+  const swapsQuery = useQuery({
+    queryKey: ['battery-swaps', dateRange.from, dateRange.to, swapSearch],
+    queryFn: () => apiFetch<BatterySwapResponse>(`/financials/battery-swaps?startDate=${dateRange.from}&endDate=${dateRange.to}&search=${encodeURIComponent(swapSearch)}`),
+    enabled: activeTab === 'swaps' && user?.role !== 'INSURER',
+  });
+
+  const handleExportSwaps = () => {
+    if (!swapsQuery.data || swapsQuery.data.data.length === 0) return;
+    const cols = [
+      { header: t('Date & Time'), key: 'ts', type: 'text' as const },
+      { header: t('Bike Plate'), key: 'bikePlate', type: 'text' as const },
+      { header: t('Bike Label'), key: 'bikeLabel', type: 'text' as const },
+      { header: t('Rider Name'), key: 'riderName', type: 'text' as const },
+      { header: t('Station'), key: 'swapStation', type: 'text' as const },
+      { header: t('Swap Type'), key: 'swapType', type: 'text' as const },
+      { header: t('Capacity Fraction'), key: 'fraction', type: 'text' as const, align: 'right' as const },
+      { header: t('Swap Fee (RWF)'), key: 'totalCostRwf', type: 'currency' as const, align: 'right' as const },
+    ];
+
+    const rows = swapsQuery.data.data.map((s) => ({
+      ts: new Date(s.ts).toLocaleString(),
+      bikePlate: s.bike?.plate ?? '--',
+      bikeLabel: s.bike?.label ?? '--',
+      riderName: s.rider?.riderProfile?.fullName ?? '--',
+      swapStation: s.swapStation,
+      swapType: s.swapType,
+      fraction: `${Math.round(s.fraction * 100)}%`,
+      totalCostRwf: s.totalCostRwf,
+    }));
+
+    downloadFormattedExcel({
+      title: t('Battery Swapping Financial Ledger'),
+      subtitle: t('Detailed logs of battery swap energy transactions and station fees'),
+      dateRange: `${dateRange.from} ${t('to')} ${dateRange.to}`,
+      kpis: [
+        { label: t('Total Swaps'), value: String(swapsQuery.data.summary.totalSwaps) },
+        { label: t('Total Spend'), value: `${swapsQuery.data.summary.totalCostRwf.toLocaleString()} RWF` },
+        { label: t('Total Volume'), value: `${swapsQuery.data.summary.totalUnits.toFixed(1)} Packs` },
+      ],
+      columns: cols,
+      rows,
+      sheetName: 'Battery Swaps Ledger',
+    });
+  };
 
   const leaseMetrics = useMemo(() => {
     const totalLeases = leases.length;
@@ -230,18 +309,35 @@ export default function ReportsPage() {
             {t('Financials & Lease Repayments')}
           </button>
         )}
+        {user?.role !== 'INSURER' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('swaps')}
+            className={cx(
+              "pb-3 text-sm font-bold border-b-2 px-4 transition-all -mb-px focus:outline-none flex items-center gap-2",
+              activeTab === 'swaps'
+                ? "border-accent text-ink"
+                : "border-transparent text-ink-muted hover:text-ink"
+            )}
+          >
+            <Zap size={16} className="text-amber-400" />
+            {t('Battery Swaps')}
+          </button>
+        )}
       </div>
 
       {/* Top Header & Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
           <h1 className="text-xl font-bold text-ink">
-            {activeTab === 'safety' ? t('Operations & Safety Report') : t('Financials & Lease Repayments')}
+            {activeTab === 'safety' ? t('Operations & Safety Report') : activeTab === 'leases' ? t('Financials & Lease Repayments') : t('Battery Swapping Financials & Ledger')}
           </h1>
           <p className="text-xs text-ink-muted mt-1">
             {activeTab === 'safety'
               ? t('Weekly fleet aggregates, driver safety score history, and safety incident highlights.')
-              : t('Asset financing summaries, arrears, and rider equity progress.')}
+              : activeTab === 'leases'
+                ? t('Asset financing summaries, arrears, and rider equity progress.')
+                : t('Real-time battery swap transactions, station energy fees, and capacity ledger.')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -455,7 +551,7 @@ export default function ReportsPage() {
             )}
           </DashboardCard>
         </div>
-      ) : (
+      ) : activeTab === 'leases' ? (
         <div className="space-y-6">
           {/* Financials KPI Cards */}
           <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -717,7 +813,178 @@ export default function ReportsPage() {
             </div>
           </DashboardCard>
         </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Battery Swaps KPI Summary */}
+          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              title={t('Total Swap Cost')}
+              value={`${(swapsQuery.data?.summary.totalCostRwf ?? 0).toLocaleString()} RWF`}
+              hint={t('Cumulative battery swap expense')}
+              icon={<Banknote size={18} />}
+              tone="warning"
+            />
+            <MetricCard
+              title={t('Total Battery Swaps')}
+              value={String(swapsQuery.data?.summary.totalSwaps ?? 0)}
+              hint={`Full: ${swapsQuery.data?.summary.breakdown.FULL?.count ?? 0} · Half: ${swapsQuery.data?.summary.breakdown.HALF?.count ?? 0} · Qtr: ${swapsQuery.data?.summary.breakdown.QUARTER?.count ?? 0}`}
+              icon={<Zap size={18} />}
+              tone="success"
+            />
+            <MetricCard
+              title={t('Avg Cost per Swap')}
+              value={`${(swapsQuery.data?.summary.avgCostPerSwap ?? 0).toLocaleString()} RWF`}
+              hint={t('Average price per swap event')}
+              icon={<Coins size={18} />}
+              tone="info"
+            />
+            <MetricCard
+              title={t('Energy Volume')}
+              value={`${(swapsQuery.data?.summary.totalUnits ?? 0).toFixed(1)} Packs`}
+              hint={t('Full battery equivalents swapped')}
+              icon={<BatteryCharging size={18} />}
+              tone="neutral"
+            />
+          </section>
+
+          {/* Battery Swaps Table Card */}
+          <DashboardCard
+            title={t('Battery Swap Ledger')}
+            description={t('Record and track battery swapping financial transactions and station logs')}
+            actions={
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="text"
+                  placeholder={t('Search station, bike, rider...')}
+                  value={swapSearch}
+                  onChange={(e) => setSwapSearch(e.target.value)}
+                  className="rounded-xl border border-line bg-surface-muted px-3 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={handleExportSwaps}
+                  disabled={!swapsQuery.data || swapsQuery.data.data.length === 0}
+                  className="flex items-center gap-1.5 rounded-xl border border-line bg-surface-muted px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-strong transition disabled:opacity-50"
+                >
+                  <Download size={14} />
+                  {t('Export CSV')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSwapModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-1.5 text-xs font-bold text-black hover:opacity-90 transition shadow-sm"
+                >
+                  <Plus size={14} />
+                  {t('Record Battery Swap')}
+                </button>
+              </div>
+            }
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-ink border-collapse">
+                <thead>
+                  <tr className="border-b border-line bg-surface-muted/50 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+                    <th className="py-3 px-4">{t('Date & Time')}</th>
+                    <th className="py-3 px-4">{t('Bike')}</th>
+                    <th className="py-3 px-4">{t('Rider')}</th>
+                    <th className="py-3 px-4">{t('Station')}</th>
+                    <th className="py-3 px-4">{t('Swap Type & Fraction')}</th>
+                    <th className="py-3 px-4">{t('Battery SoC')}</th>
+                    <th className="py-3 px-4 text-right">{t('Total Cost (RWF)')}</th>
+                    <th className="py-3 px-4 text-center">{t('Actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {swapsQuery.isLoading ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-ink-muted">
+                        <div className="flex justify-center items-center gap-2">
+                          <RefreshCw size={16} className="animate-spin text-accent" />
+                          <span>{t('Loading battery swaps ledger...')}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (swapsQuery.data?.data ?? []).length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8">
+                        <EmptyState
+                          icon={<Zap size={24} className="text-amber-400" />}
+                          title={t('No battery swaps recorded')}
+                          description={t('Click "Record Battery Swap" above to log a new battery swap transaction.')}
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    (swapsQuery.data?.data ?? []).map((swap) => (
+                      <tr key={swap.id} className="hover:bg-surface-muted/40 transition-colors">
+                        <td className="py-3 px-4 font-mono text-ink-muted">
+                          {new Date(swap.ts).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-ink">
+                          {swap.bike ? `${swap.bike.label} (${swap.bike.plate || t('No Plate')})` : '--'}
+                        </td>
+                        <td className="py-3 px-4 text-ink-soft">
+                          {swap.rider?.riderProfile?.fullName || swap.rider?.phone || '--'}
+                        </td>
+                        <td className="py-3 px-4 font-medium text-ink">
+                          {swap.swapStation}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={cx(
+                              "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                              swap.swapType === 'FULL'
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : swap.swapType === 'HALF'
+                                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                  : swap.swapType === 'QUARTER'
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                            )}
+                          >
+                            <Zap size={10} className="fill-current" />
+                            {swap.swapType} ({Math.round(swap.fraction * 100)}%)
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-ink-muted">
+                          {swap.soCOutPct !== undefined && swap.soCInPct !== undefined
+                            ? `${swap.soCOutPct}% ➔ ${swap.soCInPct}%`
+                            : '--'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-bold text-amber-400">
+                          {swap.totalCostRwf.toLocaleString()} RWF
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (confirm(t('Are you sure you want to void this battery swap entry?'))) {
+                                await apiFetch(`/financials/battery-swaps/${swap.id}`, { method: 'DELETE' });
+                                swapsQuery.refetch();
+                              }
+                            }}
+                            className="rounded-lg p-1.5 text-ink-muted hover:bg-danger-soft hover:text-danger-ink transition"
+                            title={t('Void Swap Record')}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </DashboardCard>
+        </div>
       )}
+
+      {/* Record Battery Swap Modal */}
+      <RecordSwapModal
+        isOpen={isSwapModalOpen}
+        onClose={() => setIsSwapModalOpen(false)}
+        onSuccess={() => swapsQuery.refetch()}
+      />
     </div>
   );
 }
@@ -940,6 +1207,270 @@ function ScoreBar({ score }: { score: number }) {
         )}
         style={{ width: `${Math.max(5, Math.min(100, score))}%` }}
       />
+    </div>
+  );
+}
+
+function RecordSwapModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { t } = useTranslation();
+  const [bikeId, setBikeId] = useState('');
+  const [riderId, setRiderId] = useState('');
+  const [swapStation, setSwapStation] = useState('Kigali Central Hub');
+  const [swapType, setSwapType] = useState<'FULL' | 'HALF' | 'QUARTER' | 'CUSTOM'>('FULL');
+  const [fraction, setFraction] = useState(1.0);
+  const [unitPriceRwf, setUnitPriceRwf] = useState(2500);
+  const [soCOutPct, setSoCOutPct] = useState('');
+  const [soCInPct, setSoCInPct] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const bikesQuery = useQuery({
+    queryKey: ['bikes', 'modal-select'],
+    queryFn: () => apiFetch<{ data: Array<{ id: string; label: string; plate: string }> }>('/bikes?pageSize=100'),
+    enabled: isOpen,
+  });
+
+  const ridersQuery = useQuery({
+    queryKey: ['riders', 'modal-select'],
+    queryFn: () => apiFetch<{ data: Array<{ id: string; phone?: string; riderProfile?: { fullName: string } }> }>('/riders?pageSize=100'),
+    enabled: isOpen,
+  });
+
+  const activeFraction =
+    swapType === 'FULL'
+      ? 1.0
+      : swapType === 'HALF'
+        ? 0.5
+        : swapType === 'QUARTER'
+          ? 0.25
+          : fraction;
+
+  const calculatedTotalCost = Math.round(unitPriceRwf * activeFraction);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      await apiFetch('/financials/battery-swaps', {
+        method: 'POST',
+        body: JSON.stringify({
+          bikeId: bikeId || undefined,
+          riderId: riderId || undefined,
+          swapStation,
+          swapType,
+          fraction: activeFraction,
+          unitPriceRwf,
+          soCOutPct: soCOutPct ? parseFloat(soCOutPct) : undefined,
+          soCInPct: soCInPct ? parseFloat(soCInPct) : undefined,
+          notes: notes || undefined,
+        }),
+      });
+      onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : t('Failed to record battery swap'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-2xl space-y-5">
+        <div className="flex items-center justify-between border-b border-line pb-3">
+          <div className="flex items-center gap-2">
+            <Zap className="text-amber-400 fill-current" size={20} />
+            <h2 className="text-lg font-bold text-ink">{t('Record Battery Swap')}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-ink-muted hover:bg-surface-hover hover:text-ink">
+            <X size={18} />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="rounded-xl border border-danger-line bg-danger-soft p-3 text-xs text-danger-ink font-semibold">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Select Bike')}</label>
+              <select
+                value={bikeId}
+                onChange={(e) => setBikeId(e.target.value)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              >
+                <option value="">-- {t('Select Bike')} --</option>
+                {(bikesQuery.data?.data ?? []).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label} ({b.plate || t('No Plate')})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Select Rider')}</label>
+              <select
+                value={riderId}
+                onChange={(e) => setRiderId(e.target.value)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              >
+                <option value="">-- {t('Select Rider')} --</option>
+                {(ridersQuery.data?.data ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.riderProfile?.fullName || r.phone || r.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink-muted mb-1.5">{t('Swap Type & Capacity')}</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { type: 'FULL', label: 'Full (100%)', price: Math.round(unitPriceRwf * 1.0), icon: <Zap size={14} className="text-amber-400 fill-current" /> },
+                { type: 'HALF', label: 'Half (50%)', price: Math.round(unitPriceRwf * 0.5), icon: <BatteryCharging size={14} className="text-blue-400" /> },
+                { type: 'QUARTER', label: 'Quarter (25%)', price: Math.round(unitPriceRwf * 0.25), icon: <Battery size={14} className="text-emerald-400" /> },
+                { type: 'CUSTOM', label: 'Custom', price: Math.round(unitPriceRwf * activeFraction), icon: <Coins size={14} className="text-purple-400" /> },
+              ].map((item) => (
+                <button
+                  key={item.type}
+                  type="button"
+                  onClick={() => setSwapType(item.type as any)}
+                  className={cx(
+                    "flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all",
+                    swapType === item.type
+                      ? "border-accent bg-accent/10 text-ink shadow-sm"
+                      : "border-line bg-surface-muted text-ink-muted hover:border-line-hover"
+                  )}
+                >
+                  <div className="flex items-center gap-1 text-xs font-bold">
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-amber-400 mt-1">{item.price.toLocaleString()} RWF</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {swapType === 'CUSTOM' && (
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Custom Fraction (0.05 - 1.0)')}</label>
+              <input
+                type="number"
+                step="0.05"
+                min="0.05"
+                max="2.0"
+                value={fraction}
+                onChange={(e) => setFraction(parseFloat(e.target.value) || 0.5)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Station Name')}</label>
+              <input
+                type="text"
+                value={swapStation}
+                onChange={(e) => setSwapStation(e.target.value)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Full Battery Price (RWF)')}</label>
+              <input
+                type="number"
+                value={unitPriceRwf}
+                onChange={(e) => setUnitPriceRwf(parseInt(e.target.value) || 2500)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Old Battery SoC (%)')}</label>
+              <input
+                type="number"
+                placeholder="e.g. 15"
+                value={soCOutPct}
+                onChange={(e) => setSoCOutPct(e.target.value)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink-muted mb-1">{t('New Battery SoC (%)')}</label>
+              <input
+                type="number"
+                placeholder="e.g. 98"
+                value={soCInPct}
+                onChange={(e) => setSoCInPct(e.target.value)}
+                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink-muted mb-1">{t('Notes')}</label>
+            <input
+              type="text"
+              placeholder={t('Optional station operator or swap details')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent"
+            />
+          </div>
+
+          {/* Price Calculation Banner */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-ink-muted font-medium">{t('Total Swap Fee')}</p>
+              <p className="text-sm font-bold text-amber-400">
+                {swapType} SWAP ({Math.round(activeFraction * 100)}%)
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="font-display text-xl font-extrabold text-white">{calculatedTotalCost.toLocaleString()} RWF</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-line bg-surface-muted px-4 py-2 text-xs font-semibold text-ink hover:bg-surface-hover"
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-xl bg-accent px-5 py-2 text-xs font-bold text-black hover:opacity-90 transition disabled:opacity-50 shadow-md"
+            >
+              {isSubmitting ? t('Saving...') : t('Confirm Battery Swap')}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
