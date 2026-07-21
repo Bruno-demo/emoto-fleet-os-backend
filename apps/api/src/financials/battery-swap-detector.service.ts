@@ -83,7 +83,6 @@ export class BatterySwapDetectorService {
     const swapStation = nearestPoi ? nearestPoi.name : 'Kigali Central Station';
 
     // 3. Classify Swap Type & Cost
-    const unitPriceRwf = 2500;
     let swapType = 'FULL';
     let fraction = 1.0;
 
@@ -101,7 +100,18 @@ export class BatterySwapDetectorService {
       fraction = Math.min(1.0, Math.max(0.1, Math.round((deltaSoC / 100) * 100) / 100));
     }
 
-    const totalCostRwf = Math.round(unitPriceRwf * fraction);
+    const unitPriceRwf = nearestPoi?.fullSwapFeeRwf || 2500;
+    let totalCostRwf = 0;
+    if (swapType === 'FULL') {
+      totalCostRwf = nearestPoi?.fullSwapFeeRwf ?? 2500;
+    } else if (swapType === 'HALF') {
+      totalCostRwf = nearestPoi?.halfSwapFeeRwf ?? 1250;
+    } else if (swapType === 'QUARTER') {
+      totalCostRwf = nearestPoi?.quarterSwapFeeRwf ?? 625;
+    } else {
+      totalCostRwf = Math.round(unitPriceRwf * fraction);
+    }
+
     const timestamp = new Date(nextState.ts);
 
     // 4. Create BatterySwap record automatically
@@ -154,15 +164,15 @@ export class BatterySwapDetectorService {
   private async findNearestSwapStation(
     lat: number,
     lng: number,
-  ): Promise<{ name: string } | null> {
+  ): Promise<{ name: string; fullSwapFeeRwf: number | null; halfSwapFeeRwf: number | null; quarterSwapFeeRwf: number | null } | null> {
     try {
       const pois = await this.prisma.poi.findMany({
         where: { type: 'SWAP' },
-        select: { name: true, lat: true, lng: true },
+        select: { name: true, lat: true, lng: true, fullSwapFeeRwf: true, halfSwapFeeRwf: true, quarterSwapFeeRwf: true },
       });
 
       let minDistance = Infinity;
-      let closest: { name: string } | null = null;
+      let closest: { name: string; fullSwapFeeRwf: number | null; halfSwapFeeRwf: number | null; quarterSwapFeeRwf: number | null } | null = null;
 
       for (const p of pois) {
         const pLat = Number(p.lat);
@@ -170,7 +180,12 @@ export class BatterySwapDetectorService {
         const distKm = this.haversineKm(lat, lng, pLat, pLng);
         if (distKm <= 0.5 && distKm < minDistance) {
           minDistance = distKm;
-          closest = { name: p.name };
+          closest = {
+            name: p.name,
+            fullSwapFeeRwf: p.fullSwapFeeRwf,
+            halfSwapFeeRwf: p.halfSwapFeeRwf,
+            quarterSwapFeeRwf: p.quarterSwapFeeRwf,
+          };
         }
       }
       return closest;

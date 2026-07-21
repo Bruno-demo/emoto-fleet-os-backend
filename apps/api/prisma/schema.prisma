@@ -481,6 +481,9 @@ model Poi {
   address   String?
   active             Boolean  @default(true)
   supportedBikeTypes String[] @default([])
+  fullSwapFeeRwf     Int?     @default(2500)
+  halfSwapFeeRwf     Int?     @default(1250)
+  quarterSwapFeeRwf  Int?     @default(625)
   createdAt          DateTime @default(now()) @db.Timestamptz(6)
   updatedAt          DateTime @updatedAt @db.Timestamptz(6)
   fleet     Fleet?   @relation(fields: [fleetId], references: [id], onDelete: SetNull)

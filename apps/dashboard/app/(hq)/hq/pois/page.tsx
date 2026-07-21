@@ -20,6 +20,9 @@ const poiSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   supportedBikeTypes: z.array(z.string()).default([]),
+  fullSwapFeeRwf: z.number().nullable().optional(),
+  halfSwapFeeRwf: z.number().nullable().optional(),
+  quarterSwapFeeRwf: z.number().nullable().optional(),
 });
 
 const poisResponseSchema = z.object({
@@ -61,6 +64,9 @@ export default function HqPoisPage() {
   const [formActive, setFormActive] = useState(true);
   const [formGlobal, setFormGlobal] = useState(true);
   const [formSupportedBikeTypes, setFormSupportedBikeTypes] = useState<string[]>([]);
+  const [formFullSwapFee, setFormFullSwapFee] = useState('2500');
+  const [formHalfSwapFee, setFormHalfSwapFee] = useState('1250');
+  const [formQuarterSwapFee, setFormQuarterSwapFee] = useState('625');
   const [formError, setFormError] = useState<string | null>(null);
 
   // Build query string
@@ -137,6 +143,9 @@ export default function HqPoisPage() {
     setFormActive(true);
     setFormGlobal(true);
     setFormSupportedBikeTypes([]);
+    setFormFullSwapFee('2500');
+    setFormHalfSwapFee('1250');
+    setFormQuarterSwapFee('625');
     setFormError(null);
   };
 
@@ -156,6 +165,9 @@ export default function HqPoisPage() {
     setFormActive(poi.active);
     setFormGlobal(poi.fleetId === null);
     setFormSupportedBikeTypes(poi.supportedBikeTypes || []);
+    setFormFullSwapFee(String(poi.fullSwapFeeRwf ?? 2500));
+    setFormHalfSwapFee(String(poi.halfSwapFeeRwf ?? 1250));
+    setFormQuarterSwapFee(String(poi.quarterSwapFeeRwf ?? 625));
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -190,6 +202,9 @@ export default function HqPoisPage() {
       active: formActive,
       global: formGlobal,
       supportedBikeTypes: formSupportedBikeTypes,
+      fullSwapFeeRwf: formType === 'SWAP' ? (parseInt(formFullSwapFee) || 2500) : null,
+      halfSwapFeeRwf: formType === 'SWAP' ? (parseInt(formHalfSwapFee) || 1250) : null,
+      quarterSwapFeeRwf: formType === 'SWAP' ? (parseInt(formQuarterSwapFee) || 625) : null,
     };
 
     if (editPoiId) {
@@ -363,6 +378,11 @@ export default function HqPoisPage() {
                             <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold ${typeColor(poi.type)}`}>
                               {poi.type}
                             </span>
+                            {poi.type === 'SWAP' && (
+                              <span className="text-[10px] font-semibold text-amber-400">
+                                Fees: {(poi.fullSwapFeeRwf ?? 2500).toLocaleString()} / {(poi.halfSwapFeeRwf ?? 1250).toLocaleString()} / {(poi.quarterSwapFeeRwf ?? 625).toLocaleString()} RWF
+                              </span>
+                            )}
                             {poi.supportedBikeTypes?.map((bt) => (
                               <span key={bt} className="inline-flex items-center rounded bg-white/5 border border-white/10 px-1.5 py-0.5 text-[8px] font-bold text-zinc-400">
                                 {bt}
@@ -537,6 +557,44 @@ export default function HqPoisPage() {
                   className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                 />
               </div>
+
+              {formType === 'SWAP' && (
+                <div className="rounded-xl border border-line bg-surface-strong/50 p-4 space-y-3">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Swap Station Fees (RWF)</span>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-zinc-500 mb-1">Full Swap</label>
+                      <input
+                        type="number"
+                        required
+                        value={formFullSwapFee}
+                        onChange={(e) => setFormFullSwapFee(e.target.value)}
+                        className="h-9 w-full rounded-lg border border-line bg-surface-strong px-2 text-xs text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-zinc-500 mb-1">Half Swap</label>
+                      <input
+                        type="number"
+                        required
+                        value={formHalfSwapFee}
+                        onChange={(e) => setFormHalfSwapFee(e.target.value)}
+                        className="h-9 w-full rounded-lg border border-line bg-surface-strong px-2 text-xs text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-zinc-500 mb-1">Quarter Swap</label>
+                      <input
+                        type="number"
+                        required
+                        value={formQuarterSwapFee}
+                        onChange={(e) => setFormQuarterSwapFee(e.target.value)}
+                        className="h-9 w-full rounded-lg border border-line bg-surface-strong px-2 text-xs text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">Supported Bike Models</label>

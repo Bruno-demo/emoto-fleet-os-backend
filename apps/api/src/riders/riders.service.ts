@@ -708,6 +708,9 @@ export class RidersService {
         address: dto.address ?? null,
         active: dto.active ?? true,
         supportedBikeTypes: dto.supportedBikeTypes ?? [],
+        fullSwapFeeRwf: dto.fullSwapFeeRwf ?? 2500,
+        halfSwapFeeRwf: dto.halfSwapFeeRwf ?? 1250,
+        quarterSwapFeeRwf: dto.quarterSwapFeeRwf ?? 625,
       },
     });
 
@@ -780,6 +783,9 @@ export class RidersService {
         address: dto.address,
         active: dto.active,
         supportedBikeTypes: dto.supportedBikeTypes,
+        fullSwapFeeRwf: dto.fullSwapFeeRwf,
+        halfSwapFeeRwf: dto.halfSwapFeeRwf,
+        quarterSwapFeeRwf: dto.quarterSwapFeeRwf,
       },
     });
 
@@ -1781,6 +1787,9 @@ export class RidersService {
       createdAt: poi.createdAt.toISOString(),
       updatedAt: poi.updatedAt.toISOString(),
       supportedBikeTypes: poi.supportedBikeTypes,
+      fullSwapFeeRwf: poi.fullSwapFeeRwf,
+      halfSwapFeeRwf: poi.halfSwapFeeRwf,
+      quarterSwapFeeRwf: poi.quarterSwapFeeRwf,
     };
   }
 

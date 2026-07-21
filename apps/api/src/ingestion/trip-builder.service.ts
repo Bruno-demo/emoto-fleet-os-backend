@@ -276,12 +276,15 @@ export class TripBuilderService {
       orderBy: { ts: 'asc' },
     });
 
-    const startBatteryPct = tripPoints[0]?.batteryPct
-      ? Number(tripPoints[0].batteryPct)
-      : null;
-    const endBatteryPct = tripPoints[tripPoints.length - 1]?.batteryPct
-      ? Number(tripPoints[tripPoints.length - 1].batteryPct)
-      : null;
+    const startBatteryPct =
+      tripPoints[0]?.batteryPct !== null && tripPoints[0]?.batteryPct !== undefined
+        ? Number(tripPoints[0].batteryPct)
+        : null;
+    const endBatteryPct =
+      tripPoints[tripPoints.length - 1]?.batteryPct !== null &&
+      tripPoints[tripPoints.length - 1]?.batteryPct !== undefined
+        ? Number(tripPoints[tripPoints.length - 1].batteryPct)
+        : null;
 
     const normalizedPoints: TripPoint[] = tripPoints.map((point) => ({
       lat: Number(point.lat),

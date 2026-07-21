@@ -405,7 +405,8 @@ export class TripsService {
         lat: Number(p.lat),
         lng: Number(p.lng),
         speedKph: Number(p.speedKph),
-        batteryPct: p.batteryPct,
+        batteryV: p.batteryV ? Number(p.batteryV) : undefined,
+        batteryPct: p.batteryPct !== null && p.batteryPct !== undefined ? p.batteryPct : undefined,
         ignition: p.ignition,
       })),
       events: events.map((e) => ({

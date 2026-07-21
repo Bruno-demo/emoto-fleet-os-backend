@@ -56,4 +56,19 @@ export class UpdatePoiDto {
   @IsArray()
   @IsString({ each: true })
   supportedBikeTypes?: string[];
+
+  @ApiPropertyOptional({ example: 2500, description: 'Full battery swap fee in RWF' })
+  @IsOptional()
+  @IsNumber()
+  fullSwapFeeRwf?: number;
+
+  @ApiPropertyOptional({ example: 1250, description: 'Half battery swap fee in RWF' })
+  @IsOptional()
+  @IsNumber()
+  halfSwapFeeRwf?: number;
+
+  @ApiPropertyOptional({ example: 625, description: 'Quarter battery swap fee in RWF' })
+  @IsOptional()
+  @IsNumber()
+  quarterSwapFeeRwf?: number;
 }

@@ -47,6 +47,9 @@ export interface PoiSummary {
   createdAt: string;
   updatedAt: string;
   supportedBikeTypes?: string[];
+  fullSwapFeeRwf?: number | null;
+  halfSwapFeeRwf?: number | null;
+  quarterSwapFeeRwf?: number | null;
 }
 
 export interface NearbyPoiSummary extends PoiSummary {
