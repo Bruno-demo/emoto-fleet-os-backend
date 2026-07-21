@@ -729,17 +729,22 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
       }
       // 60V E-Bike System (Max: 70.0V full charge, Cutoff: 50.0V empty)
-      else if (batteryV > 45.0 && batteryV <= 58.0) {
+      else if (batteryV > 46.0 && batteryV <= 58.0) {
         const pct = ((batteryV - 50.0) / 20.0) * 100;
         batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
       }
       // 48V E-Bike System (Max: 54.6V full charge, Cutoff: 40.0V empty)
-      else if (batteryV > 20.0 && batteryV <= 45.0) {
+      else if (batteryV > 35.0 && batteryV <= 46.0) {
         const pct = ((batteryV - 40.0) / 14.6) * 100;
         batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
       }
+      // 24V Nominal / Scaled E-Bike System (Max: 27.5V full charge, Cutoff: 19.0V empty)
+      else if (batteryV > 15.0 && batteryV <= 35.0) {
+        const pct = ((batteryV - 19.0) / 8.5) * 100;
+        batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
+      }
       // 12V ICE Motorcycle System (Max: 13.8V, Cutoff: 10.5V)
-      else if (batteryV > 6.0 && batteryV <= 20.0) {
+      else if (batteryV > 6.0 && batteryV <= 15.0) {
         const pct = ((batteryV - 10.5) / 3.3) * 100;
         batteryPct = Math.min(100, Math.max(0, Math.round(pct)));
       }
