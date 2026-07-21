@@ -674,9 +674,10 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     let batteryV: number | undefined = undefined;
     let batteryPct: number | undefined = undefined;
 
-    // 1. Check extended fields in parts (parts[13] to parts[20])
+    // 1. Check extended fields in parts (skip cell tower LBS fields starting at index 13 if present)
     if (parts && parts.length > 13) {
-      for (let i = 13; i < parts.length; i++) {
+      const startIndex = parts.length >= 17 ? 17 : 13;
+      for (let i = startIndex; i < parts.length; i++) {
         const p = parts[i]?.trim();
         if (!p) continue;
 
@@ -688,53 +689,26 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
             break;
           }
         }
-
         // Check if explicit percentage string (e.g. "85%")
-        if (/^\d+%/i.test(p)) {
+        else if (/^\d+%/i.test(p)) {
           const pct = parseFloat(p.replace(/%/i, ''));
           if (!isNaN(pct) && pct >= 0 && pct <= 100) {
             batteryPct = pct;
           }
         }
-
         // Check for direct numeric voltage in volts or mV
-        const num = parseFloat(p);
-        if (!isNaN(num)) {
-          if (num >= 3.0 && num <= 120.0 && batteryV === undefined) {
-            batteryV = num;
-          } else if (num > 120 && num <= 120000 && batteryV === undefined) {
-            // Voltage in mV (e.g. 72800 = 72.8V, 65000 = 65.0V, 4150 = 4.15V)
-            batteryV = num / 1000;
-          } else if (num > 0 && num <= 1.0 && batteryPct === undefined) {
-            // Status level ratio (e.g. 0.6 = level 6/6 full 100%)
-            batteryPct = num === 0.6 ? 100 : Math.round(num * 100);
-          }
-        }
-      }
-    }
-
-    // 2. Decode battery level & percentage from statusHex (8 hex chars = 4 bytes)
-    if (statusHex && statusHex.length >= 4) {
-      const secondByteHex = statusHex.substring(2, 4);
-      const secondByte = parseInt(secondByteHex, 16);
-
-      if (!isNaN(secondByte)) {
-        if (secondByte >= 0x00 && secondByte <= 0x06) {
-          const levelMap: Record<number, number> = {
-            0: 0,
-            1: 10,
-            2: 25,
-            3: 50,
-            4: 70,
-            5: 85,
-            6: 100,
-          };
-          if (batteryPct === undefined) {
-            batteryPct = levelMap[secondByte];
-          }
-        } else if (secondByte > 0x06 && secondByte <= 0x64) {
-          if (batteryPct === undefined) {
-            batteryPct = secondByte;
+        else {
+          const num = parseFloat(p);
+          if (!isNaN(num)) {
+            if (num >= 3.0 && num <= 120.0 && batteryV === undefined) {
+              batteryV = num;
+            } else if (num > 120 && num <= 120000 && batteryV === undefined) {
+              // Voltage in mV (e.g. 72800 = 72.8V, 65000 = 65.0V, 4150 = 4.15V)
+              batteryV = num / 1000;
+            } else if (num > 0 && num <= 1.0 && batteryPct === undefined) {
+              // Status level ratio (e.g. 0.6 = level 6/6 full 100%)
+              batteryPct = num === 0.6 ? 100 : Math.round(num * 100);
+            }
           }
         }
       }
