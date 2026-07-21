@@ -14,7 +14,10 @@ import { AuditService } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { ListPaymentsDto } from './dto/list-payments.dto';
-import { CreateBatterySwapDto } from './dto/create-battery-swap.dto';
+import {
+  CreateBatterySwapDto,
+  SwapTypeEnum,
+} from './dto/create-battery-swap.dto';
 import { ListBatterySwapsDto } from './dto/list-battery-swaps.dto';
 import {
   PaginatedResponse,
@@ -747,13 +750,13 @@ export class FinancialsService {
     const unitPrice = dto.unitPriceRwf ?? 2500;
     let fraction = 1.0;
 
-    if (dto.swapType === 'FULL') {
+    if (dto.swapType === SwapTypeEnum.FULL) {
       fraction = 1.0;
-    } else if (dto.swapType === 'HALF') {
+    } else if (dto.swapType === SwapTypeEnum.HALF) {
       fraction = 0.5;
-    } else if (dto.swapType === 'QUARTER') {
+    } else if (dto.swapType === SwapTypeEnum.QUARTER) {
       fraction = 0.25;
-    } else if (dto.swapType === 'CUSTOM') {
+    } else if (dto.swapType === SwapTypeEnum.CUSTOM) {
       fraction = dto.fraction && dto.fraction > 0 ? dto.fraction : 1.0;
     }
 
@@ -779,7 +782,9 @@ export class FinancialsService {
       },
       include: {
         bike: { select: { id: true, label: true, plate: true } },
-        rider: { select: { id: true, riderProfile: { select: { fullName: true } } } },
+        rider: {
+          select: { id: true, riderProfile: { select: { fullName: true } } },
+        },
       },
     });
 

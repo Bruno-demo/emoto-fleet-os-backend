@@ -1359,7 +1359,7 @@ function RecordSwapModal({
                 <button
                   key={item.type}
                   type="button"
-                  onClick={() => setSwapType(item.type as any)}
+                  onClick={() => setSwapType(item.type as 'FULL' | 'HALF' | 'QUARTER' | 'CUSTOM')}
                   className={cx(
                     "flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all",
                     swapType === item.type

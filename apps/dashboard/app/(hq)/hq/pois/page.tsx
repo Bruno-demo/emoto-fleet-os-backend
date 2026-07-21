@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { MapPin, Search, Plus, Trash2, Edit, X, Phone, Check, Activity, ShieldCheck, Building2 } from 'lucide-react';
+import { MapPin, Search, Plus, Trash2, Edit, X, Phone, Check } from 'lucide-react';
 import { useState } from 'react';
 
 // Zod schemas for POIs
@@ -77,7 +77,7 @@ export default function HqPoisPage() {
   if (filterActive !== '') queryParams.set('active', filterActive);
 
   // Fetch POIs
-  const { data, isLoading, error: queryError } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['hq', 'pois', page, filterType, filterActive],
     queryFn: () => apiFetch(`/poi?${queryParams.toString()}`, {}, { schema: poisResponseSchema }),
   });

@@ -277,7 +277,8 @@ export class TripBuilderService {
     });
 
     const startBatteryPct =
-      tripPoints[0]?.batteryPct !== null && tripPoints[0]?.batteryPct !== undefined
+      tripPoints[0]?.batteryPct !== null &&
+      tripPoints[0]?.batteryPct !== undefined
         ? Number(tripPoints[0].batteryPct)
         : null;
     const endBatteryPct =

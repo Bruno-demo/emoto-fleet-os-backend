@@ -305,10 +305,7 @@ export class TripsService {
   }
 
   // Retrieves historical telemetry path coordinates for a trip.
-  async getTripRouteForUser(
-    user: AuthenticatedUser,
-    id: string,
-  ): Promise<any> {
+  async getTripRouteForUser(user: AuthenticatedUser, id: string): Promise<any> {
     // 1. Enforce subscription plan validation
     if (user.fleetPlan === 'DEMO') {
       throw new ForbiddenException(
@@ -406,7 +403,10 @@ export class TripsService {
         lng: Number(p.lng),
         speedKph: Number(p.speedKph),
         batteryV: p.batteryV ? Number(p.batteryV) : undefined,
-        batteryPct: p.batteryPct !== null && p.batteryPct !== undefined ? p.batteryPct : undefined,
+        batteryPct:
+          p.batteryPct !== null && p.batteryPct !== undefined
+            ? p.batteryPct
+            : undefined,
         ignition: p.ignition,
       })),
       events: events.map((e) => ({

@@ -23,7 +23,12 @@ export class BatterySwapDetectorService {
     prevState: LiveBikeState | null,
     nextState: LiveBikeState,
   ): Promise<void> {
-    if (!prevState || !prevState.ts || !nextState.bikeId || nextState.batteryPct === undefined) {
+    if (
+      !prevState ||
+      !prevState.ts ||
+      !nextState.bikeId ||
+      nextState.batteryPct === undefined
+    ) {
       return;
     }
 
@@ -97,7 +102,10 @@ export class BatterySwapDetectorService {
       fraction = 0.25;
     } else {
       swapType = 'CUSTOM';
-      fraction = Math.min(1.0, Math.max(0.1, Math.round((deltaSoC / 100) * 100) / 100));
+      fraction = Math.min(
+        1.0,
+        Math.max(0.1, Math.round((deltaSoC / 100) * 100) / 100),
+      );
     }
 
     const unitPriceRwf = nearestPoi?.fullSwapFeeRwf || 2500;
@@ -132,7 +140,9 @@ export class BatterySwapDetectorService {
       },
       include: {
         bike: { select: { id: true, label: true, plate: true } },
-        rider: { select: { id: true, riderProfile: { select: { fullName: true } } } },
+        rider: {
+          select: { id: true, riderProfile: { select: { fullName: true } } },
+        },
       },
     });
 
@@ -164,15 +174,32 @@ export class BatterySwapDetectorService {
   private async findNearestSwapStation(
     lat: number,
     lng: number,
-  ): Promise<{ name: string; fullSwapFeeRwf: number | null; halfSwapFeeRwf: number | null; quarterSwapFeeRwf: number | null } | null> {
+  ): Promise<{
+    name: string;
+    fullSwapFeeRwf: number | null;
+    halfSwapFeeRwf: number | null;
+    quarterSwapFeeRwf: number | null;
+  } | null> {
     try {
       const pois = await this.prisma.poi.findMany({
         where: { type: 'SWAP' },
-        select: { name: true, lat: true, lng: true, fullSwapFeeRwf: true, halfSwapFeeRwf: true, quarterSwapFeeRwf: true },
+        select: {
+          name: true,
+          lat: true,
+          lng: true,
+          fullSwapFeeRwf: true,
+          halfSwapFeeRwf: true,
+          quarterSwapFeeRwf: true,
+        },
       });
 
       let minDistance = Infinity;
-      let closest: { name: string; fullSwapFeeRwf: number | null; halfSwapFeeRwf: number | null; quarterSwapFeeRwf: number | null } | null = null;
+      let closest: {
+        name: string;
+        fullSwapFeeRwf: number | null;
+        halfSwapFeeRwf: number | null;
+        quarterSwapFeeRwf: number | null;
+      } | null = null;
 
       for (const p of pois) {
         const pLat = Number(p.lat);
