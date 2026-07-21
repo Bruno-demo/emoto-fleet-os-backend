@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CommandsModule } from '../commands/commands.module';
 import { EventsModule } from '../events/events.module';
+import { FinancialsModule } from '../financials/financials.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
@@ -18,6 +19,7 @@ import { TripBuilderService } from './trip-builder.service';
     CommandsModule,
     RoadsModule,
     MetricsModule,
+    FinancialsModule,
   ],
   providers: [
     IngestionService,
