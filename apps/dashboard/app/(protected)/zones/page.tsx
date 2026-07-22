@@ -11,7 +11,7 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import { Bike, LiveBikeState, PaginatedResponse, Zone } from '@/lib/types/dashboard';
-import { formatEnumLabel } from '@/lib/ui';
+import { cx, formatEnumLabel } from '@/lib/ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
