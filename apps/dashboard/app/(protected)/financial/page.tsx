@@ -1730,7 +1730,7 @@ export default function FinancialsPage() {
                 <button
                   type="button"
                   onClick={() => setShowRecordFineModal(true)}
-                  className="flex items-center gap-2 rounded-xl bg-accent-strong px-4 py-2 text-xs font-bold text-white hover:brightness-110 transition shadow-md shadow-accent/15 cursor-pointer"
+                  className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/15 cursor-pointer transition-colors"
                 >
                   <Plus size={14} />
                   {t('Record Traffic Fine')}
@@ -2110,7 +2110,7 @@ export default function FinancialsPage() {
                 <button
                   type="submit"
                   disabled={isRecordingFine}
-                  className="w-1/2 rounded-xl bg-accent-strong py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:brightness-95 transition-all shadow-md shadow-accent/15 flex items-center justify-center"
+                  className="w-1/2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/15 flex items-center justify-center transition-colors disabled:opacity-60 cursor-pointer"
                 >
                   {isRecordingFine ? t('Recording...') : t('Record Fine')}
                 </button>
