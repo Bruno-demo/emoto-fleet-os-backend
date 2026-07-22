@@ -98,6 +98,7 @@ interface FinancialSummary {
   overdueCount: number;
   unpaidCount: number;
   unpaidLogsSum: number;
+  totalLeaseArrears?: number;
   methodBreakdown: Record<string, number>;
   statusBreakdown: Record<string, number>;
   dailyEarnings: Array<{ date: string; amount: number }>;

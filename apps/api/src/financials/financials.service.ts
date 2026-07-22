@@ -331,6 +331,10 @@ export class FinancialsService {
       },
     });
 
+    // Calculate lease contract arrears
+    const leases = await this.getLeases(user);
+    const totalLeaseArrears = leases.reduce((sum, l) => sum + (l.arrears || 0), 0);
+
     // Overdue/unpaid counts (all-time outstanding)
     const overdueCount = allPayments.filter(
       (p) => p.status === 'OVERDUE',
@@ -338,11 +342,12 @@ export class FinancialsService {
     const unpaidCount = allPayments.filter((p) => p.status === 'UNPAID').length;
 
     // Outstanding total unpaid logs (all-time outstanding)
-    const unpaidLogsSum = allPayments
+    const rawUnpaidLogsSum = allPayments
       .filter((p) => p.status === 'UNPAID' || p.status === 'OVERDUE')
       .reduce((acc, p) => acc + p.amount.toNumber(), 0);
 
-    // Statistics for Today, This Month, This Year
+    const unpaidLogsSum = rawUnpaidLogsSum > 0 ? rawUnpaidLogsSum : totalLeaseArrears;
+
     // Statistics for Today, This Month, This Year (aligned with reference end date)
     const referenceDate = endDate ? new Date(endDate) : new Date();
 
@@ -388,6 +393,7 @@ export class FinancialsService {
       overdueCount,
       unpaidCount,
       unpaidLogsSum,
+      totalLeaseArrears,
       methodBreakdown,
       statusBreakdown,
       dailyEarnings,
