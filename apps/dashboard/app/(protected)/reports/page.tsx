@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, Banknote, Zap, BatteryCharging, Plus, Trash2, Battery, X, RefreshCw } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie, LabelList } from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -1021,15 +1021,36 @@ function TrendChart({
   );
 }
 
+const EVENT_COLOR_MAP: Record<string, string> = {
+  CRASH: '#EF4444',
+  SOS: '#EF4444',
+  THEFT_SUSPECTED: '#F43F5E',
+  SPEED_LIMIT_VIOLATION: '#F59E0B',
+  OVERSPEED: '#F59E0B',
+  SCHOOL_ZONE_SPEED: '#F59E0B',
+  HOSPITAL_ZONE_SPEED: '#F59E0B',
+  MARKET_ZONE_SPEED: '#F59E0B',
+  HARSH_ACCEL: '#3B82F6',
+  HARSH_BRAKE: '#3B82F6',
+  GEOFENCE_EXIT: '#8B5CF6',
+  GEOFENCE_ENTER: '#10B981',
+};
+
 function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, number> }) {
   const { t } = useTranslation();
-  const data = Object.entries(eventCounts)
-    .filter(([, count]) => count > 0)
-    .map(([type, count]) => ({
-      name: t(formatEnumLabel(type)),
-      count,
-    }));
   
+  const data = useMemo(() => {
+    return Object.entries(eventCounts)
+      .filter(([, count]) => count > 0)
+      .map(([rawType, count]) => ({
+        rawType,
+        name: t(formatEnumLabel(rawType)),
+        count,
+        color: EVENT_COLOR_MAP[rawType] || '#3B82F6',
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [eventCounts, t]);
+
   if (data.length === 0) {
     return (
       <DashboardCard
@@ -1046,31 +1067,54 @@ function EventDistributionChart({ eventCounts }: { eventCounts: Record<string, n
     );
   }
 
+  const chartHeight = Math.max(220, data.length * 36);
+
   return (
     <DashboardCard
       eyebrow={t('Incident Proportions')}
       title={t('Incident mix chart')}
       description={t('Breakdown of safety alerts and violations.')}
     >
-      <div className="h-44 w-full mt-2">
+      <div style={{ height: `${chartHeight}px` }} className="w-full mt-2">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-            <XAxis type="number" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
-            <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} width={80} />
+          <BarChart data={data} layout="vertical" margin={{ top: 10, right: 35, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+            <XAxis type="number" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} />
+            <YAxis
+              dataKey="name"
+              type="category"
+              stroke="#94A3B8"
+              fontSize={11}
+              fontWeight={500}
+              tickLine={false}
+              axisLine={false}
+              width={140}
+            />
             <Tooltip
-              contentStyle={{
-                backgroundColor: '#1E1E20',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '12px',
-                fontSize: '11px',
-                color: '#fff',
+              cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const item = payload[0].payload;
+                  return (
+                    <div className="rounded-xl border border-line bg-surface/95 backdrop-blur-md px-3.5 py-2 shadow-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-xs font-bold text-ink">{item.name}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-ink-muted">
+                        {t('Count')}: <span className="font-bold text-ink">{item.count}</span>
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
               }}
             />
-            <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={16}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#4f46e5" opacity={0.7 + (index % 3) * 0.15} />
+                <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
+              <LabelList dataKey="count" position="right" fill="#94A3B8" fontSize={11} fontWeight={700} offset={8} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
