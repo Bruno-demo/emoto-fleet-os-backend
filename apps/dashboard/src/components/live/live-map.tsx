@@ -840,7 +840,7 @@ export function LiveMapPanel() {
                 label={t("Current speed")}
                 value={selectedState ? `${selectedState.speedKph.toFixed(1)} ${t('kph')}` : '--'}
               />
-              <KeyMetric
+              {/* <KeyMetric
                 label={t("Battery")}
                 value={
                   selectedState?.batteryPct !== undefined
@@ -851,7 +851,7 @@ export function LiveMapPanel() {
                         ? `${Math.round((selectedState.batteryV === 0.6 ? 1 : selectedState.batteryV) * 100)}%`
                         : '--'
                 }
-              />
+              /> */}
               <KeyMetric
                 label={t("Last seen")}
                 value={selectedState ? formatTimeAgo(selectedState.ts) : t('No live state')}

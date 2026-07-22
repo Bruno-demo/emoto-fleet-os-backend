@@ -309,7 +309,7 @@ export default function ReportsPage() {
             {t('Financials & Lease Repayments')}
           </button>
         )}
-        {user?.role !== 'INSURER' && (
+        {/* {user?.role !== 'INSURER' && (
           <button
             type="button"
             onClick={() => setActiveTab('swaps')}
@@ -323,7 +323,7 @@ export default function ReportsPage() {
             <Zap size={16} className="text-amber-400" />
             {t('Battery Swaps')}
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Top Header & Filters */}

@@ -298,13 +298,13 @@ export default function TripsPage() {
           icon={<ShieldCheck size={18} />}
           tone={metrics.avgScore >= 80 ? 'success' : metrics.avgScore >= 60 ? 'warning' : 'danger'}
         />
-        <MetricCard
+        {/* <MetricCard
           title={t('Avg Battery Cost')}
           value={metrics.avgBatteryDrop !== null ? `-${metrics.avgBatteryDrop}% / ${t('trip')}` : 'N/A'}
           hint={t('Average battery capacity cost consumed per completed trip.')}
           icon={<Battery size={18} />}
           tone={metrics.avgBatteryDrop !== null && metrics.avgBatteryDrop > 25 ? 'warning' : 'info'}
-        />
+        /> */}
       </section>
 
       {/* Filter and Table Section */}
@@ -510,7 +510,7 @@ export default function TripsPage() {
               )}
             </DashboardCard>
 
-            {/* Battery Power Profiler */}
+            {/* Battery Power Profiler
             <DashboardCard
               eyebrow={t('Energy Analysis')}
               title={t('Power & Battery Profile')}
@@ -518,7 +518,6 @@ export default function TripsPage() {
             >
               {selectedTrip.startBatteryPct !== null && selectedTrip.endBatteryPct !== null ? (
                 <div className="space-y-4">
-                  {/* Energy Drop Indicator bar */}
                   <div>
                     <div className="flex justify-between text-xs font-semibold text-ink mb-1.5">
                       <span className="flex items-center gap-1">
@@ -532,7 +531,6 @@ export default function TripsPage() {
                     </div>
 
                     <div className="relative h-2.5 w-full rounded-full bg-surface-muted overflow-hidden border border-line">
-                      {/* Energy used visual bar */}
                       <div
                         className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300"
                         style={{ width: `${selectedTrip.endBatteryPct}%` }}
@@ -566,7 +564,7 @@ export default function TripsPage() {
                   <p className="mt-2 text-xs text-ink-soft">{t('Telemetry missing battery logs for this period.')}</p>
                 </div>
               )}
-            </DashboardCard>
+            </DashboardCard> */}
 
             {/* Journey Stats */}
             <DashboardCard

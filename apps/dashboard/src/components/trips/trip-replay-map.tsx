@@ -491,7 +491,7 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
               <Gauge size={12} className="text-blue-400" />
               <span>{activePoint.speedKph.toFixed(1)} KM/H</span>
             </div>
-            <div className="h-3 w-px bg-white/10" />
+            {/* <div className="h-3 w-px bg-white/10" />
             <div className="flex items-center gap-1">
               <Battery size={12} className="text-emerald-400 fill-current" />
               <span>
@@ -499,7 +499,7 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
                   ? `${activePoint.batteryPct.toFixed(0)}%`
                   : 'N/A'}
               </span>
-            </div>
+            </div> */}
             <div className="h-3 w-px bg-white/10" />
             <div className="flex items-center gap-1">
               <Clock size={12} className="text-amber-400" />

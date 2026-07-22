@@ -503,7 +503,7 @@ export default function HqPoisPage() {
                     className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-zinc-400 focus:border-accent focus:outline-none"
                   >
                     <option value="GARAGE">🔧 Garage</option>
-                    <option value="SWAP">🔋 Battery Swap</option>
+                    {/* <option value="SWAP">🔋 Battery Swap</option> */}
                     <option value="CLINIC">🏥 Clinic</option>
                     <option value="OTHER">📍 Other Location</option>
                   </select>
