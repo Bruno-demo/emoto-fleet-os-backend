@@ -369,7 +369,7 @@ export default function HqOverviewPage() {
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Fleets"
           value={statsLoading ? '-' : stats?.totalFleets.toLocaleString()}
@@ -394,27 +394,12 @@ export default function HqOverviewPage() {
           onClick={() => router.push('/hq/pending-setups')}
         />
         <MetricCard
-          title="API Partners"
-          value={statsLoading ? '-' : stats?.totalPartners.toLocaleString()}
+          title="Partners & Insurers"
+          value={statsLoading ? '-' : ((stats?.totalPartners ?? 0) + (stats?.totalInsurers ?? 0)).toLocaleString()}
           icon={<Globe size={20} />}
-          trend="Healthy integration"
-          trendUp={true}
-        />
-        <MetricCard
-          title="Insurers"
-          value={statsLoading ? '-' : (stats?.totalInsurers ?? 0).toLocaleString()}
-          icon={<ShieldCheck size={20} />}
-          trend="Insurance partners"
+          trend={`${stats?.totalPartners ?? 0} API · ${stats?.totalInsurers ?? 0} Insurers`}
           trendUp={true}
           onClick={() => router.push('/hq/insurers')}
-        />
-        <MetricCard
-          title="Unassigned Devices"
-          value={statsLoading ? '-' : (stats?.unassignedDevices ?? 0).toLocaleString()}
-          icon={<Cpu size={20} />}
-          trend="Needs assignment"
-          alert={!!stats && (stats.unassignedDevices ?? 0) > 0}
-          onClick={() => router.push('/hq/devices')}
         />
       </div>
 

@@ -363,10 +363,9 @@ export default function ReportsPage() {
       {activeTab === 'safety' || user?.role === 'INSURER' ? (
         <div className="space-y-6">
           {/* Safety Metric Cards */}
-          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {reportQuery.isLoading ? (
               <>
-                <MetricCardSkeleton />
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
@@ -389,16 +388,9 @@ export default function ReportsPage() {
                   tone="success"
                 />
                 <MetricCard
-                  title={t('Overspeed Events')}
-                  value={report ? String(report.eventCounts.OVERSPEED ?? 0) : '--'}
-                  hint={t('Speed violations triggers.')}
-                  icon={<AlertTriangle size={18} />}
-                  tone="warning"
-                />
-                <MetricCard
-                  title={t('Traffic Fines')}
-                  value={report ? String(trafficFineCount) : '--'}
-                  hint={t('Potential road-safety ticket fines.')}
+                  title={t('Speeding & Fines')}
+                  value={report ? String((report.eventCounts.OVERSPEED ?? 0) + trafficFineCount) : '--'}
+                  hint={t('Speed violations & traffic tickets.')}
                   icon={<AlertTriangle size={18} />}
                   tone="warning"
                 />
@@ -554,10 +546,9 @@ export default function ReportsPage() {
       ) : activeTab === 'leases' ? (
         <div className="space-y-6">
           {/* Financials KPI Cards */}
-          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {leasesQuery.isLoading ? (
               <>
-                <MetricCardSkeleton />
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
@@ -587,18 +578,11 @@ export default function ReportsPage() {
                   tone="success"
                 />
                 <MetricCard
-                  title={t('Lease Arrears')}
-                  value={`${leaseMetrics.leaseArrears.toLocaleString()} RWF`}
-                  hint={t('Accumulated overdue lease payments.')}
+                  title={t('Total Arrears & Fines')}
+                  value={`${(leaseMetrics.leaseArrears + leaseMetrics.totalFines).toLocaleString()} RWF`}
+                  hint={t('Overdue lease payments & pending fines.')}
                   icon={<Banknote size={18} />}
-                  tone={leaseMetrics.leaseArrears > 0 ? 'warning' : 'neutral'}
-                />
-                <MetricCard
-                  title={t('Traffic Fines')}
-                  value={`${leaseMetrics.totalFines.toLocaleString()} RWF`}
-                  hint={t('Accumulated unpaid traffic fines.')}
-                  icon={<AlertTriangle size={18} />}
-                  tone={leaseMetrics.totalFines > 0 ? 'warning' : 'neutral'}
+                  tone={(leaseMetrics.leaseArrears + leaseMetrics.totalFines) > 0 ? 'warning' : 'neutral'}
                 />
               </>
             )}
