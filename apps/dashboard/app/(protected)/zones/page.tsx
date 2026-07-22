@@ -71,6 +71,123 @@ const defaultPoints: Array<[number, number]> = [
   [30.06, -1.945],
 ];
 
+interface ZoneTemplate {
+  id: string;
+  name: string;
+  type: 'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY';
+  speedLimitKph: string;
+  description: string;
+  points: Array<[number, number]>;
+}
+
+const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
+  {
+    id: 'kigali-city-boundary',
+    name: 'Greater Kigali Operating Zone',
+    type: 'WORK_BOUNDARY',
+    speedLimitKph: '',
+    description: 'Full Kigali metropolitan perimeter (Nyarugenge, Gasabo & Kicukiro)',
+    points: [
+      [30.012, -1.905],
+      [30.155, -1.905],
+      [30.185, -1.985],
+      [30.125, -2.035],
+      [30.012, -1.985],
+    ],
+  },
+  {
+    id: 'ksez-masoro',
+    name: 'Kigali Special Economic Zone (Masoro)',
+    type: 'WORK_BOUNDARY',
+    speedLimitKph: '',
+    description: 'Primary industrial park & warehousing logistics hub',
+    points: [
+      [30.150, -1.962],
+      [30.168, -1.962],
+      [30.168, -1.978],
+      [30.150, -1.978],
+    ],
+  },
+  {
+    id: 'nyabugogo-terminal',
+    name: 'Nyabugogo Transport & Bus Terminal',
+    type: 'SLOW',
+    speedLimitKph: '15',
+    description: 'High-density bus station & central transport hub',
+    points: [
+      [30.042, -1.936],
+      [30.054, -1.936],
+      [30.054, -1.948],
+      [30.042, -1.948],
+    ],
+  },
+  {
+    id: 'kacyiru-diplomatic',
+    name: 'Kacyiru Government & Ministry District',
+    type: 'SLOW',
+    speedLimitKph: '25',
+    description: 'High-security administrative & diplomatic quarter',
+    points: [
+      [30.076, -1.932],
+      [30.095, -1.932],
+      [30.095, -1.949],
+      [30.076, -1.949],
+    ],
+  },
+  {
+    id: 'kimironko-market',
+    name: 'Kimironko Market Commercial Hub',
+    type: 'PARK',
+    speedLimitKph: '',
+    description: 'Retail commerce, delivery staging, & rider parking zone',
+    points: [
+      [30.122, -1.947],
+      [30.136, -1.947],
+      [30.136, -1.959],
+      [30.122, -1.959],
+    ],
+  },
+  {
+    id: 'bugesera-corridor',
+    name: 'Bugesera Nyamata Airport Corridor',
+    type: 'WORK_BOUNDARY',
+    speedLimitKph: '',
+    description: 'Southern transit route to Nyamata & Bugesera',
+    points: [
+      [30.082, -2.045],
+      [30.145, -2.045],
+      [30.145, -2.185],
+      [30.082, -2.185],
+    ],
+  },
+  {
+    id: 'musanze-hub',
+    name: 'Musanze Northern Logistics Hub',
+    type: 'WORK_BOUNDARY',
+    speedLimitKph: '',
+    description: 'Northern Province operating & tourism boundary',
+    points: [
+      [29.605, -1.475],
+      [29.665, -1.475],
+      [29.665, -1.535],
+      [29.605, -1.535],
+    ],
+  },
+  {
+    id: 'rubavu-border',
+    name: 'Rubavu / Gisenyi Western Border Zone',
+    type: 'WORK_BOUNDARY',
+    speedLimitKph: '',
+    description: 'Western border cross-docking & lakefront zone',
+    points: [
+      [29.232, -1.668],
+      [29.288, -1.668],
+      [29.288, -1.728],
+      [29.232, -1.728],
+    ],
+  },
+];
+
 export default function ZonesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -87,6 +204,15 @@ export default function ZonesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Zone | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  const applyTemplate = (template: ZoneTemplate) => {
+    setSelectedTemplateId(template.id);
+    setName(template.name);
+    setType(template.type);
+    setSpeedLimitKph(template.speedLimitKph);
+    handlePointsChange(template.points);
+  };
 
   const handlePointsChange = (newPoints: Array<[number, number]>) => {
     setPoints(newPoints);
@@ -166,6 +292,7 @@ export default function ZonesPage() {
   // Resets the fallback GeoJSON editor to a clean default state.
   const resetForm = () => {
     setEditingZoneId(null);
+    setSelectedTemplateId(null);
     setName('');
     setType('SLOW');
     setSpeedLimitKph('');
@@ -449,8 +576,44 @@ export default function ZonesPage() {
         <DashboardCard
           eyebrow={t('Zone Editor')}
           title={editingZone ? t('Editing {name}').replace('{name}', editingZone.name) : t('Create a zone')}
-          description={t('Use the GeoJSON fallback editor for now. SLOW zones require a positive speed limit.')}
+          description={t('Select a pre-configured Rwanda template below or draw a custom boundary on the map.')}
         >
+          {/* Quick Preset Rwanda Zone Templates */}
+          {!editingZoneId && (
+            <div className="rounded-[18px] border border-line bg-surface-muted/60 p-3.5 space-y-2 mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent flex items-center gap-1.5">
+                  <MapPin size={12} /> {t('Rwanda Geofence Templates')}
+                </span>
+                <span className="text-[10px] text-ink-muted">{t('Click to auto-fill boundary')}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {RWANDA_ZONE_TEMPLATES.map((tmpl) => {
+                  const isSelected = selectedTemplateId === tmpl.id;
+                  return (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      onClick={() => applyTemplate(tmpl)}
+                      title={tmpl.description}
+                      className={cx(
+                        'rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all text-left flex items-center gap-1.5',
+                        isSelected
+                          ? 'border-accent bg-accent/15 text-accent shadow-sm'
+                          : 'border-line bg-surface hover:border-line-hover text-ink-soft hover:text-ink',
+                      )}
+                    >
+                      <span>{tmpl.name}</span>
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-surface-muted text-ink-muted border border-line/40">
+                        {tmpl.type.replace('_', ' ')}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <form className="space-y-4" onSubmit={submitForm}>
             <TextField
               label={t('Zone name')}
