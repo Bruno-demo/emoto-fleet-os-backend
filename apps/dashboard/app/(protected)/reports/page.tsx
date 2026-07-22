@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
-import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, Banknote, Zap, BatteryCharging, Plus, Trash2, Battery, X, RefreshCw } from 'lucide-react';
+import { Activity, AlertCircle, AlertTriangle, TrendingUp, Download, Coins, Wallet, Users, BarChart3, Banknote, Zap, BatteryCharging, Plus, Trash2, Battery, X, RefreshCw, Search } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie, LabelList } from 'recharts';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -100,12 +100,32 @@ export default function ReportsPage() {
     ? Object.values(report.eventCounts).reduce((s, v) => s + v, 0)
     : 0;
 
+  const [leaseSearch, setLeaseSearch] = useState('');
+  const [leaseStatusFilter, setLeaseStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DELINQUENT' | 'PAID_OFF'>('ALL');
+
   const leasesQuery = useQuery({
     queryKey: ['leases', 'reporting'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
     enabled: activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
+
+  const filteredLeases = useMemo(() => {
+    return leases.filter((lease) => {
+      const query = leaseSearch.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        lease.riderName.toLowerCase().includes(query) ||
+        (lease.riderPhone && lease.riderPhone.toLowerCase().includes(query)) ||
+        (lease.bikePlate && lease.bikePlate.toLowerCase().includes(query)) ||
+        (lease.bikeLabel && lease.bikeLabel.toLowerCase().includes(query));
+
+      const matchesStatus =
+        leaseStatusFilter === 'ALL' || lease.status === leaseStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [leases, leaseSearch, leaseStatusFilter]);
 
   const swapsQuery = useQuery({
     queryKey: ['battery-swaps', dateRange.from, dateRange.to, swapSearch],
@@ -160,6 +180,11 @@ export default function ReportsPage() {
     const totalFines = leases.reduce((sum, l) => sum + (l.pendingFines || 0), 0);
     const leaseArrears = Math.max(0, totalArrears - totalFines);
     const overallEquity = totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((totalPaid / totalPrincipal) * 100))) : 0;
+    const expectedDailyRevenue = leases.reduce((sum, l) => sum + (l.status === 'ACTIVE' ? (l.dailyRate || 0) : 0), 0);
+    const activeLeasesCount = leases.filter(l => l.status === 'ACTIVE').length;
+    const delinquentLeasesCount = leases.filter(l => l.status === 'DELINQUENT').length;
+    const paidOffLeasesCount = leases.filter(l => l.status === 'PAID_OFF').length;
+
     return {
       totalLeases,
       totalPrincipal,
@@ -167,7 +192,11 @@ export default function ReportsPage() {
       totalArrears,
       totalFines,
       leaseArrears,
-      overallEquity
+      overallEquity,
+      expectedDailyRevenue,
+      activeLeasesCount,
+      delinquentLeasesCount,
+      paidOffLeasesCount,
     };
   }, [leases]);
 
@@ -702,8 +731,58 @@ export default function ReportsPage() {
               </button>
             }
           >
+            {/* Search & Status Filter Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pt-1">
+              <div className="relative flex-1 max-w-md">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="text"
+                  placeholder={t('Search rider name, phone, or bike plate...')}
+                  value={leaseSearch}
+                  onChange={(e) => setLeaseSearch(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted pl-9 pr-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none"
+                />
+                {leaseSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLeaseSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink text-xs font-bold"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-surface-muted/60 p-1 rounded-xl border border-line/40">
+                {[
+                  { id: 'ALL', label: t('All'), count: leases.length },
+                  { id: 'ACTIVE', label: t('Active'), count: leaseMetrics.activeLeasesCount },
+                  { id: 'DELINQUENT', label: t('Delinquent'), count: leaseMetrics.delinquentLeasesCount },
+                  { id: 'PAID_OFF', label: t('Paid Off'), count: leaseMetrics.paidOffLeasesCount },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setLeaseStatusFilter(tab.id as 'ALL' | 'ACTIVE' | 'DELINQUENT' | 'PAID_OFF')}
+                    className={cx(
+                      'px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5',
+                      leaseStatusFilter === tab.id
+                        ? 'bg-accent/20 text-accent border border-accent/30 shadow-sm'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-hover',
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span className="text-[9px] px-1 py-0.2 rounded-full bg-surface-strong text-ink-muted">
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="overflow-x-auto dashboard-scrollbar mt-2">
-              <table className="w-full min-w-[700px] border-collapse text-left text-xs">
+              <table className="w-full min-w-[750px] border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-line text-ink-faint">
                     <th className="py-2.5 font-bold">{t('Rider')}</th>
@@ -722,14 +801,14 @@ export default function ReportsPage() {
                         {t('Loading leases report...')}
                       </td>
                     </tr>
-                  ) : leases.length === 0 ? (
+                  ) : filteredLeases.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-ink-muted">
-                        {t('No lease contracts registered')}
+                        {t('No matching lease contracts found')}
                       </td>
                     </tr>
                   ) : (
-                    leases.map((lease: LeaseContract) => {
+                    filteredLeases.map((lease: LeaseContract) => {
                       const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
                       const fines = lease.pendingFines || 0;
                       const lArrears = Math.max(0, lease.arrears - fines);
@@ -740,11 +819,18 @@ export default function ReportsPage() {
                             <p className="text-[10px] text-ink-muted mt-0.5">{lease.riderPhone}</p>
                           </td>
                           <td className="py-3 text-xs text-ink-soft">
-                            <p className="font-semibold">{lease.bikeLabel}</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold">{lease.bikeLabel}</span>
+                              {lease.lockState === 'LOCKED' && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-danger-soft text-danger-ink">
+                                  LOCKED
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-ink-muted">{lease.bikePlate}</p>
                           </td>
                           <td className="py-3">
-                            <div className="min-w-[120px] max-w-[160px] text-xs">
+                            <div className="min-w-[140px] max-w-[180px] text-xs">
                               <div className="flex justify-between items-center mb-1">
                                 <span className="font-semibold text-ink-soft">{pct}%</span>
                                 <span className="text-[10px] text-ink-muted tabular-nums">
@@ -753,7 +839,7 @@ export default function ReportsPage() {
                               </div>
                               <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden border border-line">
                                 <div
-                                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
