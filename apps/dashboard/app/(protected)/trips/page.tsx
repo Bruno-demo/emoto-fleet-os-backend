@@ -198,7 +198,7 @@ export default function TripsPage() {
           </div>
         ),
       },
-      {
+      /* {
         header: t('Battery & Power Usage'),
         render: (trip) => {
           const powerUsed = trip.powerUsedPct;
@@ -211,7 +211,6 @@ export default function TripsPage() {
             );
           }
 
-          // Decide color based on severity of consumption
           const colorClass =
             powerUsed !== null && powerUsed > 30
               ? 'text-rose-400 bg-rose-400/10'
@@ -235,7 +234,7 @@ export default function TripsPage() {
             </div>
           );
         },
-      },
+      }, */
       {
         header: t('Safety Score'),
         render: (trip) => {
