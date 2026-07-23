@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Search,
   ChevronDown,
+  XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -1336,6 +1337,11 @@ export default function FinancialsPage() {
                                 </td>
                                 {matrixDays.map((day) => {
                                   const status = getMatrixCellStatus(rider.id, day.dateString);
+                                  const todayStr = getLocalDateString(new Date());
+                                  const isPastOrToday = day.dateString <= todayStr;
+                                  const isUnpaid = status === 'unpaid';
+                                  const isUnpaidPastOrToday = isUnpaid && isPastOrToday;
+
                                   return (
                                     <td key={day.dateString} className="py-3 text-center">
                                       <button
@@ -1346,18 +1352,29 @@ export default function FinancialsPage() {
                                           status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
                                           status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
                                           status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
-                                          status === 'unpaid' && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
+                                          isUnpaidPastOrToday && 'bg-rose-500/15 border-rose-500/30 text-rose-500 hover:bg-rose-500/30 shadow-xs',
+                                          isUnpaid && !isPastOrToday && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
                                         )}
                                         title={
-                                          status === 'unpaid'
-                                            ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
-                                            : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
+                                          isUnpaidPastOrToday
+                                            ? t('UNPAID: Click to log payment for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                            : isUnpaid
+                                              ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                              : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
                                         }
                                       >
                                         {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
                                         {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
                                         {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
-                                        {status === 'unpaid' && <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />}
+                                        {isUnpaidPastOrToday && (
+                                          <>
+                                            <XCircle size={12} className="stroke-[2.5px] group-hover:hidden" />
+                                            <Plus size={12} className="stroke-[2.5px] hidden group-hover:block" />
+                                          </>
+                                        )}
+                                        {isUnpaid && !isPastOrToday && (
+                                          <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                                        )}
                                       </button>
                                     </td>
                                   );
@@ -1366,6 +1383,44 @@ export default function FinancialsPage() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+
+                      {/* Matrix Status Legend */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-ink-muted px-2 pt-3 border-t border-line/50">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="font-bold text-ink-soft">{t("Legend")}:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-4 w-4 rounded bg-success-soft/20 border border-success-ink/25 text-success-ink flex items-center justify-center">
+                              <Check size={10} className="stroke-[3px]" />
+                            </span>
+                            <span>{t("Paid")}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-4 w-4 rounded bg-warning-soft/20 border border-warning-ink/25 text-warning-ink flex items-center justify-center">
+                              <AlertTriangle size={10} className="stroke-[2.5px]" />
+                            </span>
+                            <span>{t("Partial")}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-4 w-4 rounded bg-danger-soft/20 border border-danger-ink/25 text-danger-ink flex items-center justify-center">
+                              <AlertCircle size={10} className="stroke-[2.5px]" />
+                            </span>
+                            <span>{t("Overdue")}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-4 w-4 rounded bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center">
+                              <XCircle size={10} className="stroke-[2.5px]" />
+                            </span>
+                            <span>{t("Unpaid")}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-4 w-4 rounded bg-surface-muted/50 border border-line text-ink-faint flex items-center justify-center">
+                              <Plus size={10} />
+                            </span>
+                            <span>{t("Upcoming")}</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-ink-faint italic">{t("Hover or click any cell to collect/log payment")}</span>
                       </div>
                       {/* Load More Button for Matrix Riders */}
                       {hasNextPage && (
