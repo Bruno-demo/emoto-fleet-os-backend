@@ -29,6 +29,7 @@ const bikeStateSchema = z.object({
   batteryV: z.number().optional(),
   batteryPct: z.number().optional(),
   ignition: z.boolean().optional(),
+  mainPowerCut: z.boolean().optional(),
 });
 
 const eventSchema = z.object({

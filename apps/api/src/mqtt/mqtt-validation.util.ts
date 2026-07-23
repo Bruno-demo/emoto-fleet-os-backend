@@ -31,6 +31,7 @@ const telemetryPayloadWithoutSigSchema = z.object({
   batteryV: finiteNumber.min(0).max(200).optional(),
   batteryPct: finiteNumber.min(0).max(100).optional(),
   ignition: z.boolean().optional(),
+  mainPowerCut: z.boolean().optional(),
   nonce: z.string().uuid(),
 });
 

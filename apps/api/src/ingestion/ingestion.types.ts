@@ -11,4 +11,5 @@ export interface LiveBikeState {
   batteryV?: number;
   batteryPct?: number;
   ignition?: boolean;
+  mainPowerCut?: boolean;
 }

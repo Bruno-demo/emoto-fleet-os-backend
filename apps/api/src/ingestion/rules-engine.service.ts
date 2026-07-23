@@ -128,6 +128,7 @@ export class RulesEngineService {
       ['harshDynamics', () => this.evaluateHarshDynamics(device, payload)],
       ['crash', () => this.evaluateCrash(device, payload)],
       ['theft', () => this.evaluateTheft(device, payload, insideParkZone)],
+      ['powerCut', () => this.evaluatePowerCut(device, payload)],
       ['roadSafety', () => this.evaluateRoadSafety(device, payload)],
       [
         'workBoundary',
@@ -506,6 +507,36 @@ export class RulesEngineService {
         severity: EventSeverity.HIGH,
         metaJson: {
           reason: 'outside_park_zone_at_night',
+          speedKph: payload.speedKph,
+        } as Prisma.InputJsonValue,
+      },
+    );
+  }
+
+  // Detects SinoTrack external main power cut / disconnection events and emits high-severity security alert.
+  private async evaluatePowerCut(
+    device: RuleDeviceContext,
+    payload: TelemetryPayload,
+  ): Promise<void> {
+    if (!payload.mainPowerCut) {
+      return;
+    }
+
+    await this.emitThrottledEvent(
+      `powercut:${device.id}`,
+      THEFT_EVENT_COOLDOWN_SECONDS,
+      {
+        fleetId: device.fleetId,
+        bikeId: device.bikeId,
+        deviceId: device.id,
+        ts: new Date(payload.ts),
+        type: 'THEFT_SUSPECTED',
+        severity: EventSeverity.CRITICAL,
+        metaJson: {
+          reason: 'MAIN_POWER_CUT',
+          source: 'SinoTrack EXPOWER / Main Power Cut',
+          batteryV: payload.batteryV,
+          batteryPct: payload.batteryPct,
           speedKph: payload.speedKph,
         } as Prisma.InputJsonValue,
       },

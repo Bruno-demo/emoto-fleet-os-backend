@@ -687,6 +687,15 @@ export default function BikesPage() {
           />
         ) : (
           <div className="space-y-5">
+            {bikeLiveStateQuery.data?.mainPowerCut && (
+              <div className="flex items-center justify-between rounded-xl bg-rose-500/15 border border-rose-500/30 px-3.5 py-2.5 text-xs font-bold text-rose-500 shadow-sm animate-pulse">
+                <div className="flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>{t('MAIN POWER CUT DETECTED')}</span>
+                </div>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">{t('Backup Battery')}</span>
+              </div>
+            )}
             {activeBike.imageUrl && (
               <div className="rounded-[24px] border border-line bg-surface-muted overflow-hidden max-h-[160px] flex items-center justify-center">
                 <img src={activeBike.imageUrl} alt={activeBike.label} className="w-full object-cover max-h-[160px]" />
@@ -738,6 +747,18 @@ export default function BikesPage() {
               <KeyMetric
                 label={t('Assigned device')}
                 value={<span>{deviceByBikeId.get(activeBike.id)?.deviceUid ?? t('Unassigned')}</span>}
+              />
+              <KeyMetric
+                label={t('Power supply')}
+                value={
+                  bikeLiveStateQuery.data?.mainPowerCut ? (
+                    <span className="font-semibold text-rose-500">🔴 {t('Main Power Cut (Backup Battery)')}</span>
+                  ) : bikeLiveStateQuery.data?.batteryV !== undefined && bikeLiveStateQuery.data.batteryV > 5 ? (
+                    <span className="text-emerald-500 font-semibold">{bikeLiveStateQuery.data.batteryV.toFixed(1)}V 🟢 {t('Main Active')}</span>
+                  ) : (
+                    <span className="text-emerald-500 font-semibold">🟢 {t('Main Power Active')}</span>
+                  )
+                }
               />
               <KeyMetric
                 label={t('Assigned rider')}

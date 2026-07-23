@@ -425,13 +425,28 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     // Parse UTC Date and Time
     const ts = this.parseDateTime(dateStr, timeStr);
 
-    // Parse Ignition status (ACC) from status hex (active-high positive logic on the 3rd byte)
+    // Parse Ignition status (ACC) and Main Power Cut status from status hex or alarm command
     let ignition = true;
-    if (statusHex && statusHex.length >= 6) {
+    let mainPowerCut = false;
+
+    const command = parts[2];
+    if (command === 'EXPOWER' || command === 'POWERCUT' || command === 'POWEROFF') {
+      mainPowerCut = true;
+    } else if (statusHex && statusHex.length >= 6) {
+      const alarmByteHex = statusHex.substring(2, 4);
+      const alarmByte = parseInt(alarmByteHex, 16);
       const thirdByteHex = statusHex.substring(4, 6);
       const thirdByte = parseInt(thirdByteHex, 16);
+
       if (!isNaN(thirdByte)) {
         ignition = (thirdByte & 0x04) !== 0;
+      }
+
+      if (!isNaN(alarmByte) && (alarmByte === 0x02 || alarmByte === 0x0A)) {
+        mainPowerCut = true;
+      } else if (!isNaN(thirdByte) && (thirdByte & 0x01) === 0 && (thirdByte & 0x04) === 0) {
+        // External main power disconnect flag
+        mainPowerCut = true;
       }
     }
 
@@ -460,6 +475,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       batteryV,
       batteryPct,
       ignition,
+      mainPowerCut,
       nonce: `sinotrack-${device.id}-${ts.getTime()}`,
       sig: 'bypassed-sinotrack-secure-local-adapter',
     };
@@ -516,6 +532,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         batteryV,
         batteryPct,
         ignition,
+        mainPowerCut,
       };
       await this.liveStateService.setLatestBikeState(latestState);
     }
