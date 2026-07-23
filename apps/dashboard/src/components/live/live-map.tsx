@@ -439,7 +439,9 @@ export function LiveMapPanel() {
   );
 
   const selectedCommandRule = commandIntent === 'LOCK' ? lockRule : unlockRule;
-  const selectedBikeLabel = selectedBike?.label ?? maskIdentifier(selectedBikeId);
+  const selectedBikeLabel = selectedAssignment?.riderFullName
+    ? `${selectedAssignment.riderFullName}${selectedBike?.plate || selectedBike?.label ? ` (${selectedBike.plate || selectedBike.label})` : ''}`
+    : selectedBike?.label || selectedBike?.plate || (selectedBikeId ? `Bike #${selectedBikeId.slice(0, 6).toUpperCase()}` : t('Bike detail'));
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);
@@ -573,16 +575,37 @@ export function LiveMapPanel() {
                     poisQuery.data?.data.map((poi) => (
                       <PoiMarker key={poi.id} poi={poi} />
                     ))}
-                  {throttledStates.map((state) => (
-                    <LiveBikeMarker
-                      key={state.bikeId}
-                      state={state}
-                      label={bikesById.get(state.bikeId)?.label ?? maskIdentifier(state.bikeId) ?? 'Bike'}
-                      severity={latestEventByBike.get(state.bikeId)?.severity}
-                      selected={state.bikeId === selectedBikeId}
-                      onSelect={selectBikeContext}
-                    />
-                  ))}
+                  {throttledStates.map((state) => {
+                    const bike = bikesById.get(state.bikeId);
+                    const assignment = assignmentByBikeId.get(state.bikeId);
+                    let label = 'Bike';
+
+                    if (assignment?.riderFullName?.trim()) {
+                      const bikePlateOrLabel = bike?.plate || bike?.label || assignment.bikeLabel;
+                      label = bikePlateOrLabel
+                        ? `${assignment.riderFullName} (${bikePlateOrLabel})`
+                        : assignment.riderFullName;
+                    } else if (bike?.label?.trim()) {
+                      label = bike.label;
+                    } else if (bike?.plate?.trim()) {
+                      label = bike.plate;
+                    } else if (assignment?.bikeLabel?.trim()) {
+                      label = assignment.bikeLabel;
+                    } else {
+                      label = `Bike #${state.bikeId.slice(0, 6).toUpperCase()}`;
+                    }
+
+                    return (
+                      <LiveBikeMarker
+                        key={state.bikeId}
+                        state={state}
+                        label={label}
+                        severity={latestEventByBike.get(state.bikeId)?.severity}
+                        selected={state.bikeId === selectedBikeId}
+                        onSelect={selectBikeContext}
+                      />
+                    );
+                  })}
                   <MapZoomControls />
                 </MapContainer>
 
@@ -718,6 +741,11 @@ export function LiveMapPanel() {
                           {feedEvents.length ? (
                             feedEvents.map((event) => {
                               const linkedBike = event.bikeId ? bikesById.get(event.bikeId) : null;
+                              const eventAssignment = event.bikeId ? assignmentByBikeId.get(event.bikeId) : null;
+                              const eventLabel = eventAssignment?.riderFullName
+                                ? `${eventAssignment.riderFullName}${linkedBike?.label || linkedBike?.plate ? ` (${linkedBike.label || linkedBike.plate})` : ''}`
+                                : linkedBike?.label || linkedBike?.plate || (event.bikeId ? `Bike #${event.bikeId.slice(0, 6).toUpperCase()}` : t('Fleet event'));
+
                               return (
                                 <button
                                   key={event.id}
@@ -730,7 +758,7 @@ export function LiveMapPanel() {
                                     <div className="min-w-0 flex-1">
                                       <p className="text-xs font-bold text-ink truncate">{t(formatEnumLabel(event.type))}</p>
                                       <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
-                                        {linkedBike?.label ?? maskIdentifier(event.bikeId) ?? t('Fleet event')}
+                                        {eventLabel}
                                         {' · '}
                                         {formatTimeAgo(event.ts)}
                                       </p>
@@ -770,26 +798,34 @@ export function LiveMapPanel() {
 
                         <ul className="mt-2.5 space-y-2">
                           {commandStream.slice(0, 6).length ? (
-                            commandStream.slice(0, 6).map((status) => (
-                              <li
-                                key={`${status.commandId}-${status.ts}`}
-                                className="rounded-[16px] border border-line bg-surface-muted/60 px-3.5 py-2.5"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-bold text-ink truncate">{status.action ?? t('Command')}</p>
-                                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
-                                      {maskIdentifier(status.bikeId) || t('Fleet command')} {' · '}
-                                      {formatTimeAgo(status.ts)}
-                                    </p>
+                            commandStream.slice(0, 6).map((status) => {
+                              const cmdAssignment = status.bikeId ? assignmentByBikeId.get(status.bikeId) : null;
+                              const cmdBike = status.bikeId ? bikesById.get(status.bikeId) : null;
+                              const cmdLabel = cmdAssignment?.riderFullName
+                                ? `${cmdAssignment.riderFullName}${cmdBike?.label || cmdBike?.plate ? ` (${cmdBike.label || cmdBike.plate})` : ''}`
+                                : cmdBike?.label || cmdBike?.plate || (status.bikeId ? `Bike #${status.bikeId.slice(0, 6).toUpperCase()}` : t('Fleet command'));
+
+                              return (
+                                <li
+                                  key={`${status.commandId}-${status.ts}`}
+                                  className="rounded-[16px] border border-line bg-surface-muted/60 px-3.5 py-2.5"
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-bold text-ink truncate">{status.action ?? t('Command')}</p>
+                                      <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft truncate">
+                                        {cmdLabel} {' · '}
+                                        {formatTimeAgo(status.ts)}
+                                      </p>
+                                    </div>
+                                    <CommandBadge status={status.status} />
                                   </div>
-                                  <CommandBadge status={status.status} />
-                                </div>
-                                {status.message ? (
-                                  <p className="mt-1 text-[11px] leading-relaxed text-ink-soft break-words">{status.message}</p>
-                                ) : null}
-                              </li>
-                            ))
+                                  {status.message ? (
+                                    <p className="mt-1 text-[11px] leading-relaxed text-ink-soft break-words">{status.message}</p>
+                                  ) : null}
+                                </li>
+                              );
+                            })
                           ) : (
                             <InlineEmptyCard
                               icon={<Lock size={14} />}
