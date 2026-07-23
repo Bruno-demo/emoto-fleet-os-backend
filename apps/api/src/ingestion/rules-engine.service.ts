@@ -92,7 +92,7 @@ export class RulesEngineService {
     );
     this.globalOverspeedLimitKph = this.configService.get<number>(
       'GLOBAL_OVERSPEED_LIMIT_KPH',
-      50,
+      60,
     );
     this.rulesStreamKey =
       this.configService.get<string>('STREAM_RULES_KEY', '') || null;
