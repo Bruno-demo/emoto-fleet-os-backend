@@ -1108,13 +1108,14 @@ export class AuthService {
       );
     }
 
-    // Only OWNER can assign/remove ADMIN/OWNER
-    if (
-      (newRole === UserRole.OWNER || targetUser.role === UserRole.OWNER) &&
-      actor.role !== UserRole.OWNER
-    ) {
+    const canManageRoles =
+      actor.role === UserRole.OWNER ||
+      actor.role === UserRole.ADMIN ||
+      isHqStaff;
+
+    if (!canManageRoles) {
       throw new ForbiddenException(
-        'Only fleet owners can assign owner/admin roles',
+        'Only fleet owners and admins can assign user roles',
       );
     }
 
@@ -1169,8 +1170,16 @@ export class AuthService {
       throw new ForbiddenException('Cannot delete yourself');
     }
 
-    if (targetUser.role === UserRole.OWNER && actor.role !== UserRole.OWNER) {
-      throw new ForbiddenException('Only owners can modify owner accounts');
+    const isHqStaff = actor.fleetName === 'E-Moto HQ';
+    const canDeleteUsers =
+      actor.role === UserRole.OWNER ||
+      actor.role === UserRole.ADMIN ||
+      isHqStaff;
+
+    if (!canDeleteUsers) {
+      throw new ForbiddenException(
+        'Only fleet owners and admins can remove fleet users',
+      );
     }
 
     try {
