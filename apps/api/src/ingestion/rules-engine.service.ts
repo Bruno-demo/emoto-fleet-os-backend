@@ -54,6 +54,7 @@ export class RulesEngineService {
   private readonly schoolZoneSpeedKph: number;
   private readonly hospitalZoneSpeedKph: number;
   private readonly marketZoneSpeedKph: number;
+  private readonly globalOverspeedLimitKph: number;
   private readonly rulesStreamKey: string | null;
   private readonly streamMaxLen: number;
   private readonly streamEnabled: boolean;
@@ -88,6 +89,10 @@ export class RulesEngineService {
     this.marketZoneSpeedKph = this.configService.get<number>(
       'ROAD_MARKET_SPEED_KPH',
       25,
+    );
+    this.globalOverspeedLimitKph = this.configService.get<number>(
+      'GLOBAL_OVERSPEED_LIMIT_KPH',
+      50,
     );
     this.rulesStreamKey =
       this.configService.get<string>('STREAM_RULES_KEY', '') || null;
@@ -190,70 +195,67 @@ export class RulesEngineService {
     return containingZoneIds;
   }
 
-  // Emits OVERSPEED when speed exceeds zone limit for at least 5 seconds.
+  // Emits OVERSPEED events for both geofence SLOW zones and global fleet max speed limits.
   private async evaluateOverspeed(
     device: RuleDeviceContext,
     payload: TelemetryPayload,
     zones: GeofenceZone[],
     insideZoneIds: Set<string>,
   ): Promise<void> {
-    const nowMs = Date.parse(payload.ts);
+    let triggeredInZone = false;
     const slowZones = zones.filter((zone) => zone.type === ZoneType.SLOW);
 
+    // 1. Evaluate Geofence SLOW Zones
     for (const zone of slowZones) {
       const speedLimit = zone.speedLimitKph?.toNumber();
       if (!speedLimit) {
         continue;
       }
 
-      const overLimit =
-        insideZoneIds.has(zone.id) && payload.speedKph > speedLimit;
-      const startKey = this.overspeedStartKey(device.id, zone.id);
-      const activeKey = this.overspeedActiveKey(device.id, zone.id);
-
-      if (!overLimit) {
-        await this.redisService.del(startKey);
-        await this.redisService.del(activeKey);
-        continue;
-      }
-
-      const startTs = await this.redisService.get(startKey);
-      if (!startTs) {
-        await this.redisService.set(
-          startKey,
-          payload.ts,
-          OVERSPEED_STATE_TTL_SECONDS,
+      if (insideZoneIds.has(zone.id) && payload.speedKph > speedLimit) {
+        triggeredInZone = true;
+        const cooldownKey = this.eventCooldownKey(
+          device.id,
+          `OVERSPEED_ZONE_${zone.id}`,
         );
-        continue;
+        await this.emitWithCooldown(cooldownKey, 60, {
+          fleetId: device.fleetId,
+          bikeId: device.bikeId,
+          deviceId: device.id,
+          ts: new Date(payload.ts),
+          type: 'OVERSPEED',
+          severity:
+            payload.speedKph >= speedLimit + 20
+              ? EventSeverity.HIGH
+              : EventSeverity.MEDIUM,
+          metaJson: {
+            reason: 'zone_slow_overspeed',
+            zoneId: zone.id,
+            zoneName: zone.name,
+            speedKph: payload.speedKph,
+            speedLimitKph: speedLimit,
+          } as Prisma.InputJsonValue,
+        });
       }
+    }
 
-      const elapsedMs = nowMs - Date.parse(startTs);
-      if (elapsedMs < OVERSPEED_MIN_DURATION_MS) {
-        continue;
-      }
-
-      const activated = await this.redisService.setIfNotExists(
-        activeKey,
-        '1',
-        OVERSPEED_STATE_TTL_SECONDS,
-      );
-      if (!activated) {
-        continue;
-      }
-
-      await this.createRuleEvent({
+    // 2. Evaluate Global / Fleet Max Speed Limit (Default 50 km/h for E-Motos)
+    if (!triggeredInZone && payload.speedKph > this.globalOverspeedLimitKph) {
+      const cooldownKey = this.eventCooldownKey(device.id, 'OVERSPEED_GLOBAL');
+      await this.emitWithCooldown(cooldownKey, 60, {
         fleetId: device.fleetId,
         bikeId: device.bikeId,
         deviceId: device.id,
         ts: new Date(payload.ts),
         type: 'OVERSPEED',
-        severity: EventSeverity.MEDIUM,
+        severity:
+          payload.speedKph >= this.globalOverspeedLimitKph + 20
+            ? EventSeverity.HIGH
+            : EventSeverity.MEDIUM,
         metaJson: {
-          zoneId: zone.id,
-          zoneName: zone.name,
+          reason: 'global_speed_limit_exceeded',
           speedKph: payload.speedKph,
-          speedLimitKph: speedLimit,
-          durationMs: elapsedMs,
+          speedLimitKph: this.globalOverspeedLimitKph,
         } as Prisma.InputJsonValue,
       });
     }
