@@ -425,6 +425,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     // Parse UTC Date and Time
     const ts = this.parseDateTime(dateStr, timeStr);
 
+    // Extract battery voltage and percentage from statusHex and extended packet parts
+    const { batteryV, batteryPct } = this.extractBatteryInfo(statusHex, parts);
+
     // Parse Ignition status (ACC) and Main Power Cut status from status hex or alarm command
     let ignition = true;
     let mainPowerCut = false;
@@ -448,18 +451,17 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
       if (!isNaN(alarmByte) && (alarmByte === 0x02 || alarmByte === 0x0a)) {
         mainPowerCut = true;
-      } else if (
-        !isNaN(thirdByte) &&
-        (thirdByte & 0x01) === 0 &&
-        (thirdByte & 0x04) === 0
-      ) {
-        // External main power disconnect flag
+      } else if (!isNaN(thirdByte) && (thirdByte & 0x01) === 0) {
+        // External main power disconnect bit (bit 0 = 0 means main power cut)
         mainPowerCut = true;
       }
     }
 
-    // Extract battery voltage and percentage from statusHex and extended packet parts
-    const { batteryV, batteryPct } = this.extractBatteryInfo(statusHex, parts);
+    // Also check battery voltage: if batteryV <= 6.0V, tracker is running on its 3.7V internal backup battery!
+    // This happens when the e-bike 72V/60V/48V main battery is unplugged/swapped.
+    if (batteryV !== undefined && batteryV > 0 && batteryV <= 6.0) {
+      mainPowerCut = true;
+    }
 
     // Apply stationary GPS drift filtering and speed clamping
     const filtered = await this.liveStateService.filterStationaryDrift(
