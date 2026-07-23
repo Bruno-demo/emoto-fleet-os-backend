@@ -116,12 +116,14 @@ export default function ZoneDrawMap({
   center,
   liveBikes,
   bikes,
+  zoneType = 'SLOW',
 }: {
   points: Array<[number, number]>;
   onChange: (points: Array<[number, number]>) => void;
   center?: [number, number] | null;
   liveBikes?: LiveBikeState[];
   bikes?: Bike[];
+  zoneType?: 'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY';
 }) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
@@ -144,12 +146,33 @@ export default function ZoneDrawMap({
     onChange(points.filter((_, i) => i !== index));
   };
 
+  const undoLastPoint = () => {
+    if (points.length > 0) {
+      onChange(points.slice(0, -1));
+    }
+  };
+
+  // Color coding per zone type
+  const zoneColor = useMemo(() => {
+    switch (zoneType) {
+      case 'NO_GO':
+        return { main: '#F43F5E', fill: '#F43F5E', bg: 'bg-rose-500' };
+      case 'SLOW':
+        return { main: '#F59E0B', fill: '#F59E0B', bg: 'bg-amber-500' };
+      case 'PARK':
+        return { main: '#10B981', fill: '#10B981', bg: 'bg-emerald-500' };
+      case 'WORK_BOUNDARY':
+      default:
+        return { main: '#3B82F6', fill: '#3B82F6', bg: 'bg-blue-500' };
+    }
+  }, [zoneType]);
+
   // Center map on first coordinate, input center, or default Kigali coordinates
   const defaultCenter: [number, number] = [-1.944, 30.061];
   const mapCenter: [number, number] = center || (points.length > 0 ? [points[0][1], points[0][0]] : defaultCenter);
 
   return (
-    <div className="relative rounded-xl border border-line overflow-hidden h-72 w-full bg-[#09090b]">
+    <div className="relative rounded-2xl border border-line overflow-hidden h-80 w-full bg-[#09090b] shadow-inner group">
       <MapContainer
         center={mapCenter}
         zoom={14}
@@ -187,7 +210,7 @@ export default function ZoneDrawMap({
         {points.length >= 3 && (
           <Polygon
             positions={points.map((p) => [p[1], p[0]])}
-            pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.2, weight: 2 }}
+            pathOptions={{ color: zoneColor.main, fillColor: zoneColor.fill, fillOpacity: 0.25, weight: 3 }}
           />
         )}
 
@@ -195,7 +218,7 @@ export default function ZoneDrawMap({
         {points.length === 2 && (
           <Polyline
             positions={points.map((p) => [p[1], p[0]])}
-            pathOptions={{ color: '#3b82f6', weight: 2 }}
+            pathOptions={{ color: zoneColor.main, weight: 3, dashArray: '6, 6' }}
           />
         )}
 
@@ -207,9 +230,9 @@ export default function ZoneDrawMap({
             draggable={true}
             icon={L.divIcon({
               className: 'custom-draggable-vertex',
-              html: `<div class="h-3.5 w-3.5 rounded-full bg-blue-500 hover:bg-blue-400 border-2 border-white shadow-md cursor-grab active:cursor-grabbing transition-all hover:scale-110"></div>`,
-              iconSize: [14, 14],
-              iconAnchor: [7, 7]
+              html: `<div class="h-4 w-4 rounded-full ${zoneColor.bg} border-2 border-white shadow-lg cursor-grab active:cursor-grabbing transition-all hover:scale-125 flex items-center justify-center text-[9px] font-bold text-white">${index + 1}</div>`,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8]
             })}
             eventHandlers={{
               dragend: (e: L.LeafletEvent) => {
@@ -226,6 +249,7 @@ export default function ZoneDrawMap({
             }}
           />
         ))}
+
         {/* Live Bike Markers for Geolocation Reference */}
         {liveBikes?.map((bikeState) => {
           const label = bikeLabelMap.get(bikeState.bikeId) || `Bike-${bikeState.bikeId.slice(0, 4)}`;
@@ -264,63 +288,76 @@ export default function ZoneDrawMap({
       </MapContainer>
 
       {/* Map Style Selector */}
-      <div className="absolute bottom-3 right-3 z-[500] flex flex-col gap-1 bg-[#09090b]/90 backdrop-blur border border-line rounded-lg p-0.5 shadow-md">
+      <div className="absolute bottom-3 right-3 z-[500] flex flex-col gap-1 bg-[#09090b]/85 backdrop-blur-md border border-white/10 rounded-xl p-1 shadow-xl">
         <button
           type="button"
           onClick={() => setMapType('road')}
-          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
+          className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
             mapType === 'road'
-              ? 'bg-white/10 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-accent text-white shadow-sm'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10'
           }`}
           title={t('Map')}
         >
-          <Navigation size={12} />
+          <Navigation size={13} />
         </button>
         <button
           type="button"
           onClick={() => setMapType('satellite')}
-          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
+          className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
             mapType === 'satellite'
-              ? 'bg-white/10 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-accent text-white shadow-sm'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10'
           }`}
           title={t('Satellite')}
         >
-          <Globe size={12} />
+          <Globe size={13} />
         </button>
         <button
           type="button"
           onClick={() => setMapType('hybrid')}
-          className={`flex h-7 w-7 items-center justify-center rounded-md transition ${
+          className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
             mapType === 'hybrid'
-              ? 'bg-white/10 text-white'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-accent text-white shadow-sm'
+              : 'text-zinc-400 hover:text-white hover:bg-white/10'
           }`}
           title={t('Hybrid')}
         >
-          <Layers size={12} />
+          <Layers size={13} />
         </button>
       </div>
 
-      {/* Control Overlay */}
-      <div className="absolute bottom-3 left-3 z-[500] pointer-events-auto bg-[#09090b]/90 backdrop-blur border border-line rounded-lg px-2.5 py-1.5 text-[10px] text-zinc-400 leading-tight">
+      {/* Interactive Control Overlay Bar */}
+      <div className="absolute bottom-3 left-3 z-[500] pointer-events-auto bg-[#09090b]/85 backdrop-blur-md border border-white/10 rounded-xl px-3 py-2 text-xs text-zinc-300 shadow-xl flex items-center gap-3">
         {points.length === 0 ? (
-          <span>Click on the map above to start placing boundary corners.</span>
+          <span className="text-[11px] text-zinc-400 font-medium">📍 {t('Click on map to place boundary points')}</span>
         ) : (
-          <div className="flex items-center gap-2">
-            <span>{points.length} corners placed. Drag points to adjust or click to delete.</span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange([]);
-              }}
-              className="flex items-center gap-1 text-rose-400 hover:text-rose-300 font-bold ml-1 border-l border-line pl-2"
-            >
-              <Trash2 size={10} />
-              Clear & Start New
-            </button>
+          <div className="flex items-center gap-2.5">
+            <span className="font-semibold text-white text-[11px] flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${zoneColor.bg} animate-ping`} />
+              {t('{count} points placed').replace('{count}', String(points.length))}
+            </span>
+
+            <div className="flex items-center gap-1 border-l border-white/15 pl-2.5">
+              <button
+                type="button"
+                onClick={undoLastPoint}
+                className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[10px] font-bold text-zinc-200 transition cursor-pointer"
+              >
+                {t('Undo')}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange([]);
+                }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-[10px] font-bold transition cursor-pointer border border-rose-500/30"
+              >
+                <Trash2 size={10} />
+                {t('Clear')}
+              </button>
+            </div>
           </div>
         )}
       </div>
