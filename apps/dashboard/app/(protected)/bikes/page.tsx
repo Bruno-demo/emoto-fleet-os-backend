@@ -538,7 +538,7 @@ export default function BikesPage() {
           <button
             type="button"
             onClick={() => setShowCreateBike(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm whitespace-nowrap"
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-accent-strong active:scale-95 shadow-sm whitespace-nowrap"
             style={{ background: '#3B82F6', color: 'white' }}
           >
             <Plus size={16} strokeWidth={3} />
@@ -835,7 +835,7 @@ export default function BikesPage() {
                       type="button"
                       onClick={handleAssignRider}
                       disabled={isAssigningRider || !assignRiderId}
-                      className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60"
+                      className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:bg-accent-strong disabled:opacity-60"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
                       {isAssigningRider ? t('Assigning...') : t('Confirm Assignment')}
@@ -867,7 +867,7 @@ export default function BikesPage() {
                       type="button"
                       onClick={handleAssignInsurer}
                       disabled={isAssigningInsurer}
-                      className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:brightness-110 disabled:opacity-60"
+                      className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white hover:bg-accent-strong disabled:opacity-60"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
                       {isAssigningInsurer ? t('Assigning...') : t('Confirm Insurer')}
@@ -927,7 +927,7 @@ export default function BikesPage() {
                     type="button"
                     disabled={true}
                     onClick={() => {}}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ background: '#EF4444', color: 'white' }}
                   >
                     <Lock size={16} />
@@ -1189,7 +1189,7 @@ export default function BikesPage() {
                 type="button"
                 onClick={handleCreateBike}
                 disabled={isCreatingBike}
-                className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-60"
                 style={{ background: '#3B82F6', color: 'white' }}
               >
                 {isCreatingBike ? t('Creating...') : t('Create Bike')}
@@ -1352,7 +1352,7 @@ export default function BikesPage() {
                 type="button"
                 onClick={handleEditBike}
                 disabled={isUpdatingBike}
-                className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-60"
                 style={{ background: '#3B82F6', color: 'white' }}
               >
                 {isUpdatingBike ? t('Saving...') : t('Save Changes')}

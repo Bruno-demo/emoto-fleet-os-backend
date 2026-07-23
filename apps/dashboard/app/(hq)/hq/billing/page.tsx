@@ -615,7 +615,7 @@ export default function HqBillingPage() {
             <h2 className="text-lg font-bold text-white">Discount & Promotion Codes</h2>
             <button
               onClick={() => setShowCreateDiscount(true)}
-              className="inline-flex items-center gap-2 bg-accent text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:brightness-110 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 bg-accent text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-accent-strong active:scale-95 transition-all"
             >
               <Plus size={14} /> Create Discount
             </button>
@@ -758,7 +758,7 @@ export default function HqBillingPage() {
                     <button
                       type="submit"
                       disabled={createDiscountMutation.isPending}
-                      className="px-5 py-2 bg-accent text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50"
+                      className="px-5 py-2 bg-accent text-white font-bold rounded-xl hover:bg-accent-strong disabled:opacity-50"
                     >
                       Save Promo Code
                     </button>
@@ -849,7 +849,7 @@ export default function HqBillingPage() {
                 <button
                   type="submit"
                   disabled={updateBillingConfigMutation.isPending}
-                  className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:brightness-110 active:scale-95 transition-all text-xs"
+                  className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:bg-accent-strong active:scale-95 transition-all text-xs"
                 >
                   Save Global Policies
                 </button>
@@ -920,7 +920,7 @@ export default function HqBillingPage() {
                   });
                 }}
                 disabled={grantTrialMutation.isPending}
-                className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:brightness-110 active:scale-95 transition-all text-xs disabled:opacity-50"
+                className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:bg-accent-strong active:scale-95 transition-all text-xs disabled:opacity-50"
               >
                 {grantTrialMutation.isPending ? "Granting..." : "Grant Free Trial"}
               </button>
@@ -1221,7 +1221,7 @@ export default function HqBillingPage() {
                 <button
                   type="submit"
                   disabled={recordPaymentMutation.isPending}
-                  className="px-5 py-2 bg-accent text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50"
+                  className="px-5 py-2 bg-accent text-white font-bold rounded-xl hover:bg-accent-strong disabled:opacity-50"
                 >
                   Record Payment
                 </button>
@@ -1357,7 +1357,7 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
           });
         }}
         disabled={updatePricingTierMutation.isPending}
-        className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:brightness-110 active:scale-95 transition-all text-xs disabled:opacity-50"
+        className="w-full h-10 rounded-xl bg-accent text-white font-bold hover:bg-accent-strong active:scale-95 transition-all text-xs disabled:opacity-50"
       >
         {updatePricingTierMutation.isPending ? "Saving..." : "Save Tier Config"}
       </button>

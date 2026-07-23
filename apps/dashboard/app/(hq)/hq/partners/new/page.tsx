@@ -168,7 +168,7 @@ export default function OnboardPartnerPage() {
             <button onClick={() => router.back()} className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-ink-soft hover:bg-white/10 transition">
               Cancel
             </button>
-            <button onClick={handleCreatePartner} disabled={isSubmitting} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:brightness-110 transition disabled:opacity-60">
+            <button onClick={handleCreatePartner} disabled={isSubmitting} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent-strong transition disabled:opacity-60">
               {isSubmitting ? 'Creating...' : 'Create Partner'}
             </button>
           </div>
@@ -214,7 +214,7 @@ export default function OnboardPartnerPage() {
             <button onClick={() => setStep('details')} className="flex-1 rounded-xl border border-line bg-white/5 px-4 py-3 text-sm font-semibold text-ink-soft hover:bg-white/10 transition">
               Back
             </button>
-            <button onClick={handleCreateCredential} disabled={isSubmitting} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:brightness-110 transition disabled:opacity-60">
+            <button onClick={handleCreateCredential} disabled={isSubmitting} className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent-strong transition disabled:opacity-60">
               {isSubmitting ? 'Generating...' : 'Generate Credentials'}
             </button>
           </div>
@@ -261,7 +261,7 @@ export default function OnboardPartnerPage() {
 
           <button
             onClick={() => router.push('/hq/partners')}
-            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:brightness-110 transition"
+            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent-strong transition"
           >
             Back to Partner Directory
           </button>

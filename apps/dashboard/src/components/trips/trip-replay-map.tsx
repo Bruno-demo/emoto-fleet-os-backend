@@ -535,7 +535,7 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
               <button
                 type="button"
                 onClick={handlePlayToggle}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-white shadow transition-all hover:brightness-110 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-white shadow transition-all hover:bg-accent-strong cursor-pointer"
                 style={{ backgroundColor: '#3B82F6', color: '#FFFFFF' }}
               >
                 {isPlaying ? <Pause size={14} /> : <Play size={14} />}

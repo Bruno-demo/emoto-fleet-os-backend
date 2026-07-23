@@ -140,7 +140,7 @@ export default function PublicTrackingPage() {
       {/* Brand Header */}
       <header className="border-b border-zinc-800 bg-[#09090b]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between sticky top-0 z-[1000]">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent shadow-lg shadow-accent/20">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent shadow-sm">
             <Shield size={18} className="text-ink" />
           </div>
           <span className="font-extrabold text-sm uppercase tracking-widest text-white">

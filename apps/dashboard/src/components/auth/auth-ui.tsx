@@ -37,7 +37,7 @@ export function AuthShell({
 
         {/* Top Logo */}
         <Link href="/" className="relative z-10 flex items-center gap-3 self-start group">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:scale-105 transition-transform">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-sm group-hover:scale-105 transition-transform">
             <Command size={18} />
           </span>
           <div className="min-w-0">
@@ -213,7 +213,7 @@ export function AuthButton({
       className={cx(
         'inline-flex w-full items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-95',
         variant === 'primary'
-          ? 'hover:brightness-110 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+          ? 'hover:bg-accent-strong hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
           : 'border border-line-strong bg-surface-muted text-ink hover:bg-surface-hover',
         (disabled || isLoading) ? 'cursor-not-allowed opacity-60' : '',
       )}

@@ -618,7 +618,7 @@ export default function HqDevicesPage() {
                       setAssignBikeId('');
                       setAssignError(null);
                     }}
-                    className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/10"
+                    className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white hover:bg-accent-strong transition-all shadow-md shadow-accent/10"
                   >
                     <Link2 size={14} />
                     {t('Assign Bike')}
@@ -730,7 +730,7 @@ export default function HqDevicesPage() {
                 <button
                   type="submit"
                   disabled={createDeviceMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-50"
                 >
                   {createDeviceMutation.isPending ? t('Provisioning...') : t('Provision')}
                 </button>
@@ -778,7 +778,7 @@ export default function HqDevicesPage() {
                     setCopiedSecret(true);
                     setTimeout(() => setCopiedSecret(false), 2000);
                   }}
-                  className="flex w-full h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:brightness-110 shadow-lg shadow-warning-ink/10"
+                  className="flex w-full h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:bg-accent-strong shadow-lg shadow-warning-ink/10"
                   style={{ backgroundColor: '#f59e0b', color: '#09090b' }}
                 >
                   {copiedSecret ? (
@@ -864,7 +864,7 @@ export default function HqDevicesPage() {
                     }
                   }}
                   disabled={assignMutation.isPending || !assignBikeId}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-50"
                 >
                   {assignMutation.isPending ? t('Assigning...') : t('Assign')}
                 </button>

@@ -682,7 +682,7 @@ export default function SettingsPage() {
                      ) : (
                        <Link
                          href="/checkout?plan=operations-plus"
-                         className="block w-full text-center rounded-xl bg-accent hover:brightness-110 text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
+                         className="block w-full text-center rounded-xl bg-accent hover:bg-accent-strong text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
                        >
                          {t("Upgrade Plan")}
                        </Link>
@@ -1049,7 +1049,7 @@ export default function SettingsPage() {
                     type="button"
                     disabled={isRotatingKeys}
                     onClick={handleRotateKeys}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50"
                     style={{ background: '#EF4444', color: 'white' }}
                   >
                     {isRotatingKeys ? t('Generating...') : t('Rotate API Credentials')}
@@ -1165,7 +1165,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white hover:brightness-110 transition cursor-pointer shadow-md shadow-accent/20"
+                className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent-strong transition cursor-pointer shadow-sm"
               >
                 <Printer size={14} />
                 {t("Print / Save PDF")}
@@ -1399,7 +1399,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
               setGeneratedInviteLink(null);
               setShowInviteModal(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white transition hover:brightness-110 shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white transition hover:bg-accent-strong shadow-sm"
             style={{ background: '#3B82F6', color: 'white' }}
           >
             <UserPlus size={14} />
@@ -1569,7 +1569,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                       type="button"
                       onClick={handleInviteMember}
                       disabled={isInviting}
-                      className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                      className="flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-60"
                       style={{ background: '#3B82F6', color: 'white' }}
                     >
                       {isInviting ? t('Inviting...') : t('Send Invite')}
@@ -1609,7 +1609,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
                 type="button"
                 onClick={handleDeleteMember}
                 disabled={isDeleting}
-                className="flex-1 rounded-xl bg-danger-ink text-white px-4 py-3 text-sm font-bold hover:brightness-110 transition disabled:opacity-60"
+                className="flex-1 rounded-xl bg-danger-ink text-white px-4 py-3 text-sm font-bold hover:bg-accent-strong transition disabled:opacity-60"
                 style={{ background: '#EF4444', color: 'white' }}
               >
                 {isDeleting ? t('Removing...') : t('Remove')}

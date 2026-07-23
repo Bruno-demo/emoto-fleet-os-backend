@@ -1095,7 +1095,7 @@ export default function RidersPage() {
                       <button
                         type="button"
                         onClick={handleCopyLink}
-                        className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110"
+                        className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-accent-strong"
                         style={{ background: '#3B82F6', color: 'white' }}
                       >
                         {copiedInvite ? <Check size={13} /> : <Copy size={13} />}
@@ -1137,7 +1137,7 @@ export default function RidersPage() {
                   type="button"
                   disabled={isCreating || isDirectFormInvalid}
                   onClick={() => void handleCreateRider()}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
                   {isCreating ? t('Creating...') : t('Create rider')}
@@ -1147,7 +1147,7 @@ export default function RidersPage() {
                   type="button"
                   disabled={isGeneratingInvite}
                   onClick={() => void handleGenerateInvite()}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
                   {isGeneratingInvite ? t('Generating...') : t('Generate Invite Link')}
@@ -1501,7 +1501,7 @@ export default function RidersPage() {
                     type="button"
                     disabled={updateMutation.isPending}
                     onClick={() => void handleUpdateRider()}
-                    className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: '#3B82F6', color: 'white' }}
                   >
                     {updateMutation.isPending ? t('Saving...') : t('Save changes')}

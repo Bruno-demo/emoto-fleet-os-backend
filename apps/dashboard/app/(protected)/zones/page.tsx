@@ -470,7 +470,7 @@ export default function ZonesPage() {
             <button
               type="button"
               onClick={() => setDeleteTarget(zone)}
-              className="rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110"
+              className="rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-accent-strong"
               style={{ backgroundColor: '#E11D48', color: '#FFFFFF' }}
             >
               {t('Delete')}
@@ -708,7 +708,7 @@ export default function ZonesPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[var(--radius-control)] px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ backgroundColor: '#3B82F6', color: '#FFFFFF' }}
               >
                 {isSubmitting

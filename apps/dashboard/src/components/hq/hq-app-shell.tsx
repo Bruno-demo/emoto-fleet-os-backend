@@ -77,7 +77,7 @@ export function HqAppShell({ children }: { children: React.ReactNode }) {
             <Menu size={20} />
           </button>
           <Link href="/hq/overview" className="flex items-center gap-3 group">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-sm group-hover:shadow-accent/40 transition-shadow">
               <Command size={18} />
             </span>
             <div className="min-w-0">

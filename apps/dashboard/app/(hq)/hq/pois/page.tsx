@@ -256,7 +256,7 @@ export default function HqPoisPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             onClick={openAddModal}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/10"
+            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-bold text-white hover:bg-accent-strong transition-all shadow-md shadow-accent/10"
           >
             <Plus size={16} />
             Add Help Point
@@ -658,7 +658,7 @@ export default function HqPoisPage() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="flex h-10 items-center justify-center rounded-xl bg-accent px-5 text-xs font-bold text-white hover:brightness-110 transition-all disabled:opacity-50"
+                  className="flex h-10 items-center justify-center rounded-xl bg-accent px-5 text-xs font-bold text-white hover:bg-accent-strong transition-all disabled:opacity-50"
                 >
                   {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editPoiId ? 'Update Point' : 'Create Point'}
                 </button>

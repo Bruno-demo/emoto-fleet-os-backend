@@ -160,7 +160,7 @@ export default function RiderAppPage() {
                 {/* Digital Key Controls */}
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <button className="flex-1 py-2.5 rounded-xl bg-accent text-[#070b14] font-bold text-[11px] text-center shadow-lg shadow-accent/20">
+                    <button className="flex-1 py-2.5 rounded-xl bg-accent text-[#070b14] font-bold text-[11px] text-center shadow-sm">
                       Remote Unlock
                     </button>
                     <button className="flex-1 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] text-zinc-400 font-bold text-[11px] text-center">

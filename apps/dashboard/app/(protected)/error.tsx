@@ -55,7 +55,7 @@ export default function ProtectedError({
         <button
           type="button"
           onClick={reset}
-          className="inline-flex items-center gap-2 rounded-[16px] px-5 py-2.5 text-sm font-semibold transition active:scale-95 hover:brightness-110 shadow-sm"
+          className="inline-flex items-center gap-2 rounded-[16px] px-5 py-2.5 text-sm font-semibold transition active:scale-95 hover:bg-accent-strong shadow-sm"
           style={{ background: '#3B82F6', color: 'white' }}
         >
           <RefreshCw size={15} />

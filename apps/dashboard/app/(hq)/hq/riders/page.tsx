@@ -834,7 +834,7 @@ export default function HqRidersPage() {
                       type="button"
                       disabled={isCreating || isDirectFormInvalid}
                       onClick={handleCreateRider}
-                      className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                      className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:bg-accent-strong disabled:opacity-50"
                     >
                       {isCreating ? t('Creating...') : t('Create rider')}
                     </button>
@@ -894,7 +894,7 @@ export default function HqRidersPage() {
                         <button
                           type="button"
                           onClick={handleCopyLink}
-                          className="h-10 rounded-xl bg-accent px-4 text-xs font-bold text-white hover:brightness-110 transition flex items-center gap-1.5"
+                          className="h-10 rounded-xl bg-accent px-4 text-xs font-bold text-white hover:bg-accent-strong transition flex items-center gap-1.5"
                         >
                           {copiedInvite ? <Check size={14} /> : <Copy size={14} />}
                           {copiedInvite ? t('Copied') : t('Copy')}
@@ -919,7 +919,7 @@ export default function HqRidersPage() {
                       type="button"
                       disabled={isGeneratingInvite}
                       onClick={handleGenerateInvite}
-                      className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                      className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:bg-accent-strong disabled:opacity-50"
                     >
                       {isGeneratingInvite ? t('Generating...') : t('Generate Invite Link')}
                     </button>
@@ -1149,7 +1149,7 @@ export default function HqRidersPage() {
                         setStatusTargetNext('ACTIVE');
                         setStatusConfirmOpen(true);
                       }}
-                      className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white hover:brightness-110 transition-all shadow-md shadow-accent/15"
+                      className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white hover:bg-accent-strong transition-all shadow-md shadow-accent/15"
                     >
                       <UserRound size={14} />
                       {t('Reactivate Rider')}

@@ -817,7 +817,7 @@ export default function FleetDetailPage() {
           </h2>
           <button
             onClick={openCreateUserModal}
-            className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95"
+            className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition-all hover:bg-accent-strong active:scale-95"
           >
             <UserPlus size={14} />
             Add Operator
@@ -940,7 +940,7 @@ export default function FleetDetailPage() {
           </h2>
           <button
             onClick={openCreateBikeModal}
-            className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95"
+            className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition-all hover:bg-accent-strong active:scale-95"
           >
             <Plus size={14} />
             Add Bike
@@ -1290,7 +1290,7 @@ export default function FleetDetailPage() {
                 <button
                   type="submit"
                   disabled={createBikeMutation.isPending || updateBikeMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition-all hover:bg-accent-strong active:scale-95 disabled:opacity-50"
                 >
                   {createBikeMutation.isPending || updateBikeMutation.isPending ? (
                     <Loader2 size={16} className="animate-spin mx-auto" />
@@ -1647,7 +1647,7 @@ export default function FleetDetailPage() {
                 <button
                   type="submit"
                   disabled={createUserMutation.isPending || updateUserMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition-all hover:bg-accent-strong active:scale-95 disabled:opacity-50"
                 >
                   {createUserMutation.isPending || updateUserMutation.isPending ? (
                     <Loader2 size={16} className="animate-spin mx-auto" />
@@ -1712,7 +1712,7 @@ export default function FleetDetailPage() {
                 <button
                   type="submit"
                   disabled={assignDeviceMutation.isPending || !deviceSelectedId}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-white transition-all hover:bg-accent-strong active:scale-95 disabled:opacity-50"
                 >
                   {assignDeviceMutation.isPending ? (
                     <Loader2 size={16} className="animate-spin mx-auto" />

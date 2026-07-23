@@ -872,7 +872,7 @@ export default function DeliveriesPage() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:brightness-110 disabled:opacity-50 transition-all"
+                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:bg-accent-strong disabled:opacity-50 transition-all"
                 >
                   {createMutation.isPending ? t('saving', 'Saving...') : t('btn_create_request', 'Create Request')}
                 </button>
@@ -895,7 +895,7 @@ export default function DeliveriesPage() {
             <button
               onClick={() => autoAssignMutation.mutate(assignTarget.id)}
               disabled={autoAssignMutation.isPending}
-              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-ink transition hover:brightness-110 disabled:opacity-50"
+              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-xs font-bold text-ink transition hover:bg-accent-strong disabled:opacity-50"
             >
               {autoAssignMutation.isPending ? (
                 <span>{t('auto_assigning', 'Auto-Assigning...')}</span>
@@ -1038,7 +1038,7 @@ export default function DeliveriesPage() {
                 <button
                   type="submit"
                   disabled={updateStatusMutation.isPending}
-                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:brightness-110 disabled:opacity-50 transition-all"
+                  className="flex-1 rounded-xl bg-accent py-3 text-sm font-bold text-ink hover:bg-accent-strong disabled:opacity-50 transition-all"
                 >
                   {updateStatusMutation.isPending ? t('updating', 'Updating...') : t('btn_update_status', 'Save Status')}
                 </button>

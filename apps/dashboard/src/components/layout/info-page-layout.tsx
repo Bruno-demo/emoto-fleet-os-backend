@@ -50,7 +50,7 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl" style={{colorScheme:'dark'}}>
         <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 h-16">
           <Link href="/" className="flex items-center gap-3 group">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-blue-600 text-ink shadow-sm group-hover:shadow-accent/40 transition-shadow">
               <Command size={18} />
             </span>
             <div className="min-w-0">

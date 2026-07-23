@@ -125,7 +125,7 @@ export default function HqInsurersPage() {
           </span>
           <button
             onClick={() => { setShowCreate(true); setCreateError(null); }}
-            className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white transition-all hover:brightness-110"
+            className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white transition-all hover:bg-accent-strong"
           >
             <Plus size={14} />
             Create Insurer
@@ -390,7 +390,7 @@ export default function HqInsurersPage() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending || !createForm.email || !createForm.fleetId}
-                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-60"
                 >
                   {createMutation.isPending ? 'Creating…' : 'Create Insurer'}
                 </button>
