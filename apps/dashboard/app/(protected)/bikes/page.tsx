@@ -753,8 +753,6 @@ export default function BikesPage() {
                 value={
                   bikeLiveStateQuery.data?.mainPowerCut ? (
                     <span className="font-semibold text-rose-500">🔴 {t('Main Power Cut (Backup Battery)')}</span>
-                  ) : bikeLiveStateQuery.data?.batteryV !== undefined && bikeLiveStateQuery.data.batteryV > 5 ? (
-                    <span className="text-emerald-500 font-semibold">{bikeLiveStateQuery.data.batteryV.toFixed(1)}V 🟢 {t('Main Active')}</span>
                   ) : (
                     <span className="text-emerald-500 font-semibold">🟢 {t('Main Power Active')}</span>
                   )

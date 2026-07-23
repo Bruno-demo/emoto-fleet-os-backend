@@ -890,9 +890,7 @@ export function LiveMapPanel() {
                 value={
                   selectedState?.mainPowerCut
                     ? t('🔴 Main Power Cut (Backup Battery)')
-                    : selectedState?.batteryV !== undefined && selectedState.batteryV > 5
-                      ? `${selectedState.batteryV.toFixed(1)}V ${t('(Main Cable Active)')}`
-                      : t('🟢 Main Power Active')
+                    : t('🟢 Main Power Active')
                 }
               />
               <KeyMetric
@@ -1741,23 +1739,30 @@ export function createBikeMarkerIcon({
           ? '#2563eb'
           : '#059669';
 
+  const size = selected ? 30 : 22;
+
   return L.divIcon({
     className: 'emoto-bike-marker',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
     html: `
       <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; pointer-events: none;">
         <!-- Bike Circle Pin -->
         <div style="
-          width: ${selected ? 30 : 22}px;
-          height: ${selected ? 30 : 22}px;
-          border-radius: 50%;
+          width: ${size}px;
+          height: ${size}px;
+          min-width: ${size}px;
+          min-height: ${size}px;
+          flex-shrink: 0;
+          border-radius: 9999px;
           background: ${fill};
-          border: 2px solid #fff;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.35);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #fff;
-          transition: all 150ms ease;
+          color: #ffffff;
+          box-sizing: border-box;
         ">
           <svg xmlns="http://www.w3.org/2000/svg" width="${selected ? 15 : 11}" height="${selected ? 15 : 11}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18.5" cy="17.5" r="3.5"/>
@@ -1769,25 +1774,23 @@ export function createBikeMarkerIcon({
         
         <!-- Floating Text Label -->
         <div style="
-          background: rgba(15, 23, 42, 0.85);
+          background: rgba(15, 23, 42, 0.88);
           backdrop-filter: blur(4px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #fff;
-          font-family: system-ui, sans-serif;
-          font-size: 9px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: #ffffff;
+          font-family: system-ui, -apple-system, sans-serif;
+          font-size: 10px;
           font-weight: 700;
-          padding: 1.5px 5px;
-          border-radius: 4px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-          letter-spacing: 0.05em;
+          padding: 2px 6px;
+          border-radius: 5px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          letter-spacing: 0.02em;
+          flex-shrink: 0;
         ">
           ${label}
         </div>
       </div>
     `,
-    iconSize: [120, 32],
-    iconAnchor: selected ? [15, 15] : [11, 11],
-    popupAnchor: [0, -14],
   });
 }
 
