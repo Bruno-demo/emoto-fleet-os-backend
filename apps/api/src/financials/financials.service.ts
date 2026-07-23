@@ -25,6 +25,22 @@ import {
   getPaginationParams,
 } from '../common/pagination';
 
+export interface LeaseSummary {
+  id: string;
+  riderName: string;
+  riderPhone: string;
+  bikeLabel: string;
+  bikePlate: string;
+  totalPrincipal: number;
+  totalPaid: number;
+  dailyRate: number;
+  arrears: number;
+  status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
+  lockState: 'LOCKED' | 'UNLOCKED';
+  bikeId: string | null;
+  pendingFines: number;
+}
+
 @Injectable()
 export class FinancialsService {
   constructor(
@@ -404,7 +420,7 @@ export class FinancialsService {
     };
   }
 
-  async getLeases(user: AuthenticatedUser): Promise<any[]> {
+  async getLeases(user: AuthenticatedUser): Promise<LeaseSummary[]> {
     const riders = await this.prisma.user.findMany({
       where: {
         fleetId: user.fleetId,

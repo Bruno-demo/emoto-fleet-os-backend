@@ -17,8 +17,6 @@ import { EventsService } from '../events/events.service';
 import { RoadFeaturesService } from '../roads/roads.service';
 import { polygonGeoJsonSchema } from '../zones/geojson.schema';
 
-const OVERSPEED_MIN_DURATION_MS = 5_000;
-const OVERSPEED_STATE_TTL_SECONDS = 120;
 const HARSH_EVENT_COOLDOWN_SECONDS = 8;
 const CRASH_EVENT_COOLDOWN_SECONDS = 180;
 const THEFT_EVENT_COOLDOWN_SECONDS = 300;
