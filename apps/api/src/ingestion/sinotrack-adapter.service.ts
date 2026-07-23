@@ -430,7 +430,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     let mainPowerCut = false;
 
     const command = parts[2];
-    if (command === 'EXPOWER' || command === 'POWERCUT' || command === 'POWEROFF') {
+    if (
+      command === 'EXPOWER' ||
+      command === 'POWERCUT' ||
+      command === 'POWEROFF'
+    ) {
       mainPowerCut = true;
     } else if (statusHex && statusHex.length >= 6) {
       const alarmByteHex = statusHex.substring(2, 4);
@@ -442,9 +446,13 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         ignition = (thirdByte & 0x04) !== 0;
       }
 
-      if (!isNaN(alarmByte) && (alarmByte === 0x02 || alarmByte === 0x0A)) {
+      if (!isNaN(alarmByte) && (alarmByte === 0x02 || alarmByte === 0x0a)) {
         mainPowerCut = true;
-      } else if (!isNaN(thirdByte) && (thirdByte & 0x01) === 0 && (thirdByte & 0x04) === 0) {
+      } else if (
+        !isNaN(thirdByte) &&
+        (thirdByte & 0x01) === 0 &&
+        (thirdByte & 0x04) === 0
+      ) {
         // External main power disconnect flag
         mainPowerCut = true;
       }
