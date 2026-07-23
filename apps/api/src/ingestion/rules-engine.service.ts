@@ -513,7 +513,8 @@ export class RulesEngineService {
     );
   }
 
-  // Detects SinoTrack external main power cut / disconnection events and emits high-severity security alert.
+  // Detects SinoTrack external main power cut / disconnection events with smart battery swap filtering.
+  // Distinguishes routine battery swaps (ignition off & stationary) from actual theft attempts (moving or ignition on).
   private async evaluatePowerCut(
     device: RuleDeviceContext,
     payload: TelemetryPayload,
@@ -522,22 +523,38 @@ export class RulesEngineService {
       return;
     }
 
+    const isMoving = payload.speedKph > MOVEMENT_SPEED_THRESHOLD_KPH;
+    const isIgnitionOn = payload.ignition === true;
+
+    // Routine battery swap or maintenance: Ignition OFF and stationary (<= 3 kph)
+    const isRoutineSwap = !isMoving && !isIgnitionOn;
+
+    // If it's a routine swap during battery replacement, emit LOW severity event (no alarm spam or SMS dispatch)
+    const severity = isRoutineSwap ? EventSeverity.LOW : EventSeverity.CRITICAL;
+    const reason = isRoutineSwap
+      ? 'BATTERY_SWAP_DISCONNECT'
+      : 'MAIN_POWER_CUT_THEFT';
+
     await this.emitThrottledEvent(
       `powercut:${device.id}`,
-      THEFT_EVENT_COOLDOWN_SECONDS,
+      isRoutineSwap ? 600 : THEFT_EVENT_COOLDOWN_SECONDS,
       {
         fleetId: device.fleetId,
         bikeId: device.bikeId,
         deviceId: device.id,
         ts: new Date(payload.ts),
         type: 'THEFT_SUSPECTED',
-        severity: EventSeverity.CRITICAL,
+        severity,
         metaJson: {
-          reason: 'MAIN_POWER_CUT',
-          source: 'SinoTrack EXPOWER / Main Power Cut',
+          reason,
+          isRoutineSwap,
+          source: isRoutineSwap
+            ? 'Routine Battery Swap / Maintenance Disconnect'
+            : 'ALERT: Suspicious Main Power Wire Cut (Vehicle Active)',
           batteryV: payload.batteryV,
           batteryPct: payload.batteryPct,
           speedKph: payload.speedKph,
+          ignition: payload.ignition ?? false,
         } as Prisma.InputJsonValue,
       },
     );
