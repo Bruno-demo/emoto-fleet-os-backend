@@ -535,8 +535,11 @@ export class RulesEngineService {
       ? 'BATTERY_SWAP_DISCONNECT'
       : 'MAIN_POWER_CUT_THEFT';
 
-    await this.emitThrottledEvent(
-      `powercut:${device.id}`,
+    await this.emitWithCooldown(
+      this.eventCooldownKey(
+        device.id,
+        isRoutineSwap ? 'ROUTINE_POWER_CUT' : 'THEFT_POWER_CUT',
+      ),
       isRoutineSwap ? 600 : THEFT_EVENT_COOLDOWN_SECONDS,
       {
         fleetId: device.fleetId,
