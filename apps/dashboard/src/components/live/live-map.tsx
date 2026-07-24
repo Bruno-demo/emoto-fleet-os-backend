@@ -871,27 +871,10 @@ export function LiveMapPanel() {
           />
         ) : (
           <div className="space-y-5">
-            {selectedState?.mainPowerCut && (
-              <div className="flex items-center justify-between rounded-xl bg-rose-500/15 border border-rose-500/30 px-3.5 py-2.5 text-xs font-bold text-rose-500 shadow-sm animate-pulse">
-                <div className="flex items-center gap-2">
-                  <span>⚡</span>
-                  <span>{t('MAIN POWER CUT DETECTED')}</span>
-                </div>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">{t('Backup Battery')}</span>
-              </div>
-            )}
             <section className="grid gap-3 sm:grid-cols-2">
               <KeyMetric
                 label={t("Current speed")}
                 value={selectedState ? `${selectedState.speedKph.toFixed(1)} ${t('kph')}` : '--'}
-              />
-              <KeyMetric
-                label={t("Power supply")}
-                value={
-                  selectedState?.mainPowerCut
-                    ? t('🔴 Main Power Cut (Backup Battery)')
-                    : t('🟢 Main Power Active')
-                }
               />
               <KeyMetric
                 label={t("Last seen")}
