@@ -2373,6 +2373,8 @@ export class HqService {
         createdAt: true,
         insurerName: true,
         monthlyRatePerBike: true,
+        trialStartedAt: true,
+        trialEndsAt: true,
         _count: {
           select: { users: true, bikes: true },
         },
@@ -2398,6 +2400,8 @@ export class HqService {
         createdAt: f.createdAt,
         insurerName: f.insurerName,
         monthlyRatePerBike: f.monthlyRatePerBike,
+        trialStartedAt: f.trialStartedAt,
+        trialEndsAt: f.trialEndsAt,
         _count: {
           users: f._count.users,
           bikes: bikeCount,
