@@ -1638,9 +1638,9 @@ function useThrottledValue<T>(value: T, delayMs: number) {
   const nextValueRef = useRef<T>(value);
   const timerRef = useRef<number | null>(null);
 
-  nextValueRef.current = value;
-
   useEffect(() => {
+    nextValueRef.current = value;
+
     const now = Date.now();
     const elapsed = now - lastUpdatedRef.current;
 
