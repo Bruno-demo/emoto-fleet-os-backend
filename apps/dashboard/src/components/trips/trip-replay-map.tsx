@@ -459,7 +459,7 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
 
         {/* Real-time Safety Incident Alert Overlay */}
         {activeReplayEvent && (
-          <div className="absolute top-14 left-3 right-3 z-[400] rounded-xl border border-rose-500/30 bg-black/85 px-4 py-3 backdrop-blur-md text-white shadow-xl flex items-center justify-between animate-in slide-in-from-top duration-300">
+          <div className="absolute bottom-4 left-3 right-3 md:right-auto md:max-w-md z-[400] rounded-xl border border-rose-500/30 bg-black/85 px-4 py-3 backdrop-blur-md text-white shadow-xl flex items-center justify-between animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center gap-3">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white animate-pulse">
                 <ShieldAlert size={16} />
