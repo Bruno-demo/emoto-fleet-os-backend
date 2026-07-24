@@ -485,7 +485,7 @@ function FleetStatCard({
   urgent,
 }: {
   label: string;
-  value: number;
+  value: React.ReactNode;
   icon: React.ReactNode;
   loading: boolean;
   urgent?: boolean;
