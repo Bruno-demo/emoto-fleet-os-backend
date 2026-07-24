@@ -1240,10 +1240,13 @@ interface TrafficFineRecord {
 
 function TrafficFinesCard() {
   const { t } = useTranslation();
+  const { data: currentUser } = useCurrentUser();
+  const canUseReports = canUseFeature(currentUser, 'reports');
 
   const { data: fines = [], isLoading } = useQuery({
     queryKey: ['traffic-fines'],
     queryFn: () => apiFetch<TrafficFineRecord[]>('/traffic-fines'),
+    enabled: canUseReports,
   });
 
   return (
@@ -1360,16 +1363,19 @@ function RecordSwapModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const { data: currentUser } = useCurrentUser();
+  const canUseFinancials = canUseFeature(currentUser, 'financial');
+
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'modal-select'],
     queryFn: () => apiFetch<{ data: Array<{ id: string; label: string; plate: string }> }>('/bikes?pageSize=100'),
-    enabled: isOpen,
+    enabled: isOpen && canUseFinancials,
   });
 
   const ridersQuery = useQuery({
     queryKey: ['riders', 'modal-select'],
     queryFn: () => apiFetch<{ data: Array<{ id: string; phone?: string; riderProfile?: { fullName: string } }> }>('/riders?pageSize=100'),
-    enabled: isOpen,
+    enabled: isOpen && canUseFinancials,
   });
 
   const activeFraction =
