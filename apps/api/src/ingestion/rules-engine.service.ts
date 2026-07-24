@@ -415,9 +415,9 @@ export class RulesEngineService {
       const deceleration = speedDropMs / effectiveTimeDelta;
       const gForce = deceleration / 9.81;
 
-      const SOFTWARE_CRASH_G_THRESHOLD = 1.0;
+      const SOFTWARE_CRASH_G_THRESHOLD = 2.2;
 
-      if (gForce >= SOFTWARE_CRASH_G_THRESHOLD) {
+      if (gForce >= SOFTWARE_CRASH_G_THRESHOLD && speedDropKph >= CRASH_SPEED_DROP_THRESHOLD_KPH) {
         await this.emitWithCooldown(
           this.eventCooldownKey(device.id, 'CRASH'),
           CRASH_EVENT_COOLDOWN_SECONDS,
@@ -432,6 +432,7 @@ export class RulesEngineService {
               gForce: Number(gForce.toFixed(3)),
               speedDropKph: Number(speedDropKph.toFixed(2)),
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
+              reason: 'Software estimated G-force and speed drop threshold exceeded',
             } as Prisma.InputJsonValue,
           },
         );
