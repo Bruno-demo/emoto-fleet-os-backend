@@ -18,8 +18,10 @@ import {
   TrendingUp,
   Users,
   Zap,
+  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
+import { canUseFeature } from '@/lib/subscription';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -45,23 +47,28 @@ export default function OverviewPage() {
   const { t } = useTranslation();
   const [dateRange, setDateRange] = useState(getDefaultRange);
   const { data: user } = useCurrentUser();
+  const canUseReports = canUseFeature(user, 'reports');
+  const canUseIncidents = canUseFeature(user, 'incidents');
 
   const weeklyReportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
     queryFn: () =>
       apiFetch<WeeklyReport>(`/reports/weekly?from=${dateRange.from}&to=${dateRange.to}`),
+    enabled: canUseReports,
   });
 
   const incidentsQuery = useQuery({
     queryKey: ['incidents', 'overview-open'],
     queryFn: () =>
       apiFetch<PaginatedResponse<Incident>>('/incidents?status=OPEN&page=1&pageSize=5'),
+    enabled: canUseIncidents,
   });
 
   const recentIncidentsQuery = useQuery({
     queryKey: ['incidents', 'overview-recent'],
     queryFn: () =>
       apiFetch<PaginatedResponse<Incident>>('/incidents?page=1&pageSize=8'),
+    enabled: canUseIncidents,
   });
 
   const bikesQuery = useQuery({
@@ -100,15 +107,15 @@ export default function OverviewPage() {
           <>
             <MetricCard
               title={user?.role === 'INSURER' ? t('Insured Trips') : t('Weekly Trips')}
-              value={report ? String(report.tripCount) : '--'}
-              hint={user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in the current 7-day window')}
+              value={canUseReports ? (report ? String(report.tripCount) : '--') : '🔒'}
+              hint={canUseReports ? (user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in the current 7-day window')) : t('Upgrade to Operations Plus to unlock')}
               icon={<Bike size={18} />}
               tone="info"
             />
             <MetricCard
               title={user?.role === 'INSURER' ? t('Covered Score') : t('Fleet Score')}
-              value={report ? report.avgScore.toFixed(1) : '--'}
-              hint={user?.role === 'INSURER' ? t('Avg driving score of covered bikes') : t('Avg driving score across completed trips')}
+              value={canUseReports ? (report ? report.avgScore.toFixed(1) : '--') : '🔒'}
+              hint={canUseReports ? (user?.role === 'INSURER' ? t('Avg driving score of covered bikes') : t('Avg driving score across completed trips')) : t('Upgrade to Operations Plus to unlock')}
               icon={<TrendingUp size={18} />}
               tone={
                 report
@@ -122,15 +129,15 @@ export default function OverviewPage() {
             />
             <MetricCard
               title={user?.role === 'INSURER' ? t('Open Covered Incidents') : t('Open Incidents')}
-              value={String(openIncidents)}
-              hint={t('Awaiting acknowledgement or resolution')}
+              value={canUseIncidents ? String(openIncidents) : '🔒'}
+              hint={canUseIncidents ? t('Awaiting acknowledgement or resolution') : t('Upgrade to Operations Plus to unlock')}
               icon={<ShieldAlert size={18} />}
-              tone={openIncidents > 0 ? 'danger' : 'neutral'}
+              tone={canUseIncidents && openIncidents > 0 ? 'danger' : 'neutral'}
             />
             <MetricCard
               title={user?.role === 'INSURER' ? t('Covered Events') : t('Total Events')}
-              value={String(totalEvents)}
-              hint={`${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}`}
+              value={canUseReports ? String(totalEvents) : '🔒'}
+              hint={canUseReports ? `${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}` : t('Upgrade to Operations Plus to unlock')}
               icon={<Zap size={18} />}
               tone="warning"
             />
@@ -148,16 +155,16 @@ export default function OverviewPage() {
         />
         <FleetStatCard
           label={user?.role === 'INSURER' ? t('Covered Risk Events') : t('Risk Events')}
-          value={totalEvents}
+          value={canUseReports ? totalEvents : '🔒'}
           icon={<AlertTriangle size={16} />}
-          loading={weeklyReportQuery.isLoading}
+          loading={canUseReports && weeklyReportQuery.isLoading}
         />
         <FleetStatCard
           label={user?.role === 'INSURER' ? t('Covered Incidents') : t('Incidents')}
-          value={openIncidents}
+          value={canUseIncidents ? openIncidents : '🔒'}
           icon={<Siren size={16} />}
-          loading={incidentsQuery.isLoading}
-          urgent={openIncidents > 0}
+          loading={canUseIncidents && incidentsQuery.isLoading}
+          urgent={canUseIncidents && openIncidents > 0}
         />
       </section>
 
@@ -173,7 +180,7 @@ export default function OverviewPage() {
             eyebrow={t('Risk profile')}
             title={t('Event breakdown')}
             actions={
-              user?.role === 'INSURER' ? null : (
+              user?.role === 'INSURER' || !canUseReports ? null : (
                 <Link
                   href="/events"
                   className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
@@ -183,7 +190,23 @@ export default function OverviewPage() {
               )
             }
           >
-            {weeklyReportQuery.isLoading ? (
+            {!canUseReports ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent mb-3 animate-pulse">
+                  <Lock size={18} />
+                </span>
+                <p className="text-xs font-bold text-ink">{t('Event Breakdown Locked')}</p>
+                <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
+                  {t('Detailed crash, speeding, and driving safety event breakdowns require an active Operations Plus plan.')}
+                </p>
+                <Link
+                  href="/checkout?plan=operations-plus"
+                  className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
+                >
+                  {t('Upgrade to Operations Plus')}
+                </Link>
+              </div>
+            ) : weeklyReportQuery.isLoading ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <Skeleton className="h-24 w-full rounded-xl" />
                 <Skeleton className="h-24 w-full rounded-xl" />
@@ -252,7 +275,7 @@ export default function OverviewPage() {
             eyebrow={t('Activity')}
             title={t('Recent incidents')}
             actions={
-              user?.role === 'INSURER' ? null : (
+              user?.role === 'INSURER' || !canUseIncidents ? null : (
                 <Link
                   href="/incidents"
                   className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
@@ -262,7 +285,23 @@ export default function OverviewPage() {
               )
             }
           >
-            {recentIncidentsQuery.isLoading ? (
+            {!canUseIncidents ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent mb-3 animate-pulse">
+                  <Lock size={18} />
+                </span>
+                <p className="text-xs font-bold text-ink">{t('Incident Desk Locked')}</p>
+                <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
+                  {t('Real-time crash tracking, safety alerts, and dispatch incident desk requires an active Operations Plus plan.')}
+                </p>
+                <Link
+                  href="/checkout?plan=operations-plus"
+                  className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
+                >
+                  {t('Upgrade to Operations Plus')}
+                </Link>
+              </div>
+            ) : recentIncidentsQuery.isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-14 w-full rounded-xl" />
                 <Skeleton className="h-14 w-full rounded-xl" />
@@ -329,31 +368,51 @@ export default function OverviewPage() {
             eyebrow={t('Watchlist')}
             title={user?.role === 'INSURER' ? t('Insured Risky Bikes') : t('Risky bikes')}
             actions={
-              <Link
-                href="/bikes"
-                className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-              >
-                {user?.role === 'INSURER' ? t('Bikes') : t('Fleet')} <ArrowRight size={12} />
-              </Link>
+              !canUseReports ? null : (
+                <Link
+                  href="/bikes"
+                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  {user?.role === 'INSURER' ? t('Bikes') : t('Fleet')} <ArrowRight size={12} />
+                </Link>
+              )
             }
           >
-            <WatchlistSection
-              emptyLabel={t('No risky bikes this week')}
-              items={(report?.topRiskyBikes ?? []).slice(0, 5).map((bike) => ({
-                id: bike.bikeId,
-                title: bike.label,
-                subtitle: `${bike.tripCount} ${t('trips')} · ${bike.eventCount} ${t('events')}`,
-                score: bike.avgScore,
-              }))}
-              loading={weeklyReportQuery.isLoading}
-            />
+            {!canUseReports ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent mb-2 animate-pulse">
+                  <Lock size={16} />
+                </span>
+                <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
+                <p className="text-[10px] text-ink-muted max-w-[200px] mt-1 mb-3">
+                  {t('Rider safety scoring and risky vehicle watchlist require Operations Plus.')}
+                </p>
+                <Link
+                  href="/checkout?plan=operations-plus"
+                  className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
+                >
+                  {t('Upgrade')}
+                </Link>
+              </div>
+            ) : (
+              <WatchlistSection
+                emptyLabel={t('No risky bikes this week')}
+                items={(report?.topRiskyBikes ?? []).slice(0, 5).map((bike) => ({
+                  id: bike.bikeId,
+                  title: bike.label,
+                  subtitle: `${bike.tripCount} ${t('trips')} · ${bike.eventCount} ${t('events')}`,
+                  score: bike.avgScore,
+                }))}
+                loading={weeklyReportQuery.isLoading}
+              />
+            )}
           </DashboardCard>
 
           <DashboardCard
             eyebrow={t('Watchlist')}
             title={user?.role === 'INSURER' ? t('Insured Risky Riders') : t('Risky riders')}
             actions={
-              user?.role === 'INSURER' ? null : (
+              user?.role === 'INSURER' || !canUseReports ? null : (
                 <Link
                   href="/riders"
                   className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
@@ -363,16 +422,34 @@ export default function OverviewPage() {
               )
             }
           >
-            <WatchlistSection
-              emptyLabel={t('No risky riders this week')}
-              items={(report?.topRiskyRiders ?? []).slice(0, 5).map((rider) => ({
-                id: rider.riderId,
-                title: rider.fullName ?? `Rider ${rider.riderId.slice(0, 8)}`,
-                subtitle: `${rider.tripCount} ${t('trips')}`,
-                score: rider.avgScore,
-              }))}
-              loading={weeklyReportQuery.isLoading}
-            />
+            {!canUseReports ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent mb-2 animate-pulse">
+                  <Lock size={16} />
+                </span>
+                <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
+                <p className="text-[10px] text-ink-muted max-w-[200px] mt-1 mb-3">
+                  {t('Rider safety scoring and risky vehicle watchlist require Operations Plus.')}
+                </p>
+                <Link
+                  href="/checkout?plan=operations-plus"
+                  className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
+                >
+                  {t('Upgrade')}
+                </Link>
+              </div>
+            ) : (
+              <WatchlistSection
+                emptyLabel={t('No risky riders this week')}
+                items={(report?.topRiskyRiders ?? []).slice(0, 5).map((rider) => ({
+                  id: rider.riderId,
+                  title: rider.fullName ?? `Rider ${rider.riderId.slice(0, 8)}`,
+                  subtitle: `${rider.tripCount} ${t('trips')}`,
+                  score: rider.avgScore,
+                }))}
+                loading={weeklyReportQuery.isLoading}
+              />
+            )}
           </DashboardCard>
 
           {/* Quick actions */}
