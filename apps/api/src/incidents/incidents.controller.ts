@@ -1,3 +1,4 @@
+import { Response } from 'express';
 import {
   Body,
   Controller,
@@ -109,19 +110,14 @@ export class IncidentsController {
     UserRole.RIDER,
   )
   @ApiOperation({ summary: 'Stream evidence file' })
-  async downloadEvidenceFile(
-    @Query('key') key: string,
-    @Res() res: any,
-  ) {
+  downloadEvidenceFile(@Query('key') key: string, @Res() res: Response) {
     const file = this.incidentsService.getEvidenceFile(key);
     if (!file) {
       throw new NotFoundException('Evidence file not found');
     }
+    const filename = key.split('/').pop() ?? 'evidence-file';
     res.setHeader('Content-Type', file.mimeType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${key.split('/').pop()}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(file.content);
   }
 

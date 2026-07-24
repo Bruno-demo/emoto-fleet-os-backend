@@ -25,8 +25,10 @@ export class StorageService implements OnModuleInit {
       'http://localhost:9000',
     );
     const region = this.configService.get<string>('S3_REGION', 'us-east-1');
-    const accessKeyId =
-      this.configService.get<string>('S3_ACCESS_KEY_ID', 'minioadmin');
+    const accessKeyId = this.configService.get<string>(
+      'S3_ACCESS_KEY_ID',
+      'minioadmin',
+    );
     const secretAccessKey = this.configService.get<string>(
       'S3_SECRET_ACCESS_KEY',
       'minioadmin',
@@ -122,7 +124,7 @@ export class StorageService implements OnModuleInit {
 
   // Reads a local evidence file if available.
   readLocalFile(key: string): { content: Buffer; mimeType: string } | null {
-    const safePath = path.normalize(key).replace(/^(\.\.[\/\\])+/, '');
+    const safePath = path.normalize(key).replace(/^(\.\.[/\\])+/, '');
     const localFilePath = path.join(this.localStorageDir, safePath);
     if (!fs.existsSync(localFilePath)) {
       return null;
@@ -150,8 +152,9 @@ export class StorageService implements OnModuleInit {
       const localFilePath = path.join(this.localStorageDir, key);
       fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
       fs.writeFileSync(localFilePath, body, 'utf-8');
-    } catch (err) {
-      this.logger.warn(`Local file write failed for ${key}: ${err}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Local file write failed for ${key}: ${message}`);
     }
 
     try {
@@ -164,8 +167,9 @@ export class StorageService implements OnModuleInit {
           ContentType: contentType,
         }),
       );
-    } catch (err) {
-      this.logger.warn(`S3 upload skipped, fallback to local disk: ${err}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`S3 upload skipped, fallback to local disk: ${message}`);
     }
   }
 

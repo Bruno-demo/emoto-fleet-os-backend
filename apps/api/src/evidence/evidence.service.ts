@@ -67,8 +67,13 @@ export class EvidenceService {
     return this.getOrCreateEvidencePack(incident);
   }
 
+  // Returns local evidence file payload if stored on disk.
+  getEvidenceFile(key: string) {
+    return this.storageService.readLocalFile(key);
+  }
+
   // Creates one evidence pack snapshot when absent and returns presigned file URLs.
-  private async getOrCreateEvidencePack(
+  async getOrCreateEvidencePack(
     incident: IncidentBundle,
   ): Promise<IncidentEvidencePackResponse> {
     const existingPack = await this.prismaService.evidencePack.findUnique({
