@@ -544,31 +544,40 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
         </MapContainer>
 
         {/* Real-time Safety Incident Alert Overlay */}
-        {activeReplayEvent && (
-          <div className="absolute bottom-4 left-3 right-3 md:right-auto md:max-w-md z-[400] rounded-xl border border-rose-500/30 bg-black/85 px-4 py-3 backdrop-blur-md text-white shadow-xl flex items-center justify-between animate-in slide-in-from-bottom duration-300">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white animate-pulse">
-                <ShieldAlert size={16} />
-              </span>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-rose-300">
-                  {t(formatEnumLabel(activeReplayEvent.type))} {t('detected')}
-                </p>
-                <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
-                  {getEventDescription(activeReplayEvent.type, activeReplayEvent.metaJson, t)}
-                </p>
+        {activeReplayEvent && (() => {
+          const isCritical = activeReplayEvent.severity === 'CRITICAL' || activeReplayEvent.severity === 'HIGH';
+          const borderColor = isCritical ? 'border-rose-500' : 'border-amber-500';
+          const shadowColor = isCritical ? 'shadow-[0_12px_40px_rgba(244,63,94,0.35)]' : 'shadow-[0_12px_40px_rgba(245,158,11,0.35)]';
+          const headerTextColor = isCritical ? 'text-rose-400' : 'text-amber-400';
+          const badgeBgColor = isCritical ? 'bg-rose-500' : 'bg-amber-500';
+          const buttonBgColor = isCritical ? 'bg-rose-500 hover:bg-rose-600' : 'bg-amber-500 hover:bg-amber-600';
+
+          return (
+            <div className={`absolute bottom-4 left-3 right-3 md:right-auto md:max-w-md z-[400] rounded-2xl border-2 ${borderColor} bg-[#16161a] px-5 py-4 text-white ${shadowColor} flex items-center justify-between animate-in slide-in-from-bottom duration-300`}>
+              <div className="flex items-center gap-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${badgeBgColor} text-white animate-pulse`}>
+                  <ShieldAlert size={18} />
+                </span>
+                <div>
+                  <p className={`text-xs font-bold uppercase tracking-wider ${headerTextColor}`}>
+                    {t(formatEnumLabel(activeReplayEvent.type))} {t('detected')}
+                  </p>
+                  <p className="text-[11px] text-zinc-200 mt-1 leading-relaxed font-medium">
+                    {getEventDescription(activeReplayEvent.type, activeReplayEvent.metaJson, t)}
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => {
+                  setIsPlaying(false);
+                }}
+                className={`text-[10px] font-bold uppercase ${buttonBgColor} px-3 py-2 rounded-xl text-white ml-3 shrink-0 cursor-pointer shadow-md transition-all active:scale-95`}
+              >
+                {t('Pause')}
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setIsPlaying(false);
-              }}
-              className="text-[10px] font-bold uppercase bg-rose-500 hover:bg-rose-600 px-2.5 py-1.5 rounded-lg text-white ml-2 shrink-0 cursor-pointer"
-            >
-              {t('Pause')}
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Real-time Stats Overlay */}
         {activePoint && (
