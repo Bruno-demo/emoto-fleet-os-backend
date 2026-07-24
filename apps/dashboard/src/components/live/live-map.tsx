@@ -1076,6 +1076,7 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
 
   const [animatedPos, setAnimatedPos] = useState<[number, number]>([state.lat, state.lng]);
   const lastPosRef = useRef<[number, number]>([state.lat, state.lng]);
+  const lastUpdateRef = useRef<number>(0);
 
   useEffect(() => {
     const startLat = lastPosRef.current[0];
@@ -1096,13 +1097,26 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
       return;
     }
 
-    const duration = 5000; // Interpolate over 5 seconds (matching the GPS tracker report interval)
+    // Adaptive duration calculation:
+    const now = performance.now();
+    let currentDuration = 5000; // Default fallback to 5 seconds
+    if (lastUpdateRef.current > 0) {
+      const elapsed = now - lastUpdateRef.current;
+      // Accept elapsed time if it is a realistic update interval (between 1s and 45s)
+      if (elapsed >= 1000 && elapsed <= 45000) {
+        // Pad the duration slightly (e.g., 5%) so that the interpolation lasts slightly
+        // longer than the packet interval, keeping the movement fluid and continuous
+        currentDuration = elapsed * 1.05;
+      }
+    }
+    lastUpdateRef.current = now;
+
     const startTime = performance.now();
     let animFrameId: number;
 
     const animate = (currentTime: number) => {
       const elapsedTime = currentTime - startTime;
-      const progress = Math.min(elapsedTime / duration, 1);
+      const progress = Math.min(elapsedTime / currentDuration, 1);
 
       const currentLat = startLat + (endLat - startLat) * progress;
       const currentLng = startLng + (endLng - startLng) * progress;
@@ -1620,16 +1634,43 @@ function mergeCommandStatuses(
 // Throttles volatile arrays so map marker updates stay smooth under bursty telemetry.
 function useThrottledValue<T>(value: T, delayMs: number) {
   const [throttledValue, setThrottledValue] = useState(value);
+  const lastUpdatedRef = useRef<number>(0);
+  const nextValueRef = useRef<T>(value);
+  const timerRef = useRef<number | null>(null);
+
+  nextValueRef.current = value;
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setThrottledValue(value);
-    }, delayMs);
+    const now = Date.now();
+    const elapsed = now - lastUpdatedRef.current;
 
-    return () => {
-      window.clearTimeout(timer);
+    const performUpdate = () => {
+      setThrottledValue(nextValueRef.current);
+      lastUpdatedRef.current = Date.now();
+      timerRef.current = null;
     };
-  }, [delayMs, value]);
+
+    if (elapsed >= delayMs) {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      performUpdate();
+    } else {
+      if (!timerRef.current) {
+        const remaining = delayMs - elapsed;
+        timerRef.current = window.setTimeout(performUpdate, remaining) as unknown as number;
+      }
+    }
+  }, [value, delayMs]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   return throttledValue;
 }
