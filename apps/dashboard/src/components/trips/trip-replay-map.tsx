@@ -287,20 +287,106 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
       });
 
       const closestPoint = route[closestIdx];
+      let lat = closestPoint.lat;
+      let lng = closestPoint.lng;
+
+      // Snap to closest OSRM snapped coordinate if available
+      if (snappedCoords.length > 0) {
+        let minDistance = Infinity;
+        for (const pt of snappedCoords) {
+          const dist = Math.pow(pt[0] - lat, 2) + Math.pow(pt[1] - lng, 2);
+          if (dist < minDistance) {
+            minDistance = dist;
+            lat = pt[0];
+            lng = pt[1];
+          }
+        }
+      }
 
       return {
         ...e,
-        lat: closestPoint.lat,
-        lng: closestPoint.lng,
+        lat,
+        lng,
         routeIndex: closestIdx,
       };
     });
-  }, [events, route]);
+  }, [events, route, snappedCoords]);
 
   // Check if an event occurred at or near the current playback position
   const activeReplayEvent = useMemo(() => {
     return parsedEvents.find((e) => Math.abs(e.routeIndex - currentIndex) <= 1);
   }, [parsedEvents, currentIndex]);
+
+  // Snap the animating vehicle position to the nearest coordinate on the snapped path (so it rides accurately on the road line)
+  const activeSnappedPoint = useMemo(() => {
+    if (!activePoint) return null;
+    if (snappedCoords.length === 0) return [activePoint.lat, activePoint.lng] as [number, number];
+
+    let closestPt = snappedCoords[0];
+    let minDistance = Infinity;
+
+    for (const pt of snappedCoords) {
+      const dist = Math.pow(pt[0] - activePoint.lat, 2) + Math.pow(pt[1] - activePoint.lng, 2);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestPt = pt;
+      }
+    }
+    return closestPt;
+  }, [activePoint, snappedCoords]);
+
+  // Calculate bearing to the next point (snapped or raw) for smooth marker rotation
+  const bearing = useMemo(() => {
+    if (snappedCoords.length >= 2 && activeSnappedPoint) {
+      const idx = snappedCoords.findIndex(pt => pt[0] === activeSnappedPoint[0] && pt[1] === activeSnappedPoint[1]);
+      if (idx !== -1 && idx < snappedCoords.length - 1) {
+        const p1 = snappedCoords[idx];
+        const p2 = snappedCoords[idx + 1];
+        const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180 / Math.PI;
+        return (angle + 360) % 360;
+      }
+    }
+
+    // Fallback: raw bearing
+    if (currentIndex >= route.length - 1) {
+      if (route.length < 2) return 0;
+      const p1 = route[route.length - 2];
+      const p2 = route[route.length - 1];
+      return (Math.atan2(p2.lng - p1.lng, p2.lat - p1.lat) * 180 / Math.PI + 360) % 360;
+    }
+    const p1 = route[currentIndex];
+    const p2 = route[currentIndex + 1];
+    return (Math.atan2(p2.lng - p1.lng, p2.lat - p1.lat) * 180 / Math.PI + 360) % 360;
+  }, [currentIndex, route, activeSnappedPoint, snappedCoords]);
+
+  const dynamicBikeIcon = useMemo(() => {
+    return L.divIcon({
+      className: 'trip-replay-marker',
+      html: `
+        <div style="
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          background: #3b82f6;
+          border: 2px solid #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+          color: white;
+          transform: rotate(${bearing}deg);
+          transition: transform 0.15s ease-out;
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" opacity="0.2"/>
+            <path d="m12 7-5 7h10z" fill="currentColor"/>
+          </svg>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+  }, [bearing]);
 
   const handlePlayToggle = () => {
     setIsPlaying((prev) => !prev);
@@ -441,15 +527,15 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
           {/* Animating Vehicle Marker */}
           {activePoint && (
             <Marker
-              position={[activePoint.lat, activePoint.lng]}
-              icon={bikeMarkerIcon}
+              position={activeSnappedPoint || [activePoint.lat, activePoint.lng]}
+              icon={dynamicBikeIcon}
             />
           )}
 
           {/* Follow Active Marker */}
           {activePoint && (
             <FollowMarker
-              position={[activePoint.lat, activePoint.lng]}
+              position={activeSnappedPoint || [activePoint.lat, activePoint.lng]}
               isPlaying={isPlaying}
             />
           )}
