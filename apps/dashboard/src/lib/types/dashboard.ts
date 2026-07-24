@@ -204,6 +204,9 @@ export interface Incident {
   resolvedAt: string | null;
   notes: string | null;
   eventType?: string;
+  bikeLabel?: string;
+  bikePlate?: string;
+  deviceUid?: string;
 }
 
 export interface IncidentEvidencePack {

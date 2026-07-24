@@ -148,12 +148,15 @@ export default function IncidentsPage() {
     [bikeLabelById, incidentTimelineEventsQuery.data, selectedIncident, t],
   );
 
-  // Clears transient evidence and form state whenever the operator opens a different incident.
+  // Clears transient evidence and form state whenever the operator opens a different incident, and auto-fetches evidence pack.
   useEffect(() => {
     setEvidencePack(null);
     setActionError(null);
     setNotes('');
-  }, [selectedIncidentId]);
+    if (selectedIncidentId && canGenerateEvidence) {
+      void generateEvidencePack();
+    }
+  }, [selectedIncidentId, canGenerateEvidence]);
 
   // Applies the selected incident workflow action and refreshes both list and detail state.
   const runIncidentAction = async (action: IncidentAction) => {
@@ -228,16 +231,22 @@ export default function IncidentsPage() {
     },
     {
       header: t('Bike'),
-      render: (incident) => (
-        <div>
-          <p className="font-semibold text-ink">
-            {incident.bikeId ? bikeLabelById.get(incident.bikeId) ?? maskIdentifier(incident.bikeId) : t('No bike linked')}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-ink-soft">
-            {t('Device')} {maskIdentifier(incident.deviceId)}
-          </p>
-        </div>
-      ),
+      render: (incident) => {
+        const bikeLabel =
+          incident.bikeLabel ??
+          (incident.bikeId ? bikeLabelById.get(incident.bikeId) : undefined) ??
+          (incident.bikeId ? maskIdentifier(incident.bikeId) : t('No bike linked'));
+        const deviceLabel = incident.deviceUid ?? maskIdentifier(incident.deviceId);
+
+        return (
+          <div>
+            <p className="font-semibold text-ink">{bikeLabel}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">
+              {t('Device')}: <span className="font-mono font-medium text-ink">{deviceLabel}</span>
+            </p>
+          </div>
+        );
+      },
     },
     {
       header: t('Status'),
@@ -410,7 +419,21 @@ export default function IncidentsPage() {
               <KeyMetric label={t("Created")} value={<span>{formatTimestamp(selectedIncident.createdAt)}</span>} />
               <KeyMetric
                 label={t("Bike")}
-                value={<span>{selectedIncident.bikeId ? bikeLabelById.get(selectedIncident.bikeId) ?? maskIdentifier(selectedIncident.bikeId) : t('No bike linked')}</span>}
+                value={
+                  <span>
+                    {selectedIncident.bikeLabel ??
+                      (selectedIncident.bikeId ? bikeLabelById.get(selectedIncident.bikeId) : undefined) ??
+                      (selectedIncident.bikeId ? maskIdentifier(selectedIncident.bikeId) : t('No bike linked'))}
+                  </span>
+                }
+              />
+              <KeyMetric
+                label={t("Device")}
+                value={
+                  <span className="font-mono">
+                    {selectedIncident.deviceUid ?? maskIdentifier(selectedIncident.deviceId)}
+                  </span>
+                }
               />
               <KeyMetric label={t("Last updated")} value={<span>{formatTimeAgo(selectedIncident.updatedAt)}</span>} />
             </section>

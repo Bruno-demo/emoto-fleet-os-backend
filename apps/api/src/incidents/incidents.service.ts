@@ -157,7 +157,23 @@ export class IncidentsService {
       return null;
     }
 
+    // Auto-generate evidence pack asynchronously for crash incidents
+    const incidentBundle = await this.prismaService.incident.findUnique({
+      where: { id: createdResult.incident.id },
+      include: { event: true, bike: true, device: true },
+    });
+    if (incidentBundle && incidentBundle.event.type === 'CRASH') {
+      this.evidenceService
+        .getOrCreateEvidencePack(incidentBundle)
+        .catch(() => {});
+    }
+
     return this.toFleetIncident(createdResult.incident);
+  }
+
+  // Gets local evidence file contents if stored on disk.
+  getEvidenceFile(key: string) {
+    return this.evidenceService.getEvidenceFile(key);
   }
 
   // Creates one incident and notification outbox rows from an eligible SOS event.
@@ -336,7 +352,11 @@ export class IncidentsService {
         orderBy: { createdAt: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
-        include: { event: true },
+        include: {
+          event: true,
+          bike: { select: { id: true, label: true, plate: true } },
+          device: { select: { id: true, deviceUid: true } },
+        },
       }),
       this.prismaService.incident.count({ where }),
     ]);
@@ -506,7 +526,11 @@ export class IncidentsService {
   private async loadIncidentOrThrow(id: string) {
     const incident = await this.prismaService.incident.findUnique({
       where: { id },
-      include: { event: true },
+      include: {
+        event: true,
+        bike: { select: { id: true, label: true, plate: true } },
+        device: { select: { id: true, deviceUid: true } },
+      },
     });
     if (!incident) {
       throw new NotFoundException('Incident not found');
@@ -544,7 +568,11 @@ export class IncidentsService {
 
   // Maps persisted incidents into API-safe response payloads.
   private toFleetIncident(
-    incident: Incident & { event?: { type: string } },
+    incident: Incident & {
+      event?: { type: string };
+      bike?: { label: string; plate?: string | null } | null;
+      device?: { deviceUid: string } | null;
+    },
   ): FleetIncident {
     return {
       id: incident.id,
@@ -561,6 +589,9 @@ export class IncidentsService {
       resolvedAt: incident.resolvedAt,
       notes: incident.notes,
       eventType: incident.event?.type,
+      bikeLabel: incident.bike?.label,
+      bikePlate: incident.bike?.plate ?? undefined,
+      deviceUid: incident.device?.deviceUid,
     };
   }
 }

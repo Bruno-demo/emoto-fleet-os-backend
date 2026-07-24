@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -15,6 +17,7 @@ export class StorageService implements OnModuleInit {
   private readonly s3Bucket: string;
   private readonly s3PresignExpiresSeconds: number;
   private readonly s3Client: S3Client;
+  private readonly localStorageDir: string;
 
   constructor(private readonly configService: ConfigService) {
     const endpoint = this.configService.get<string>(
@@ -23,9 +26,10 @@ export class StorageService implements OnModuleInit {
     );
     const region = this.configService.get<string>('S3_REGION', 'us-east-1');
     const accessKeyId =
-      this.configService.getOrThrow<string>('S3_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.getOrThrow<string>(
+      this.configService.get<string>('S3_ACCESS_KEY_ID', 'minioadmin');
+    const secretAccessKey = this.configService.get<string>(
       'S3_SECRET_ACCESS_KEY',
+      'minioadmin',
     );
     const forcePathStyle = this.configService.get<boolean>(
       'S3_FORCE_PATH_STYLE',
@@ -40,6 +44,7 @@ export class StorageService implements OnModuleInit {
       'S3_PRESIGN_EXPIRES_SECONDS',
       600,
     );
+    this.localStorageDir = path.resolve(process.cwd(), 'uploads');
 
     this.s3Client = new S3Client({
       endpoint,
@@ -58,10 +63,16 @@ export class StorageService implements OnModuleInit {
       return;
     }
 
-    await this.ensureBucketExists();
+    try {
+      fs.mkdirSync(this.localStorageDir, { recursive: true });
+    } catch {
+      // Ignore directory creation errors
+    }
+
+    await this.ensureBucketExists().catch(() => {});
   }
 
-  // Uploads JSON content to configured object storage.
+  // Uploads JSON content to configured object storage with local fallback.
   async uploadJson(key: string, payload: unknown): Promise<void> {
     await this.uploadObject(
       key,
@@ -70,7 +81,7 @@ export class StorageService implements OnModuleInit {
     );
   }
 
-  // Uploads plaintext content to configured object storage.
+  // Uploads plaintext content to configured object storage with local fallback.
   async uploadText(
     key: string,
     payload: string,
@@ -84,19 +95,43 @@ export class StorageService implements OnModuleInit {
     if (this.configService.get<string>('NODE_ENV') === 'test') {
       return `https://mock-storage.emoto.local/${this.s3Bucket}/${key}?expires=${this.s3PresignExpiresSeconds}`;
     }
-    await this.ensureBucketExists();
-    const command = new GetObjectCommand({
-      Bucket: this.s3Bucket,
-      Key: key,
-    });
-    return getSignedUrl(this.s3Client, command, {
-      expiresIn: this.s3PresignExpiresSeconds,
-    });
+
+    const localFilePath = path.join(this.localStorageDir, key);
+    if (fs.existsSync(localFilePath)) {
+      return `/incidents/evidence-file?key=${encodeURIComponent(key)}`;
+    }
+
+    try {
+      await this.ensureBucketExists();
+      const command = new GetObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: key,
+      });
+      return await getSignedUrl(this.s3Client, command, {
+        expiresIn: this.s3PresignExpiresSeconds,
+      });
+    } catch {
+      return `/incidents/evidence-file?key=${encodeURIComponent(key)}`;
+    }
   }
 
   // Returns current presigned URL expiry in seconds.
   getPresignedExpirySeconds(): number {
     return this.s3PresignExpiresSeconds;
+  }
+
+  // Reads a local evidence file if available.
+  readLocalFile(key: string): { content: Buffer; mimeType: string } | null {
+    const safePath = path.normalize(key).replace(/^(\.\.[\/\\])+/, '');
+    const localFilePath = path.join(this.localStorageDir, safePath);
+    if (!fs.existsSync(localFilePath)) {
+      return null;
+    }
+    const content = fs.readFileSync(localFilePath);
+    const mimeType = safePath.endsWith('.csv')
+      ? 'text/csv; charset=utf-8'
+      : 'application/json; charset=utf-8';
+    return { content, mimeType };
   }
 
   // Uploads one object and ensures bucket existence before writing content.
@@ -109,15 +144,29 @@ export class StorageService implements OnModuleInit {
       this.logger.debug(`[Mock Storage] Skipped upload for key: ${key}`);
       return;
     }
-    await this.ensureBucketExists();
-    await this.s3Client.send(
-      new PutObjectCommand({
-        Bucket: this.s3Bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-      }),
-    );
+
+    // Always store to local disk storage as a reliable fallback
+    try {
+      const localFilePath = path.join(this.localStorageDir, key);
+      fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
+      fs.writeFileSync(localFilePath, body, 'utf-8');
+    } catch (err) {
+      this.logger.warn(`Local file write failed for ${key}: ${err}`);
+    }
+
+    try {
+      await this.ensureBucketExists();
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(`S3 upload skipped, fallback to local disk: ${err}`);
+    }
   }
 
   // Creates the evidence bucket when missing and tolerates transient startup failures.
@@ -152,6 +201,7 @@ export class StorageService implements OnModuleInit {
         return;
       }
       this.logger.warn(`Storage bucket init failed: ${message}`);
+      throw error;
     }
   }
 }

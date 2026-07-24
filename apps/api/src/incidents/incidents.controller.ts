@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
@@ -95,6 +97,32 @@ export class IncidentsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<IncidentEvidencePackResponse> {
     return this.incidentsService.getIncidentEvidencePackForUser(user, id);
+  }
+
+  @Get('evidence-file')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+    UserRole.RIDER,
+  )
+  @ApiOperation({ summary: 'Stream evidence file' })
+  async downloadEvidenceFile(
+    @Query('key') key: string,
+    @Res() res: any,
+  ) {
+    const file = this.incidentsService.getEvidenceFile(key);
+    if (!file) {
+      throw new NotFoundException('Evidence file not found');
+    }
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${key.split('/').pop()}"`,
+    );
+    res.send(file.content);
   }
 
   @Post(':id/acknowledge')
