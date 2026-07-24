@@ -78,7 +78,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
         <SubscriptionReason
           icon={<Sparkles size={18} />}
           title="Included now"
-          description="Overview, live map, alerts, incidents, events, bikes, riders, and settings remain available on the core plan."
+          description="Overview, live map, alerts, events, bikes, riders, and settings remain available on the core plan."
         />
       </div>
     </DashboardCard>

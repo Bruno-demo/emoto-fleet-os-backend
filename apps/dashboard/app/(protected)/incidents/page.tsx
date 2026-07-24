@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { SubscriptionGate } from '@/components/subscription-gate';
 import { canUseFeature } from '@/lib/subscription';
 import type { Bike, FleetEvent, Incident, IncidentEvidencePack, IncidentStats, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
@@ -54,6 +55,7 @@ export default function IncidentsPage() {
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const [evidencePack, setEvidencePack] = useState<IncidentEvidencePack | null>(null);
   const [isGeneratingEvidence, setIsGeneratingEvidence] = useState(false);
+  const canUseIncidents = canUseFeature(currentUser, 'incidents');
   const canGenerateEvidence = canUseFeature(currentUser, 'evidence');
 
   const incidentsQuery = useQuery({
@@ -68,6 +70,7 @@ export default function IncidentsPage() {
           to: toIsoUtcOrUndefined(to),
         })}`,
       ),
+    enabled: canUseIncidents,
   });
 
   useEffect(() => {
@@ -87,12 +90,13 @@ export default function IncidentsPage() {
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'incident-labels'],
     queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=100'),
+    enabled: canUseIncidents,
   });
 
   const selectedIncidentQuery = useQuery({
     queryKey: ['incidents', selectedIncidentId, 'detail'],
     queryFn: () => apiFetch<Incident>(`/incidents/${selectedIncidentId}`),
-    enabled: !!selectedIncidentId,
+    enabled: canUseIncidents && !!selectedIncidentId,
   });
 
   const selectedIncident = selectedIncidentQuery.data ?? null;
@@ -119,7 +123,7 @@ export default function IncidentsPage() {
       );
       return response.data;
     },
-    enabled: !!selectedIncidentId && !!selectedIncident?.bikeId,
+    enabled: canUseIncidents && !!selectedIncidentId && !!selectedIncident?.bikeId,
   });
 
   const bikeLabelById = useMemo(() => {
@@ -134,6 +138,7 @@ export default function IncidentsPage() {
   const incidentsStatsQuery = useQuery({
     queryKey: ['incidents', 'stats'],
     queryFn: () => apiFetch<IncidentStats>('/incidents/stats'),
+    enabled: canUseIncidents,
   });
 
   const incidentStats = incidentsStatsQuery.data ?? {
@@ -278,7 +283,8 @@ export default function IncidentsPage() {
   ], [bikeLabelById, t]);
 
   return (
-    <div className="space-y-6">
+    <SubscriptionGate>
+      <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title={t("Open")}
@@ -596,6 +602,7 @@ export default function IncidentsPage() {
         }}
       />
     </div>
+    </SubscriptionGate>
   );
 }
 

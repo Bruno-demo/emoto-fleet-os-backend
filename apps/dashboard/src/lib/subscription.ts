@@ -31,7 +31,6 @@ export interface SubscriptionEntitlements {
 const CORE_FEATURES: DashboardFeature[] = [
   'overview',
   'live',
-  'incidents',
   'events',
   'bikes',
   'riders',
@@ -41,6 +40,7 @@ const CORE_FEATURES: DashboardFeature[] = [
 
 const PREMIUM_FEATURES: DashboardFeature[] = [
   ...CORE_FEATURES,
+  'incidents',
   'commands',
   'devices',
   'zones',
@@ -52,6 +52,7 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
 
 const DEMO_FEATURES: DashboardFeature[] = [
   ...CORE_FEATURES,
+  'incidents',
   'commands',
   'devices',
   'reports',
@@ -60,6 +61,7 @@ const DEMO_FEATURES: DashboardFeature[] = [
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
 
 const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
+  incidents: 'Incident & crash management',
   commands: 'Remote commands',
   devices: 'Device provisioning',
   zones: 'Policy zones',
