@@ -51,6 +51,8 @@ import { buildQueryString } from '@/lib/api/query-string';
 import type { PaginatedResponse, Rider } from '@/lib/types/dashboard';
 import { cx, getLocalDateString, getLocalDatetimeString } from '@/lib/ui';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { SubscriptionGate } from '@/components/subscription-gate';
+import { canUseFeature } from '@/lib/subscription';
 
 const PAGE_SIZE = 15;
 const DAILY_LEASE_RATE = 15000; // default daily lease rate in RWF
@@ -124,6 +126,7 @@ export default function FinancialsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
+  const canUseFinancials = canUseFeature(currentUser, 'financial');
   const [page, setPage] = useState(1);
   
   // Date ranges
@@ -176,7 +179,7 @@ export default function FinancialsPage() {
   const { data: allFines, refetch: refetchAllFines, isLoading: isFinesLoading } = useQuery({
     queryKey: ['all-traffic-fines'],
     queryFn: () => apiFetch<TrafficFine[]>('/traffic-fines'),
-    enabled: activeTab === 'trafficFines',
+    enabled: canUseFinancials && activeTab === 'trafficFines',
   });
 
   const handlePayFine = async (fineId: string) => {
@@ -265,6 +268,7 @@ export default function FinancialsPage() {
   const leasesQuery = useQuery({
     queryKey: ['leases'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
+    enabled: canUseFinancials,
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
   const [leaseSearch, setLeaseSearch] = useState('');
@@ -375,7 +379,7 @@ export default function FinancialsPage() {
       apiFetch<PaginatedResponse<PaymentRecord>>(
         `/financials${buildQueryString({ riderId: formRiderId, page: 1, pageSize: 100 })}`,
       ),
-    enabled: !!formRiderId && showCollectModal,
+    enabled: canUseFinancials && !!formRiderId && showCollectModal,
   });
 
   const riderArrears = useMemo(() => {
@@ -389,6 +393,7 @@ export default function FinancialsPage() {
   const ridersQuery = useQuery({
     queryKey: ['riders', 'financials-dropdown'],
     queryFn: () => apiFetch<PaginatedResponse<Rider>>('/riders?page=1&pageSize=200'),
+    enabled: canUseFinancials,
   });
 
   // 1b. Independent Fetch queries for Daily and Lease matrix riders to prevent conflicts/reloading
@@ -416,6 +421,7 @@ export default function FinancialsPage() {
       return undefined;
     },
     initialPageParam: 1,
+    enabled: canUseFinancials,
   });
 
   const dailyRidersList = useMemo(() => {
@@ -450,6 +456,7 @@ export default function FinancialsPage() {
       return undefined;
     },
     initialPageParam: 1,
+    enabled: canUseFinancials,
   });
 
   const leaseRidersList = useMemo(() => {
@@ -481,6 +488,7 @@ export default function FinancialsPage() {
           endDate: `${endDate}T23:59:59.999Z`,
         })}`,
       ),
+    enabled: canUseFinancials,
   });
 
   // 3. Fetch Aggregate Summary metrics
@@ -488,6 +496,7 @@ export default function FinancialsPage() {
     queryKey: ['financials-summary', startDate, endDate],
     queryFn: () =>
       apiFetch<FinancialSummary>(`/financials/summary?startDate=${startDate}&endDate=${endDate}`),
+    enabled: canUseFinancials,
   });
 
   // Mutations
@@ -626,7 +635,7 @@ export default function FinancialsPage() {
           pageSize: 200,
         })}`,
       ),
-    enabled: !!matrixStartDate && !!matrixEndDate,
+    enabled: canUseFinancials && !!matrixStartDate && !!matrixEndDate,
   });
   const weekPayments = weekPaymentsQuery.data?.data ?? [];
 
@@ -898,7 +907,8 @@ export default function FinancialsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <SubscriptionGate>
+      <div className="space-y-6">
       {/* Date selector header */}
       <section className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -2175,12 +2185,15 @@ export default function FinancialsPage() {
         </div>
       )}
     </div>
+    </SubscriptionGate>
   );
 }
 
 function DeliveryFinancialsView() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
+  const canUseFinancials = canUseFeature(currentUser, 'financial');
 
   const summaryQuery = useQuery({
     queryKey: ['delivery-summary'],
@@ -2191,6 +2204,7 @@ function DeliveryFinancialsView() {
         deliveryCount: number;
         avgCommission: number;
       }>('/financials/delivery/summary'),
+    enabled: canUseFinancials,
   });
 
   const payoutsQuery = useQuery({
@@ -2209,6 +2223,7 @@ function DeliveryFinancialsView() {
           reference: string;
         }>
       >('/financials/delivery/payouts'),
+    enabled: canUseFinancials,
   });
 
   const payoutMutation = useMutation({
@@ -2228,7 +2243,8 @@ function DeliveryFinancialsView() {
   const payouts = payoutsQuery.data || [];
 
   return (
-    <div className="space-y-6">
+    <SubscriptionGate>
+      <div className="space-y-6">
       <div>
         <h2 className="font-display text-xl font-bold text-white">{t('Delivery Financials')}</h2>
         <p className="text-xs text-ink-muted">{t('Track courier delivery commissions, pending balances, and process mobile money payouts.')}</p>
@@ -2324,5 +2340,6 @@ function DeliveryFinancialsView() {
         </div>
       </DashboardCard>
     </div>
+    </SubscriptionGate>
   );
 }

@@ -32,6 +32,9 @@ import { buildQueryString } from '@/lib/api/query-string';
 import type { AuditActionType, AuditLogEntry, PaginatedResponse } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimestamp } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { SubscriptionGate } from '@/components/subscription-gate';
+import { canUseFeature } from '@/lib/subscription';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 const PAGE_SIZE = 25;
 
@@ -97,6 +100,8 @@ const ACTION_TYPE_OPTIONS: AuditActionType[] = [
 
 export default function AuditLogPage() {
   const { t } = useTranslation();
+  const { data: currentUser } = useCurrentUser();
+  const canUseAudit = canUseFeature(currentUser, 'audit');
   const [page, setPage] = useState(1);
   const [accumulatedLogs, setAccumulatedLogs] = useState<AuditLogEntry[]>([]);
   const [actionFilter, setActionFilter] = useState<AuditActionType | ''>('');
@@ -111,6 +116,7 @@ export default function AuditLogPage() {
           actionType: actionFilter || undefined,
         })}`,
       ),
+    enabled: canUseAudit,
   });
 
   useEffect(() => {
@@ -130,7 +136,8 @@ export default function AuditLogPage() {
   const logs = accumulatedLogs;
 
   return (
-    <div className="space-y-6">
+    <SubscriptionGate>
+      <div className="space-y-6">
       <DashboardCard
         eyebrow={t('Compliance')}
         title={t('Audit trail')}
@@ -254,6 +261,7 @@ export default function AuditLogPage() {
         )}
       </DashboardCard>
     </div>
+    </SubscriptionGate>
   );
 }
 

@@ -13,11 +13,16 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { SubscriptionGate } from '@/components/subscription-gate';
+import { canUseFeature } from '@/lib/subscription';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
 const PAGE_SIZE = 20;
 
 export default function DevicesPage() {
   const { t } = useTranslation();
+  const { data: currentUser } = useCurrentUser();
+  const canUseDevices = canUseFeature(currentUser, 'devices');
   const [page, setPage] = useState(1);
   const [accumulatedDevices, setAccumulatedDevices] = useState<Device[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -28,6 +33,7 @@ export default function DevicesPage() {
       apiFetch<PaginatedResponse<Device>>(
         `/devices${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
       ),
+    enabled: canUseDevices,
   });
 
   useEffect(() => {
@@ -111,7 +117,8 @@ export default function DevicesPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <SubscriptionGate>
+      <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title={t('Registered Devices')}
@@ -186,6 +193,7 @@ export default function DevicesPage() {
         </DashboardCard>
       </section>
     </div>
+    </SubscriptionGate>
   );
 }
 

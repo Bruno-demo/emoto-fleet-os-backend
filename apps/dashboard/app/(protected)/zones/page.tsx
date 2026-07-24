@@ -34,6 +34,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { InlineNotice, TextAreaField, TextField } from '@/components/ui/form-controls';
 
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { SubscriptionGate } from '@/components/subscription-gate';
+import { canUseFeature } from '@/lib/subscription';
 
 function LoadingDrawingCanvas() {
   const { t } = useTranslation();
@@ -252,6 +254,7 @@ export default function ZonesPage() {
     return null;
   }, [points]);
 
+  const canUseZones = canUseFeature(currentUser, 'zones');
   const isAdmin = currentUser ? canManageZones(currentUser.role) : false;
 
   const zonesQuery = useQuery({
@@ -260,7 +263,7 @@ export default function ZonesPage() {
       apiFetch<PaginatedResponse<Zone>>(
         `/zones${buildQueryString({ page, pageSize: PAGE_SIZE })}`,
       ),
-    enabled: isAdmin,
+    enabled: isAdmin && canUseZones,
     retry: false,
   });
 
@@ -281,12 +284,14 @@ export default function ZonesPage() {
   const liveBikesQuery = useQuery({
     queryKey: ['live-bikes'],
     queryFn: () => apiFetch<PaginatedResponse<LiveBikeState>>('/live/bikes?page=1&pageSize=100'),
+    enabled: canUseZones,
     retry: false,
   });
 
   const bikesQuery = useQuery({
     queryKey: ['bikes'],
     queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=100'),
+    enabled: canUseZones,
     retry: false,
   });
 
@@ -540,7 +545,8 @@ export default function ZonesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <SubscriptionGate>
+      <div className="space-y-6">
       {/* Sleek Page Header Banner */}
       <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -924,5 +930,6 @@ export default function ZonesPage() {
         }}
       />
     </div>
+    </SubscriptionGate>
   );
 }

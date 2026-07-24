@@ -15,6 +15,8 @@ import type { WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, getLocalDateString } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
+import { SubscriptionGate } from '@/components/subscription-gate';
+import { canUseFeature } from '@/lib/subscription';
 
 interface LeaseContract {
   id: string;
@@ -77,6 +79,8 @@ function getDefaultRange() {
 export default function ReportsPage() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUser();
+  const canUseReports = canUseFeature(user, 'reports');
+  const canUseFinancials = canUseFeature(user, 'financial');
   const [dateRange, setDateRange] = useState(getDefaultRange);
   const [activeTab, setActiveTab] = useState<'safety' | 'leases' | 'swaps'>('safety');
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
@@ -85,7 +89,7 @@ export default function ReportsPage() {
   const reportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
     queryFn: () => apiFetch<WeeklyReport>(`/reports/weekly?from=${dateRange.from}&to=${dateRange.to}`),
-    enabled: activeTab === 'safety' || user?.role === 'INSURER',
+    enabled: canUseReports && (activeTab === 'safety' || user?.role === 'INSURER'),
   });
 
   const report = reportQuery.data;
@@ -106,7 +110,7 @@ export default function ReportsPage() {
   const leasesQuery = useQuery({
     queryKey: ['leases', 'reporting'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
-    enabled: activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
+    enabled: canUseFinancials && activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
 
@@ -130,7 +134,7 @@ export default function ReportsPage() {
   const swapsQuery = useQuery({
     queryKey: ['battery-swaps', dateRange.from, dateRange.to, swapSearch],
     queryFn: () => apiFetch<BatterySwapResponse>(`/financials/battery-swaps?startDate=${dateRange.from}&endDate=${dateRange.to}&search=${encodeURIComponent(swapSearch)}`),
-    enabled: activeTab === 'swaps' && user?.role !== 'INSURER',
+    enabled: canUseFinancials && activeTab === 'swaps' && user?.role !== 'INSURER',
   });
 
   const handleExportSwaps = () => {
@@ -307,7 +311,8 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <SubscriptionGate>
+      <div className="space-y-6 animate-fade-in">
       {/* Tab Switcher */}
       <div className="flex border-b border-line gap-2">
         <button
@@ -1593,6 +1598,7 @@ function RecordSwapModal({
         </form>
       </div>
     </div>
+    </SubscriptionGate>
   );
 }
 
