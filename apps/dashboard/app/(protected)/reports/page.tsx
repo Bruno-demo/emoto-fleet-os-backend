@@ -1068,6 +1068,7 @@ export default function ReportsPage() {
         onSuccess={() => swapsQuery.refetch()}
       />
     </div>
+    </SubscriptionGate>
   );
 }
 function TrendChart({
@@ -1598,7 +1599,6 @@ function RecordSwapModal({
         </form>
       </div>
     </div>
-    </SubscriptionGate>
   );
 }
 
