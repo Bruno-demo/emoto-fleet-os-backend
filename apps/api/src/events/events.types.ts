@@ -10,6 +10,10 @@ export interface FleetEvent {
   severity: EventSeverity;
   metaJson: Prisma.JsonValue;
   createdAt: Date;
+  bikeLabel?: string | null;
+  bikePlate?: string | null;
+  deviceUid?: string | null;
+  riderName?: string | null;
 }
 
 export interface CreateFleetEventInput {

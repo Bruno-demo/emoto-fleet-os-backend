@@ -120,6 +120,10 @@ export interface FleetEvent {
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   metaJson: unknown;
   createdAt: string;
+  bikeLabel?: string | null;
+  bikePlate?: string | null;
+  deviceUid?: string | null;
+  riderName?: string | null;
 }
 
 export interface IncidentStats {

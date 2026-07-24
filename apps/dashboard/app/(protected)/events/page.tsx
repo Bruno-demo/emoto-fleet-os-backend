@@ -114,22 +114,35 @@ export default function EventsPage() {
         render: (event) => (
           <div>
             <p className="font-semibold text-ink">{formatTimestamp(event.ts)}</p>
-            <p className="mt-1 text-xs leading-5 text-ink-soft">{event.id.slice(0, 8)}...</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">
+              {event.deviceUid ? `Device: ${event.deviceUid}` : `#${event.id.slice(0, 8)}`}
+            </p>
           </div>
         ),
       },
       {
         header: t('Event'),
-        render: (event) => (
-          <div>
-            <p className="font-semibold text-ink">{t(formatEnumLabel(event.type))}</p>
-            <p className="mt-1 text-xs leading-5 text-ink-soft">
-              {event.bikeId
-                ? bikeLabelById.get(event.bikeId) ?? event.bikeId.slice(0, 8)
-                : t('Fleet-level event')}
-            </p>
-          </div>
-        ),
+        render: (event) => {
+          const displayLabel = event.bikeLabel || (event.bikeId ? bikeLabelById.get(event.bikeId) : null);
+          return (
+            <div>
+              <p className="font-semibold text-ink">{t(formatEnumLabel(event.type))}</p>
+              <p className="mt-1 text-xs leading-5 text-ink-soft flex items-center gap-1.5 flex-wrap">
+                {displayLabel ? (
+                  <span>
+                    <strong className="text-ink font-semibold">{displayLabel}</strong>
+                    {event.bikePlate && <span className="ml-1 text-ink-muted">({event.bikePlate})</span>}
+                    {event.riderName && <span className="ml-1.5 text-accent font-medium">• {event.riderName}</span>}
+                  </span>
+                ) : event.bikeId ? (
+                  `Bike ${event.bikeId.slice(0, 8)}`
+                ) : (
+                  t('Fleet-level event')
+                )}
+              </p>
+            </div>
+          );
+        },
       },
       {
         header: t('Severity'),
@@ -357,6 +370,31 @@ export default function EventsPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* Linked Vehicle & Rider Context */}
+                {(selectedEvent.bikeLabel || selectedEvent.bikeId || selectedEvent.riderName || selectedEvent.deviceUid) && (
+                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-surface-muted p-4 text-xs">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Vehicle')}</p>
+                      <p className="mt-1 font-semibold text-ink">
+                        {selectedEvent.bikeLabel ?? (selectedEvent.bikeId ? bikeLabelById.get(selectedEvent.bikeId) ?? `Bike ${selectedEvent.bikeId.slice(0, 8)}` : t('N/A'))}
+                        {selectedEvent.bikePlate && <span className="ml-1 text-ink-muted">({selectedEvent.bikePlate})</span>}
+                      </p>
+                    </div>
+                    {selectedEvent.riderName && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Rider')}</p>
+                        <p className="mt-1 font-semibold text-ink">{selectedEvent.riderName}</p>
+                      </div>
+                    )}
+                    {selectedEvent.deviceUid && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('GPS Device')}</p>
+                        <p className="mt-1 font-mono text-ink-soft">{selectedEvent.deviceUid}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Event Explanation */}
                 <div className="rounded-2xl border border-line bg-surface-muted p-4">

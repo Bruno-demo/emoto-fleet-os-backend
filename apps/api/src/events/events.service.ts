@@ -97,6 +97,34 @@ export class EventsService {
     const [events, total] = await Promise.all([
       this.prismaService.event.findMany({
         where,
+        include: {
+          bike: {
+            select: {
+              id: true,
+              label: true,
+              plate: true,
+              assignments: {
+                where: { active: true },
+                take: 1,
+                select: {
+                  rider: {
+                    select: {
+                      id: true,
+                      phone: true,
+                      riderProfile: { select: { fullName: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          device: {
+            select: {
+              id: true,
+              deviceUid: true,
+            },
+          },
+        },
         orderBy: { ts: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
@@ -268,7 +296,12 @@ export class EventsService {
   }
 
   // Converts Prisma event entity into API-safe representation.
-  private toFleetEvent(event: Event): FleetEvent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toFleetEvent(event: any): FleetEvent {
+    const activeRider = event.bike?.assignments?.[0]?.rider;
+    const riderName =
+      activeRider?.riderProfile?.fullName || activeRider?.phone || null;
+
     return {
       id: event.id.toString(),
       fleetId: event.fleetId,
@@ -279,6 +312,10 @@ export class EventsService {
       severity: event.severity,
       metaJson: event.metaJson,
       createdAt: event.createdAt,
+      bikeLabel: event.bike?.label ?? null,
+      bikePlate: event.bike?.plate ?? null,
+      deviceUid: event.device?.deviceUid ?? null,
+      riderName,
     };
   }
 }
