@@ -52,10 +52,6 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
 
 const DEMO_FEATURES: DashboardFeature[] = [
   ...CORE_FEATURES,
-  'incidents',
-  'commands',
-  'devices',
-  'reports',
 ];
 
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
