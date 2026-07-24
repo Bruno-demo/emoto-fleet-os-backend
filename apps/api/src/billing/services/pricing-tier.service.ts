@@ -73,8 +73,8 @@ export class PricingTierService implements OnModuleInit {
       {
         name: 'Safety Core',
         planCode: FleetPlan.DEMO,
-        monthlyRatePerBike: 5000,
-        setupFeePerBike: 35000,
+        monthlyRatePerBike: 7000,
+        setupFeePerBike: 40000,
         description:
           'Live map, remote lock/unlock, rider scoring, and support.',
         sortOrder: 0,
@@ -82,8 +82,8 @@ export class PricingTierService implements OnModuleInit {
       {
         name: 'Operations Plus',
         planCode: FleetPlan.PREMIUM,
-        monthlyRatePerBike: 10000,
-        setupFeePerBike: 35000,
+        monthlyRatePerBike: 15000,
+        setupFeePerBike: 40000,
         description:
           'Incident workflows, financial management, reports, and priority support.',
         sortOrder: 1,
