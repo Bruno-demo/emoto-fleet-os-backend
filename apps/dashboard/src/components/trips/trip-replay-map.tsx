@@ -250,7 +250,11 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
     }
 
     if (uniquePoints.length < 2) {
-      setSnappedCoords(latLngs);
+      Promise.resolve().then(() => {
+        if (active) {
+          setSnappedCoords(latLngs);
+        }
+      });
       return;
     }
 
