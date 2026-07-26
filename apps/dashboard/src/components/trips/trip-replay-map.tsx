@@ -23,6 +23,7 @@ import {
 } from 'react-leaflet';
 import { formatTimestamp, formatEnumLabel } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { apiFetch } from '@/lib/api/client';
 
 // Custom motorcycle/bike marker icon
 const bikeMarkerIcon = L.divIcon({
