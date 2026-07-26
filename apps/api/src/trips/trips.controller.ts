@@ -50,6 +50,22 @@ export class TripsController {
     return this.tripsService.listAllTripsForUser(user, query);
   }
 
+  @Get('trips/osrm-route')
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+    UserRole.RIDER,
+  )
+  @ApiOperation({ summary: 'Proxy OSRM road snapping to avoid browser CORS and rate limit blocks' })
+  async proxyOsrmRoute(
+    @Query('waypoints') waypoints: string,
+  ): Promise<any> {
+    return this.tripsService.fetchOsrmRoute(waypoints);
+  }
+
   @Get('trips/:id')
   @Roles(
     UserRole.OWNER,

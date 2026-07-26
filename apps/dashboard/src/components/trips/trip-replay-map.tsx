@@ -234,27 +234,46 @@ export function TripReplayMap({ route, events = [] }: TripReplayMapProps) {
     });
     let active = true;
 
-    // OSRM coordinates are separated by semicolons and formatted as lng,lat
-    const maxPoints = 80;
-    const sampleRate = Math.max(1, Math.ceil(latLngs.length / maxPoints));
-    const sampledPoints = latLngs.filter((_, idx) => idx % sampleRate === 0 || idx === latLngs.length - 1);
-    const waypoints = sampledPoints.map(([lat, lng]) => `${lng},${lat}`).join(';');
-    const osrmUrl = `https://router.projectosrm.org/route/v1/driving/${waypoints}?overview=full&geometries=geojson`;
+    // 1. Deduplicate consecutive stationary points to prevent OSRM 400 bad requests
+    const uniquePoints: [number, number][] = [];
+    for (const pt of latLngs) {
+      if (uniquePoints.length === 0) {
+        uniquePoints.push(pt);
+      } else {
+        const last = uniquePoints[uniquePoints.length - 1];
+        const dist = Math.abs(pt[0] - last[0]) + Math.abs(pt[1] - last[1]);
+        if (dist > 0.0001) { // ~10m movement threshold
+          uniquePoints.push(pt);
+        }
+      }
+    }
 
-    fetch(osrmUrl)
-      .then((res) => res.json())
+    if (uniquePoints.length < 2) {
+      setSnappedCoords(latLngs);
+      return;
+    }
+
+    // 2. Downsample to max 25 distinct waypoints for OSRM URL length and stability
+    const maxPoints = 25;
+    const sampleRate = Math.max(1, Math.ceil(uniquePoints.length / maxPoints));
+    const sampledPoints = uniquePoints.filter((_, idx) => idx % sampleRate === 0 || idx === uniquePoints.length - 1);
+    const waypoints = sampledPoints.map(([lat, lng]) => `${lng.toFixed(6)},${lat.toFixed(6)}`).join(';');
+
+    // Call API proxy to avoid browser CORS policy blocking on projectosrm.org
+    apiFetch<{ routes?: Array<{ geometry?: { coordinates: [number, number][] } }> }>(
+      `/trips/osrm-route?waypoints=${encodeURIComponent(waypoints)}`
+    )
       .then((data) => {
         if (!active) return;
-        if (data.routes && data.routes[0] && data.routes[0].geometry) {
+        if (data?.routes?.[0]?.geometry?.coordinates) {
           const coords = data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
           setSnappedCoords(coords);
         } else {
           setSnappedCoords(latLngs);
         }
       })
-      .catch((err) => {
+      .catch(() => {
         if (!active) return;
-        console.error('OSRM road snapping failed:', err);
         setSnappedCoords(latLngs);
       })
       .finally(() => {

@@ -486,4 +486,28 @@ export class TripsService {
       throw new ForbiddenException('Fleet access violation');
     }
   }
+
+  // Proxies OSRM road snapping requests server-side to avoid CORS blocks and URL overflow
+  async fetchOsrmRoute(waypointsStr: string): Promise<any> {
+    if (!waypointsStr || waypointsStr.length < 3) {
+      return { routes: [] };
+    }
+
+    try {
+      const osrmUrl = `https://router.projectosrm.org/route/v1/driving/${waypointsStr}?overview=full&geometries=geojson`;
+      const response = await fetch(osrmUrl, {
+        headers: {
+          'User-Agent': 'eMotoFleetOS/1.0',
+        },
+      });
+
+      if (!response.ok) {
+        return { routes: [] };
+      }
+
+      return await response.json();
+    } catch {
+      return { routes: [] };
+    }
+  }
 }
