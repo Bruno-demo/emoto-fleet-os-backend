@@ -417,7 +417,10 @@ export class RulesEngineService {
 
       const SOFTWARE_CRASH_G_THRESHOLD = 2.2;
 
-      if (gForce >= SOFTWARE_CRASH_G_THRESHOLD && speedDropKph >= CRASH_SPEED_DROP_THRESHOLD_KPH) {
+      if (
+        gForce >= SOFTWARE_CRASH_G_THRESHOLD &&
+        speedDropKph >= CRASH_SPEED_DROP_THRESHOLD_KPH
+      ) {
         await this.emitWithCooldown(
           this.eventCooldownKey(device.id, 'CRASH'),
           CRASH_EVENT_COOLDOWN_SECONDS,
@@ -432,7 +435,8 @@ export class RulesEngineService {
               gForce: Number(gForce.toFixed(3)),
               speedDropKph: Number(speedDropKph.toFixed(2)),
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
-              reason: 'Software estimated G-force and speed drop threshold exceeded',
+              reason:
+                'Software estimated G-force and speed drop threshold exceeded',
             } as Prisma.InputJsonValue,
           },
         );
@@ -514,8 +518,9 @@ export class RulesEngineService {
     );
   }
 
-  // Detects SinoTrack external main power cut / disconnection events with smart battery swap filtering.
-  // Distinguishes routine battery swaps (ignition off & stationary) from actual theft attempts (moving or ignition on).
+  // Detects SinoTrack external main power cut / disconnection events.
+  // Ignores routine battery swaps (ignition off & stationary) to eliminate false theft tickets,
+  // while triggering CRITICAL THEFT_SUSPECTED alerts if main power is cut while vehicle is active/moving.
   private async evaluatePowerCut(
     device: RuleDeviceContext,
     payload: TelemetryPayload,
@@ -530,31 +535,25 @@ export class RulesEngineService {
     // Routine battery swap or maintenance: Ignition OFF and stationary (<= 3 kph)
     const isRoutineSwap = !isMoving && !isIgnitionOn;
 
-    // If it's a routine swap during battery replacement, emit LOW severity event (no alarm spam or SMS dispatch)
-    const severity = isRoutineSwap ? EventSeverity.LOW : EventSeverity.CRITICAL;
-    const reason = isRoutineSwap
-      ? 'BATTERY_SWAP_DISCONNECT'
-      : 'MAIN_POWER_CUT_THEFT';
+    // Routine battery swaps during maintenance are expected operational events — ignore to prevent false theft alarms
+    if (isRoutineSwap) {
+      return;
+    }
 
+    // Only emit THEFT_SUSPECTED for suspicious main power cuts when vehicle is active or moving!
     await this.emitWithCooldown(
-      this.eventCooldownKey(
-        device.id,
-        isRoutineSwap ? 'ROUTINE_POWER_CUT' : 'THEFT_POWER_CUT',
-      ),
-      isRoutineSwap ? 600 : THEFT_EVENT_COOLDOWN_SECONDS,
+      this.eventCooldownKey(device.id, 'THEFT_POWER_CUT'),
+      THEFT_EVENT_COOLDOWN_SECONDS,
       {
         fleetId: device.fleetId,
         bikeId: device.bikeId,
         deviceId: device.id,
         ts: new Date(payload.ts),
         type: 'THEFT_SUSPECTED',
-        severity,
+        severity: EventSeverity.CRITICAL,
         metaJson: {
-          reason,
-          isRoutineSwap,
-          source: isRoutineSwap
-            ? 'Routine Battery Swap / Maintenance Disconnect'
-            : 'ALERT: Suspicious Main Power Wire Cut (Vehicle Active)',
+          reason: 'MAIN_POWER_CUT_THEFT',
+          source: 'ALERT: Suspicious Main Power Wire Cut (Vehicle Active)',
           batteryV: payload.batteryV,
           batteryPct: payload.batteryPct,
           speedKph: payload.speedKph,
