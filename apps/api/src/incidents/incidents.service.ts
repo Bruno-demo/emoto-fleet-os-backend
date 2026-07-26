@@ -228,6 +228,19 @@ export class IncidentsService {
 
         const notificationIds: string[] = [];
 
+        const sosPayload = {
+          incidentId: incident.id,
+          eventId: event.id,
+          bikeId: event.bikeId,
+          bikeLabel: event.bikeLabel ?? undefined,
+          deviceId: event.deviceId,
+          deviceUid: event.deviceUid ?? undefined,
+          riderName: event.riderName ?? undefined,
+          severity: event.severity,
+          eventTs: event.ts.toISOString(),
+          eventType: event.type,
+        };
+
         // 1. Dispatch to emergency contacts (SMS)
         for (const contact of activeContacts) {
           const notification = await tx.notification.create({
@@ -236,15 +249,7 @@ export class IncidentsService {
               type: NotificationType.SOS_ALERT,
               channel: NotificationChannel.SMS,
               to: contact.phone,
-              payloadJson: {
-                incidentId: incident.id,
-                eventId: event.id,
-                bikeId: event.bikeId,
-                deviceId: event.deviceId,
-                severity: event.severity,
-                eventTs: event.ts.toISOString(),
-                eventType: event.type,
-              },
+              payloadJson: sosPayload,
             },
             select: { id: true },
           });
@@ -260,15 +265,7 @@ export class IncidentsService {
                 type: NotificationType.SOS_ALERT,
                 channel: NotificationChannel.EMAIL,
                 to: user.email,
-                payloadJson: {
-                  incidentId: incident.id,
-                  eventId: event.id,
-                  bikeId: event.bikeId,
-                  deviceId: event.deviceId,
-                  severity: event.severity,
-                  eventTs: event.ts.toISOString(),
-                  eventType: event.type,
-                },
+                payloadJson: sosPayload,
               },
               select: { id: true },
             });
@@ -282,15 +279,7 @@ export class IncidentsService {
                 type: NotificationType.SOS_ALERT,
                 channel: NotificationChannel.SMS,
                 to: user.phone,
-                payloadJson: {
-                  incidentId: incident.id,
-                  eventId: event.id,
-                  bikeId: event.bikeId,
-                  deviceId: event.deviceId,
-                  severity: event.severity,
-                  eventTs: event.ts.toISOString(),
-                  eventType: event.type,
-                },
+                payloadJson: sosPayload,
               },
               select: { id: true },
             });
@@ -506,7 +495,10 @@ export class IncidentsService {
       incidentId,
       eventId: event.id,
       bikeId: event.bikeId,
+      bikeLabel: event.bikeLabel ?? undefined,
       deviceId: event.deviceId,
+      deviceUid: event.deviceUid ?? undefined,
+      riderName: event.riderName ?? undefined,
       severity: event.severity,
       eventTs: event.ts.toISOString(),
       eventType: event.type,

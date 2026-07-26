@@ -89,7 +89,7 @@ export default function IncidentsPage() {
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'incident-labels'],
-    queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=100'),
+    queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=500'),
     enabled: canUseIncidents,
   });
 
@@ -238,10 +238,12 @@ export default function IncidentsPage() {
       header: t('Bike'),
       render: (incident) => {
         const bikeLabel =
-          incident.bikeLabel ??
+          (incident.bikeLabel && incident.bikeLabel.trim().length > 0 ? incident.bikeLabel : undefined) ??
           (incident.bikeId ? bikeLabelById.get(incident.bikeId) : undefined) ??
-          (incident.bikeId ? maskIdentifier(incident.bikeId) : t('No bike linked'));
-        const deviceLabel = incident.deviceUid ?? maskIdentifier(incident.deviceId);
+          (incident.bikeId ? `Bike (${incident.bikeId.slice(0, 8)})` : t('No bike linked'));
+        const deviceLabel =
+          (incident.deviceUid && incident.deviceUid.trim().length > 0 ? incident.deviceUid : undefined) ??
+          (incident.deviceId ? `Device (${incident.deviceId.slice(0, 8)})` : 'N/A');
 
         return (
           <div>
@@ -427,9 +429,9 @@ export default function IncidentsPage() {
                 label={t("Bike")}
                 value={
                   <span>
-                    {selectedIncident.bikeLabel ??
+                    {(selectedIncident.bikeLabel && selectedIncident.bikeLabel.trim().length > 0 ? selectedIncident.bikeLabel : undefined) ??
                       (selectedIncident.bikeId ? bikeLabelById.get(selectedIncident.bikeId) : undefined) ??
-                      (selectedIncident.bikeId ? maskIdentifier(selectedIncident.bikeId) : t('No bike linked'))}
+                      (selectedIncident.bikeId ? `Bike (${selectedIncident.bikeId.slice(0, 8)})` : t('No bike linked'))}
                   </span>
                 }
               />
@@ -437,7 +439,8 @@ export default function IncidentsPage() {
                 label={t("Device")}
                 value={
                   <span className="font-mono">
-                    {selectedIncident.deviceUid ?? maskIdentifier(selectedIncident.deviceId)}
+                    {(selectedIncident.deviceUid && selectedIncident.deviceUid.trim().length > 0 ? selectedIncident.deviceUid : undefined) ??
+                      (selectedIncident.deviceId ? `Device (${selectedIncident.deviceId.slice(0, 8)})` : 'N/A')}
                   </span>
                 }
               />
@@ -792,13 +795,17 @@ function buildIncidentTimeline(
   }
 
   for (const event of events) {
+    const bikeDisplay =
+      (event.bikeLabel && event.bikeLabel.trim().length > 0 ? event.bikeLabel : undefined) ??
+      (event.bikeId ? bikeLabelById.get(event.bikeId) : undefined) ??
+      (event.bikeId ? `Bike (${event.bikeId.slice(0, 8)})` : undefined);
+    const riderDisplay = event.riderName ? ` • ${event.riderName}` : '';
+
     rows.push({
       id: `event-${event.id}`,
       ts: event.ts,
       title: `${t(formatEnumLabel(event.type))} (${t(event.severity)})`,
-      description: event.bikeId
-        ? bikeLabelById.get(event.bikeId) ?? `${t('Bike')} ${maskIdentifier(event.bikeId)}`
-        : undefined,
+      description: bikeDisplay ? `${bikeDisplay}${riderDisplay}` : undefined,
     });
   }
 
@@ -840,10 +847,13 @@ function actionDescription(action: IncidentAction, incident: Incident | null, t:
   return t('Close {incidentLabel} as a false alarm. Use notes to explain why dispatch dismissed it.').replace('{incidentLabel}', incidentLabel);
 }
 
-function maskIdentifier(value: string | null | undefined) {
+function maskIdentifier(value: string | null | undefined, nameOrLabel?: string | null, prefix: string = 'ID') {
+  if (nameOrLabel && nameOrLabel.trim().length > 0) {
+    return nameOrLabel;
+  }
   if (!value) {
     return 'N/A';
   }
-  return `${value.slice(0, 8)}...`;
+  return `${prefix} (${value.slice(0, 8)})`;
 }
 

@@ -10,7 +10,10 @@ import { NotificationDispatchInput } from './incidents.types';
 
 interface EmailNotificationPayload {
   bikeId?: string;
+  bikeLabel?: string;
   deviceId?: string;
+  deviceUid?: string;
+  riderName?: string;
   severity?: string;
   eventTs?: string;
 }
@@ -59,6 +62,13 @@ export class ConsoleNotificationProvider implements NotificationProvider {
     to: string,
     payload: EmailNotificationPayload,
   ): string {
+    const vehicleDisplay =
+      payload.bikeLabel ||
+      (payload.bikeId ? `Bike (${payload.bikeId.slice(0, 8)})` : 'Unassigned');
+    const deviceDisplay =
+      payload.deviceUid ||
+      (payload.deviceId ? `Device (${payload.deviceId.slice(0, 8)})` : 'N/A');
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -81,13 +91,21 @@ export class ConsoleNotificationProvider implements NotificationProvider {
         <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 20px 25px; margin: 25px 0;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr>
-              <td style="padding: 8px 0; color: #a1a1aa; width: 120px; border-b: 1px solid #27272a;">Bike ID</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${payload.bikeId || 'N/A'}</td>
+              <td style="padding: 8px 0; color: #a1a1aa; width: 120px; border-b: 1px solid #27272a;">Vehicle</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${vehicleDisplay}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Device ID</td>
-              <td style="padding: 8px 0; font-family: monospace; color: #ffffff;">${payload.deviceId || 'N/A'}</td>
+              <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Tracker Device</td>
+              <td style="padding: 8px 0; font-family: monospace; color: #ffffff;">${deviceDisplay}</td>
             </tr>
+            ${
+              payload.riderName
+                ? `<tr>
+              <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Rider</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${payload.riderName}</td>
+            </tr>`
+                : ''
+            }
             <tr>
               <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Severity</td>
               <td style="padding: 8px 0; font-weight: bold; color: #ef4444;">${payload.severity || 'HIGH'}</td>
@@ -119,6 +137,13 @@ export class ConsoleNotificationProvider implements NotificationProvider {
     to: string,
     payload: EmailNotificationPayload,
   ): string {
+    const vehicleDisplay =
+      payload.bikeLabel ||
+      (payload.bikeId ? `Bike (${payload.bikeId.slice(0, 8)})` : 'Unassigned');
+    const deviceDisplay =
+      payload.deviceUid ||
+      (payload.deviceId ? `Device (${payload.deviceId.slice(0, 8)})` : 'N/A');
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -141,13 +166,21 @@ export class ConsoleNotificationProvider implements NotificationProvider {
         <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 20px 25px; margin: 25px 0;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr>
-              <td style="padding: 8px 0; color: #a1a1aa; width: 120px; border-b: 1px solid #27272a;">Bike ID</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${payload.bikeId || 'N/A'}</td>
+              <td style="padding: 8px 0; color: #a1a1aa; width: 120px; border-b: 1px solid #27272a;">Vehicle</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${vehicleDisplay}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Device ID</td>
-              <td style="padding: 8px 0; font-family: monospace; color: #ffffff;">${payload.deviceId || 'N/A'}</td>
+              <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Tracker Device</td>
+              <td style="padding: 8px 0; font-family: monospace; color: #ffffff;">${deviceDisplay}</td>
             </tr>
+            ${
+              payload.riderName
+                ? `<tr>
+              <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Rider</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #ffffff;">${payload.riderName}</td>
+            </tr>`
+                : ''
+            }
             <tr>
               <td style="padding: 8px 0; color: #a1a1aa; border-b: 1px solid #27272a;">Severity</td>
               <td style="padding: 8px 0; font-weight: bold; color: #3b82f6;">${payload.severity || 'CRITICAL'}</td>

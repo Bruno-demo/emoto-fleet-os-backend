@@ -288,9 +288,14 @@ export class ReportsService {
             : metric.totalDistance > 0
               ? metric.weightedScoreSum / metric.totalDistance
               : 100;
+        const fetchedLabel = bikeLabels.get(metric.bikeId);
+        const label =
+          fetchedLabel && fetchedLabel.trim().length > 0 && fetchedLabel !== 'Unknown'
+            ? fetchedLabel
+            : `Bike (${metric.bikeId.slice(0, 8)})`;
         return {
           bikeId: metric.bikeId,
-          label: bikeLabels.get(metric.bikeId) ?? 'Unknown',
+          label,
           tripCount: metric.tripCount,
           avgScore: Number(avgScore.toFixed(2)),
           eventCount: metric.eventCount,
@@ -338,7 +343,7 @@ export class ReportsService {
           u.riderProfile?.fullName ||
           u.email ||
           u.phone ||
-          `Rider ${u.id.slice(0, 8)}`;
+          `Rider (${u.id.slice(0, 8)})`;
         return [u.id, name];
       }),
     );
@@ -357,9 +362,14 @@ export class ReportsService {
             : metric.totalDistance > 0
               ? metric.weightedScoreSum / metric.totalDistance
               : 100;
+        const fetchedName = riderNames.get(metric.riderId);
+        const fullName =
+          fetchedName && fetchedName.trim().length > 0 && fetchedName !== 'Unknown'
+            ? fetchedName
+            : `Rider (${metric.riderId.slice(0, 8)})`;
         return {
           riderId: metric.riderId,
-          fullName: riderNames.get(metric.riderId) ?? 'Unknown',
+          fullName,
           tripCount: metric.tripCount,
           avgScore: Number(avgScore.toFixed(2)),
         };
