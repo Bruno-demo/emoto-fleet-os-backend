@@ -48,8 +48,8 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cx('overflow-x-auto pb-4', className)}>
-      <table className="min-w-full border-separate border-spacing-y-2 text-left text-sm whitespace-nowrap md:whitespace-normal">
+    <div className={cx('overflow-x-auto pb-2 dashboard-scrollbar', className)}>
+      <table className="w-full min-w-full border-separate border-spacing-y-2 text-left text-sm whitespace-nowrap">
         <thead>
           <tr className="text-[11px] uppercase tracking-[0.18em] text-ink-faint">
             {columns.map((column) => (

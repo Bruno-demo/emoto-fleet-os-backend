@@ -445,6 +445,8 @@ export default function ZonesPage() {
     () => [
       {
         header: t('Zone'),
+        className: 'min-w-[220px]',
+        cellClassName: 'min-w-[220px]',
         render: (zone) => {
           let typeBadgeColor = 'bg-blue-500/15 text-blue-500 border-blue-500/30';
           let typeIcon = <Layers size={14} />;
@@ -464,9 +466,9 @@ export default function ZonesPage() {
               <span className={cx('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-xs', typeBadgeColor)}>
                 {typeIcon}
               </span>
-              <div>
-                <p className="font-bold text-ink text-sm">{zone.name}</p>
-                <p className="mt-0.5 text-xs text-ink-muted flex items-center gap-1.5 font-medium">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-ink text-sm truncate max-w-[260px]" title={zone.name}>{zone.name}</p>
+                <p className="mt-0.5 text-xs text-ink-muted flex items-center gap-1.5 font-medium whitespace-nowrap">
                   <span>{t(formatEnumLabel(zone.type))}</span>
                   {zone.type === 'SLOW' && zone.speedLimitKph && (
                     <span className="font-mono text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
@@ -481,45 +483,49 @@ export default function ZonesPage() {
       },
       {
         header: t('Status'),
+        className: 'w-32 whitespace-nowrap',
+        cellClassName: 'w-32 whitespace-nowrap',
         render: (zone) => (
           <span
             className={cx(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]',
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] whitespace-nowrap',
               zone.active
-                ? 'bg-success-soft text-success-ink border border-success-ink/20'
+                ? 'bg-success-soft text-success-ink border border-success-ink/20 shadow-xs'
                 : 'bg-surface-muted text-ink-muted border border-line'
             )}
           >
-            <span className={cx('h-1.5 w-1.5 rounded-full', zone.active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
+            <span className={cx('h-1.5 w-1.5 rounded-full shrink-0', zone.active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
             {zone.active ? t('Active') : t('Inactive')}
           </span>
         ),
       },
       {
         header: t('Speed limit'),
+        className: 'w-32 whitespace-nowrap',
+        cellClassName: 'w-32 whitespace-nowrap',
         render: (zone) => (
-          <span className="font-mono text-xs font-bold text-ink-soft">
+          <span className="font-mono text-xs font-bold text-ink-soft whitespace-nowrap">
             {zone.type === 'SLOW' ? `${zone.speedLimitKph ?? '--'} ${t('kph')}` : 'N/A'}
           </span>
         ),
       },
       {
         header: t('Action'),
-        className: 'text-right',
-        cellClassName: 'text-right',
+        className: 'w-40 text-right whitespace-nowrap',
+        cellClassName: 'w-40 text-right whitespace-nowrap',
         render: (zone) => (
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
             <button
               type="button"
               onClick={() => beginEditing(zone)}
-              className="rounded-xl border border-line bg-surface-muted px-3.5 py-1.5 text-xs font-bold text-ink transition hover:bg-surface-hover hover:border-line-strong cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-bold text-ink transition hover:bg-surface-hover hover:border-line-strong cursor-pointer shadow-xs active:scale-95"
             >
               {t('Edit')}
             </button>
             <button
               type="button"
               onClick={() => setDeleteTarget(zone)}
-              className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-1.5 text-xs font-bold text-rose-500 transition hover:bg-rose-500/20 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-500 transition hover:bg-rose-500/20 cursor-pointer shadow-xs active:scale-95"
             >
               {t('Delete')}
             </button>
@@ -679,57 +685,68 @@ export default function ZonesPage() {
       </DashboardCard>
 
       {/* Main Grid: Zone Registry + Zone Form Editor */}
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr] items-start">
+      <section className="grid gap-6 xl:grid-cols-12 items-start">
         {/* Geofence List */}
-        <DashboardCard
-          eyebrow={t('Zone Registry')}
-          title={t('Geofence list')}
-          description={t('View and manage active safety boundaries enforcing backend speed caps and security rules.')}
-        >
-          <div className="mt-1">
-            <DataTable
-              data={accumulatedZones}
-              columns={columns}
-              keyExtractor={(zone) => zone.id}
-              loading={zonesQuery.isLoading}
-              emptyState={
-                <EmptyState
-                  icon={<MapPin size={18} />}
-                  title={t('No zones yet')}
-                  description={t('Create your first zone to begin enforcing slow, no-go, or park rules.')}
-                />
-              }
-            />
-          </div>
+        <div className="xl:col-span-7 2xl:col-span-7">
+          <DashboardCard
+            eyebrow={t('Zone Registry')}
+            title={t('Geofence list')}
+            description={t('View and manage active safety boundaries enforcing backend speed caps and security rules.')}
+          >
+            <div className="mt-1">
+              <DataTable
+                data={accumulatedZones}
+                columns={columns}
+                keyExtractor={(zone) => zone.id}
+                loading={zonesQuery.isLoading}
+                emptyState={
+                  <EmptyState
+                    icon={<MapPin size={18} />}
+                    title={t('No zones yet')}
+                    description={t('Create your first zone to begin enforcing slow, no-go, or park rules.')}
+                  />
+                }
+              />
+            </div>
 
-          {accumulatedZones.length < (zonesQuery.data?.total ?? 0) && (
-            <div className="mt-6 flex justify-center border-t border-line pt-6">
-              <button
-                type="button"
-                disabled={zonesQuery.isFetching}
-                onClick={() => setPage((prev) => prev + 1)}
-                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {zonesQuery.isFetching ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                ) : (
-                  <ChevronDown size={16} className="animate-bounce" />
-                )}
-                {zonesQuery.isFetching ? t('Loading...') : t('Load more')}
-              </button>
-            </div>
-          )}
-          {accumulatedZones.length >= (zonesQuery.data?.total ?? 0) && (zonesQuery.data?.total ?? 0) > 0 && (
-            <div className="flex flex-col items-center justify-center gap-1.5 mt-6 pt-6 border-t border-line">
-              <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-                <Check size={14} /> {t('All {total} zones loaded').replace('{total}', String(zonesQuery.data?.total ?? 0))}
-              </p>
-            </div>
-          )}
-        </DashboardCard>
+            {accumulatedZones.length < (zonesQuery.data?.total ?? 0) && (
+              <div className="mt-6 flex justify-center border-t border-line pt-6">
+                <button
+                  type="button"
+                  disabled={zonesQuery.isFetching}
+                  onClick={() => setPage((prev) => prev + 1)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {zonesQuery.isFetching ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  ) : (
+                    <ChevronDown size={16} className="animate-bounce" />
+                  )}
+                  {zonesQuery.isFetching ? t('Loading...') : t('Load more')}
+                </button>
+              </div>
+            )}
+            {accumulatedZones.length >= (zonesQuery.data?.total ?? 0) && (zonesQuery.data?.total ?? 0) > 0 && (
+              <div className="mt-6 pt-4 border-t border-line/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-muted">
+                <div className="flex items-center gap-2 font-medium">
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-emerald-500 font-bold flex items-center gap-1">
+                    <Check size={14} /> {t('All {total} zones loaded').replace('{total}', String(zonesQuery.data?.total ?? 0))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-ink-faint">
+                  <span className="bg-surface-muted border border-line px-2 py-0.5 rounded-lg">{zoneStats.active} Active</span>
+                  <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-lg">{zoneStats.slow} Slow</span>
+                  <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded-lg">{zoneStats.restricted} No-Go</span>
+                </div>
+              </div>
+            )}
+          </DashboardCard>
+        </div>
 
         {/* Zone Editor Form */}
-        <DashboardCard
+        <div className="xl:col-span-5 2xl:col-span-5">
+          <DashboardCard
           eyebrow={t('Zone Editor')}
           title={editingZone ? t('Editing {name}').replace('{name}', editingZone.name) : t('Create a zone')}
           description={t('Draw a boundary on the map or pick a preset above to define rules.')}
@@ -911,6 +928,7 @@ export default function ZonesPage() {
             </div>
           </form>
         </DashboardCard>
+        </div>
       </section>
 
       {/* Delete Confirmation Modal */}
