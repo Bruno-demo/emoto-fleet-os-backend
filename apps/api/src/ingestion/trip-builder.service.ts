@@ -18,6 +18,7 @@ interface TripRuntimeState {
   candidateStartTs?: string;
   idleSinceTs?: string;
   lastProcessedTs?: string;
+  lastTripEndTs?: string;
 }
 
 interface TripPoint {
@@ -36,6 +37,9 @@ export class TripBuilderService {
   private readonly penaltyMultiplier: number;
   private readonly scoreWeights: TripScoreWeights;
   private readonly maxTripDurationSeconds: number;
+  private readonly minTripDistanceKm: number;
+  private readonly minTripDurationSec: number;
+  private readonly tripCooldownSec: number;
   private readonly tripStreamKey: string | null;
   private readonly streamMaxLen: number;
   private readonly streamEnabled: boolean;
@@ -61,6 +65,18 @@ export class TripBuilderService {
     this.maxTripDurationSeconds = this.configService.get<number>(
       'MAX_TRIP_DURATION_SECONDS',
       43200, // 12 hours
+    );
+    this.minTripDistanceKm = this.configService.get<number>(
+      'MIN_TRIP_DISTANCE_KM',
+      0.2, // 200 meters — ignore GPS jitter and ignition bounce
+    );
+    this.minTripDurationSec = this.configService.get<number>(
+      'MIN_TRIP_DURATION_SEC',
+      60, // 1 minute — sub-minute trips are always noise
+    );
+    this.tripCooldownSec = this.configService.get<number>(
+      'TRIP_COOLDOWN_SEC',
+      60, // Ignore ignition-on within 60s of previous trip end
     );
     this.minDistanceForScoringKm = this.configService.get<number>(
       'TRIP_SCORE_MIN_DISTANCE_KM',
@@ -200,11 +216,26 @@ export class TripBuilderService {
     const tripEndTs =
       shouldEndByIdle && state.idleSinceTs ? state.idleSinceTs : payload.ts;
 
+    // Set a finalizing lock so concurrent packets don't start a new trip
+    // while we're writing this one to the database.
+    await this.redisService.set(
+      this.finalizingKey(device.id),
+      tripEndTs,
+      120, // lock TTL: 2 minutes, more than enough for DB write
+    );
+
     // Clear the active state in Redis immediately BEFORE starting the long async database operation
     // to prevent concurrent telemetry packets from triggering duplicate trips for the same start time.
-    await this.clearState(device.id);
+    state.lastTripEndTs = tripEndTs;
+    state.activeStartTs = undefined;
+    state.candidateStartTs = undefined;
+    state.idleSinceTs = undefined;
+    await this.saveState(device.id, state);
 
     await this.finalizeTrip(device, activeStartTs, tripEndTs);
+
+    // Clear the finalizing lock now that the DB write is complete.
+    await this.redisService.del(this.finalizingKey(device.id));
   }
 
   // Applies start conditions while device is currently considered idle.
@@ -216,7 +247,22 @@ export class TripBuilderService {
     movingForStart: boolean,
     ignitionOn: boolean,
   ): Promise<void> {
-    if (ignitionOn) {
+    // Block new trip starts while a previous trip is being finalized (race-condition guard).
+    const finalizing = await this.redisService.get(
+      this.finalizingKey(deviceId),
+    );
+    if (finalizing) {
+      return;
+    }
+
+    // Cooldown guard: ignore ignition-on signals within TRIP_COOLDOWN_SEC of the last trip end
+    // to prevent ignition bounce from creating duplicate/overlapping trips.
+    const inCooldown =
+      !!state.lastTripEndTs &&
+      nowMs - Date.parse(state.lastTripEndTs) <
+        this.tripCooldownSec * 1000;
+
+    if (ignitionOn && !inCooldown) {
       state.activeStartTs = payloadTs;
       state.candidateStartTs = undefined;
       state.idleSinceTs = undefined;
@@ -300,12 +346,13 @@ export class TripBuilderService {
       Math.floor((endDate.getTime() - startDate.getTime()) / 1000),
     );
 
-    // Discard static/dummy trips (e.g. ignition on/off cycles without movement)
-    if (distanceKm < 0.05) {
+    // Discard trips that are too short in distance or duration.
+    // These are invariably noise: ignition bounces, GPS jitter, or brief key-on/key-off cycles.
+    if (distanceKm < this.minTripDistanceKm || durationSec < this.minTripDurationSec) {
       this.logger.debug(
-        `Discarding dummy trip for device ${this.truncateDeviceUid(
+        `Discarding noise trip for device ${this.truncateDeviceUid(
           device.deviceUid,
-        )}: distance=${distanceKm} km, duration=${durationSec}s`,
+        )}: distance=${distanceKm}km, duration=${durationSec}s (min: ${this.minTripDistanceKm}km / ${this.minTripDurationSec}s)`,
       );
       return;
     }
@@ -342,6 +389,22 @@ export class TripBuilderService {
         riderUserId: true,
       },
     });
+
+    // Delete any existing trips for this bike that overlap with the new trip's time range.
+    // This eliminates stale/shorter duplicate trips produced by earlier ignition-bounce races.
+    const deletedOverlaps = await this.prismaService.trip.deleteMany({
+      where: {
+        bikeId: device.bikeId,
+        // Overlap condition: existing trip starts before new trip ends AND ends after new trip starts
+        startTs: { lt: endDate },
+        endTs: { gt: startDate },
+      },
+    });
+    if (deletedOverlaps.count > 0) {
+      this.logger.warn(
+        `Deleted ${deletedOverlaps.count} overlapping trip(s) for device ${this.truncateDeviceUid(device.deviceUid)} before inserting new trip ${startDate.toISOString()} → ${endDate.toISOString()}`,
+      );
+    }
 
     let createdTrip;
     try {
@@ -499,6 +562,11 @@ export class TripBuilderService {
   // Produces redis key names for per-device trip runtime state.
   private stateKey(deviceId: string): string {
     return `trip:state:${deviceId}`;
+  }
+
+  // Produces redis key for the per-device finalizing lock.
+  private finalizingKey(deviceId: string): string {
+    return `trip:finalizing:${deviceId}`;
   }
 
   // Produces a truncated device identifier safe for operational logs.
