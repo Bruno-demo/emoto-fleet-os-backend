@@ -30,7 +30,12 @@ import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { buildQueryString } from '@/lib/api/query-string';
 import { cx, formatEnumLabel } from '@/lib/ui';
-import { compressImage } from '@/lib/image';
+import {
+  compressImage,
+  compressPassportPhoto,
+  compressLicencePhoto,
+  compressIdentityCardPhoto,
+} from '@/lib/image';
 
 interface HqRider {
   id: string;
@@ -685,26 +690,30 @@ export default function HqRidersPage() {
 
                   {/* Image uploads grid */}
                   <div className="grid gap-4 sm:grid-cols-3 mt-4">
-                    {/* Passport Photo */}
+                    {/* Passport Photo (1:1 Square Portrait) */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Passport Photo')}</label>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Passport Photo')}</label>
+                        <span className="text-[10px] text-ink-faint font-medium">1:1 • Max 10MB</span>
+                      </div>
                       {newPassportPhoto ? (
-                        <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
-                          <img src={newPassportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                        <div className="relative group rounded-xl border border-line overflow-hidden h-[135px] w-full bg-surface-muted flex items-center justify-center">
+                          <img src={newPassportPhoto} alt="Passport" className="h-full w-full object-cover" />
                           <button
                             type="button"
                             onClick={() => setNewPassportPhoto('')}
-                            className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                            className="absolute top-1.5 right-1.5 rounded-lg bg-black/70 p-1 text-white hover:bg-black transition shadow-sm"
                           >
-                            <X size={12} />
+                            <X size={13} />
                           </button>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
-                          <span className="text-xl mb-1">👤</span>
-                          <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
+                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface p-3 cursor-pointer hover:border-accent/40 transition h-[135px] w-full">
+                          <span className="text-2xl mb-1">👤</span>
+                          <span className="text-[11px] font-semibold text-ink text-center leading-tight">
                             {isCompresingPassport ? t('Compressing...') : t('Upload Passport Photo')}
                           </span>
+                          <span className="text-[9px] text-ink-muted mt-1 text-center">Portrait photo (1:1)</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -715,10 +724,11 @@ export default function HqRidersPage() {
                               if (file) {
                                 try {
                                   setIsCompresingPassport(true);
-                                  const compressed = await compressImage(file);
+                                  const compressed = await compressPassportPhoto(file);
                                   setNewPassportPhoto(compressed);
-                                } catch (err) {
-                                  console.error(err);
+                                } catch (err: unknown) {
+                                  const msg = err instanceof Error ? err.message : t('Failed to compress image');
+                                  setCreateError(msg);
                                 } finally {
                                   setIsCompresingPassport(false);
                                 }
@@ -729,26 +739,30 @@ export default function HqRidersPage() {
                       )}
                     </div>
 
-                    {/* Licence Photo */}
+                    {/* Licence Photo (1.58:1 Landscape Card) */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Licence Photo')}</label>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Licence Photo')}</label>
+                        <span className="text-[10px] text-ink-faint font-medium">Card • Max 15MB</span>
+                      </div>
                       {newLicencePhoto ? (
-                        <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
-                          <img src={newLicencePhoto} alt="Licence" className="w-full h-full object-cover" />
+                        <div className="relative group rounded-xl border border-line overflow-hidden h-[135px] w-full bg-surface-muted flex items-center justify-center">
+                          <img src={newLicencePhoto} alt="Licence" className="h-full w-full object-contain p-1" />
                           <button
                             type="button"
                             onClick={() => setNewLicencePhoto('')}
-                            className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                            className="absolute top-1.5 right-1.5 rounded-lg bg-black/70 p-1 text-white hover:bg-black transition shadow-sm"
                           >
-                            <X size={12} />
+                            <X size={13} />
                           </button>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
-                          <span className="text-xl mb-1">💳</span>
-                          <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
+                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface p-3 cursor-pointer hover:border-accent/40 transition h-[135px] w-full">
+                          <span className="text-2xl mb-1">💳</span>
+                          <span className="text-[11px] font-semibold text-ink text-center leading-tight">
                             {isCompresingLicence ? t('Compressing...') : t('Upload Licence Photo')}
                           </span>
+                          <span className="text-[9px] text-ink-muted mt-1 text-center">Landscape driving licence</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -759,10 +773,11 @@ export default function HqRidersPage() {
                               if (file) {
                                 try {
                                   setIsCompresingLicence(true);
-                                  const compressed = await compressImage(file);
+                                  const compressed = await compressLicencePhoto(file);
                                   setNewLicencePhoto(compressed);
-                                } catch (err) {
-                                  console.error(err);
+                                } catch (err: unknown) {
+                                  const msg = err instanceof Error ? err.message : t('Failed to compress image');
+                                  setCreateError(msg);
                                 } finally {
                                   setIsCompresingLicence(false);
                                 }
@@ -773,26 +788,30 @@ export default function HqRidersPage() {
                       )}
                     </div>
 
-                    {/* ID Card Photo */}
+                    {/* ID Card Photo (1.58:1 Landscape Card) */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('ID Card Photo')}</label>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('ID Card Photo')}</label>
+                        <span className="text-[10px] text-ink-faint font-medium">Card • Max 15MB</span>
+                      </div>
                       {newIdentityCardPhoto ? (
-                        <div className="relative group rounded-xl border border-line overflow-hidden h-[120px]">
-                          <img src={newIdentityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
+                        <div className="relative group rounded-xl border border-line overflow-hidden h-[135px] w-full bg-surface-muted flex items-center justify-center">
+                          <img src={newIdentityCardPhoto} alt="ID Card" className="h-full w-full object-contain p-1" />
                           <button
                             type="button"
                             onClick={() => setNewIdentityCardPhoto('')}
-                            className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
+                            className="absolute top-1.5 right-1.5 rounded-lg bg-black/70 p-1 text-white hover:bg-black transition shadow-sm"
                           >
-                            <X size={12} />
+                            <X size={13} />
                           </button>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface p-4 cursor-pointer hover:border-accent/30 transition h-[120px]">
-                          <span className="text-xl mb-1">📇</span>
-                          <span className="text-[10px] font-semibold text-ink-muted text-center leading-tight">
+                        <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface p-3 cursor-pointer hover:border-accent/40 transition h-[135px] w-full">
+                          <span className="text-2xl mb-1">📇</span>
+                          <span className="text-[11px] font-semibold text-ink text-center leading-tight">
                             {isCompresingIdentity ? t('Compressing...') : t('Upload ID Card Photo')}
                           </span>
+                          <span className="text-[9px] text-ink-muted mt-1 text-center">Landscape National ID</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -803,10 +822,11 @@ export default function HqRidersPage() {
                               if (file) {
                                 try {
                                   setIsCompresingIdentity(true);
-                                  const compressed = await compressImage(file);
+                                  const compressed = await compressIdentityCardPhoto(file);
                                   setNewIdentityCardPhoto(compressed);
-                                } catch (err) {
-                                  console.error(err);
+                                } catch (err: unknown) {
+                                  const msg = err instanceof Error ? err.message : t('Failed to compress image');
+                                  setCreateError(msg);
                                 } finally {
                                   setIsCompresingIdentity(false);
                                 }
