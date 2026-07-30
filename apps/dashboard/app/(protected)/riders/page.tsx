@@ -303,8 +303,8 @@ export default function RidersPage() {
       setEditError(t('Full name is required.'));
       return;
     }
-    if (!editPhone && !editEmail) {
-      setEditError(t('Phone or email is required.'));
+    if (editPhone && !/^07\d{8}$/.test(editPhone.trim())) {
+      setEditError(t('Phone number must be exactly 10 digits starting with 07 (e.g. 0788123456).'));
       return;
     }
     if (editPassword && editPassword.length < 8) {
@@ -516,8 +516,8 @@ export default function RidersPage() {
       setCreateError(t('Full name is required.'));
       return;
     }
-    if (!newPhone && !newEmail) {
-      setCreateError(t('Phone or email is required.'));
+    if (!newPhone || !/^07\d{8}$/.test(newPhone.trim())) {
+      setCreateError(t('Phone number must be exactly 10 digits starting with 07 (e.g. 0788123456).'));
       return;
     }
     if (!newPassword || newPassword.length < 8) {
@@ -833,7 +833,8 @@ export default function RidersPage() {
                       type="tel"
                       value={newPhone}
                       onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="+254..."
+                      placeholder="0788123456"
+                      maxLength={10}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
                   </label>
@@ -1288,7 +1289,8 @@ export default function RidersPage() {
                       type="tel"
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
-                      placeholder="+254..."
+                      placeholder="0788123456"
+                      maxLength={10}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
                   </label>

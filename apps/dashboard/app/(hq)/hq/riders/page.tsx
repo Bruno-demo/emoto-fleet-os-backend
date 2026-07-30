@@ -249,8 +249,8 @@ export default function HqRidersPage() {
       setCreateError(t('Full name is required.'));
       return;
     }
-    if (!newPhone && !newEmail) {
-      setCreateError(t('Either email or phone number is required.'));
+    if (!newPhone || !/^07\d{8}$/.test(newPhone.trim())) {
+      setCreateError(t('Phone number must be exactly 10 digits starting with 07 (e.g. 0788123456).'));
       return;
     }
     if (!newPassword || newPassword.length < 8) {
@@ -356,7 +356,7 @@ export default function HqRidersPage() {
 
   const isDirectFormInvalid = useMemo(() => {
     if (!newFleetId || !newFullName || !newPassword || newPassword.length < 8) return true;
-    if (!newPhone && !newEmail) return true;
+    if (!newPhone || !/^07\d{8}$/.test(newPhone.trim())) return true;
     if (!newLicenceNumber || !newIdentityNumber) return true;
     if (!newPassportPhoto || !newLicencePhoto || !newIdentityCardPhoto) return true;
     if (leaseToOwn) {
@@ -611,7 +611,8 @@ export default function HqRidersPage() {
                         type="tel"
                         value={newPhone}
                         onChange={(e) => setNewPhone(e.target.value)}
-                        placeholder="e.g. +250..."
+                        placeholder="0788123456"
+                        maxLength={10}
                         className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink placeholder:text-ink-faint outline-none focus:border-accent"
                       />
                     </label>
@@ -879,7 +880,8 @@ export default function HqRidersPage() {
                         type="tel"
                         value={newPhone}
                         onChange={(e) => setNewPhone(e.target.value)}
-                        placeholder="e.g. +250..."
+                        placeholder="0788123456"
+                        maxLength={10}
                         className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink placeholder:text-ink-faint outline-none focus:border-accent"
                       />
                     </label>

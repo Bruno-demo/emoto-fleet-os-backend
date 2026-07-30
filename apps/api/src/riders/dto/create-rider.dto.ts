@@ -15,7 +15,7 @@ export class CreateRiderDto {
   @MinLength(2)
   fullName!: string;
 
-  @ApiProperty({ example: '+250700000111' })
+  @ApiProperty({ example: '0788123456' })
   @IsString()
   @MinLength(6)
   phone!: string;
