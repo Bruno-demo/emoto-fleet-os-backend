@@ -128,7 +128,7 @@ export async function apiFetch<T = unknown>(
 
       let rawMessage = extractErrorMessage(body, 'Request failed. Please try again.');
       if (response.status === 413) {
-        rawMessage = 'The request payload or uploaded image is too large. Maximum size allowed is 1MB. Please upload a smaller file.';
+        rawMessage = 'The request payload or uploaded image is too large. Maximum allowed request size is 50MB. Please upload a smaller file.';
       }
       if (response.status !== 401 || options.auth !== false) {
         console.error(`API Error: ${rawMessage}`, {
