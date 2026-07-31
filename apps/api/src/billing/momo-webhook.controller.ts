@@ -39,12 +39,14 @@ export class MomoWebhookController {
   ) {}
 
   @Post('callback')
-  @Public()                          // Skip JWT auth - MTN sends this
-  @Throttle({ default: { limit: 100, ttl: 60000 } })  // Rate limit: 100 req/min
-  @HttpCode(HttpStatus.OK)           // Must return 200 OK immediately
+  @Public() // Skip JWT auth - MTN sends this
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // Rate limit: 100 req/min
+  @HttpCode(HttpStatus.OK) // Must return 200 OK immediately
   @ApiOperation({ summary: 'MTN MoMo payment callback webhook' })
   async handleCallback(@Body() payload: MomoCallbackPayload) {
-    this.logger.log(`MoMo callback received: externalId=${payload.externalId}, status=${payload.status}`);
+    this.logger.log(
+      `MoMo callback received: externalId=${payload.externalId}, status=${payload.status}`,
+    );
 
     try {
       // 1. Find the MomoTransaction by matching the externalId
@@ -59,7 +61,9 @@ export class MomoWebhookController {
 
       if (!transaction) {
         // Could be a duplicate callback or unknown transaction
-        this.logger.warn(`No pending MomoTransaction found for externalId: ${payload.externalId}`);
+        this.logger.warn(
+          `No pending MomoTransaction found for externalId: ${payload.externalId}`,
+        );
         return { received: true };
       }
 
@@ -84,7 +88,9 @@ export class MomoWebhookController {
           transaction,
           payload.reason || 'UNKNOWN',
         );
-        this.logger.warn(`Payment FAILED for transaction ${transaction.id}: ${payload.reason}`);
+        this.logger.warn(
+          `Payment FAILED for transaction ${transaction.id}: ${payload.reason}`,
+        );
       }
     } catch (error) {
       // NEVER throw to MTN - always return 200

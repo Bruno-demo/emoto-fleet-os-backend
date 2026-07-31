@@ -5,7 +5,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
-import { json, urlencoded, type Request, type Response, type NextFunction, type Application } from 'express';
+import {
+  json,
+  urlencoded,
+  type Request,
+  type Response,
+  type NextFunction,
+  type Application,
+} from 'express';
 import { AppModule } from './app.module';
 
 // Resolves browser origins allowed to call the API for local dashboard and rider apps.

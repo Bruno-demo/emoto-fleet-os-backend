@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -41,7 +36,9 @@ export class MomoGatewayService {
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
       const apiUser = this.configService.get<string>('MOMO_API_USER');
       const apiKey = this.configService.get<string>('MOMO_API_KEY');
-      const subscriptionKey = this.configService.get<string>('MOMO_SUBSCRIPTION_KEY');
+      const subscriptionKey = this.configService.get<string>(
+        'MOMO_SUBSCRIPTION_KEY',
+      );
 
       const authHeader = Buffer.from(`${apiUser}:${apiKey}`).toString('base64');
 
@@ -54,12 +51,15 @@ export class MomoGatewayService {
               Authorization: `Basic ${authHeader}`,
               'Ocp-Apim-Subscription-Key': subscriptionKey,
             },
-          }
-        )
+          },
+        ),
       );
 
       if (!response.data?.access_token) {
-        throw new HttpException('Invalid token response from MoMo API', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'Invalid token response from MoMo API',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
       this.accessToken = response.data.access_token as string;
@@ -67,12 +67,23 @@ export class MomoGatewayService {
 
       return this.accessToken;
     } catch (error: any) {
-      this.logger.error('Failed to get MoMo access token', error?.response?.data || error);
-      throw new HttpException('Failed to authenticate with MoMo API', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error(
+        'Failed to get MoMo access token',
+        error?.response?.data || error,
+      );
+      throw new HttpException(
+        'Failed to authenticate with MoMo API',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  async requestToPay(fleetId: string, billingCycleId: string, amount: number, payerPhone: string) {
+  async requestToPay(
+    fleetId: string,
+    billingCycleId: string,
+    amount: number,
+    payerPhone: string,
+  ) {
     const normalizedPhone = this.normalizePhone(payerPhone);
     const referenceId = uuidv4();
     const idempotencyKey = `${billingCycleId}:0`;
@@ -95,7 +106,9 @@ export class MomoGatewayService {
       const token = await this.getAccessToken();
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
       const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV');
-      const subscriptionKey = this.configService.get<string>('MOMO_SUBSCRIPTION_KEY');
+      const subscriptionKey = this.configService.get<string>(
+        'MOMO_SUBSCRIPTION_KEY',
+      );
       const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL');
 
       await firstValueFrom(
@@ -121,8 +134,8 @@ export class MomoGatewayService {
               'X-Callback-Url': callbackUrl,
               'Content-Type': 'application/json',
             },
-          }
-        )
+          },
+        ),
       );
 
       await this.auditService.createAuditLog({
@@ -135,8 +148,11 @@ export class MomoGatewayService {
 
       return transaction;
     } catch (error: any) {
-      this.logger.error(`Failed to execute requestToPay for ${referenceId}`, error?.response?.data || error);
-      
+      this.logger.error(
+        `Failed to execute requestToPay for ${referenceId}`,
+        error?.response?.data || error,
+      );
+
       transaction = await this.prisma.momoTransaction.update({
         where: { id: transaction.id },
         data: {
@@ -154,7 +170,9 @@ export class MomoGatewayService {
       const token = await this.getAccessToken();
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
       const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV');
-      const subscriptionKey = this.configService.get<string>('MOMO_SUBSCRIPTION_KEY');
+      const subscriptionKey = this.configService.get<string>(
+        'MOMO_SUBSCRIPTION_KEY',
+      );
 
       const response = await firstValueFrom(
         this.httpService.get(
@@ -165,18 +183,27 @@ export class MomoGatewayService {
               'X-Target-Environment': targetEnv,
               'Ocp-Apim-Subscription-Key': subscriptionKey,
             },
-          }
-        )
+          },
+        ),
       );
 
       return response.data;
     } catch (error: any) {
-      this.logger.error(`Failed to check transaction status for ${referenceId}`, error?.response?.data || error);
-      throw new HttpException('Failed to check MoMo transaction status', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error(
+        `Failed to check transaction status for ${referenceId}`,
+        error?.response?.data || error,
+      );
+      throw new HttpException(
+        'Failed to check MoMo transaction status',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  async processSuccessfulPayment(transaction: any, financialTransactionId: string) {
+  async processSuccessfulPayment(
+    transaction: any,
+    financialTransactionId: string,
+  ) {
     try {
       await this.prisma.$transaction(async (prisma) => {
         await prisma.momoTransaction.update({
@@ -288,7 +315,10 @@ export class MomoGatewayService {
           }
         }
       } catch (mailError) {
-        this.logger.error('Failed to send payment confirmation email', mailError);
+        this.logger.error(
+          'Failed to send payment confirmation email',
+          mailError,
+        );
       }
     } catch (error: any) {
       this.logger.error(
@@ -304,7 +334,7 @@ export class MomoGatewayService {
       const NON_RETRYABLE = ['PAYER_NOT_FOUND'];
       const maxRetries = 3;
       const isRetryable = !NON_RETRYABLE.includes(reason);
-      
+
       let nextRetryAt: Date | null = null;
 
       if (isRetryable && transaction.retryCount < maxRetries) {
@@ -330,21 +360,28 @@ export class MomoGatewayService {
         metaJson: { reason, isRetryable, nextRetryAt },
       });
     } catch (error: any) {
-      this.logger.error(`Failed to process failed payment for tx ${transaction.id}`, error);
+      this.logger.error(
+        `Failed to process failed payment for tx ${transaction.id}`,
+        error,
+      );
       throw error;
     }
   }
 
   async retryFailedPayment(transactionId: string) {
     const transaction = await this.prisma.momoTransaction.findUnique({
-      where: { id: transactionId }
+      where: { id: transactionId },
     });
 
-    if (!transaction) throw new HttpException('Transaction not found', HttpStatus.NOT_FOUND);
+    if (!transaction)
+      throw new HttpException('Transaction not found', HttpStatus.NOT_FOUND);
     if (transaction.status !== MomoTransactionStatus.FAILED) {
-      throw new HttpException('Transaction is not in FAILED state', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Transaction is not in FAILED state',
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    
+
     const maxRetries = 3;
     if (transaction.retryCount >= maxRetries) {
       throw new HttpException('Max retries reached', HttpStatus.BAD_REQUEST);
@@ -370,7 +407,9 @@ export class MomoGatewayService {
       const token = await this.getAccessToken();
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
       const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV');
-      const subscriptionKey = this.configService.get<string>('MOMO_SUBSCRIPTION_KEY');
+      const subscriptionKey = this.configService.get<string>(
+        'MOMO_SUBSCRIPTION_KEY',
+      );
       const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL');
 
       await firstValueFrom(
@@ -396,8 +435,8 @@ export class MomoGatewayService {
               'X-Callback-Url': callbackUrl,
               'Content-Type': 'application/json',
             },
-          }
-        )
+          },
+        ),
       );
 
       await this.auditService.createAuditLog({
@@ -410,8 +449,11 @@ export class MomoGatewayService {
 
       return updatedTx;
     } catch (error: any) {
-      this.logger.error(`Failed to retry payment for tx ${transaction.id}`, error?.response?.data || error);
-      
+      this.logger.error(
+        `Failed to retry payment for tx ${transaction.id}`,
+        error?.response?.data || error,
+      );
+
       await this.prisma.momoTransaction.update({
         where: { id: transaction.id },
         data: {
@@ -420,12 +462,15 @@ export class MomoGatewayService {
         },
       });
 
-      throw new HttpException('Retry failed at MoMo API', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Retry failed at MoMo API',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   normalizePhone(phone: string): string {
-    let normalized = phone.replace(/[\s\-\(\)\+]/g, '');
+    const normalized = phone.replace(/[^\d]/g, '');
     if (normalized.startsWith('250')) return normalized;
     if (normalized.startsWith('0')) return '250' + normalized.substring(1);
     if (/^(78|79|72|73)/.test(normalized)) return '250' + normalized;

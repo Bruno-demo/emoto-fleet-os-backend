@@ -1,8 +1,10 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import {
-  SubscriptionPlanDuration,
-  AuditActionType,
-} from '@prisma/client';
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
+import { SubscriptionPlanDuration, AuditActionType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { AuthenticatedUser } from '../../auth/auth.types';
@@ -141,7 +143,9 @@ export class SubscriptionPlanService implements OnModuleInit {
     });
 
     if (!plan || !plan.isActive) {
-      throw new NotFoundException(`Subscription plan ${planDuration} is not available`);
+      throw new NotFoundException(
+        `Subscription plan ${planDuration} is not available`,
+      );
     }
 
     // Deactivate any existing active subscription
@@ -242,7 +246,10 @@ export class SubscriptionPlanService implements OnModuleInit {
   /**
    * Calculate the discounted monthly rate for a fleet on a given plan.
    */
-  calculateDiscountedRate(monthlyRate: number, discountPercent: number): number {
+  calculateDiscountedRate(
+    monthlyRate: number,
+    discountPercent: number,
+  ): number {
     return Math.round(monthlyRate * (1 - discountPercent / 100));
   }
 }

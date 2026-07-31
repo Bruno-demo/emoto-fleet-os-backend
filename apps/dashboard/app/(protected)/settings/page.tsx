@@ -706,7 +706,7 @@ export default function SettingsPage() {
                       setSubscribeError(null);
                       setSubscribeSuccess(null);
                       try {
-                        const res = await apiFetch<{ subscription: any; pricing: any }>('/billing/subscribe', {
+                        await apiFetch('/billing/subscribe', {
                           method: 'POST',
                           body: JSON.stringify({
                             planDuration: selectedPlanDuration,

@@ -1,10 +1,6 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { SubscriptionPlanDuration } from '@prisma/client';
-import {
-  IsEnum,
-  IsString,
-  Matches,
-} from 'class-validator';
+import { IsEnum, IsString, Matches } from 'class-validator';
 
 export class SubscribeDto {
   @ApiProperty({

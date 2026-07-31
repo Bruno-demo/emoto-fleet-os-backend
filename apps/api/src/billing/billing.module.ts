@@ -51,4 +51,3 @@ import { SubscriptionPlanService } from './services/subscription-plan.service';
   ],
 })
 export class BillingModule {}
-

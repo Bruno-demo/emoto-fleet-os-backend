@@ -290,7 +290,9 @@ export class ReportsService {
               : 100;
         const fetchedLabel = bikeLabels.get(metric.bikeId);
         const label =
-          fetchedLabel && fetchedLabel.trim().length > 0 && fetchedLabel !== 'Unknown'
+          fetchedLabel &&
+          fetchedLabel.trim().length > 0 &&
+          fetchedLabel !== 'Unknown'
             ? fetchedLabel
             : `Bike (${metric.bikeId.slice(0, 8)})`;
         return {
@@ -364,7 +366,9 @@ export class ReportsService {
               : 100;
         const fetchedName = riderNames.get(metric.riderId);
         const fullName =
-          fetchedName && fetchedName.trim().length > 0 && fetchedName !== 'Unknown'
+          fetchedName &&
+          fetchedName.trim().length > 0 &&
+          fetchedName !== 'Unknown'
             ? fetchedName
             : `Rider (${metric.riderId.slice(0, 8)})`;
         return {

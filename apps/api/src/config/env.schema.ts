@@ -160,7 +160,12 @@ export const envSchema = z
     MOMO_CALLBACK_HOST: z.string().optional(),
     MOMO_AUTO_PAY_ENABLED: booleanString,
     MOMO_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
-    MOMO_PAYMENT_TRIGGER_DAYS_BEFORE: z.coerce.number().int().min(0).max(14).default(2),
+    MOMO_PAYMENT_TRIGGER_DAYS_BEFORE: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(14)
+      .default(2),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {

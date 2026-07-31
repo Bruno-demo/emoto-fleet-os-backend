@@ -10,7 +10,6 @@ import {
   UseGuards,
   ForbiddenException,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FleetPlan, FleetType, SubscriptionPlanDuration } from '@prisma/client';
@@ -263,7 +262,9 @@ export class BillingController {
 
   @Get('plans')
   @Public()
-  @ApiOperation({ summary: 'List all available subscription plans with pricing' })
+  @ApiOperation({
+    summary: 'List all available subscription plans with pricing',
+  })
   async getPlans() {
     return await this.subscriptionPlanService.getAllPlans();
   }
@@ -286,12 +287,15 @@ export class BillingController {
       where: { id: user.fleetId },
       select: { monthlyRatePerBike: true },
     });
-    const bikes = await this.prisma.bike.count({ where: { fleetId: user.fleetId } });
+    const bikes = await this.prisma.bike.count({
+      where: { fleetId: user.fleetId },
+    });
     const baseMonthly = (fleet?.monthlyRatePerBike ?? 10000) * bikes;
-    const discountedMonthly = this.subscriptionPlanService.calculateDiscountedRate(
-      baseMonthly,
-      subscription.plan.discountPercent,
-    );
+    const discountedMonthly =
+      this.subscriptionPlanService.calculateDiscountedRate(
+        baseMonthly,
+        subscription.plan.discountPercent,
+      );
     const totalSavings =
       (baseMonthly - discountedMonthly) * subscription.plan.durationMonths;
 
@@ -318,9 +322,8 @@ export class BillingController {
   @Get('my-subscription')
   @ApiOperation({ summary: 'Get current subscription details' })
   async getMySubscription(@CurrentUser() user: AuthenticatedUser) {
-    const subscription = await this.subscriptionPlanService.getFleetSubscription(
-      user.fleetId,
-    );
+    const subscription =
+      await this.subscriptionPlanService.getFleetSubscription(user.fleetId);
     if (!subscription) {
       return { subscription: null, message: 'No active subscription' };
     }
@@ -336,7 +339,9 @@ export class BillingController {
   ) {
     const cycle = await this.billingCycleService.getCycle(cycleId);
     if (cycle.fleetId !== user.fleetId) {
-      throw new ForbiddenException('You do not have access to this billing cycle');
+      throw new ForbiddenException(
+        'You do not have access to this billing cycle',
+      );
     }
     if (cycle.status === 'PAID') {
       throw new BadRequestException('This invoice is already fully paid');
@@ -392,7 +397,12 @@ export class BillingController {
 
     return {
       data: transactions,
-      meta: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      meta: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
     };
   }
 
@@ -426,7 +436,12 @@ export class BillingController {
 
     return {
       data: transactions,
-      meta: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      meta: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
     };
   }
 
@@ -443,7 +458,8 @@ export class BillingController {
   async updatePlan(
     @CurrentUser() user: AuthenticatedUser,
     @Param('duration') duration: SubscriptionPlanDuration,
-    @Body() body: { discountPercent?: number; isActive?: boolean; label?: string },
+    @Body()
+    body: { discountPercent?: number; isActive?: boolean; label?: string },
   ) {
     return await this.subscriptionPlanService.updatePlan(duration, body, user);
   }
@@ -452,16 +468,17 @@ export class BillingController {
   @UseGuards(HqGuard)
   @ApiOperation({ summary: 'HQ: MoMo payment statistics' })
   async getMomoStats() {
-    const [total, successful, failed, pending, totalRevenue] = await Promise.all([
-      this.prisma.momoTransaction.count(),
-      this.prisma.momoTransaction.count({ where: { status: 'SUCCESSFUL' } }),
-      this.prisma.momoTransaction.count({ where: { status: 'FAILED' } }),
-      this.prisma.momoTransaction.count({ where: { status: 'PENDING' } }),
-      this.prisma.momoTransaction.aggregate({
-        where: { status: 'SUCCESSFUL' },
-        _sum: { amount: true },
-      }),
-    ]);
+    const [total, successful, failed, pending, totalRevenue] =
+      await Promise.all([
+        this.prisma.momoTransaction.count(),
+        this.prisma.momoTransaction.count({ where: { status: 'SUCCESSFUL' } }),
+        this.prisma.momoTransaction.count({ where: { status: 'FAILED' } }),
+        this.prisma.momoTransaction.count({ where: { status: 'PENDING' } }),
+        this.prisma.momoTransaction.aggregate({
+          where: { status: 'SUCCESSFUL' },
+          _sum: { amount: true },
+        }),
+      ]);
 
     return {
       total,

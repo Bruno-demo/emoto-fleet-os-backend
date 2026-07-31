@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BillingCycleStatus, FleetSubscriptionStatus, MomoTransactionStatus } from '@prisma/client';
+import {
+  BillingCycleStatus,
+  FleetSubscriptionStatus,
+  MomoTransactionStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { MailService } from '../../mail/mail.service';
@@ -409,13 +413,14 @@ export class BillingCronService {
   @Cron(CronExpression.EVERY_DAY_AT_7AM)
   async triggerMoMoAutoPay() {
     this.logger.log('Starting MoMo Auto-Pay cron job...');
-    const now = new Date();
     const triggerWindow = new Date();
     triggerWindow.setDate(triggerWindow.getDate() + 2); // 2 days before due date
 
     const cyclesDue = await this.prisma.billingCycle.findMany({
       where: {
-        status: { in: [BillingCycleStatus.PENDING, BillingCycleStatus.PARTIAL] },
+        status: {
+          in: [BillingCycleStatus.PENDING, BillingCycleStatus.PARTIAL],
+        },
         dueDate: { lte: triggerWindow },
         fleet: {
           autoPayEnabled: true,
@@ -426,7 +431,12 @@ export class BillingCronService {
         fleet: true,
         momoTransactions: {
           where: {
-            status: { in: [MomoTransactionStatus.PENDING, MomoTransactionStatus.SUCCESSFUL] },
+            status: {
+              in: [
+                MomoTransactionStatus.PENDING,
+                MomoTransactionStatus.SUCCESSFUL,
+              ],
+            },
           },
         },
       },
@@ -527,4 +537,3 @@ export class BillingCronService {
     this.logger.log('Finished MoMo pending transaction polling cron job.');
   }
 }
-
