@@ -28,6 +28,8 @@ export interface SessionUser {
   status: 'INVITED' | 'PENDING_SETUP' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
   insurerName?: string | null;
   monthlyRatePerBike?: number | null;
+  momoPhoneNumber?: string | null;
+  autoPayEnabled?: boolean;
   notifOpenIncidents?: boolean;
   notifSosAlerts?: boolean;
   notifCrashEvents?: boolean;
@@ -315,7 +317,14 @@ export type AuditActionType =
   | 'BIKE_UPDATED'
   | 'BIKE_DELETED'
   | 'USER_ROLE_CHANGED'
-  | 'USER_INVITED';
+  | 'USER_INVITED'
+  | 'MOMO_PAYMENT_REQUESTED'
+  | 'MOMO_PAYMENT_RECEIVED'
+  | 'MOMO_PAYMENT_FAILED'
+  | 'MOMO_PAYMENT_RETRIED'
+  | 'SUBSCRIPTION_CREATED'
+  | 'SUBSCRIPTION_CANCELLED'
+  | 'SUBSCRIPTION_RENEWED';
 
 export interface AuditLogEntry {
   id: string;

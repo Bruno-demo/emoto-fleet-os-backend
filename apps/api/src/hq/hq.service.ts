@@ -194,6 +194,8 @@ export class HqService {
           trialStartedAt: true,
           trialEndsAt: true,
           billingStartedAt: true,
+          momoPhoneNumber: true,
+          autoPayEnabled: true,
           _count: {
             select: { users: true, bikes: true },
           },
@@ -2403,6 +2405,8 @@ export class HqService {
         monthlyRatePerBike: true,
         trialStartedAt: true,
         trialEndsAt: true,
+        momoPhoneNumber: true,
+        autoPayEnabled: true,
         _count: {
           select: { users: true, bikes: true },
         },
