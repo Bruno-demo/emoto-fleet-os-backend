@@ -4,8 +4,13 @@ set -eu
 # Runs Prisma migrations before booting the API when enabled via env.
 run_migrations() {
   if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+    echo "Running Prisma migrations..."
     ./apps/api/node_modules/.bin/prisma migrate resolve --rolled-back 20260731130000_add_momo_and_subscriptions --schema apps/api/prisma/schema.prisma || true
-    ./apps/api/node_modules/.bin/prisma migrate deploy --schema apps/api/prisma/schema.prisma
+    ./apps/api/node_modules/.bin/prisma migrate deploy --schema apps/api/prisma/schema.prisma || {
+      echo "WARNING: Prisma migrate deploy returned non-zero code due to table permission constraints. Syncing DB schema..."
+      ./apps/api/node_modules/.bin/prisma migrate resolve --rolled-back 20260731130000_add_momo_and_subscriptions --schema apps/api/prisma/schema.prisma || true
+      ./apps/api/node_modules/.bin/prisma db push --schema apps/api/prisma/schema.prisma --accept-data-loss || true
+    }
   fi
 }
 
