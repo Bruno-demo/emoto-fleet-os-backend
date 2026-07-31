@@ -30,7 +30,7 @@ primary_region = "iad"
 
   [[services.http_checks]]
     interval = "10s"
-    grace_period = "15s"
+    grace_period = "60s"
     method = "get"
     path = "/healthz"
     protocol = "http"
