@@ -1,24 +1,32 @@
--- CreateEnum
-CREATE TYPE "MomoTransactionStatus" AS ENUM ('PENDING', 'SUCCESSFUL', 'FAILED', 'EXPIRED', 'CANCELLED');
+-- CreateEnum: MomoTransactionStatus
+DO $$ BEGIN
+    CREATE TYPE "MomoTransactionStatus" AS ENUM ('PENDING', 'SUCCESSFUL', 'FAILED', 'EXPIRED', 'CANCELLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- CreateEnum
-CREATE TYPE "SubscriptionPlanDuration" AS ENUM ('MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL', 'BIENNIAL');
+-- CreateEnum: SubscriptionPlanDuration
+DO $$ BEGIN
+    CREATE TYPE "SubscriptionPlanDuration" AS ENUM ('MONTHLY', 'QUARTERLY', 'SEMI_ANNUAL', 'ANNUAL', 'BIENNIAL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- AlterEnum
-ALTER TYPE "AuditActionType" ADD VALUE 'MOMO_PAYMENT_REQUESTED';
-ALTER TYPE "AuditActionType" ADD VALUE 'MOMO_PAYMENT_RECEIVED';
-ALTER TYPE "AuditActionType" ADD VALUE 'MOMO_PAYMENT_FAILED';
-ALTER TYPE "AuditActionType" ADD VALUE 'MOMO_PAYMENT_RETRIED';
-ALTER TYPE "AuditActionType" ADD VALUE 'SUBSCRIPTION_CREATED';
-ALTER TYPE "AuditActionType" ADD VALUE 'SUBSCRIPTION_CANCELLED';
-ALTER TYPE "AuditActionType" ADD VALUE 'SUBSCRIPTION_RENEWED';
+-- AlterEnum: AuditActionType
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_REQUESTED'; EXCEPTION WHEN OTHERS THEN null; END $$;
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_RECEIVED'; EXCEPTION WHEN OTHERS THEN null; END $$;
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_FAILED'; EXCEPTION WHEN OTHERS THEN null; END $$;
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_RETRIED'; EXCEPTION WHEN OTHERS THEN null; END $$;
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'SUBSCRIPTION_CREATED'; EXCEPTION WHEN OTHERS THEN null; END $$;
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'SUBSCRIPTION_CANCELLED'; EXCEPTION WHEN OTHERS THEN null; END $$;
+DO $$ BEGIN ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'SUBSCRIPTION_RENEWED'; EXCEPTION WHEN OTHERS THEN null; END $$;
 
--- AlterTable
-ALTER TABLE "Fleet" ADD COLUMN     "autoPayEnabled" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "momoPhoneNumber" TEXT;
+-- AlterTable: Fleet
+ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "autoPayEnabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "momoPhoneNumber" TEXT;
 
--- CreateTable
-CREATE TABLE "SubscriptionPlan" (
+-- CreateTable: SubscriptionPlan
+CREATE TABLE IF NOT EXISTS "SubscriptionPlan" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "duration" "SubscriptionPlanDuration" NOT NULL,
     "durationMonths" INTEGER NOT NULL,
@@ -32,8 +40,8 @@ CREATE TABLE "SubscriptionPlan" (
     CONSTRAINT "SubscriptionPlan_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "FleetSubscription" (
+-- CreateTable: FleetSubscription
+CREATE TABLE IF NOT EXISTS "FleetSubscription" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "fleetId" UUID NOT NULL,
     "planId" UUID NOT NULL,
@@ -49,8 +57,8 @@ CREATE TABLE "FleetSubscription" (
     CONSTRAINT "FleetSubscription_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "MomoTransaction" (
+-- CreateTable: MomoTransaction
+CREATE TABLE IF NOT EXISTS "MomoTransaction" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "fleetId" UUID NOT NULL,
     "billingCycleId" UUID,
@@ -75,43 +83,29 @@ CREATE TABLE "MomoTransaction" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SubscriptionPlan_duration_key" ON "SubscriptionPlan"("duration");
-
--- CreateIndex
-CREATE INDEX "FleetSubscription_fleetId_idx" ON "FleetSubscription"("fleetId");
-
--- CreateIndex
-CREATE INDEX "FleetSubscription_planId_idx" ON "FleetSubscription"("planId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "MomoTransaction_referenceId_key" ON "MomoTransaction"("referenceId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "MomoTransaction_idempotencyKey_key" ON "MomoTransaction"("idempotencyKey");
-
--- CreateIndex
-CREATE INDEX "MomoTransaction_fleetId_idx" ON "MomoTransaction"("fleetId");
-
--- CreateIndex
-CREATE INDEX "MomoTransaction_billingCycleId_idx" ON "MomoTransaction"("billingCycleId");
-
--- CreateIndex
-CREATE INDEX "MomoTransaction_status_idx" ON "MomoTransaction"("status");
-
--- CreateIndex
-CREATE INDEX "MomoTransaction_referenceId_idx" ON "MomoTransaction"("referenceId");
-
--- CreateIndex
-CREATE INDEX "MomoTransaction_nextRetryAt_idx" ON "MomoTransaction"("nextRetryAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "SubscriptionPlan_duration_key" ON "SubscriptionPlan"("duration");
+CREATE INDEX IF NOT EXISTS "FleetSubscription_fleetId_idx" ON "FleetSubscription"("fleetId");
+CREATE INDEX IF NOT EXISTS "FleetSubscription_planId_idx" ON "FleetSubscription"("planId");
+CREATE UNIQUE INDEX IF NOT EXISTS "MomoTransaction_referenceId_key" ON "MomoTransaction"("referenceId");
+CREATE UNIQUE INDEX IF NOT EXISTS "MomoTransaction_idempotencyKey_key" ON "MomoTransaction"("idempotencyKey");
+CREATE INDEX IF NOT EXISTS "MomoTransaction_fleetId_idx" ON "MomoTransaction"("fleetId");
+CREATE INDEX IF NOT EXISTS "MomoTransaction_billingCycleId_idx" ON "MomoTransaction"("billingCycleId");
+CREATE INDEX IF NOT EXISTS "MomoTransaction_status_idx" ON "MomoTransaction"("status");
+CREATE INDEX IF NOT EXISTS "MomoTransaction_referenceId_idx" ON "MomoTransaction"("referenceId");
+CREATE INDEX IF NOT EXISTS "MomoTransaction_nextRetryAt_idx" ON "MomoTransaction"("nextRetryAt");
 
 -- AddForeignKey
-ALTER TABLE "FleetSubscription" ADD CONSTRAINT "FleetSubscription_fleetId_fkey" FOREIGN KEY ("fleetId") REFERENCES "Fleet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "FleetSubscription" ADD CONSTRAINT "FleetSubscription_planId_fkey" FOREIGN KEY ("planId") REFERENCES "SubscriptionPlan"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MomoTransaction" ADD CONSTRAINT "MomoTransaction_fleetId_fkey" FOREIGN KEY ("fleetId") REFERENCES "Fleet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MomoTransaction" ADD CONSTRAINT "MomoTransaction_billingCycleId_fkey" FOREIGN KEY ("billingCycleId") REFERENCES "BillingCycle"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FleetSubscription_fleetId_fkey') THEN
+        ALTER TABLE "FleetSubscription" ADD CONSTRAINT "FleetSubscription_fleetId_fkey" FOREIGN KEY ("fleetId") REFERENCES "Fleet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FleetSubscription_planId_fkey') THEN
+        ALTER TABLE "FleetSubscription" ADD CONSTRAINT "FleetSubscription_planId_fkey" FOREIGN KEY ("planId") REFERENCES "SubscriptionPlan"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MomoTransaction_fleetId_fkey') THEN
+        ALTER TABLE "MomoTransaction" ADD CONSTRAINT "MomoTransaction_fleetId_fkey" FOREIGN KEY ("fleetId") REFERENCES "Fleet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MomoTransaction_billingCycleId_fkey') THEN
+        ALTER TABLE "MomoTransaction" ADD CONSTRAINT "MomoTransaction_billingCycleId_fkey" FOREIGN KEY ("billingCycleId") REFERENCES "BillingCycle"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;

@@ -4,6 +4,7 @@ set -eu
 # Runs Prisma migrations before booting the API when enabled via env.
 run_migrations() {
   if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+    ./apps/api/node_modules/.bin/prisma migrate resolve --rolled-back 20260731130000_add_momo_and_subscriptions --schema apps/api/prisma/schema.prisma || true
     ./apps/api/node_modules/.bin/prisma migrate deploy --schema apps/api/prisma/schema.prisma
   fi
 }
