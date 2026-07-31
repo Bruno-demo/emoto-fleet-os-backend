@@ -166,15 +166,20 @@ export class HqService {
   // ── Fleets ────────────────────────────────────────────────────────
 
   async getFleets() {
-    return this.prisma.fleet.findMany({
-      where: { plan: { not: 'INSURANCE' } },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { users: true, bikes: true },
+    try {
+      return await this.prisma.fleet.findMany({
+        where: { plan: { not: FleetPlan.INSURANCE } },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { users: true, bikes: true },
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      console.error('[HqService.getFleets] Failed to query fleets:', error);
+      throw error;
+    }
   }
 
   async getFleetById(fleetId: string) {
