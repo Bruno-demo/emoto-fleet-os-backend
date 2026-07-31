@@ -421,8 +421,7 @@ export class DevicesService {
               metaJson: {
                 lastSeenAt: device.lastSeenAt?.toISOString(),
                 durationOfflineMinutes: 5,
-                reason:
-                  'No data received from GPRS tracker for over 5 minutes',
+                reason: 'No data received from GPRS tracker for over 5 minutes',
               },
             },
           });

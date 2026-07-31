@@ -10,20 +10,24 @@ import {
   UseGuards,
   ForbiddenException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { FleetPlan, FleetType } from '@prisma/client';
+import { FleetPlan, FleetType, SubscriptionPlanDuration } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { HqGuard } from '../hq/guards/hq.guard';
 import { Public } from '../auth/public.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 
 import { PricingTierService } from './services/pricing-tier.service';
 import { DiscountService } from './services/discount.service';
 import { BillingConfigService } from './services/billing-config.service';
 import { BillingCycleService } from './services/billing-cycle.service';
 import { BillingPaymentService } from './services/billing-payment.service';
+import { MomoGatewayService } from './services/momo-gateway.service';
+import { SubscriptionPlanService } from './services/subscription-plan.service';
 
 import { UpdatePricingTierDto } from './dto/update-pricing-tier.dto';
 import { CreateDiscountDto } from './dto/create-discount.dto';
@@ -31,6 +35,8 @@ import { UpdateDiscountDto } from './dto/update-discount.dto';
 import { UpdateBillingConfigDto } from './dto/update-billing-config.dto';
 import { RecordBillingPaymentDto } from './dto/record-billing-payment.dto';
 import { ListBillingCyclesDto } from './dto/list-billing-cycles.dto';
+import { SubscribeDto } from './dto/subscribe.dto';
+import { MomoPayNowDto } from './dto/momo-pay-now.dto';
 
 @ApiTags('Billing')
 @ApiBearerAuth()
@@ -43,6 +49,9 @@ export class BillingController {
     private readonly billingConfigService: BillingConfigService,
     private readonly billingCycleService: BillingCycleService,
     private readonly billingPaymentService: BillingPaymentService,
+    private readonly momoGatewayService: MomoGatewayService,
+    private readonly subscriptionPlanService: SubscriptionPlanService,
+    private readonly prisma: PrismaService,
   ) {}
 
   // ── Fleet-Operator Endpoints ─────────────────────────────────────
@@ -248,5 +257,219 @@ export class BillingController {
     @Body() body: { notes: string },
   ) {
     return await this.billingCycleService.updateCycleNotes(id, body.notes);
+  }
+
+  // ── MoMo Subscription & Payment Endpoints ────────────────────────
+
+  @Get('plans')
+  @Public()
+  @ApiOperation({ summary: 'List all available subscription plans with pricing' })
+  async getPlans() {
+    return await this.subscriptionPlanService.getAllPlans();
+  }
+
+  @Post('subscribe')
+  @ApiOperation({ summary: 'Subscribe fleet to a plan with MoMo auto-pay' })
+  async subscribe(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SubscribeDto,
+  ) {
+    const subscription = await this.subscriptionPlanService.subscribeToPlan(
+      user.fleetId,
+      dto.planDuration,
+      dto.momoPhoneNumber,
+      user,
+    );
+
+    // Calculate savings info
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: user.fleetId },
+      select: { monthlyRatePerBike: true },
+    });
+    const bikes = await this.prisma.bike.count({ where: { fleetId: user.fleetId } });
+    const baseMonthly = (fleet?.monthlyRatePerBike ?? 10000) * bikes;
+    const discountedMonthly = this.subscriptionPlanService.calculateDiscountedRate(
+      baseMonthly,
+      subscription.plan.discountPercent,
+    );
+    const totalSavings =
+      (baseMonthly - discountedMonthly) * subscription.plan.durationMonths;
+
+    return {
+      subscription,
+      pricing: {
+        monthlyRate: discountedMonthly,
+        originalMonthlyRate: baseMonthly,
+        bikeCount: bikes,
+        totalSavings,
+      },
+    };
+  }
+
+  @Put('subscription/cancel')
+  @ApiOperation({ summary: 'Cancel auto-renewal of current subscription' })
+  async cancelSubscription(@CurrentUser() user: AuthenticatedUser) {
+    return await this.subscriptionPlanService.cancelSubscription(
+      user.fleetId,
+      user,
+    );
+  }
+
+  @Get('my-subscription')
+  @ApiOperation({ summary: 'Get current subscription details' })
+  async getMySubscription(@CurrentUser() user: AuthenticatedUser) {
+    const subscription = await this.subscriptionPlanService.getFleetSubscription(
+      user.fleetId,
+    );
+    if (!subscription) {
+      return { subscription: null, message: 'No active subscription' };
+    }
+    return { subscription };
+  }
+
+  @Post('my-cycles/:id/pay-now')
+  @ApiOperation({ summary: 'Trigger MoMo payment for a billing cycle' })
+  async payNow(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') cycleId: string,
+    @Body() dto: MomoPayNowDto,
+  ) {
+    const cycle = await this.billingCycleService.getCycle(cycleId);
+    if (cycle.fleetId !== user.fleetId) {
+      throw new ForbiddenException('You do not have access to this billing cycle');
+    }
+    if (cycle.status === 'PAID') {
+      throw new BadRequestException('This invoice is already fully paid');
+    }
+
+    // Determine phone number: explicit > fleet default
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: user.fleetId },
+      select: { momoPhoneNumber: true },
+    });
+    const phone = dto.momoPhoneNumber || fleet?.momoPhoneNumber;
+    if (!phone) {
+      throw new BadRequestException(
+        'No MoMo phone number provided. Set a default in your subscription settings or provide one in the request.',
+      );
+    }
+
+    const remainingDue = cycle.totalDue - cycle.totalPaid;
+    const transaction = await this.momoGatewayService.requestToPay(
+      user.fleetId,
+      cycleId,
+      remainingDue,
+      phone,
+    );
+
+    const maskedPhone = phone.replace(/(.{3})(.*)(.{3})/, '$1*****$3');
+    return {
+      transaction,
+      message: `A payment prompt has been sent to ${maskedPhone}. Enter your MoMo PIN to complete.`,
+    };
+  }
+
+  @Get('my-transactions')
+  @ApiOperation({ summary: 'List MoMo transaction history for this fleet' })
+  async getMyTransactions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+  ) {
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [transactions, total] = await Promise.all([
+      this.prisma.momoTransaction.findMany({
+        where: { fleetId: user.fleetId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+      this.prisma.momoTransaction.count({ where: { fleetId: user.fleetId } }),
+    ]);
+
+    return {
+      data: transactions,
+      meta: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    };
+  }
+
+  // ── HQ MoMo Admin Endpoints ──────────────────────────────────────
+
+  @Get('momo/transactions')
+  @UseGuards(HqGuard)
+  @ApiOperation({ summary: 'HQ: List all MoMo transactions globally' })
+  async getMomoTransactions(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+    @Query('status') status?: string,
+  ) {
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: any = {};
+    if (status) where.status = status;
+
+    const [transactions, total] = await Promise.all([
+      this.prisma.momoTransaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: { fleet: { select: { id: true, name: true } } },
+        skip,
+        take: limitNum,
+      }),
+      this.prisma.momoTransaction.count({ where }),
+    ]);
+
+    return {
+      data: transactions,
+      meta: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    };
+  }
+
+  @Post('momo/retry/:id')
+  @UseGuards(HqGuard)
+  @ApiOperation({ summary: 'HQ: Manually retry a failed MoMo transaction' })
+  async retryMomoTransaction(@Param('id') id: string) {
+    return await this.momoGatewayService.retryFailedPayment(id);
+  }
+
+  @Put('plans/:duration')
+  @UseGuards(HqGuard)
+  @ApiOperation({ summary: 'HQ: Update a subscription plan discount' })
+  async updatePlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('duration') duration: SubscriptionPlanDuration,
+    @Body() body: { discountPercent?: number; isActive?: boolean; label?: string },
+  ) {
+    return await this.subscriptionPlanService.updatePlan(duration, body, user);
+  }
+
+  @Get('momo/stats')
+  @UseGuards(HqGuard)
+  @ApiOperation({ summary: 'HQ: MoMo payment statistics' })
+  async getMomoStats() {
+    const [total, successful, failed, pending, totalRevenue] = await Promise.all([
+      this.prisma.momoTransaction.count(),
+      this.prisma.momoTransaction.count({ where: { status: 'SUCCESSFUL' } }),
+      this.prisma.momoTransaction.count({ where: { status: 'FAILED' } }),
+      this.prisma.momoTransaction.count({ where: { status: 'PENDING' } }),
+      this.prisma.momoTransaction.aggregate({
+        where: { status: 'SUCCESSFUL' },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return {
+      total,
+      successful,
+      failed,
+      pending,
+      successRate: total > 0 ? Math.round((successful / total) * 100) : 0,
+      totalRevenue: totalRevenue._sum.amount ?? 0,
+    };
   }
 }

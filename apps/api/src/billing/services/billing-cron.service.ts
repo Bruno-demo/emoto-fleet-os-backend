@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BillingCycleStatus, FleetSubscriptionStatus } from '@prisma/client';
+import { BillingCycleStatus, FleetSubscriptionStatus, MomoTransactionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { MailService } from '../../mail/mail.service';
 import { BillingCycleService } from './billing-cycle.service';
 import { BillingConfigService } from './billing-config.service';
+import { MomoGatewayService } from './momo-gateway.service';
 
 @Injectable()
 export class BillingCronService {
@@ -17,6 +18,7 @@ export class BillingCronService {
     private readonly billingCycleService: BillingCycleService,
     private readonly billingConfigService: BillingConfigService,
     private readonly mailService: MailService,
+    private readonly momoGatewayService: MomoGatewayService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
@@ -401,4 +403,128 @@ export class BillingCronService {
     }
     this.logger.log('Finished trial expiration cron job.');
   }
+
+  // ── MoMo Cron Jobs ───────────────────────────────────────────────
+
+  @Cron(CronExpression.EVERY_DAY_AT_7AM)
+  async triggerMoMoAutoPay() {
+    this.logger.log('Starting MoMo Auto-Pay cron job...');
+    const now = new Date();
+    const triggerWindow = new Date();
+    triggerWindow.setDate(triggerWindow.getDate() + 2); // 2 days before due date
+
+    const cyclesDue = await this.prisma.billingCycle.findMany({
+      where: {
+        status: { in: [BillingCycleStatus.PENDING, BillingCycleStatus.PARTIAL] },
+        dueDate: { lte: triggerWindow },
+        fleet: {
+          autoPayEnabled: true,
+          momoPhoneNumber: { not: null },
+        },
+      },
+      include: {
+        fleet: true,
+        momoTransactions: {
+          where: {
+            status: { in: [MomoTransactionStatus.PENDING, MomoTransactionStatus.SUCCESSFUL] },
+          },
+        },
+      },
+    });
+
+    for (const cycle of cyclesDue) {
+      if (cycle.momoTransactions.length > 0) {
+        continue; // Already has a pending or successful transaction
+      }
+      if (!cycle.fleet.momoPhoneNumber) continue;
+
+      const remainingAmount = cycle.totalDue - cycle.totalPaid;
+      if (remainingAmount <= 0) continue;
+
+      try {
+        this.logger.log(
+          `Triggering auto-pay for fleet ${cycle.fleet.name} (${cycle.fleet.id}), cycle ${cycle.id}, amount ${remainingAmount} RWF`,
+        );
+        await this.momoGatewayService.requestToPay(
+          cycle.fleetId,
+          cycle.id,
+          remainingAmount,
+          cycle.fleet.momoPhoneNumber,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed auto-pay for fleet ${cycle.fleetId}, cycle ${cycle.id}:`,
+          error,
+        );
+      }
+    }
+    this.logger.log('Finished MoMo Auto-Pay cron job.');
+  }
+
+  @Cron(CronExpression.EVERY_2_HOURS)
+  async retryFailedMoMoPayments() {
+    this.logger.log('Starting MoMo failed payment retry cron job...');
+    const now = new Date();
+
+    const failedTxList = await this.prisma.momoTransaction.findMany({
+      where: {
+        status: MomoTransactionStatus.FAILED,
+        retryCount: { lt: 3 },
+        nextRetryAt: { lte: now },
+      },
+      take: 20, // Process in batches
+    });
+
+    for (const tx of failedTxList) {
+      try {
+        this.logger.log(
+          `Retrying failed MoMo tx ${tx.id} for fleet ${tx.fleetId} (attempt ${tx.retryCount + 1})`,
+        );
+        await this.momoGatewayService.retryFailedPayment(tx.id);
+      } catch (error) {
+        this.logger.error(`Retry attempt failed for MoMo tx ${tx.id}:`, error);
+      }
+    }
+    this.logger.log('Finished MoMo failed payment retry cron job.');
+  }
+
+  @Cron('0 */15 * * * *')
+  async pollPendingMoMoTransactions() {
+    this.logger.log('Starting MoMo pending transaction polling cron job...');
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    const pendingTxList = await this.prisma.momoTransaction.findMany({
+      where: {
+        status: MomoTransactionStatus.PENDING,
+        createdAt: { lt: fiveMinutesAgo },
+      },
+      take: 50,
+    });
+
+    for (const tx of pendingTxList) {
+      try {
+        const result = await this.momoGatewayService.checkTransactionStatus(
+          tx.referenceId,
+        );
+        if (result?.status === 'SUCCESSFUL') {
+          await this.momoGatewayService.processSuccessfulPayment(
+            tx,
+            result.financialTransactionId || '',
+          );
+        } else if (result?.status === 'FAILED') {
+          await this.momoGatewayService.processFailedPayment(
+            tx,
+            result.reason || 'FAILED',
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to poll status for pending MoMo tx ${tx.id}:`,
+          error,
+        );
+      }
+    }
+    this.logger.log('Finished MoMo pending transaction polling cron job.');
+  }
 }
+

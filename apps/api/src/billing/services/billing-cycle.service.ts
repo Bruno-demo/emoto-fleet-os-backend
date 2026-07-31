@@ -169,7 +169,25 @@ export class BillingCycleService {
 
     const bikeCount = fleet.bikes.length;
     const subtotal = bikeCount * ratePerBike;
-    const totalDue = subtotal;
+
+    // Check if fleet has an active subscription plan for discount
+    const activeSubscription = await this.prisma.fleetSubscription.findFirst({
+      where: {
+        fleetId,
+        isActive: true,
+        endDate: { gte: new Date() },
+      },
+      include: { plan: true },
+    });
+
+    let discountAmount = 0;
+    if (activeSubscription?.plan?.discountPercent) {
+      discountAmount = Math.round(
+        subtotal * (activeSubscription.plan.discountPercent / 100),
+      );
+    }
+
+    const totalDue = Math.max(0, subtotal - discountAmount);
 
     const isTrial = fleet.trialEndsAt ? new Date() < fleet.trialEndsAt : false;
 
@@ -183,6 +201,7 @@ export class BillingCycleService {
         bikeCount,
         ratePerBike,
         subtotal,
+        discountAmount,
         totalDue,
         totalPaid: 0,
         status: isTrial ? BillingCycleStatus.PAID : BillingCycleStatus.PENDING,

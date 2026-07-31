@@ -232,6 +232,13 @@ enum AuditActionType {
   TRAFFIC_FINE_CREATED
   TRAFFIC_FINE_UPDATED
   TRAFFIC_FINE_DELETED
+  MOMO_PAYMENT_REQUESTED
+  MOMO_PAYMENT_RECEIVED
+  MOMO_PAYMENT_FAILED
+  MOMO_PAYMENT_RETRIED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_CANCELLED
+  SUBSCRIPTION_RENEWED
 }
 
 model Fleet {
@@ -273,6 +280,10 @@ model Fleet {
   deliveries        Delivery[]
   trafficFines      TrafficFine[]
   batterySwaps      BatterySwap[]
+  momoPhoneNumber    String?
+  autoPayEnabled     Boolean              @default(false)
+  fleetSubscriptions FleetSubscription[]
+  momoTransactions   MomoTransaction[]
 }
 
 model User {
@@ -811,6 +822,22 @@ enum BillingCycleStatus {
   VOID
 }
 
+enum MomoTransactionStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum SubscriptionPlanDuration {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  BIENNIAL
+}
+
 model PricingTier {
   id                  String    @id @default(uuid()) @db.Uuid
   name                String
@@ -880,6 +907,7 @@ model BillingCycle {
   fleet           Fleet              @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   discount        Discount?          @relation(fields: [discountId], references: [id])
   payments        BillingPayment[]
+  momoTransactions   MomoTransaction[]
 
   @@unique([fleetId, cycleNumber])
 }
@@ -898,6 +926,68 @@ model BillingPayment {
   billingCycle   BillingCycle  @relation(fields: [billingCycleId], references: [id], onDelete: Cascade)
   fleet          Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   recordedBy     User          @relation(fields: [recordedById], references: [id])
+}
+
+model SubscriptionPlan {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  duration           SubscriptionPlanDuration @unique
+  durationMonths     Int
+  label              String
+  discountPercent    Int                      @default(0)
+  isActive           Boolean                  @default(true)
+  sortOrder          Int                      @default(0)
+  createdAt          DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime                 @updatedAt @db.Timestamptz(6)
+  fleetSubscriptions FleetSubscription[]
+}
+
+model FleetSubscription {
+  id              String                   @id @default(uuid()) @db.Uuid
+  fleetId         String                   @db.Uuid
+  planId          String                   @db.Uuid
+  startDate       DateTime                 @db.Timestamptz(6)
+  endDate         DateTime                 @db.Timestamptz(6)
+  autoRenew       Boolean                  @default(true)
+  momoPhoneNumber String?
+  isActive        Boolean                  @default(true)
+  cancelledAt     DateTime?                @db.Timestamptz(6)
+  createdAt       DateTime                 @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime                 @updatedAt @db.Timestamptz(6)
+  fleet           Fleet                    @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan         @relation(fields: [planId], references: [id])
+
+  @@index([fleetId])
+  @@index([planId])
+}
+
+model MomoTransaction {
+  id                     String                @id @default(uuid()) @db.Uuid
+  fleetId                String                @db.Uuid
+  billingCycleId         String?               @db.Uuid
+  referenceId            String                @unique
+  externalId             String
+  amount                 Int
+  currency               String                @default("RWF")
+  payerPhone             String
+  status                 MomoTransactionStatus @default(PENDING)
+  financialTransactionId String?
+  failureReason          String?
+  payerMessage           String?
+  retryCount             Int                   @default(0)
+  maxRetries             Int                   @default(3)
+  nextRetryAt            DateTime?             @db.Timestamptz(6)
+  callbackReceivedAt     DateTime?             @db.Timestamptz(6)
+  idempotencyKey         String                @unique
+  createdAt              DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime              @updatedAt @db.Timestamptz(6)
+  fleet                  Fleet                 @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  billingCycle           BillingCycle?          @relation(fields: [billingCycleId], references: [id])
+
+  @@index([fleetId])
+  @@index([billingCycleId])
+  @@index([status])
+  @@index([referenceId])
+  @@index([nextRetryAt])
 }
 
 enum DeliveryStatus {

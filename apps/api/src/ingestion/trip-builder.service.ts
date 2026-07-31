@@ -259,8 +259,7 @@ export class TripBuilderService {
     // to prevent ignition bounce from creating duplicate/overlapping trips.
     const inCooldown =
       !!state.lastTripEndTs &&
-      nowMs - Date.parse(state.lastTripEndTs) <
-        this.tripCooldownSec * 1000;
+      nowMs - Date.parse(state.lastTripEndTs) < this.tripCooldownSec * 1000;
 
     if (ignitionOn && !inCooldown) {
       state.activeStartTs = payloadTs;
@@ -348,7 +347,10 @@ export class TripBuilderService {
 
     // Discard trips that are too short in distance or duration.
     // These are invariably noise: ignition bounces, GPS jitter, or brief key-on/key-off cycles.
-    if (distanceKm < this.minTripDistanceKm || durationSec < this.minTripDurationSec) {
+    if (
+      distanceKm < this.minTripDistanceKm ||
+      durationSec < this.minTripDurationSec
+    ) {
       this.logger.debug(
         `Discarding noise trip for device ${this.truncateDeviceUid(
           device.deviceUid,

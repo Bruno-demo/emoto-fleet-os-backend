@@ -147,6 +147,20 @@ export const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().default('eMoto Fleet OS <no-reply@emotofleet.com>'),
+    // ── MTN MoMo Integration ────────────────────────────────
+    MOMO_BASE_URL: z
+      .string()
+      .url()
+      .default('https://sandbox.momodeveloper.mtn.com'),
+    MOMO_SUBSCRIPTION_KEY: z.string().optional(),
+    MOMO_API_USER: z.string().optional(),
+    MOMO_API_KEY: z.string().optional(),
+    MOMO_TARGET_ENV: z.string().default('sandbox'),
+    MOMO_CALLBACK_URL: z.string().url().optional(),
+    MOMO_CALLBACK_HOST: z.string().optional(),
+    MOMO_AUTO_PAY_ENABLED: booleanString,
+    MOMO_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
+    MOMO_PAYMENT_TRIGGER_DAYS_BEFORE: z.coerce.number().int().min(0).max(14).default(2),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {

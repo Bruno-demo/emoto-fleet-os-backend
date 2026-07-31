@@ -24,6 +24,8 @@ import {
   Clock,
   FileText,
   Printer,
+  CreditCard,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
@@ -197,6 +199,56 @@ export default function SettingsPage() {
   }, []);
 
   const [selectedInvoiceModal, setSelectedInvoiceModal] = useState<BillingCycleData | null>(null);
+
+  // MoMo & Subscription state declarations
+  const { data: currentSubscription, refetch: refetchSub } = useQuery<{
+    subscription: {
+      id: string;
+      fleetId: string;
+      planId: string;
+      startDate: string;
+      endDate: string;
+      autoRenew: boolean;
+      momoPhoneNumber: string | null;
+      isActive: boolean;
+      plan: { label: string; discountPercent: number };
+    } | null;
+  }>({
+    queryKey: ['billing', 'my-subscription'],
+    queryFn: () => apiFetch('/billing/my-subscription'),
+    enabled: !!user,
+  });
+
+  const { data: momoTransactions, refetch: refetchMomoTx } = useQuery<{
+    data: Array<{
+      id: string;
+      referenceId: string;
+      amount: number;
+      currency: string;
+      payerPhone: string;
+      status: string;
+      financialTransactionId: string | null;
+      failureReason: string | null;
+      createdAt: string;
+    }>;
+  }>({
+    queryKey: ['billing', 'my-transactions'],
+    queryFn: () => apiFetch('/billing/my-transactions'),
+    enabled: !!user,
+  });
+
+  const [selectedPlanDuration, setSelectedPlanDuration] = useState<string>('ANNUAL');
+  const [momoPhoneInput, setMomoPhoneInput] = useState<string>('');
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
+  const [subscribeSuccess, setSubscribeSuccess] = useState<string | null>(null);
+
+  // Pay Now Modal state
+  const [payNowCycle, setPayNowCycle] = useState<BillingCycleData | null>(null);
+  const [payNowPhone, setPayNowPhone] = useState<string>('');
+  const [payingNow, setPayingNow] = useState(false);
+  const [payNowSuccessMsg, setPayNowSuccessMsg] = useState<string | null>(null);
+  const [payNowErrorMsg, setPayNowErrorMsg] = useState<string | null>(null);
 
   const updateNotifPref = async (key: keyof typeof notifPrefs) => {
     if (savingNotifPref) return;
@@ -490,15 +542,253 @@ export default function SettingsPage() {
                           {new Date(cycle.dueDate).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInvoiceModal(cycle)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-muted px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover transition cursor-pointer"
-                          >
-                            <FileText size={12} className="text-accent" />
-                            {t("View / Print")}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {cycle.status !== 'PAID' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPayNowCycle(cycle);
+                                  setPayNowPhone(currentSubscription?.subscription?.momoPhoneNumber || '');
+                                  setPayNowSuccessMsg(null);
+                                  setPayNowErrorMsg(null);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg border border-accent bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent/20 transition cursor-pointer"
+                              >
+                                <Banknote size={12} />
+                                {t("Pay with MoMo")}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedInvoiceModal(cycle)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-muted px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover transition cursor-pointer"
+                            >
+                              <FileText size={12} className="text-accent" />
+                              {t("View / Print")}
+                            </button>
+                          </div>
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DashboardCard>
+
+          {/* MoMo Automated Subscriptions Card */}
+          <DashboardCard
+            eyebrow={t("MTN Mobile Money")}
+            title={t("Automated Subscription Plans")}
+            description={t("Choose a subscription plan duration to unlock discounts and set up automated MoMo auto-pay.")}
+          >
+            <div className="space-y-6">
+              {/* Active Subscription Status Banner */}
+              {currentSubscription?.subscription ? (
+                <div className="rounded-2xl border border-success-ink/20 bg-success-soft/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-success-ink uppercase tracking-wider flex items-center gap-2">
+                      <CheckCircle2 size={16} />
+                      {t("Active Subscription Plan:")} {currentSubscription.subscription.plan.label} ({currentSubscription.subscription.plan.discountPercent}% {t("Discount")})
+                    </p>
+                    <p className="text-xs text-ink-muted leading-relaxed">
+                      {t("Auto-Renew:")} <strong className="text-ink">{currentSubscription.subscription.autoRenew ? t("Enabled") : t("Disabled (Expires Soon)")}</strong>
+                      {' • '}
+                      {t("Renews/Expires on:")} <span className="font-medium text-ink">{new Date(currentSubscription.subscription.endDate).toLocaleDateString()}</span>
+                    </p>
+                    {currentSubscription.subscription.momoPhoneNumber && (
+                      <p className="text-xs text-ink-muted">
+                        {t("Auto-Pay Phone:")} <span className="font-mono font-bold text-ink">{currentSubscription.subscription.momoPhoneNumber}</span>
+                      </p>
+                    )}
+                  </div>
+                  {currentSubscription.subscription.autoRenew && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm(t("Are you sure you want to cancel auto-renewal? Your subscription will expire at the end of the current term."))) return;
+                        try {
+                          await apiFetch('/billing/subscription/cancel', { method: 'PUT' });
+                          refetchSub();
+                          queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+                        } catch (err: unknown) {
+                          alert(err instanceof Error ? err.message : t("Failed to cancel subscription"));
+                        }
+                      }}
+                      className="rounded-xl border border-error-ink/30 bg-error-soft/10 px-3.5 py-2 text-xs font-bold text-error-ink hover:bg-error-soft/20 transition cursor-pointer"
+                    >
+                      {t("Cancel Auto-Renew")}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-line bg-surface-muted p-4 text-xs text-ink-muted">
+                  {t("No active long-term plan subscription. Subscribe below to save up to 20% on monthly rates.")}
+                </div>
+              )}
+
+              {/* Plan Selection Cards */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  { duration: 'MONTHLY', months: 1, label: t('Monthly'), discount: 0 },
+                  { duration: 'QUARTERLY', months: 3, label: t('3 Months'), discount: 5 },
+                  { duration: 'SEMI_ANNUAL', months: 6, label: t('6 Months'), discount: 10 },
+                  { duration: 'ANNUAL', months: 12, label: t('1 Year'), discount: 15 },
+                  { duration: 'BIENNIAL', months: 24, label: t('2 Years'), discount: 20 },
+                ].map((plan) => {
+                  const rate = user?.monthlyRatePerBike ?? 10000;
+                  const discountedRate = Math.round(rate * (1 - plan.discount / 100));
+                  const isSelected = selectedPlanDuration === plan.duration;
+
+                  return (
+                    <div
+                      key={plan.duration}
+                      onClick={() => setSelectedPlanDuration(plan.duration)}
+                      className={cx(
+                        'rounded-2xl border p-4 space-y-3 cursor-pointer transition-all duration-200 relative flex flex-col justify-between',
+                        isSelected
+                          ? 'border-accent bg-accent/[0.04] ring-2 ring-accent'
+                          : 'border-line bg-surface-muted hover:border-ink-muted'
+                      )}
+                    >
+                      {plan.discount > 0 && (
+                        <span className="absolute -top-2.5 right-3 bg-accent text-white font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
+                          {t("Save {percent}%").replace('{percent}', String(plan.discount))}
+                        </span>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-xs font-extrabold text-ink">{plan.label}</p>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl font-extrabold text-ink">{discountedRate.toLocaleString()}</span>
+                          <span className="text-[10px] text-ink-muted">RWF/bike/mo</span>
+                        </div>
+                        {plan.discount > 0 && (
+                          <p className="text-[10px] text-ink-faint line-through">
+                            {rate.toLocaleString()} RWF
+                          </p>
+                        )}
+                      </div>
+                      <div className="pt-2 border-t border-line/50 text-[10px] text-ink-muted">
+                        {plan.months > 1 ? t("{months} months term").replace('{months}', String(plan.months)) : t("Billed monthly")}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* MoMo Phone Input & Subscribe Action */}
+              <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-ink flex items-center gap-2">
+                      <CreditCard size={16} className="text-accent" />
+                      {t("MTN Mobile Money Payment Setup")}
+                    </p>
+                    <p className="text-xs text-ink-muted leading-relaxed">
+                      {t("Enter your MTN Rwanda MoMo number. Automatic payment prompts will be sent 2 days before invoice due dates.")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <input
+                    type="tel"
+                    placeholder="0781234567"
+                    value={momoPhoneInput}
+                    onChange={(e) => setMomoPhoneInput(e.target.value)}
+                    className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-mono text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  <button
+                    type="button"
+                    disabled={subscribing || !momoPhoneInput}
+                    onClick={async () => {
+                      setSubscribing(true);
+                      setSubscribeError(null);
+                      setSubscribeSuccess(null);
+                      try {
+                        const res = await apiFetch<{ subscription: any; pricing: any }>('/billing/subscribe', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            planDuration: selectedPlanDuration,
+                            momoPhoneNumber: momoPhoneInput,
+                          }),
+                        });
+                        setSubscribeSuccess(
+                          t("Subscribed successfully to {plan} plan with MoMo auto-pay on {phone}!").replace(
+                            '{plan}', selectedPlanDuration
+                          ).replace('{phone}', momoPhoneInput)
+                        );
+                        refetchSub();
+                        queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+                      } catch (err: unknown) {
+                        setSubscribeError(err instanceof Error ? err.message : t("Failed to subscribe"));
+                      } finally {
+                        setSubscribing(false);
+                      }
+                    }}
+                    className="rounded-xl border border-accent bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent/90 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {subscribing ? t("Saving...") : t("Save & Subscribe")}
+                  </button>
+                </div>
+
+                {subscribeSuccess && (
+                  <p className="text-xs font-bold text-success-ink flex items-center gap-1.5">
+                    <CheckCircle2 size={14} />
+                    {subscribeSuccess}
+                  </p>
+                )}
+                {subscribeError && (
+                  <p className="text-xs font-bold text-error-ink flex items-center gap-1.5">
+                    <AlertCircle size={14} />
+                    {subscribeError}
+                  </p>
+                )}
+              </div>
+            </div>
+          </DashboardCard>
+
+          {/* MoMo Transactions History Table */}
+          <DashboardCard
+            eyebrow={t("MoMo Logs")}
+            title={t("Mobile Money Transactions")}
+            description={t("Log of all MTN MoMo push payment attempts for this fleet.")}
+          >
+            {!momoTransactions?.data || momoTransactions.data.length === 0 ? (
+              <p className="text-xs text-ink-muted">{t("No Mobile Money transactions recorded yet.")}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-ink-muted font-bold uppercase tracking-wider">
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Reference")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Payer Phone")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Amount")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Status")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("MTN Tx ID")}</th>
+                      <th className="py-3 px-4 whitespace-nowrap">{t("Date")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line text-ink-soft">
+                    {momoTransactions.data.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-mono text-[11px] text-ink whitespace-nowrap">{tx.referenceId.slice(0, 8)}...</td>
+                        <td className="py-3 px-4 font-mono whitespace-nowrap">{tx.payerPhone}</td>
+                        <td className="py-3 px-4 font-bold text-ink whitespace-nowrap">{tx.amount.toLocaleString()} RWF</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className={cx(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
+                            tx.status === 'SUCCESSFUL'
+                              ? 'border-success-ink/20 bg-success-soft/10 text-success-ink'
+                              : tx.status === 'FAILED'
+                              ? 'border-error-ink/20 bg-error-soft/10 text-error-ink'
+                              : 'border-warning-ink/20 bg-warning-soft/10 text-warning-ink'
+                          )}>
+                            {tx.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] whitespace-nowrap">{tx.financialTransactionId || '-'}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">{new Date(tx.createdAt).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1175,6 +1465,105 @@ export default function SettingsPage() {
         </div>,
         document.body
       )}
+
+      {/* MoMo Pay Now Modal */}
+      {payNowCycle && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setPayNowCycle(null)}>
+          <div className="relative mx-4 w-full max-w-md rounded-[24px] border border-line bg-surface p-6 shadow-xl text-ink space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-line pb-3">
+              <div>
+                <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
+                  <Banknote className="text-accent" size={18} />
+                  {t("Pay Invoice with MTN MoMo")}
+                </h2>
+                <p className="text-xs text-ink-muted">{t("Invoice #{num}").replace('{num}', String(payNowCycle.cycleNumber))}</p>
+              </div>
+              <button type="button" onClick={() => setPayNowCycle(null)} className="p-1 text-ink-muted hover:text-ink">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-accent/20 bg-accent/[0.04] p-4 flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Amount Due")}</p>
+                  <p className="text-2xl font-extrabold text-accent">{(payNowCycle.totalDue - payNowCycle.totalPaid).toLocaleString()} RWF</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Due Date")}</p>
+                  <p className="text-xs font-semibold text-ink">{new Date(payNowCycle.dueDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-ink">{t("MTN MoMo Phone Number")}</label>
+                <input
+                  type="tel"
+                  placeholder="0781234567"
+                  value={payNowPhone}
+                  onChange={(e) => setPayNowPhone(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-mono text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <p className="text-[10px] text-ink-muted">
+                  {t("A USSD push prompt will be sent directly to this phone number.")}
+                </p>
+              </div>
+
+              {payNowSuccessMsg && (
+                <div className="rounded-xl border border-success-ink/20 bg-success-soft/10 p-3 text-xs font-bold text-success-ink flex items-start gap-2">
+                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                  <span>{payNowSuccessMsg}</span>
+                </div>
+              )}
+
+              {payNowErrorMsg && (
+                <div className="rounded-xl border border-error-ink/20 bg-error-soft/10 p-3 text-xs font-bold text-error-ink flex items-start gap-2">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <span>{payNowErrorMsg}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPayNowCycle(null)}
+                className="flex-1 rounded-xl border border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink hover:bg-surface-hover transition"
+              >
+                {payNowSuccessMsg ? t("Close") : t("Cancel")}
+              </button>
+              {!payNowSuccessMsg && (
+                <button
+                  type="button"
+                  disabled={payingNow || !payNowPhone}
+                  onClick={async () => {
+                    setPayingNow(true);
+                    setPayNowErrorMsg(null);
+                    setPayNowSuccessMsg(null);
+                    try {
+                      const res = await apiFetch<{ message: string }>(`/billing/my-cycles/${payNowCycle.id}/pay-now`, {
+                        method: 'POST',
+                        body: JSON.stringify({ momoPhoneNumber: payNowPhone }),
+                      });
+                      setPayNowSuccessMsg(res.message);
+                      refetchMomoTx();
+                      myCyclesQuery.refetch();
+                    } catch (err: unknown) {
+                      setPayNowErrorMsg(err instanceof Error ? err.message : t("Failed to trigger MoMo payment"));
+                    } finally {
+                      setPayingNow(false);
+                    }
+                  }}
+                  className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent/90 transition disabled:opacity-50"
+                >
+                  {payingNow ? t("Sending Prompt...") : t("Send Payment Prompt")}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -1619,6 +2008,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
         </div>,
         document.body
       )}
+
     </div>
   );
 }

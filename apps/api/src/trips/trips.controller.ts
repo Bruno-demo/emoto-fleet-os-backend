@@ -59,10 +59,11 @@ export class TripsController {
     UserRole.INSURER,
     UserRole.RIDER,
   )
-  @ApiOperation({ summary: 'Proxy OSRM road snapping to avoid browser CORS and rate limit blocks' })
-  async proxyOsrmRoute(
-    @Query('waypoints') waypoints: string,
-  ): Promise<any> {
+  @ApiOperation({
+    summary:
+      'Proxy OSRM road snapping to avoid browser CORS and rate limit blocks',
+  })
+  async proxyOsrmRoute(@Query('waypoints') waypoints: string): Promise<any> {
     return this.tripsService.fetchOsrmRoute(waypoints);
   }
 

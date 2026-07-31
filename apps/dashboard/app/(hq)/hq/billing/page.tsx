@@ -136,7 +136,7 @@ type BillingCycle = z.infer<typeof billingCycleSchema>['data'][number];
 
 export default function HqBillingPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'ledger' | 'pricing' | 'discounts' | 'settings' | 'trials'>('ledger');
+  const [activeTab, setActiveTab] = useState<'ledger' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'PREMIUM' | 'CORE' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
@@ -167,6 +167,18 @@ export default function HqBillingPage() {
     queryKey: ['hq', 'billing-config'],
     queryFn: () => apiFetch('/billing/config', {}, { schema: billingConfigSchema }),
     enabled: activeTab === 'settings',
+  });
+
+  const { data: momoStats } = useQuery<{ total: number; successful: number; failed: number; pending: number; successRate: number; totalRevenue: number }>({
+    queryKey: ['hq', 'momo-stats'],
+    queryFn: () => apiFetch('/billing/momo/stats'),
+    enabled: activeTab === 'momo',
+  });
+
+  const { data: momoTransactions, refetch: refetchMomoTx } = useQuery<{ data: Array<{ id: string; referenceId: string; amount: number; payerPhone: string; status: string; financialTransactionId: string | null; failureReason: string | null; createdAt: string; fleet?: { name: string } }> }>({
+    queryKey: ['hq', 'momo-transactions'],
+    queryFn: () => apiFetch('/billing/momo/transactions?limit=50'),
+    enabled: activeTab === 'momo',
   });
 
   const activeFleetDetails = useMemo(() => 
@@ -979,6 +991,105 @@ export default function HqBillingPage() {
               </DashboardCard>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB 6: MOMO GATEWAY */}
+      {activeTab === 'momo' && (
+        <div className="space-y-6">
+          {/* MoMo Gateway Stats */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-3xl border border-white/[0.06] bg-surface-strong/50 p-5 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total MoMo Revenue</p>
+              <p className="text-2xl font-extrabold text-emerald-400">{(momoStats?.totalRevenue ?? 0).toLocaleString()} RWF</p>
+            </div>
+            <div className="rounded-3xl border border-white/[0.06] bg-surface-strong/50 p-5 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Success Rate</p>
+              <p className="text-2xl font-extrabold text-white">{momoStats?.successRate ?? 0}%</p>
+            </div>
+            <div className="rounded-3xl border border-white/[0.06] bg-surface-strong/50 p-5 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Successful Tx</p>
+              <p className="text-2xl font-extrabold text-emerald-400">{momoStats?.successful ?? 0}</p>
+            </div>
+            <div className="rounded-3xl border border-white/[0.06] bg-surface-strong/50 p-5 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Failed Tx</p>
+              <p className="text-2xl font-extrabold text-rose-400">{momoStats?.failed ?? 0}</p>
+            </div>
+            <div className="rounded-3xl border border-white/[0.06] bg-surface-strong/50 p-5 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Pending Tx</p>
+              <p className="text-2xl font-extrabold text-amber-400">{momoStats?.pending ?? 0}</p>
+            </div>
+          </div>
+
+          {/* MoMo Transactions Global Table */}
+          <DashboardCard
+            title="Global MoMo Transactions"
+            description="Real-time audit log of all MTN Mobile Money payments across all fleets."
+          >
+            {!momoTransactions?.data || momoTransactions.data.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-4 text-center">No MoMo transactions found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-zinc-400 font-bold uppercase tracking-wider">
+                      <th className="py-3 px-4">Fleet</th>
+                      <th className="py-3 px-4">Reference</th>
+                      <th className="py-3 px-4">Payer Phone</th>
+                      <th className="py-3 px-4">Amount</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">MTN Tx ID</th>
+                      <th className="py-3 px-4">Reason / Notes</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line text-zinc-300">
+                    {momoTransactions.data.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-white/[0.02]">
+                        <td className="py-3 px-4 font-bold text-white">{tx.fleet?.name || '-'}</td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-zinc-400">{tx.referenceId.slice(0, 8)}...</td>
+                        <td className="py-3 px-4 font-mono">{tx.payerPhone}</td>
+                        <td className="py-3 px-4 font-bold text-white">{tx.amount.toLocaleString()} RWF</td>
+                        <td className="py-3 px-4">
+                          <span className={cx(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
+                            tx.status === 'SUCCESSFUL'
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                              : tx.status === 'FAILED'
+                              ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+                              : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                          )}>
+                            {tx.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px]">{tx.financialTransactionId || '-'}</td>
+                        <td className="py-3 px-4 text-[11px] text-zinc-400 max-w-xs truncate">{tx.failureReason || '-'}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">{new Date(tx.createdAt).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          {tx.status === 'FAILED' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await apiFetch(`/billing/momo/retry/${tx.id}`, { method: 'POST' });
+                                  refetchMomoTx();
+                                } catch (err: unknown) {
+                                  alert(err instanceof Error ? err.message : 'Retry failed');
+                                }
+                              }}
+                              className="rounded-lg border border-accent bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent/20 transition cursor-pointer"
+                            >
+                              Retry Tx
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DashboardCard>
         </div>
       )}
 

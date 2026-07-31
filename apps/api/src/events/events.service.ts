@@ -296,7 +296,7 @@ export class EventsService {
   }
 
   // Converts Prisma event entity into API-safe representation.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   private toFleetEvent(event: any): FleetEvent {
     const activeRider = event.bike?.assignments?.[0]?.rider;
     const riderName =
