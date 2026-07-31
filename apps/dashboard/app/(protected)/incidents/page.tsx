@@ -89,7 +89,7 @@ export default function IncidentsPage() {
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'incident-labels'],
-    queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=500'),
+    queryFn: () => apiFetch<PaginatedResponse<Bike>>('/bikes?page=1&pageSize=200'),
     enabled: canUseIncidents,
   });
 
