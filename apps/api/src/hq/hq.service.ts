@@ -134,12 +134,20 @@ export class HqService {
 
   async getEvents() {
     const [fleets, users] = await Promise.all([
-      this.prisma.fleet.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
+      this.prisma.fleet.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, createdAt: true },
+      }),
       this.prisma.user.findMany({
         where: { status: 'ACTIVE' },
         take: 5,
         orderBy: { createdAt: 'desc' },
-        include: { fleet: true },
+        select: {
+          id: true,
+          createdAt: true,
+          fleet: { select: { id: true, name: true } },
+        },
       }),
     ]);
 
@@ -170,7 +178,22 @@ export class HqService {
       return await this.prisma.fleet.findMany({
         where: { plan: { not: FleetPlan.INSURANCE } },
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          plan: true,
+          insurerName: true,
+          subscriptionStatus: true,
+          installationPaid: true,
+          upgradeRequested: true,
+          upgradeRequestedAt: true,
+          monthlyRatePerBike: true,
+          bikeRange: true,
+          createdAt: true,
+          trialStartedAt: true,
+          trialEndsAt: true,
+          billingStartedAt: true,
           _count: {
             select: { users: true, bikes: true },
           },
