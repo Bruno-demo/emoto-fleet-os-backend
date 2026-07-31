@@ -62,9 +62,15 @@ export class BillingController {
     @Query() query: ListBillingCyclesDto,
   ) {
     if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException(
-        'Billing cycles are only available for cooperative fleets',
-      );
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page: query.page ?? 1,
+          limit: query.limit ?? 50,
+          totalPages: 0,
+        },
+      };
     }
     query.fleetId = user.fleetId;
     return await this.billingCycleService.listCycles(query);

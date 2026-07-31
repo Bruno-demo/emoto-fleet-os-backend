@@ -165,7 +165,7 @@ export default function SettingsPage() {
   const myCyclesQuery = useQuery({
     queryKey: ['billing', 'my-cycles'],
     queryFn: () => apiFetch<{ data: BillingCycleData[] }>('/billing/my-cycles?limit=50'),
-    enabled: !!user,
+    enabled: !!user && user.fleetType === 'COOP',
   });
 
   // Notification preferences derived from server state
