@@ -291,7 +291,7 @@ function CheckoutContent() {
     <div className="min-h-screen bg-background text-ink">
       {/* Header */}
       <header className="border-b border-line/50 bg-background/80 backdrop-blur-xl">
-        <nav className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4">
+        <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 border border-accent/30 text-accent transition group-hover:bg-accent/30">
               <Bike size={18} />
@@ -313,7 +313,7 @@ function CheckoutContent() {
       </header>
 
       {/* Content */}
-      <main className="mx-auto w-full max-w-3xl px-6 py-12">
+      <main className="mx-auto w-full max-w-5xl px-6 py-12">
         <div className="mb-8">
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">
             Checkout
@@ -326,8 +326,8 @@ function CheckoutContent() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-          <div className="space-y-6">
+        <div className="grid gap-8 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-6">
             {/* Plan summary */}
             <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-5">
               <div>
@@ -388,13 +388,13 @@ function CheckoutContent() {
           </div>
 
           {/* Payment method */}
-          <div className="space-y-5">
+          <div className="space-y-5 lg:col-span-6">
             <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
                   Payment Method
                 </p>
-                <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider">
+                <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider shrink-0">
                   MTN MoMo Integrated
                 </span>
               </div>
@@ -415,7 +415,7 @@ function CheckoutContent() {
                     value="momo"
                     checked={paymentMethod === 'momo'}
                     onChange={() => setPaymentMethod('momo')}
-                    className="h-4 w-4 accent-amber-500 cursor-pointer"
+                    className="h-4 w-4 accent-amber-500 cursor-pointer shrink-0"
                   />
 
                   {/* MoMo Badge */}
@@ -423,13 +423,11 @@ function CheckoutContent() {
                     MoMo
                   </div>
 
-                  <div className="flex-1 flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-extrabold text-white block">
-                        MTN Mobile Money (RWF)
-                      </span>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                  <div className="flex-1 flex items-center justify-between min-w-0">
+                    <span className="text-sm font-extrabold text-white truncate">
+                      MTN Mobile Money (RWF)
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 shrink-0 ml-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Instant STK Push
                     </span>
@@ -475,18 +473,16 @@ function CheckoutContent() {
                   value="pay-on-request"
                   checked={paymentMethod === 'pay-on-request'}
                   onChange={() => setPaymentMethod('pay-on-request')}
-                  className="h-4 w-4 accent-blue-500 cursor-pointer"
+                  className="h-4 w-4 accent-blue-500 cursor-pointer shrink-0"
                 />
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-md">
                   <Banknote size={18} />
                 </div>
-                <div className="flex-1 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-bold text-white block">
-                      Pay on Request / Admin Invoice
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+                <div className="flex-1 flex items-center justify-between min-w-0">
+                  <span className="text-sm font-bold text-white truncate">
+                    Pay on Request / Admin Invoice
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 shrink-0 ml-2">
                     Bank / Wire / Cash
                   </span>
                 </div>
