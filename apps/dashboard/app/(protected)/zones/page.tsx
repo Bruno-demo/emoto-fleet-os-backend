@@ -929,9 +929,9 @@ export default function ZonesPage() {
               resetForm();
               window.scrollTo({ top: 400, behavior: 'smooth' });
             }}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-bold text-white transition cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4.5 py-2.5 text-xs font-extrabold transition-all cursor-pointer shadow-md shadow-blue-600/30 border border-blue-500/40 hover:shadow-lg hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0"
           >
-            <Plus size={14} />
+            <Plus size={14} strokeWidth={2.5} />
             {t('Create Zone')}
           </button>
         </div>
@@ -1261,7 +1261,7 @@ export default function ZonesPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="rounded-xl bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-xs font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 shadow-sm cursor-pointer"
+                className="rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 py-2.5 text-xs font-extrabold transition-all disabled:cursor-not-allowed disabled:opacity-60 shadow-md shadow-blue-600/30 border border-blue-500/40 hover:shadow-lg hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
                 {isSubmitting
                   ? editingZone
