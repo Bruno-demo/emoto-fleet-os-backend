@@ -134,59 +134,35 @@
   --font-display: var(--font-space-grotesk);
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-html,
-body {
-  min-height: 100%;
-  background-color: var(--background);
-}
+  html,
+  body {
+    min-height: 100%;
+    background-color: var(--background);
+  }
 
-body {
-  background: var(--background);
-  background-attachment: fixed;
-  color: var(--ink);
-  min-height: 100vh;
-  font-feature-settings: "ss01" 1, "cv03" 1;
-}
+  body {
+    background: var(--background);
+    background-attachment: fixed;
+    color: var(--ink);
+    min-height: 100vh;
+    font-feature-settings: "ss01" 1, "cv03" 1;
+  }
 
-.dark body {
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 5%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 50% at 90% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse 70% 55% at 50% 95%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    var(--background);
-}
+  a {
+    color: inherit;
+  }
 
-/* Glassmorphism helpers */
-.glass-panel {
-  background: var(--surface);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-strong);
-}
-
-.glass-panel-raised {
-  background: var(--surface-raised);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid var(--line-strong);
-  box-shadow: var(--shadow-strong);
-}
-
-a {
-  color: inherit;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  background-color: transparent;
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 button,
