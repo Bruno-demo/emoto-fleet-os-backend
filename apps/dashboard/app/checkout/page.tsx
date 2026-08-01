@@ -148,13 +148,19 @@ function CheckoutContent() {
     return () => clearTimeout(timer);
   }, [showSuccess, countdown, router]);
 
+  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'pay-on-request'>('momo');
+  const [momoPhoneNumber, setMomoPhoneNumber] = useState('');
+
   const checkoutMutation = useMutation({
     mutationFn: () =>
       apiFetch(
         '/subscription/checkout',
         {
           method: 'POST',
-          body: JSON.stringify({ plan: 'PREMIUM' }),
+          body: JSON.stringify({
+            plan: 'PREMIUM',
+            momoPhoneNumber: paymentMethod === 'momo' && momoPhoneNumber.trim() ? momoPhoneNumber.trim() : undefined,
+          }),
         },
         { schema: subscriptionCheckoutResponseSchema },
       ),
@@ -384,51 +390,104 @@ function CheckoutContent() {
           {/* Payment method */}
           <div className="space-y-5">
             <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
-                Payment method
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
+                  Payment Method
+                </p>
+                <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider">
+                  MTN MoMo Integrated
+                </span>
+              </div>
+
+              {/* MTN Mobile Money Option */}
+              <label
+                onClick={() => setPaymentMethod('momo')}
+                className={`flex flex-col gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                  paymentMethod === 'momo'
+                    ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/5'
+                    : 'border-line/50 bg-black/20 hover:border-line'
+                }`}
+              >
+                <div className="flex items-start gap-3.5">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="momo"
+                    checked={paymentMethod === 'momo'}
+                    onChange={() => setPaymentMethod('momo')}
+                    className="mt-1 accent-amber-500"
+                  />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow-md">
+                    MoMo
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-white block">
+                        MTN Mobile Money (RWF)
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                        Instant STK Push
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
+                      Enter your phone number to receive an instant PIN prompt on your mobile phone.
+                    </p>
+                  </div>
+                </div>
+
+                {paymentMethod === 'momo' && (
+                  <div className="mt-2 pt-3 border-t border-amber-500/20 space-y-2 animate-in fade-in duration-200">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                      MTN MoMo Phone Number
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        placeholder="e.g. 0788123456 or 250788123456"
+                        value={momoPhoneNumber}
+                        onChange={(e) => setMomoPhoneNumber(e.target.value)}
+                        className="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                      />
+                      <span className="absolute right-3 top-2.5 text-[11px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
+                        RWANDA 🇷🇼
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 italic">
+                      A payment request will be sent immediately to this phone upon confirmation.
+                    </p>
+                  </div>
+                )}
+              </label>
 
               {/* Pay on Request */}
-              <label className="flex items-start gap-4 rounded-xl border-2 border-accent bg-accent/[0.07] p-4 cursor-pointer">
+              <label
+                onClick={() => setPaymentMethod('pay-on-request')}
+                className={`flex items-start gap-3.5 rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                  paymentMethod === 'pay-on-request'
+                    ? 'border-accent bg-accent/[0.07]'
+                    : 'border-line/50 bg-black/20 hover:border-line'
+                }`}
+              >
                 <input
                   type="radio"
                   name="payment"
                   value="pay-on-request"
-                  checked
-                  readOnly
+                  checked={paymentMethod === 'pay-on-request'}
+                  onChange={() => setPaymentMethod('pay-on-request')}
                   className="mt-2.5 accent-[var(--color-accent)]"
                 />
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 border border-accent/30 text-accent">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-bike" aria-hidden="true">
-                    <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                    <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                    <circle cx="15" cy="5" r="1"></circle>
-                    <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                  </svg>
+                  <Banknote size={18} />
                 </div>
                 <div className="flex-1">
                   <span className="text-sm font-bold text-ink block">
-                    Pay on Request
+                    Pay on Request / Admin Invoice
                   </span>
                   <p className="mt-1 text-xs text-ink-muted leading-relaxed">
-                    Pay once our team requests you to pay.
+                    Request HQ approval to pay via Bank Wire, Cash, or monthly billing invoice.
                   </p>
                 </div>
               </label>
-
-              {/* More payment methods coming soon */}
-              <div className="rounded-xl border border-line/50 bg-black/20 p-4 opacity-50">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={14} className="text-ink-muted" />
-                  <span className="text-xs font-semibold text-ink-muted">
-                    More payment methods coming soon
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] text-ink-faint">
-                  Mobile money, card payments, and invoicing will be available
-                  shortly.
-                </p>
-              </div>
             </div>
 
             {/* Promo Code Card */}

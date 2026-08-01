@@ -10,6 +10,7 @@ export class SubscriptionService {
   async updateCurrentFleetPlan(
     user: AuthenticatedUser,
     plan: FleetPlan,
+    momoPhoneNumber?: string,
   ): Promise<{
     fleetPlan: FleetPlan;
     subscriptionStatus: FleetSubscriptionStatus;
@@ -21,12 +22,18 @@ export class SubscriptionService {
       );
     }
 
+    const updateData: any = {
+      upgradeRequested: true,
+      upgradeRequestedAt: new Date(),
+    };
+
+    if (momoPhoneNumber && momoPhoneNumber.trim()) {
+      updateData.momoPhoneNumber = momoPhoneNumber.trim();
+    }
+
     const fleet = await this.prismaService.fleet.update({
       where: { id: user.fleetId },
-      data: {
-        upgradeRequested: true,
-        upgradeRequestedAt: new Date(),
-      },
+      data: updateData,
       select: {
         plan: true,
         subscriptionStatus: true,

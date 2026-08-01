@@ -24,7 +24,11 @@ export class SubscriptionController {
     subscriptionStatus: FleetSubscriptionStatus;
     upgradeRequested: boolean;
   }> {
-    return this.subscriptionService.updateCurrentFleetPlan(user, body.plan);
+    return this.subscriptionService.updateCurrentFleetPlan(
+      user,
+      body.plan,
+      body.momoPhoneNumber,
+    );
   }
 
   @Put('billing-rate')
