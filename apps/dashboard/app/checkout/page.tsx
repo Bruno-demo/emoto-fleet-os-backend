@@ -400,72 +400,94 @@ function CheckoutContent() {
               </div>
 
               {/* MTN Mobile Money Option */}
-              <label
+              <div
                 onClick={() => setPaymentMethod('momo')}
-                className={`flex flex-col gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                className={`relative flex flex-col gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all duration-300 ${
                   paymentMethod === 'momo'
-                    ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/5'
-                    : 'border-line/50 bg-black/20 hover:border-line'
+                    ? 'border-amber-500 bg-gradient-to-b from-amber-500/[0.12] via-slate-900/90 to-slate-950 shadow-2xl shadow-amber-500/10 ring-1 ring-amber-500/40'
+                    : 'border-white/10 bg-slate-900/50 hover:border-white/20 hover:bg-slate-900/80'
                 }`}
               >
-                <div className="flex items-start gap-3.5">
+                {/* Glow accent line */}
+                {paymentMethod === 'momo' && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-1/2 bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_12px_#F59E0B]" />
+                )}
+
+                <div className="flex items-start gap-4">
                   <input
                     type="radio"
                     name="payment"
                     value="momo"
                     checked={paymentMethod === 'momo'}
                     onChange={() => setPaymentMethod('momo')}
-                    className="mt-1 accent-amber-500"
+                    className="mt-1.5 h-4 w-4 accent-amber-500 cursor-pointer"
                   />
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow-md">
-                    MoMo
+
+                  {/* MoMo Brand Badge */}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 border border-amber-300/40">
+                    <span className="tracking-tighter text-[11px] font-black uppercase">MoMo</span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-white block">
+
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
                         MTN Mobile Money (RWF)
                       </span>
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-400 shadow-xs">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         Instant STK Push
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
-                      Enter your phone number to receive an instant PIN prompt on your mobile phone.
+                    <p className="text-xs font-medium text-slate-400 leading-relaxed">
+                      Instant mobile wallet debit. Authorize payment directly on your phone via USSD prompt.
                     </p>
                   </div>
                 </div>
 
                 {paymentMethod === 'momo' && (
-                  <div className="mt-2 pt-3 border-t border-amber-500/20 space-y-2 animate-in fade-in duration-200">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                      MTN MoMo Phone Number
-                    </label>
-                    <div className="relative">
+                  <div className="mt-1 pt-4 border-t border-amber-500/20 space-y-3 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-extrabold uppercase tracking-wider text-amber-300">
+                        MTN MoMo Phone Number
+                      </label>
+                      <span className="text-[10px] font-semibold text-slate-400">Rwanda Format (+250)</span>
+                    </div>
+
+                    <div className="relative flex items-center">
+                      <div className="absolute left-3.5 flex items-center gap-1.5 text-xs font-bold text-slate-400 select-none border-r border-slate-700/80 pr-2.5">
+                        <span className="text-sm">🇷🇼</span>
+                        <span>+250</span>
+                      </div>
                       <input
                         type="tel"
-                        placeholder="e.g. 0788123456 or 250788123456"
+                        placeholder="788 123 456"
                         value={momoPhoneNumber}
                         onChange={(e) => setMomoPhoneNumber(e.target.value)}
-                        className="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                        className="w-full bg-slate-950/90 border border-amber-500/40 rounded-xl pl-24 pr-4 py-3 text-sm font-bold text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30 shadow-inner"
                       />
-                      <span className="absolute right-3 top-2.5 text-[11px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
-                        RWANDA 🇷🇼
-                      </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 italic">
-                      A payment request will be sent immediately to this phone upon confirmation.
-                    </p>
+
+                    {/* Trust Seals Footer inside MoMo Box */}
+                    <div className="flex items-center justify-between pt-2 text-[11px] text-slate-400 font-medium border-t border-white/5">
+                      <span className="flex items-center gap-1 text-slate-300">
+                        <ShieldCheck size={13} className="text-emerald-400" /> 256-bit Encrypted
+                      </span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-slate-300">Official MTN Direct API</span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-amber-400 font-semibold">Zero Extra Fees</span>
+                    </div>
                   </div>
                 )}
-              </label>
+              </div>
 
               {/* Pay on Request */}
-              <label
+              <div
                 onClick={() => setPaymentMethod('pay-on-request')}
-                className={`flex items-start gap-3.5 rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                className={`flex items-start gap-4 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-300 ${
                   paymentMethod === 'pay-on-request'
-                    ? 'border-accent bg-accent/[0.07]'
-                    : 'border-line/50 bg-black/20 hover:border-line'
+                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/5'
+                    : 'border-white/10 bg-slate-900/50 hover:border-white/20 hover:bg-slate-900/80'
                 }`}
               >
                 <input
@@ -474,20 +496,25 @@ function CheckoutContent() {
                   value="pay-on-request"
                   checked={paymentMethod === 'pay-on-request'}
                   onChange={() => setPaymentMethod('pay-on-request')}
-                  className="mt-2.5 accent-[var(--color-accent)]"
+                  className="mt-1.5 h-4 w-4 accent-blue-500 cursor-pointer"
                 />
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 border border-accent/30 text-accent">
-                  <Banknote size={18} />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-md">
+                  <Banknote size={20} />
                 </div>
-                <div className="flex-1">
-                  <span className="text-sm font-bold text-ink block">
-                    Pay on Request / Admin Invoice
-                  </span>
-                  <p className="mt-1 text-xs text-ink-muted leading-relaxed">
-                    Request HQ approval to pay via Bank Wire, Cash, or monthly billing invoice.
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white block">
+                      Pay on Request / Admin Invoice
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+                      Offline / Cash / Wire
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-slate-400 leading-relaxed">
+                    Request HQ approval to settle via Bank Wire, Cash, or monthly corporate invoice.
                   </p>
                 </div>
-              </label>
+              </div>
             </div>
 
             {/* Promo Code Card */}
