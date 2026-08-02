@@ -346,22 +346,28 @@ export class HqService {
     const tier = await this.prisma.pricingTier.findUnique({
       where: { planCode: plan as FleetPlan },
     });
-    const monthlyRatePerBike = tier
-      ? tier.monthlyRatePerBike
-      : plan === 'PREMIUM'
-        ? 10000
-        : 5000;
+    const monthlyRatePerBike =
+      plan === 'PREMIUM'
+        ? 15000
+        : plan === 'INSURANCE'
+          ? 0
+          : 10000;
+    const newFleetType: FleetType =
+      plan === 'PREMIUM'
+        ? FleetType.DELIVERY
+        : FleetType.COOP;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         plan: plan as FleetPlan,
+        type: newFleetType,
         monthlyRatePerBike,
       },
-      select: { id: true, name: true, plan: true },
+      select: { id: true, name: true, plan: true, type: true, monthlyRatePerBike: true },
     });
 
-    this.eventsGateway.emitFleetUpdated(fleetId, { plan: updated.plan });
+    this.eventsGateway.emitFleetUpdated(fleetId, { plan: updated.plan, type: updated.type });
 
     await this.auditService.createAuditLog({
       fleetId,
@@ -395,13 +401,15 @@ export class HqService {
     }
 
     const newRate = type === 'DELIVERY' ? 15000 : 10000;
+    const newPlan = type === 'DELIVERY' ? 'PREMIUM' : 'DEMO';
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         type: type,
+        plan: newPlan,
         monthlyRatePerBike: newRate,
       },
-      select: { id: true, name: true, type: true, monthlyRatePerBike: true },
+      select: { id: true, name: true, type: true, plan: true, monthlyRatePerBike: true },
     });
 
     this.eventsGateway.emitFleetUpdated(fleetId, { type: updated.type });

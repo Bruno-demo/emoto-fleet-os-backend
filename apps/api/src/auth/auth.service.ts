@@ -589,10 +589,22 @@ export class AuthService {
     try {
       const result = await this.prismaService.$transaction(
         async (tx) => {
-          const plan = dto.plan ?? 'DEMO';
-          const fleetType = dto.fleetType ?? 'COOP';
-          const monthlyRatePerBike =
-            plan === 'INSURANCE' ? 0 : fleetType === 'DELIVERY' ? 15000 : 10000;
+          const requestedType = dto.fleetType ?? 'COOP';
+          const isInsurance = dto.plan === 'INSURANCE';
+
+          const syncedPlan = isInsurance
+            ? 'INSURANCE'
+            : requestedType === 'DELIVERY'
+              ? 'PREMIUM'
+              : 'DEMO';
+
+          const syncedType = isInsurance ? 'PERSONAL' : requestedType;
+
+          const monthlyRatePerBike = isInsurance
+            ? 0
+            : requestedType === 'DELIVERY'
+              ? 15000
+              : 10000;
 
           let fleetDiscountConnect = undefined;
 
@@ -622,12 +634,9 @@ export class AuthService {
           const fleet = await tx.fleet.create({
             data: {
               name: dto.fleetName,
-              type:
-                dto.plan === 'INSURANCE'
-                  ? 'PERSONAL'
-                  : (dto.fleetType ?? 'COOP'),
-              plan,
-              insurerName: dto.plan === 'INSURANCE' ? dto.insurerName : null,
+              type: syncedType,
+              plan: syncedPlan,
+              insurerName: isInsurance ? dto.insurerName : null,
               subscriptionStatus: 'ACTIVE',
               monthlyRatePerBike,
               billingStartedAt: new Date(),
