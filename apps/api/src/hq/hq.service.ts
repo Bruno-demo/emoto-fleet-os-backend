@@ -15,7 +15,7 @@ import {
   Prisma,
   AuditActionType,
 } from '@prisma/client';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { FleetType } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -343,19 +343,10 @@ export class HqService {
       throw new BadRequestException('Invalid plan. Must be DEMO or PREMIUM');
     }
 
-    const tier = await this.prisma.pricingTier.findUnique({
-      where: { planCode: plan as FleetPlan },
-    });
     const monthlyRatePerBike =
-      plan === 'PREMIUM'
-        ? 15000
-        : plan === 'INSURANCE'
-          ? 0
-          : 10000;
+      plan === 'PREMIUM' ? 15000 : plan === 'INSURANCE' ? 0 : 10000;
     const newFleetType: FleetType =
-      plan === 'PREMIUM'
-        ? FleetType.DELIVERY
-        : FleetType.COOP;
+      plan === 'PREMIUM' ? FleetType.DELIVERY : FleetType.COOP;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
@@ -364,10 +355,19 @@ export class HqService {
         type: newFleetType,
         monthlyRatePerBike,
       },
-      select: { id: true, name: true, plan: true, type: true, monthlyRatePerBike: true },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        type: true,
+        monthlyRatePerBike: true,
+      },
     });
 
-    this.eventsGateway.emitFleetUpdated(fleetId, { plan: updated.plan, type: updated.type });
+    this.eventsGateway.emitFleetUpdated(fleetId, {
+      plan: updated.plan,
+      type: updated.type,
+    });
 
     await this.auditService.createAuditLog({
       fleetId,
@@ -409,7 +409,13 @@ export class HqService {
         plan: newPlan,
         monthlyRatePerBike: newRate,
       },
-      select: { id: true, name: true, type: true, plan: true, monthlyRatePerBike: true },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        plan: true,
+        monthlyRatePerBike: true,
+      },
     });
 
     this.eventsGateway.emitFleetUpdated(fleetId, { type: updated.type });
