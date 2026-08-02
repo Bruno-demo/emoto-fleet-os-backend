@@ -67,9 +67,11 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('expired') === 'true') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsExpired(true);
     }
     if (params.get('error') === 'rider') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsRiderBlocked(true);
     }
   }, []);

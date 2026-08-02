@@ -316,6 +316,7 @@ export function LiveMapPanel() {
   useEffect(() => {
     const bikeIdFromQuery = searchParams.get('bikeId');
     if (bikeIdFromQuery) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedBikeId(bikeIdFromQuery);
     }
   }, [searchParams]);
@@ -325,6 +326,7 @@ export function LiveMapPanel() {
     if (selectedBikeId || throttledStates.length === 0 || drawerDismissed) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedBikeId(throttledStates[0]?.bikeId ?? null);
   }, [selectedBikeId, throttledStates, drawerDismissed]);
 

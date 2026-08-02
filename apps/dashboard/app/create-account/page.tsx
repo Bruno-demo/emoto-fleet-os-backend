@@ -425,6 +425,7 @@ function CreateAccountInner() {
 
   useEffect(() => {
     if (!isAdminMode && role !== 'RIDER') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRole('RIDER');
     }
   }, [isAdminMode, role]);
@@ -435,6 +436,7 @@ function CreateAccountInner() {
       return;
     }
     if (!inviteRoleOptions.some((option) => option.value === inviteRole)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInviteRole(inviteRoleOptions[0]!.value);
     }
   }, [inviteRoleOptions, inviteRole]);

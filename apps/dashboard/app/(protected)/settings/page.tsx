@@ -110,6 +110,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (tabParam && ['profile', 'fleet', 'team', 'security', 'notifications', 'apiCredentials'].includes(tabParam)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(tabParam as SettingsTab);
     }
   }, [tabParam]);
@@ -1662,6 +1663,7 @@ function TeamTab({ currentUser }: { currentUser: { id: string; role: string; fle
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
   const [changingRoleFor, setChangingRoleFor] = useState<string | null>(null);

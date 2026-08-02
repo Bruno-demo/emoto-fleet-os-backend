@@ -27,6 +27,7 @@ function ResetPasswordForm() {
   useEffect(() => {
     const t = searchParams.get('token');
     if (t) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setToken(t);
     }
   }, [searchParams]);

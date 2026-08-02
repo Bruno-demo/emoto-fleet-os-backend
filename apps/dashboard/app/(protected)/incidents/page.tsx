@@ -12,7 +12,7 @@ import {
   ChevronDown,
   Check,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { buildQueryString } from '@/lib/api/query-string';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -153,6 +153,34 @@ export default function IncidentsPage() {
     [bikeLabelById, incidentTimelineEventsQuery.data, selectedIncident, t],
   );
 
+  // Requests generation of the incident evidence pack and stores the returned download links.
+  const generateEvidencePack = useCallback(async () => {
+    if (!selectedIncidentId) {
+      return;
+    }
+    if (!canGenerateEvidence) {
+      setActionError(t('Evidence packs are available on Operations Plus.'));
+      return;
+    }
+
+    try {
+      setIsGeneratingEvidence(true);
+      setActionError(null);
+      const response = await apiFetch<IncidentEvidencePack>(
+        `/incidents/${selectedIncidentId}/evidence-pack`,
+      );
+      setEvidencePack(response);
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setActionError(error.message);
+      } else {
+        setActionError(t('Failed to generate evidence pack'));
+      }
+    } finally {
+      setIsGeneratingEvidence(false);
+    }
+  }, [canGenerateEvidence, selectedIncidentId, t]);
+
   // Clears transient evidence and form state whenever the operator opens a different incident, and auto-fetches evidence pack.
   useEffect(() => {
     setEvidencePack(null);
@@ -161,7 +189,7 @@ export default function IncidentsPage() {
     if (selectedIncidentId && canGenerateEvidence) {
       void generateEvidencePack();
     }
-  }, [selectedIncidentId, canGenerateEvidence]);
+  }, [canGenerateEvidence, generateEvidencePack, selectedIncidentId]);
 
   // Applies the selected incident workflow action and refreshes both list and detail state.
   const runIncidentAction = async (action: IncidentAction) => {
@@ -189,34 +217,6 @@ export default function IncidentsPage() {
       }
     } finally {
       setIsSubmittingAction(false);
-    }
-  };
-
-  // Requests generation of the incident evidence pack and stores the returned download links.
-  const generateEvidencePack = async () => {
-    if (!selectedIncidentId) {
-      return;
-    }
-    if (!canGenerateEvidence) {
-      setActionError(t('Evidence packs are available on Operations Plus.'));
-      return;
-    }
-
-    try {
-      setIsGeneratingEvidence(true);
-      setActionError(null);
-      const response = await apiFetch<IncidentEvidencePack>(
-        `/incidents/${selectedIncidentId}/evidence-pack`,
-      );
-      setEvidencePack(response);
-    } catch (error: unknown) {
-      if (error instanceof ApiError) {
-        setActionError(error.message);
-      } else {
-        setActionError(t('Failed to generate evidence pack'));
-      }
-    } finally {
-      setIsGeneratingEvidence(false);
     }
   };
 
