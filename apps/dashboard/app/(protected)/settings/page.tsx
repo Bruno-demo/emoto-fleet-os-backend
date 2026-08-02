@@ -481,7 +481,7 @@ export default function SettingsPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-warning-ink">{t('Plan Upgrade Pending Approval')}</p>
                         <p className="text-xs text-ink-soft leading-relaxed">
-                          {t('You have requested to upgrade to')} <strong className="font-semibold text-warning-ink">{t('Operations Plus')}</strong>. {t('Your monthly rate will remain')} <strong className="font-semibold text-ink">{coreMonthlyRate.toLocaleString()} RWF</strong> {t('until your payment setup is confirmed and approved by the HQ admin.')}
+                          {t('You have requested to upgrade to')} <strong className="font-semibold text-warning-ink">{t('Delivery Fleet Plan')}</strong>. {t('Your monthly rate will remain')} <strong className="font-semibold text-ink">{coreMonthlyRate.toLocaleString()} RWF</strong> {t('until your payment setup is confirmed and approved by the HQ admin.')}
                         </p>
                       </div>
                     </div>

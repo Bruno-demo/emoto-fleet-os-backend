@@ -95,20 +95,19 @@ export function getSubscriptionEntitlements(
 
   const isPremium = plan === 'PREMIUM' && isActive;
   const tier: SubscriptionTier = isPremium ? 'premium' : 'core';
-  const allowedFeatures = !isActive
-    ? INACTIVE_FEATURES
-    : plan === 'PREMIUM'
-      ? PREMIUM_FEATURES
-      : plan === 'DEMO'
-        ? DEMO_FEATURES
-        : CORE_FEATURES;
+  const allowedFeatures = !isActive ? INACTIVE_FEATURES : PREMIUM_FEATURES;
+
+  const planLabel =
+    user?.fleetType === 'DELIVERY' || plan === 'PREMIUM'
+      ? 'Delivery Fleet Plan'
+      : 'Cooperative & Individual Plan';
 
   return {
     tier,
-    planLabel: plan === 'PREMIUM' ? 'Operations Plus' : 'Safety Core',
+    planLabel,
     statusLabel: formatSubscriptionStatus(status),
     isActive,
-    isPremium,
+    isPremium: true,
     allowedFeatures: new Set(allowedFeatures),
   };
 }

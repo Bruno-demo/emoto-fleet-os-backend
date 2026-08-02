@@ -258,10 +258,10 @@ function CheckoutContent() {
 
           <div className="p-4 rounded-2xl bg-black/30 border border-white/[0.04] space-y-3">
             <p className="text-sm text-ink-soft leading-relaxed">
-              Your request to upgrade to <strong className="text-accent font-bold">Operations Plus</strong> is currently pending.
+              Your request to update to <strong className="text-accent font-bold">{plan?.title || 'Delivery Fleet Plan'}</strong> is currently pending.
             </p>
             <p className="text-xs text-ink-muted leading-relaxed">
-              Please wait for your payment to be approved by the HQ admin. You will be kept on the <strong className="text-white font-semibold">Safety Core</strong> plan until the HQ admin confirms your upgrade payment.
+              Please wait for your payment to be approved by the HQ admin. Your current fleet plan remains active until the HQ admin confirms your payment.
             </p>
           </div>
 
@@ -271,7 +271,7 @@ function CheckoutContent() {
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-bold text-white hover:scale-[1.02] transition-all"
               style={{ background: '#3B82F6', color: 'white' }}
             >
-              Launch Safety Core Dashboard <ArrowRight size={14} />
+              Launch Fleet Dashboard <ArrowRight size={14} />
             </Link>
             
             <p className="text-xs text-ink-muted">
