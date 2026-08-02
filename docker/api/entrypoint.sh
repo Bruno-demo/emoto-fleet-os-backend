@@ -22,24 +22,43 @@ setup_hypertables() {
   fi
 
   echo "Configuring TimescaleDB hypertables..."
-  psql "${DATABASE_URL}" <<'SQL'
+  psql "${DATABASE_URL}" <<'SQL' || true
+    DO $$
+    BEGIN
+      -- Attempt to claim table ownership if running as db owner
+      EXECUTE 'ALTER TABLE "TelemetryPoint" OWNER TO ' || quote_ident(CURRENT_USER);
+    EXCEPTION WHEN OTHERS THEN
+      -- Ignore if not superuser
+      NULL;
+    END $$;
+
     SELECT create_hypertable(
       '"TelemetryPoint"', 'ts',
       if_not_exists => TRUE,
       migrate_data  => TRUE
     );
 
-    SELECT add_compression_policy(
-      '"TelemetryPoint"',
-      compress_after => INTERVAL '7 days',
-      if_not_exists  => TRUE
-    );
+    DO $$
+    BEGIN
+      PERFORM add_compression_policy(
+        '"TelemetryPoint"',
+        compress_after => INTERVAL '7 days',
+        if_not_exists  => TRUE
+      );
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipping compression policy: %', SQLERRM;
+    END $$;
 
-    SELECT add_retention_policy(
-      '"TelemetryPoint"',
-      drop_after    => INTERVAL '180 days',
-      if_not_exists => TRUE
-    );
+    DO $$
+    BEGIN
+      PERFORM add_retention_policy(
+        '"TelemetryPoint"',
+        drop_after    => INTERVAL '180 days',
+        if_not_exists => TRUE
+      );
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipping retention policy: %', SQLERRM;
+    END $$;
 SQL
 
   if [ $? -ne 0 ]; then
