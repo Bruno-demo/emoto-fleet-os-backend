@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
+import { AuditActionType, Prisma, UserRole, UserStatus, type FleetPlan } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
