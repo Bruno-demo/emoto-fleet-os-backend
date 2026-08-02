@@ -1357,9 +1357,9 @@ interface PricingTierCardProps {
 }
 
 const PREDEFINED_DESCRIPTIONS = [
-  "Live map, remote lock/unlock, rider scoring, and support.",
-  "Incident workflows, financial management, reports, and priority support.",
-  "Telemetry access, weekly reports, crash evidence, and API keys.",
+  "10,000 RWF / month per bike. Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.",
+  "15,000 RWF / month per bike. High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.",
+  "Telemetry access, crash evidence packs, claims verification & partner API.",
 ];
 
 function PricingTierCard({ tier }: PricingTierCardProps) {
@@ -1425,9 +1425,9 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
             }}
             className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
           >
-            <option value="Live map, remote lock/unlock, rider scoring, and support.">Safety Core description</option>
-            <option value="Incident workflows, financial management, reports, and priority support.">Operations Plus description</option>
-            <option value="Telemetry access, weekly reports, crash evidence, and API keys.">Insurance description</option>
+            <option value="10,000 RWF / month per bike. Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.">Cooperative & Individual description</option>
+            <option value="15,000 RWF / month per bike. High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.">Delivery Fleet description</option>
+            <option value="Telemetry access, crash evidence packs, claims verification & partner API.">Insurance description</option>
             <option value="Other">Other (custom description)</option>
           </select>
         </div>

@@ -96,10 +96,10 @@ export default function SettingsPage() {
   const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
   const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
 
-  const coreMonthlyRate = demoTier?.monthlyRatePerBike ?? 5000;
-  const coreSetupFee = demoTier?.setupFeePerBike ?? 35000;
-  const premiumMonthlyRate = premiumTier?.monthlyRatePerBike ?? 10000;
-  const premiumSetupFee = premiumTier?.setupFeePerBike ?? 35000;
+  const coreMonthlyRate = demoTier?.monthlyRatePerBike ?? 10000;
+  const coreSetupFee = demoTier?.setupFeePerBike ?? 0;
+  const premiumMonthlyRate = premiumTier?.monthlyRatePerBike ?? 15000;
+  const premiumSetupFee = premiumTier?.setupFeePerBike ?? 0;
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const initialTab = (tabParam && ['profile', 'fleet', 'team', 'security', 'notifications', 'apiCredentials'].includes(tabParam))
@@ -455,21 +455,21 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Installation Setup Fee Info */}
+                  {/* Installation Setup Fee & Hardware Policy Info */}
                   {!isInsurance && (
-                    <div className="mt-6 rounded-2xl border border-line bg-black/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="mt-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-ink flex items-center gap-2">
                           <Banknote size={16} className="text-accent" />
-                          {t('One-time Installation Setup Fee')}
+                          {t('Device Setup & Hardware Policy')}
                         </p>
                         <p className="text-xs text-ink-muted leading-relaxed">
-                          {t('A flat fee of')} <strong className="text-ink">{((user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</strong> {t('per bike is charged once upon hardware device setup.')}
+                          {t('Device Setup Fee:')} <strong className="text-emerald-400">0 RWF</strong>. {t('GPS hardware devices are not client property — they remain the exclusive company property of eMoto Fleet OS and are provided for fleet management.')}
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="text-xs text-ink-muted">{t('Total Setup Dues')}</p>
-                        <p className="text-lg font-extrabold text-ink">{(totalBikes * (user?.fleetPlan === 'PREMIUM' ? premiumSetupFee : coreSetupFee)).toLocaleString()} RWF</p>
+                        <p className="text-xs text-ink-muted">{t('Setup Dues')}</p>
+                        <p className="text-lg font-extrabold text-emerald-400">0 RWF</p>
                       </div>
                     </div>
                   )}
