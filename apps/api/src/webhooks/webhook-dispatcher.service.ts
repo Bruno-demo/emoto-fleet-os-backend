@@ -247,7 +247,7 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
     try {
       const parsed = JSON.parse(value) as unknown;
       if (parsed && typeof parsed === 'object') {
-        return parsed as Prisma.InputJsonValue;
+        return parsed;
       }
       return { data: parsed } as Prisma.InputJsonValue;
     } catch {

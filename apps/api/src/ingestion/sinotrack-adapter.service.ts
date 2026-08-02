@@ -894,10 +894,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       const command = parsedPayload.data;
 
       // Validate cryptographic HMAC signature using device-specific secret
-      const isSignatureValid = verifyPayloadSignature(
-        deviceSecret,
-        command as Record<string, unknown> & { sig: string },
-      );
+      const isSignatureValid = verifyPayloadSignature(deviceSecret, command);
       if (!isSignatureValid) {
         throw new Error('HMAC signature mismatch on command');
       }

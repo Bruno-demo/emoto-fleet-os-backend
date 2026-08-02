@@ -209,7 +209,7 @@ export class ZonesService {
       throw new BadRequestException('Invalid polygon GeoJSON');
     }
 
-    return parsed.data as Prisma.InputJsonValue;
+    return parsed.data;
   }
 
   // Enforces that SLOW zones include a positive speed limit.

@@ -394,12 +394,14 @@ export class HqService {
       );
     }
 
+    const newRate = type === 'DELIVERY' ? 15000 : 10000;
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         type: type,
+        monthlyRatePerBike: newRate,
       },
-      select: { id: true, name: true, type: true },
+      select: { id: true, name: true, type: true, monthlyRatePerBike: true },
     });
 
     this.eventsGateway.emitFleetUpdated(fleetId, { type: updated.type });

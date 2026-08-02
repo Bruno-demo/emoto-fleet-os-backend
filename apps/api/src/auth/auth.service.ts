@@ -472,14 +472,7 @@ export class AuthService {
         async (tx) => {
           // Create the personal fleet for the self owner
           const plan = dto.plan ?? 'DEMO';
-          const tier = await tx.pricingTier.findUnique({
-            where: { planCode: plan },
-          });
-          const monthlyRatePerBike = tier
-            ? tier.monthlyRatePerBike
-            : plan === 'PREMIUM'
-              ? 10000
-              : 5000;
+          const monthlyRatePerBike = 10000; // Personal / Individual fleet rate
 
           const fleet = await tx.fleet.create({
             data: {
@@ -597,16 +590,9 @@ export class AuthService {
       const result = await this.prismaService.$transaction(
         async (tx) => {
           const plan = dto.plan ?? 'DEMO';
-          const tier = await tx.pricingTier.findUnique({
-            where: { planCode: plan },
-          });
-          const monthlyRatePerBike = tier
-            ? tier.monthlyRatePerBike
-            : plan === 'PREMIUM'
-              ? 10000
-              : plan === 'INSURANCE'
-                ? 0
-                : 5000;
+          const fleetType = dto.fleetType ?? 'COOP';
+          const monthlyRatePerBike =
+            plan === 'INSURANCE' ? 0 : fleetType === 'DELIVERY' ? 15000 : 10000;
 
           let fleetDiscountConnect = undefined;
 

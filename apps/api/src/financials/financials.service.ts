@@ -141,7 +141,7 @@ export class FinancialsService {
         },
       });
 
-      return this.toPaymentSummary(payment as unknown as PaymentWithRider);
+      return this.toPaymentSummary(payment);
     }
 
     const payment = await this.prisma.riderPayment.create({
@@ -186,7 +186,7 @@ export class FinancialsService {
       },
     });
 
-    return this.toPaymentSummary(payment as unknown as PaymentWithRider);
+    return this.toPaymentSummary(payment);
   }
 
   async listPayments(

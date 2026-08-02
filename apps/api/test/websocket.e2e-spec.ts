@@ -163,7 +163,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
     const nodeHttpServer = app.getHttpServer() as HttpServer;
     const address = nodeHttpServer.address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${address.port}`;
-    httpServer = nodeHttpServer as unknown as Parameters<typeof request>[0];
+    httpServer = nodeHttpServer;
     eventsService = app.get<EventsService>(EventsService);
     commandsService = app.get<CommandsService>(CommandsService);
 

@@ -120,7 +120,7 @@ export class SubscriptionPlanService implements OnModuleInit {
     await this.auditService.createAuditLog({
       fleetId: user.fleetId,
       actorUserId: user.id,
-      actionType: 'SUBSCRIPTION_CREATED' as AuditActionType, // Closest available type
+      actionType: 'SUBSCRIPTION_CREATED', // Closest available type
       targetType: 'SubscriptionPlan',
       targetId: plan.id,
       metaJson: { changes: data },

@@ -45,42 +45,64 @@ const PLAN_DETAILS: Record<
   string,
   { title: string; price: string; period: string; features: string[] }
 > = {
-  'safety-core': {
-    title: 'Safety Core',
-    price: '5,000 RWF',
-    period: '/ bike / mo',
-    features: [
-      'Live map + alerts',
-      'Incident workflows',
-      'Rider scores',
-      'Remote command controls',
-      'Email support',
-      '+ 35,000 RWF device setup & install fee',
-    ],
-  },
-  'operations-plus': {
-    title: 'Operations Plus',
+  'coop-individual': {
+    title: 'Cooperative & Individual',
     price: '10,000 RWF',
     period: '/ bike / mo',
     features: [
-      'Everything in Core',
-      'Financial management control',
-      'Trip analytics',
-      'Compliance reports',
-      'Priority support',
-      '+ 35,000 RWF device setup & install fee',
+      'Live map + real-time alerts',
+      'Remote bike commands (lock/unlock)',
+      'Rider scoring & safety metrics',
+      'Financial & lease tracking',
+      '0 RWF Device Setup Fee',
+      'Hardware remains eMoto company property',
     ],
   },
-  enterprise: {
-    title: 'Enterprise',
+  delivery: {
+    title: 'Delivery Fleet',
+    price: '15,000 RWF',
+    period: '/ bike / mo',
+    features: [
+      'Everything in Cooperative Plan',
+      'Delivery dispatch & route tracking',
+      'Advanced incident & crash workflows',
+      'Trip analytics & compliance reports',
+      '0 RWF Device Setup Fee',
+      'Hardware remains eMoto company property',
+    ],
+  },
+  insurance: {
+    title: 'Insurance Partner',
     price: 'Custom',
     period: '',
     features: [
-      'Everything in Plus',
-      'Partner API',
-      'Dedicated support',
-      'Enterprise SLA',
+      'Access to covered fleet telemetry',
+      'Partner API credentials',
+      'Dedicated insurance support',
+      'Automated claims verification',
       'Custom integrations',
+    ],
+  },
+  'safety-core': {
+    title: 'Cooperative & Individual',
+    price: '10,000 RWF',
+    period: '/ bike / mo',
+    features: [
+      'Live map + real-time alerts',
+      'Remote bike commands',
+      '0 RWF Device Setup Fee',
+      'Hardware remains eMoto company property',
+    ],
+  },
+  'operations-plus': {
+    title: 'Delivery Fleet',
+    price: '15,000 RWF',
+    period: '/ bike / mo',
+    features: [
+      'Full command center',
+      'Delivery dispatch & analytics',
+      '0 RWF Device Setup Fee',
+      'Hardware remains eMoto company property',
     ],
   },
 };
@@ -98,12 +120,12 @@ function CheckoutContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const planSlug = searchParams.get('plan');
-  const plan = planSlug ? PLAN_DETAILS[planSlug] : null;
+  const plan = planSlug ? PLAN_DETAILS[planSlug] : PLAN_DETAILS['coop-individual'];
   const [confirmed, setConfirmed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [countdown, setCountdown] = useState(6);
   const [error, setError] = useState<string | null>(null);
-  const isOperationsPlus = planSlug === 'operations-plus';
+  const isDelivery = planSlug === 'delivery' || planSlug === 'operations-plus';
 
   // Dynamic pricing & promo codes
   const [promoCode, setPromoCode] = useState('');
@@ -119,11 +141,11 @@ function CheckoutContent() {
   const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
   const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
 
-  const displayPrice = isOperationsPlus
-    ? (premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF` : '10,000 RWF')
-    : (demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF` : '5,000 RWF');
+  const displayPrice = isDelivery
+    ? (premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF` : '15,000 RWF')
+    : (demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF` : '10,000 RWF');
 
-  const activeTier = isOperationsPlus ? premiumTier : demoTier;
+  const activeTier = isDelivery ? premiumTier : demoTier;
   const { data: bikesData } = useQuery({
     queryKey: ['bikes', 'list', { page: 1, pageSize: 1 }],
     queryFn: () => apiFetch<{ total: number }>('/bikes?page=1&pageSize=1'),
@@ -186,9 +208,9 @@ function CheckoutContent() {
 
     try {
       setIsValidatingPromo(true);
-      const originalAmount = isOperationsPlus
-        ? (premiumTier?.monthlyRatePerBike ?? 10000)
-        : (demoTier?.monthlyRatePerBike ?? 5000);
+      const originalAmount = isDelivery
+        ? (premiumTier?.monthlyRatePerBike ?? 15000)
+        : (demoTier?.monthlyRatePerBike ?? 10000);
       const res = await apiFetch<{ discount: PromoDiscount }>('/billing/validate-discount', {
         method: 'POST',
         body: JSON.stringify({
@@ -212,12 +234,6 @@ function CheckoutContent() {
   const handleConfirm = () => {
     setError(null);
     setConfirmed(false);
-
-    if (!isOperationsPlus) {
-      setError('Only Operations Plus checkout is available in the dashboard right now.');
-      return;
-    }
-
     checkoutMutation.mutate();
   };
 

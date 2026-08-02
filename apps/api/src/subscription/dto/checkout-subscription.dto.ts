@@ -7,7 +7,10 @@ export class CheckoutSubscriptionDto {
   @IsEnum(FleetPlan)
   plan!: FleetPlan;
 
-  @ApiPropertyOptional({ description: 'MTN Mobile Money phone number (e.g. 0781234567 or 250781234567)' })
+  @ApiPropertyOptional({
+    description:
+      'MTN Mobile Money phone number (e.g. 0781234567 or 250781234567)',
+  })
   @IsOptional()
   @IsString()
   momoPhoneNumber?: string;

@@ -452,7 +452,7 @@ export class RidersService {
 
     return createPaginatedResponse(
       riders.map((rider) => {
-        const summary = this.toRiderSummary(rider as RiderIdentity);
+        const summary = this.toRiderSummary(rider);
         return {
           ...summary,
           safetyScore: scoreMap.get(rider.id) ?? 100,

@@ -1372,9 +1372,9 @@ function CreateAccountInner() {
                       </label>
                       <div className="grid grid-cols-3 gap-2">
                         {([
-                          { value: 'COOP' as const, icon: <UsersRound size={18} />, labelKey: 'fleet_type_coop', descKey: 'fleet_type_coop_desc' },
-                          { value: 'DELIVERY' as const, icon: <Truck size={18} />, labelKey: 'fleet_type_delivery', descKey: 'fleet_type_delivery_desc' },
-                          { value: 'PERSONAL' as const, icon: <User size={18} />, labelKey: 'fleet_type_personal', descKey: 'fleet_type_personal_desc' },
+                          { value: 'COOP' as const, icon: <UsersRound size={18} />, label: 'Cooperative', rate: '10,000 RWF/mo' },
+                          { value: 'DELIVERY' as const, icon: <Truck size={18} />, label: 'Delivery Fleet', rate: '15,000 RWF/mo' },
+                          { value: 'PERSONAL' as const, icon: <User size={18} />, label: 'Individual', rate: '10,000 RWF/mo' },
                         ]).map((ft) => {
                           const isSelected = fleetType === ft.value;
                           return (
@@ -1401,14 +1401,19 @@ function CreateAccountInner() {
                                 'text-xs font-bold leading-tight',
                                 isSelected ? 'text-accent' : 'text-ink',
                               )}>
-                                {t(ft.labelKey)}
+                                {ft.label}
                               </span>
-                              <span className="text-[10px] leading-snug text-ink-muted">
-                                {t(ft.descKey)}
+                              <span className="text-[10px] font-semibold text-emerald-400">
+                                {ft.rate}
                               </span>
                             </button>
                           );
                         })}
+                      </div>
+
+                      <div className="mt-2.5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-[11px] text-zinc-300 flex items-center gap-2">
+                        <ShieldCheck size={14} className="text-blue-400 shrink-0" />
+                        <span><strong>Hardware Policy:</strong> 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.</span>
                       </div>
                     </div>
 

@@ -65,27 +65,33 @@ export class PricingTierService implements OnModuleInit {
     return updated;
   }
 
+  static getRateForFleetType(fleetType?: string): number {
+    if (fleetType === 'DELIVERY') return 15000;
+    if (fleetType === 'INSURER') return 0;
+    return 10000; // COOP and INDIVIDUAL rate
+  }
+
   async seedDefaultTiers(): Promise<void> {
     const count = await this.prisma.pricingTier.count();
     if (count > 0) return;
 
     const defaults = [
       {
-        name: 'Safety Core',
+        name: 'Cooperative & Individual Fleet',
         planCode: FleetPlan.DEMO,
-        monthlyRatePerBike: 7000,
-        setupFeePerBike: 40000,
+        monthlyRatePerBike: 10000,
+        setupFeePerBike: 0,
         description:
-          'Live map, remote lock/unlock, rider scoring, and support.',
+          '10,000 RWF / month per bike. Full access to live map, remote control, rider scoring, financial management & reports. No device setup fee (hardware remains eMoto company property).',
         sortOrder: 0,
       },
       {
-        name: 'Operations Plus',
+        name: 'Delivery Fleet',
         planCode: FleetPlan.PREMIUM,
         monthlyRatePerBike: 15000,
-        setupFeePerBike: 40000,
+        setupFeePerBike: 0,
         description:
-          'Incident workflows, financial management, reports, and priority support.',
+          '15,000 RWF / month per bike. High-volume delivery fleet tracking, incident workflows, priority support & analytics. No device setup fee (hardware remains eMoto company property).',
         sortOrder: 1,
       },
       {
@@ -94,7 +100,7 @@ export class PricingTierService implements OnModuleInit {
         monthlyRatePerBike: 0,
         setupFeePerBike: 0,
         description:
-          'Telemetry access, weekly reports, crash evidence, and API keys.',
+          'Telemetry access, crash evidence packs, claims verification & partner API.',
         sortOrder: 2,
       },
     ];

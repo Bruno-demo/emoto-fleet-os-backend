@@ -4,11 +4,9 @@ import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Activity,
-  AlarmClock,
   ArrowRight,
   BadgeCheck,
   BatteryCharging,
-  Bike,
   ChevronRight,
   ClipboardList,
   Command,
@@ -21,15 +19,12 @@ import {
   Minus,
   Monitor,
   Plus,
-  Radar,
   Shield,
   ShieldCheck,
   Signal,
   Siren,
-  Smartphone,
   Sparkles,
   Users2,
-  Zap,
   Menu,
   X,
 } from 'lucide-react';
@@ -81,56 +76,72 @@ const testimonials = [
 const faqs = [
   { q: 'What is eMoto Fleet OS?', a: 'eMoto Fleet OS is a real-time safety and operations platform for electric motorcycle fleets. It provides live tracking, incident management, rider scoring, remote device commands, and compliance reporting — all from one command center.' },
   { q: 'How does Fleet OS improve rider safety?', a: 'Fleet OS detects risky behavior like harsh braking, speeding, and erratic riding in real-time. It automatically triggers alerts, scores rider performance, and provides coaching insights to reduce incidents before they happen.' },
-  { q: 'Do I need special hardware to use Fleet OS?', a: 'Fleet OS works with standard IoT devices and GPS trackers commonly used in electric motorcycle fleets. We support MQTT-based telemetry from most device manufacturers and can help with device provisioning.' },
+  { q: 'Do I need to purchase hardware for Fleet OS?', a: 'No device setup or hardware purchase fees are required. GPS hardware devices remain the exclusive company property of eMoto Fleet OS and are provided to you for fleet management and telemetry.' },
   { q: 'What databases and infrastructure does Fleet OS use?', a: 'Fleet OS runs on PostgreSQL with TimescaleDB for time-series telemetry data, Redis for real-time caching, and MQTT for device communication. The platform is containerized with Docker for easy deployment.' },
   { q: 'Can I integrate Fleet OS with my existing systems?', a: 'Yes. Fleet OS provides a comprehensive REST API and webhook system for integration with insurance platforms, regulatory systems, and third-party analytics tools. Partner API tokens provide scoped data access.' },
-  { q: 'How does pricing work?', a: 'We support two subscription tiers for fleets: Safety Core (5,000 RWF/bike/month) and Operations Plus (10,000 RWF/bike/month). For insurance companies, we offer a dedicated Insurance plan with partner API access and custom pricing. Fleet accounts cannot subscribe or shift to the Insurance plan, and Insurance accounts cannot shift to fleet plans.' },
+  { q: 'How does pricing work?', a: 'Subscription rates are based directly on your fleet type: 10,000 RWF/bike/month for Cooperative and Individual fleets, and 15,000 RWF/bike/month for Commercial Delivery fleets. Insurance partners receive dedicated telemetry access with custom terms. There are $0$ device setup fees.' },
   { q: 'Is Fleet OS open source?', a: 'Fleet OS is a commercial platform with enterprise-grade security and support. We offer a demo environment for evaluation and can provide custom trials for qualified fleet operators.' },
-  { q: 'What kind of support do you offer?', a: 'Safety Core includes email support. Operations Plus includes priority support with faster response times. Insurance plans include dedicated support, custom SLA, and onboarding assistance.' },
+  { q: 'What kind of support do you offer?', a: 'Cooperative and Individual plans include standard support. Delivery fleets receive priority support with faster response times. Insurance plans include dedicated support, custom SLA, and onboarding assistance.' },
   { q: 'How do I request a feature or report a bug?', a: 'You can reach our team through the dashboard support channel, email, or through your dedicated account manager on Insurance plans. We actively incorporate operator feedback into our roadmap.' },
   { q: 'Is there a limit on the number of bikes?', a: 'No. Fleet OS scales from small fleets of 10 bikes to enterprise operations with thousands. Our infrastructure auto-scales to handle any fleet size with consistent real-time performance.' },
 ];
 
-const pricingPlans = [
+interface PricingPlanItem {
+  slug: string;
+  title: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  featured?: boolean;
+  promoTag?: string;
+}
+
+const pricingPlans: PricingPlanItem[] = [
   {
-    slug: 'safety-core',
-    title: 'Safety Core',
-    price: '5,000 RWF',
-    period: '/ bike / month',
-    description: 'Live tracking, incident response, and rider scoring for growing fleets.',
-    features: [
-      'Live map + alerts',
-      'Incident workflows',
-      'Rider scores',
-      'Remote command controls',
-      'Email support',
-      '+ 35,000 RWF device setup & install fee',
-    ],
-  },
-  {
-    slug: 'operations-plus',
-    title: 'Operations Plus',
+    slug: 'coop-individual',
+    title: 'Cooperative & Individual',
     price: '10,000 RWF',
     period: '/ bike / month',
-    description: 'Full command center with trip analytics and compliance dashboards.',
+    description: 'Designed for motorcycle cooperatives and individual personal fleet owners.',
     features: [
-      'Everything in Core',
-      'Financial management control',
-      'Trip analytics',
-      'Compliance reports',
-      'Priority support',
-      '+ 35,000 RWF device setup & install fee',
+      'Live map + real-time alerts',
+      'Remote bike commands (lock/unlock)',
+      'Rider scoring & safety metrics',
+      'Financial & lease tracking',
+      '0 RWF Device Setup Fee',
+      'Hardware remains eMoto company property',
     ],
     featured: true,
-    promoTag: '20% off for 50+ bikes',
+  },
+  {
+    slug: 'delivery',
+    title: 'Delivery Fleet',
+    price: '15,000 RWF',
+    period: '/ bike / month',
+    description: 'Tailored for high-volume commercial delivery and courier operations.',
+    features: [
+      'Everything in Cooperative Plan',
+      'Delivery dispatch & route tracking',
+      'Advanced incident & crash workflows',
+      'Trip analytics & compliance reports',
+      '0 RWF Device Setup Fee',
+      'Hardware remains eMoto company property',
+    ],
   },
   {
     slug: 'insurance',
-    title: 'Insurance',
+    title: 'Insurance Partner',
     price: 'Custom',
     period: '',
-    description: 'For insurance companies only. Fleet operators cannot subscribe to or shift to this plan.',
-    features: ['Access to covered fleet telemetry', 'Partner API credentials', 'Dedicated insurance support', 'Automated claims verification', 'Custom integrations'],
+    description: 'For insurance companies and risk management partners.',
+    features: [
+      'Access to covered fleet telemetry',
+      'Partner API credentials',
+      'Dedicated insurance support',
+      'Automated claims verification',
+      'Custom integrations',
+    ],
   },
 ];
 
@@ -747,6 +758,13 @@ export default function LandingContent() {
               </Link>
             </div>
           ))}
+        </div>
+
+        <div className="mt-12 mx-auto max-w-3xl rounded-xl border border-blue-500/30 bg-blue-500/10 p-5 text-center text-sm text-zinc-300 relative z-10 flex items-center justify-center gap-3">
+          <ShieldCheck className="shrink-0 text-blue-400" size={20} />
+          <span>
+            <strong>Hardware Policy:</strong> GPS Hardware devices are not client property — they remain the exclusive company property of <strong>eMoto Fleet OS</strong> and are provided for fleet management. <strong>0 RWF Device Setup Fee.</strong>
+          </span>
         </div>
       </section>
 
