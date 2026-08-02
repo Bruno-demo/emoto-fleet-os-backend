@@ -72,9 +72,6 @@ export class PricingTierService implements OnModuleInit {
   }
 
   async seedDefaultTiers(): Promise<void> {
-    const count = await this.prisma.pricingTier.count();
-    if (count > 0) return;
-
     const defaults = [
       {
         name: 'Cooperative & Individual Fleet',
@@ -106,7 +103,11 @@ export class PricingTierService implements OnModuleInit {
     ];
 
     for (const tier of defaults) {
-      await this.prisma.pricingTier.create({ data: tier });
+      await this.prisma.pricingTier.upsert({
+        where: { planCode: tier.planCode },
+        update: tier,
+        create: tier,
+      });
     }
   }
 }

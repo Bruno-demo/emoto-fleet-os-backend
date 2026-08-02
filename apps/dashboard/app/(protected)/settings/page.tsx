@@ -839,56 +839,57 @@ export default function SettingsPage() {
               </div>
             ) : (
                <div className="grid gap-6 md:grid-cols-3">
-                 {/* Safety Core Card */}
+                 {/* Cooperative & Individual Card */}
                  <div
                    className={cx(
                      'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
-                     !entitlements.isPremium && entitlements.isActive
+                     user?.fleetType !== 'DELIVERY'
                        ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
                        : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
                    )}
                  >
-                   {!entitlements.isPremium && entitlements.isActive && (
+                   {user?.fleetType !== 'DELIVERY' && (
                      <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
                        {t("Active Plan")}
                      </div>
                    )}
                    <div>
                      <div className="flex items-center gap-2">
-                       <CheckCircle2 size={16} className={!entitlements.isPremium && entitlements.isActive ? "text-accent" : "text-ink-muted"} />
-                       <p className="text-sm font-bold text-ink">{t("Safety Core")}</p>
+                       <CheckCircle2 size={16} className={user?.fleetType !== 'DELIVERY' ? "text-accent" : "text-ink-muted"} />
+                       <p className="text-sm font-bold text-ink">{t("Cooperative & Individual")}</p>
                      </div>
                      <div className="mt-4 flex flex-col items-start gap-1">
                        <div className="flex items-baseline gap-1">
-                         <span className="text-2xl font-extrabold text-ink">{coreMonthlyRate.toLocaleString()} RWF</span>
+                         <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
                          <span className="text-xs text-ink-muted">{t("/ bike / month")}</span>
                        </div>
-                       <span className="text-[10px] font-bold text-success-ink">{t("+ {fee} RWF device setup & install").replace('{fee}', coreSetupFee.toLocaleString())}</span>
+                       <span className="text-[10px] font-bold text-emerald-400">{t("0 RWF Device Setup Fee")}</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       {t("Essential telemetry, safety event detection, and manual incident response tools.")}
+                       {t("Designed for motorcycle cooperatives and individual personal fleet owners. Full command center access.")}
                      </p>
                      
                      <div className="h-px w-full bg-line my-4" />
                      
                      <ul className="space-y-2.5 text-xs text-ink-soft">
-                       {['Overview Dashboard', 'Live Map Tracking', 'Incident Escalation', 'Risk Events Feed', 'Bikes & Riders Directory', 'Fleet Configuration'].map((f) => (
+                       {[
+                         'Live Map & Real-time Alerts',
+                         'Remote Bike Commands (Lock/Unlock)',
+                         'Rider Scoring & Safety Metrics',
+                         'Financial & Lease Tracking',
+                         '0 RWF Device Setup Fee',
+                         'Hardware remains eMoto company property'
+                       ].map((f) => (
                          <li key={f} className="flex items-start gap-2">
                            <CheckCircle2 size={12} className="text-success-ink shrink-0 mt-0.5" />
                            <span>{t(f)}</span>
-                         </li>
-                       ))}
-                       {['Device provisioning', 'Policy geofencing', 'Remote commands', 'Audit logs'].map((f) => (
-                         <li key={f} className="flex items-start gap-2 opacity-50">
-                           <Lock size={10} className="text-ink-faint shrink-0 mt-0.5" />
-                           <span className="line-through">{t(f)}</span>
                          </li>
                        ))}
                      </ul>
                    </div>
                    
                    <div className="mt-6">
-                     {!entitlements.isPremium && entitlements.isActive ? (
+                     {user?.fleetType !== 'DELIVERY' ? (
                        <button
                          type="button"
                          disabled
@@ -897,45 +898,44 @@ export default function SettingsPage() {
                          {t("Active Plan")}
                        </button>
                      ) : (
-                       <button
-                         type="button"
-                         disabled
-                         className="w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted py-2 text-xs font-semibold"
+                       <Link
+                         href="/checkout?plan=coop-individual"
+                         className="block w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted hover:text-white py-2 text-xs font-semibold"
                        >
-                         {t("Included in higher tier")}
-                       </button>
+                         {t("Select Plan")}
+                       </Link>
                      )}
                    </div>
                  </div>
 
-                 {/* Operations Plus Card */}
+                 {/* Delivery Fleet Card */}
                  <div
                    className={cx(
                      'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
-                     entitlements.isPremium && entitlements.isActive
+                     user?.fleetType === 'DELIVERY'
                        ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
                        : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
                    )}
                  >
-                   {entitlements.isPremium && entitlements.isActive && (
+                   {user?.fleetType === 'DELIVERY' && (
                      <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
                        {t("Active Plan")}
                      </div>
                    )}
                    <div>
                      <div className="flex items-center gap-2">
-                       <CheckCircle2 size={16} className={entitlements.isPremium && entitlements.isActive ? "text-accent" : "text-ink-muted"} />
-                       <p className="text-sm font-bold text-ink">{t("Operations Plus")}</p>
+                       <CheckCircle2 size={16} className={user?.fleetType === 'DELIVERY' ? "text-accent" : "text-ink-muted"} />
+                       <p className="text-sm font-bold text-ink">{t("Delivery Fleet")}</p>
                      </div>
                      <div className="mt-4 flex flex-col items-start gap-1">
                        <div className="flex items-baseline gap-1">
-                         <span className="text-2xl font-extrabold text-ink">{premiumMonthlyRate.toLocaleString()} RWF</span>
+                         <span className="text-2xl font-extrabold text-ink">15,000 RWF</span>
                          <span className="text-xs text-ink-muted">{t("/ bike / month")}</span>
                        </div>
-                       <span className="text-[10px] font-bold text-accent">{t("+ {fee} RWF device setup & install").replace('{fee}', premiumSetupFee.toLocaleString())}</span>
+                       <span className="text-[10px] font-bold text-emerald-400">{t("0 RWF Device Setup Fee")}</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       {t("Unlocks device configuration, strict geofence speed caps, trip analytics, and remote commands.")}
+                       {t("Tailored for high-volume commercial delivery and courier operations. Advanced tracking and priority support.")}
                      </p>
                      
                      <div className="h-px w-full bg-line my-4" />
@@ -943,15 +943,15 @@ export default function SettingsPage() {
                      <ul className="space-y-2.5 text-xs text-ink-soft">
                        <li className="flex items-start gap-2 text-accent font-semibold">
                          <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
-                         <span>{t("Everything in Safety Core")}</span>
+                         <span>{t("Everything in Cooperative Plan")}</span>
                        </li>
                        {[
-                         'Device Provisioning (SIMs/Hardware)',
-                         'Policy Geofencing (Speed/Parking)',
-                         'Trip Analytics & Reports',
-                         'Immutable Compliance Audit Logs',
-                         'Remote Commands (Lock/Unlock/Sound)',
-                         'Incident Evidence Packs'
+                         'Delivery Dispatch & Route Tracking',
+                         'Advanced Incident & Crash Workflows',
+                         'Trip Analytics & Compliance Reports',
+                         'Priority 24/7 Operator Support',
+                         '0 RWF Device Setup Fee',
+                         'Hardware remains eMoto company property'
                        ].map((f) => (
                          <li key={f} className="flex items-start gap-2">
                            <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
@@ -962,7 +962,7 @@ export default function SettingsPage() {
                    </div>
                    
                    <div className="mt-6">
-                     {entitlements.isPremium && entitlements.isActive ? (
+                     {user?.fleetType === 'DELIVERY' ? (
                        <button
                          type="button"
                          disabled
@@ -972,46 +972,42 @@ export default function SettingsPage() {
                        </button>
                      ) : (
                        <Link
-                         href="/checkout?plan=operations-plus"
+                         href="/checkout?plan=delivery"
                          className="block w-full text-center rounded-xl bg-accent hover:bg-accent-strong text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
                        >
-                         {t("Upgrade Plan")}
+                         {t("Upgrade to Delivery Plan")}
                        </Link>
                      )}
                    </div>
                  </div>
 
-                 {/* Enterprise Fleet Card */}
+                 {/* Insurance Partner Card */}
                  <div className="rounded-[20px] border border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
                    <div>
                      <div className="flex items-center gap-2">
-                       <CheckCircle2 size={16} className="text-ink-muted" />
-                       <p className="text-sm font-bold text-ink">{t("Enterprise Fleet")}</p>
+                       <Shield size={16} className="text-accent" />
+                       <p className="text-sm font-bold text-ink">{t("Insurance Partner")}</p>
                      </div>
                      <div className="mt-4 flex items-baseline gap-1">
                        <span className="text-2xl font-extrabold text-ink">{t("Custom")}</span>
-                       <span className="text-xs text-ink-muted">{t("for >50 bikes")}</span>
+                       <span className="text-xs text-ink-muted">{t("Partner Telemetry")}</span>
                      </div>
                      <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       {t("Custom quotes, dedicated support, and volume discounts for fleet operators with more than 50 bikes.")}
+                       {t("Dedicated portal for insurance companies and risk management partners with partner API credentials.")}
                      </p>
                      
                      <div className="h-px w-full bg-line my-4" />
                      
                      <ul className="space-y-2.5 text-xs text-ink-soft">
-                       <li className="flex items-start gap-2 font-semibold">
-                         <CheckCircle2 size={12} className="text-ink-muted shrink-0 mt-0.5" />
-                         <span>{t("Everything in Operations Plus")}</span>
-                       </li>
                        {[
-                         'Volume Discounts for Large Fleets',
-                         'Dedicated Customer Support Manager',
-                         '99.9% Uptime Guarantee SLA',
-                         'Custom Integrations & Development',
-                         'Priority Hardware Provisioning'
+                         'Insured Fleet Telemetry Access',
+                         'Partner API Credentials',
+                         'Automated Claims Verification',
+                         'Dedicated Risk Analytics',
+                         'Custom System Integrations'
                        ].map((f) => (
                          <li key={f} className="flex items-start gap-2">
-                           <CheckCircle2 size={12} className="text-success-ink shrink-0 mt-0.5" />
+                           <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
                            <span>{t(f)}</span>
                          </li>
                        ))}
@@ -1022,9 +1018,9 @@ export default function SettingsPage() {
                      <button
                        type="button"
                        onClick={() => setShowContactSales(true)}
-                       className="w-full text-center rounded-xl border border-line bg-surface hover:bg-surface-hover text-ink py-2 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
+                       className="block w-full text-center rounded-xl border border-line bg-surface-muted hover:bg-surface-hover text-ink py-2 text-xs font-semibold transition-all"
                      >
-                       {t("Request Quote")}
+                       {t("Contact Partner Team")}
                      </button>
                    </div>
                  </div>
