@@ -91,29 +91,45 @@ const PLAN_DETAILS: Record<
     icon: React.ReactNode;
   }
 > = {
-  'safety-core': { 
-    title: 'Safety Core', 
-    price: '5,000 RWF', 
-    period: '/ bike / mo', 
-    description: 'Essential safety (+ 35,000 RWF setup).',
-    setupFeePerBike: 35000,
-    icon: <ShieldCheck size={18} />
-  },
-  'operations-plus': { 
-    title: 'Operations Plus', 
+  'coop-individual': { 
+    title: 'Cooperative & Individual', 
     price: '10,000 RWF', 
     period: '/ bike / mo', 
-    description: 'Advanced fleet ops (+ 35,000 RWF setup).',
-    setupFeePerBike: 35000,
-    icon: <Zap size={18} />
+    description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
+    setupFeePerBike: 0,
+    icon: <UsersRound size={18} />
+  },
+  delivery: { 
+    title: 'Delivery Fleet', 
+    price: '15,000 RWF', 
+    period: '/ bike / mo', 
+    description: 'High-volume commercial delivery fleet ops (0 RWF setup fee).',
+    setupFeePerBike: 0,
+    icon: <Truck size={18} />
   },
   insurance: { 
-    title: 'Insurance', 
+    title: 'Insurance Partner', 
     price: 'Custom', 
     period: '', 
-    description: 'For insurance companies only.',
+    description: 'For insurance companies & risk management partners.',
     setupFeePerBike: 0,
     icon: <Building2 size={18} />
+  },
+  'safety-core': { 
+    title: 'Cooperative & Individual', 
+    price: '10,000 RWF', 
+    period: '/ bike / mo', 
+    description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
+    setupFeePerBike: 0,
+    icon: <UsersRound size={18} />
+  },
+  'operations-plus': { 
+    title: 'Delivery Fleet', 
+    price: '15,000 RWF', 
+    period: '/ bike / mo', 
+    description: 'High-volume commercial delivery fleet ops (0 RWF setup fee).',
+    setupFeePerBike: 0,
+    icon: <Truck size={18} />
   },
 };
 
@@ -211,31 +227,41 @@ function CreateAccountInner() {
         
         const coreTier = tiers.find(t => t.planCode === 'DEMO');
         if (coreTier) {
-          updatedPlans['safety-core'] = {
-            ...updatedPlans['safety-core'],
+          const planData = {
+            title: 'Cooperative & Individual',
             price: `${coreTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            description: coreTier.description || 'Essential safety',
+            period: '/ bike / mo',
+            description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
             setupFeePerBike: coreTier.setupFeePerBike,
+            icon: <UsersRound size={18} />
           };
+          updatedPlans['coop-individual'] = planData;
+          updatedPlans['safety-core'] = planData;
         }
         
         const premiumTier = tiers.find(t => t.planCode === 'PREMIUM');
         if (premiumTier) {
-          updatedPlans['operations-plus'] = {
-            ...updatedPlans['operations-plus'],
+          const planData = {
+            title: 'Delivery Fleet',
             price: `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            description: premiumTier.description || 'Advanced fleet ops',
+            period: '/ bike / mo',
+            description: 'High-volume commercial delivery fleet ops (0 RWF setup fee).',
             setupFeePerBike: premiumTier.setupFeePerBike,
+            icon: <Truck size={18} />
           };
+          updatedPlans['delivery'] = planData;
+          updatedPlans['operations-plus'] = planData;
         }
  
         const insuranceTier = tiers.find(t => t.planCode === 'INSURANCE');
         if (insuranceTier) {
           updatedPlans['insurance'] = {
-            ...updatedPlans['insurance'],
+            title: 'Insurance Partner',
             price: insuranceTier.monthlyRatePerBike === 0 ? 'Custom' : `${insuranceTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            description: insuranceTier.description || 'For insurance companies only.',
+            period: '',
+            description: 'For insurance companies & risk management partners.',
             setupFeePerBike: insuranceTier.setupFeePerBike,
+            icon: <Building2 size={18} />
           };
         }
         
@@ -820,7 +846,7 @@ function CreateAccountInner() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {Object.entries(plans)
-                .filter(([slug]) => slug !== 'insurance')
+                .filter(([slug]) => slug === 'coop-individual' || slug === 'delivery' || (slug !== 'insurance' && !plans['coop-individual']))
                 .map(([slug, plan]) => {
                   const isSelected = selectedPlanSlug === slug;
                   return (
@@ -847,15 +873,11 @@ function CreateAccountInner() {
                           'text-sm font-bold',
                           isSelected ? 'text-ink' : 'text-ink-muted'
                         )}>
-                          {slug === 'safety-core' ? t('safety_core_plan_title', 'Safety Core') : slug === 'operations-plus' ? t('operations_plus_plan_title', 'Operations Plus') : plan.title}
+                          {plan.title}
                         </p>
                         {isPricingLoaded ? (
                           <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
-                            {slug === 'safety-core' 
-                              ? t('safety_core_desc_short', 'Essential safety (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
-                              : slug === 'operations-plus'
-                              ? t('operations_plus_desc_short', 'Advanced fleet ops (+ {fee} RWF setup).').replace('{fee}', plan.setupFeePerBike.toLocaleString())
-                              : plan.description}
+                            {plan.description}
                           </p>
                         ) : (
                           <span className="h-3.5 w-36 bg-line rounded animate-pulse inline-block mt-1" />
