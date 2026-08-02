@@ -9,13 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import {
-  AuditActionType,
-  FleetPlan,
-  Prisma,
-  UserRole,
-  UserStatus,
-} from '@prisma/client';
+import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
@@ -550,7 +544,7 @@ export class AuthService {
         await this.redisService.del(`email_verified:${normalizedEmail}`);
       }
 
-      return this.toAuthenticatedUser(createdUser as AuthUserRecord);
+      return this.toAuthenticatedUser(createdUser);
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -737,7 +731,7 @@ export class AuthService {
             });
           }
 
-          return user as AuthUserRecord;
+          return user;
         },
         { timeout: 30000 },
       );

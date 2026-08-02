@@ -4,7 +4,6 @@ import {
   EventSeverity,
   EventType,
   GeofenceZone,
-  Prisma,
   RoadFeatureType,
   ZoneType,
 } from '@prisma/client';
@@ -232,7 +231,7 @@ export class RulesEngineService {
             zoneName: zone.name,
             speedKph: payload.speedKph,
             speedLimitKph: speedLimit,
-          } as Prisma.InputJsonValue,
+          },
         });
       }
     }
@@ -254,7 +253,7 @@ export class RulesEngineService {
           reason: 'global_speed_limit_exceeded',
           speedKph: payload.speedKph,
           speedLimitKph: this.globalOverspeedLimitKph,
-        } as Prisma.InputJsonValue,
+        },
       });
     }
   }
@@ -304,7 +303,7 @@ export class RulesEngineService {
               speedDeltaKph: Number(speedDeltaKph.toFixed(2)),
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
               threshold: SOFTWARE_BRAKE_G_THRESHOLD,
-            } as Prisma.InputJsonValue,
+            },
           },
         );
       }
@@ -325,7 +324,7 @@ export class RulesEngineService {
               speedDeltaKph: Number(speedDeltaKph.toFixed(2)),
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
               threshold: SOFTWARE_ACCEL_G_THRESHOLD,
-            } as Prisma.InputJsonValue,
+            },
           },
         );
       }
@@ -346,7 +345,7 @@ export class RulesEngineService {
           metaJson: {
             accelX: payload.accel.x,
             threshold: HARSH_BRAKE_THRESHOLD,
-          } as Prisma.InputJsonValue,
+          },
         },
       );
     }
@@ -365,7 +364,7 @@ export class RulesEngineService {
           metaJson: {
             accelX: payload.accel.x,
             threshold: HARSH_ACCEL_THRESHOLD,
-          } as Prisma.InputJsonValue,
+          },
         },
       );
     }
@@ -384,7 +383,7 @@ export class RulesEngineService {
           metaJson: {
             accelY: payload.accel.y,
             threshold: HARSH_CORNER_THRESHOLD,
-          } as Prisma.InputJsonValue,
+          },
         },
       );
     }
@@ -437,7 +436,7 @@ export class RulesEngineService {
               timeDeltaSeconds: Number(timeDeltaSeconds.toFixed(2)),
               reason:
                 'Software estimated G-force and speed drop threshold exceeded',
-            } as Prisma.InputJsonValue,
+            },
           },
         );
       }
@@ -482,7 +481,7 @@ export class RulesEngineService {
           gForce,
           speedDropKph: speedDrop,
           accelZ: payload.accel.z,
-        } as Prisma.InputJsonValue,
+        },
       },
     );
   }
@@ -513,7 +512,7 @@ export class RulesEngineService {
         metaJson: {
           reason: 'outside_park_zone_at_night',
           speedKph: payload.speedKph,
-        } as Prisma.InputJsonValue,
+        },
       },
     );
   }
@@ -558,7 +557,7 @@ export class RulesEngineService {
           batteryPct: payload.batteryPct,
           speedKph: payload.speedKph,
           ignition: payload.ignition ?? false,
-        } as Prisma.InputJsonValue,
+        },
       },
     );
   }
@@ -628,7 +627,7 @@ export class RulesEngineService {
           speedLimitKph: speedLimit,
           featureId,
           distanceMeters: nearest?.distanceMeters ?? 0,
-        } as Prisma.InputJsonValue,
+        },
       },
     );
   }
@@ -697,7 +696,7 @@ export class RulesEngineService {
             featureId: nearest.id,
             distanceMeters: nearest.distanceMeters,
             featureType: zone.type,
-          } as Prisma.InputJsonValue,
+          },
         },
       );
     }
@@ -756,7 +755,7 @@ export class RulesEngineService {
         reason: 'movement_while_ignition_off',
         speedKph: payload.speedKph,
         durationMs: elapsedMs,
-      } as Prisma.InputJsonValue,
+      },
     });
   }
 

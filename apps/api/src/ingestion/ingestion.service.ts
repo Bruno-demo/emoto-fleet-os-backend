@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DeviceStatus, EventSeverity, Prisma } from '@prisma/client';
+import { DeviceStatus, Prisma } from '@prisma/client';
 import { timingSafeEqual } from 'crypto';
 import mqtt, { IClientOptions, MqttClient } from 'mqtt';
 import { CommandsService } from '../commands/commands.service';
@@ -333,7 +333,7 @@ export class IngestionService implements OnModuleInit, OnModuleDestroy {
       deviceId: device.id,
       ts: eventTimestamp,
       type: eventPayload.type,
-      severity: eventPayload.severity as EventSeverity,
+      severity: eventPayload.severity,
       metaJson: eventPayload.meta as Prisma.InputJsonValue,
     });
 

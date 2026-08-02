@@ -13,7 +13,6 @@ import {
   BikeStatus,
   Prisma,
   AuditActionType,
-  FleetType,
 } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -1773,8 +1772,8 @@ export class HqService {
           email: body.email,
           phone: body.phone,
           passwordHash: hashedPassword,
-          role: 'INSURER' as UserRole,
-          status: 'ACTIVE' as UserStatus,
+          role: 'INSURER',
+          status: 'ACTIVE',
           fleetId: body.fleetId,
           riderProfile: {
             create: {

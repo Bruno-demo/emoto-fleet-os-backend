@@ -15,7 +15,6 @@ import {
   DeviceCommand,
   DeviceCommandStatus,
   DeviceCommandType,
-  Prisma,
 } from '@prisma/client';
 import { timingSafeEqual, randomUUID } from 'crypto';
 import mqtt, { MqttClient } from 'mqtt';
@@ -420,7 +419,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
         previousStatus: command.status,
         status: updatedCommand.status,
         errorMessage: updatedCommand.errorMessage,
-      } as Prisma.InputJsonValue,
+      },
     });
 
     this.metricsService.incrementCommandStatus(
