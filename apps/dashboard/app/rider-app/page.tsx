@@ -3,16 +3,12 @@
 import {
   Smartphone,
   ShieldCheck,
-  BatteryCharging,
-  Zap,
   Download,
   QrCode,
   Sparkles,
   Lock,
   CreditCard,
-  CheckCircle2,
   ExternalLink,
-  ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -140,7 +136,7 @@ export default function RiderAppPage() {
             </div>
             <h3 className="text-base font-extrabold text-white">MTN MoMo Daily Lease Pay</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              One-click daily rental payment triggers an instant USSD PIN push directly to the rider's MTN wallet.
+              One-click daily rental payment triggers an instant USSD PIN push directly to the rider&apos;s MTN wallet.
             </p>
           </div>
         </section>
