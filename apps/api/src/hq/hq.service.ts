@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
 import {
   UserStatus,
   UserRole,
@@ -13,8 +14,9 @@ import {
   BikeStatus,
   Prisma,
   AuditActionType,
-  type FleetType,
 } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { FleetType } from '@prisma/client';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import {
@@ -395,7 +397,7 @@ export class HqService {
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
-        type: type as FleetType,
+        type: type,
       },
       select: { id: true, name: true, type: true },
     });

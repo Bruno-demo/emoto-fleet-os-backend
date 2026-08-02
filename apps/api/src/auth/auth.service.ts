@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuditActionType, Prisma, UserRole, UserStatus, type FleetPlan } from '@prisma/client';
+
+import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { FleetPlan } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
@@ -470,7 +473,7 @@ export class AuthService {
           // Create the personal fleet for the self owner
           const plan = dto.plan ?? 'DEMO';
           const tier = await tx.pricingTier.findUnique({
-            where: { planCode: plan as FleetPlan },
+            where: { planCode: plan },
           });
           const monthlyRatePerBike = tier
             ? tier.monthlyRatePerBike
@@ -595,7 +598,7 @@ export class AuthService {
         async (tx) => {
           const plan = dto.plan ?? 'DEMO';
           const tier = await tx.pricingTier.findUnique({
-            where: { planCode: plan as FleetPlan },
+            where: { planCode: plan },
           });
           const monthlyRatePerBike = tier
             ? tier.monthlyRatePerBike
