@@ -826,121 +826,7 @@ function CreateAccountInner() {
       />
       <AuthTabs active="signup" />
 
-      {signupType === 'admin' && !isDemo && isPublicMode && (
-        <div className="mt-6 space-y-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted px-1">
-            {t('choose_fleet_plan', 'Choose your fleet plan')}
-          </p>
-          {selectedPlanSlug === 'insurance' ? (
-            <div className="rounded-[20px] border border-accent bg-accent/[0.05] p-5 flex gap-4 items-start ring-1 ring-accent">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-accent animate-in fade-in duration-200">
-                <Building2 size={20} />
-              </span>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-ink">{t('insurance_partner_plan_title', 'Insurance Partner Plan')}</p>
-                <p className="text-xs text-ink-muted leading-relaxed">
-                  {t('insurance_partner_plan_desc', 'This plan is dedicated to insurance companies only. Fleet operators cannot subscribe or shift to this plan.')}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {Object.entries(plans)
-                .filter(([slug]) => slug === 'coop-individual' || slug === 'delivery' || (slug !== 'insurance' && !plans['coop-individual']))
-                .map(([slug, plan]) => {
-                  const isSelected = selectedPlanSlug === slug;
-                  return (
-                    <button
-                      key={slug}
-                      type="button"
-                      onClick={() => setSelectedPlanSlug(slug)}
-                      className={cx(
-                        'group relative flex flex-col items-start rounded-[20px] border p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]',
-                        isSelected 
-                          ? 'border-accent bg-accent/[0.07] ring-1 ring-accent' 
-                          : 'border-line bg-surface hover:border-line-hover'
-                      )}
-                    >
-                      <div className={cx(
-                        'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-                        isSelected ? 'bg-accent/20 text-accent' : 'bg-surface-muted text-ink-soft group-hover:text-ink'
-                      )}>
-                        {plan.icon}
-                      </div>
-                      
-                      <div className="mt-3">
-                        <p className={cx(
-                          'text-sm font-bold',
-                          isSelected ? 'text-ink' : 'text-ink-muted'
-                        )}>
-                          {plan.title}
-                        </p>
-                        {isPricingLoaded ? (
-                          <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">
-                            {plan.description}
-                          </p>
-                        ) : (
-                          <span className="h-3.5 w-36 bg-line rounded animate-pulse inline-block mt-1" />
-                        )}
-                      </div>
-
-                      <div className="mt-4 flex items-baseline gap-1">
-                        {isPricingLoaded ? (
-                          <span className="text-sm font-extrabold text-ink">{plan.price}</span>
-                        ) : (
-                          <span className="h-5 w-16 bg-line rounded animate-pulse inline-block" />
-                        )}
-                        <span className="text-[10px] text-ink-muted">{t('per_bike_per_mo', '/ bike / mo')}</span>
-                      </div>
-
-                      {isSelected && (
-                        <div className="absolute top-3 right-3 text-accent">
-                          <BadgeCheck size={16} />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-
-          {/* Promo Code Input for account creation */}
-          {selectedPlanSlug && selectedPlanSlug !== 'insurance' && (
-            <div className="mt-4 rounded-2xl border border-line bg-surface-muted/30 p-4 space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
-                {t('promo_code_label', 'Have a promo code?')}
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder={t('promo_code_placeholder', 'Enter code...')}
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  disabled={isFormDisabled || isGateLocked}
-                  className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-accent"
-                />
-                <button
-                  type="button"
-                  onClick={handleValidatePromo}
-                  disabled={!promoCode || isValidatingPromo || isFormDisabled || isGateLocked}
-                  className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
-                >
-                  {isValidatingPromo ? t('promo_code_checking', 'Checking...') : t('promo_code_apply', 'Apply')}
-                </button>
-              </div>
-              {appliedDiscount ? (
-                <p className="text-xs text-success-ink font-semibold flex items-center gap-1.5 animate-fade-in">
-                  ✓ {t('promo_code_success', 'Discount "{name}" validated successfully!').replace('{name}', appliedDiscount.name)}
-                </p>
-              ) : promoError ? (
-                <p className="text-xs text-danger-ink font-semibold animate-fade-in">
-                  {promoError}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Single Unified Fleet Type & Subscription Plan Selection happens inside the Form below */}
 
       {isDemo && !selectedPlan && (
         <div className="mt-4 rounded-[16px] border border-purple-500/30 bg-purple-500/[0.07] p-4 flex items-center gap-3">
@@ -1437,6 +1323,40 @@ function CreateAccountInner() {
                         <ShieldCheck size={14} className="text-blue-400 shrink-0" />
                         <span><strong>Hardware Policy:</strong> 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.</span>
                       </div>
+                    </div>
+
+                    {/* Promo Code Input */}
+                    <div className="mt-3 rounded-2xl border border-line bg-surface-muted/30 p-4 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
+                        {t('promo_code_label', 'Have a promo code?')}
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder={t('promo_code_placeholder', 'Enter code...')}
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                          disabled={isFormDisabled || isGateLocked}
+                          className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-accent"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleValidatePromo}
+                          disabled={!promoCode || isValidatingPromo || isFormDisabled || isGateLocked}
+                          className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
+                        >
+                          {isValidatingPromo ? t('promo_code_checking', 'Checking...') : t('promo_code_apply', 'Apply')}
+                        </button>
+                      </div>
+                      {appliedDiscount ? (
+                        <p className="text-xs text-success-ink font-semibold flex items-center gap-1.5 animate-fade-in">
+                          ✓ {t('promo_code_success', 'Discount "{name}" validated successfully!').replace('{name}', appliedDiscount.name)}
+                        </p>
+                      ) : promoError ? (
+                        <p className="text-xs text-danger-ink font-semibold animate-fade-in">
+                          {promoError}
+                        </p>
+                      ) : null}
                     </div>
 
                     <AuthSelect
