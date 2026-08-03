@@ -55,8 +55,11 @@ export class LiveStateService {
       if (incoming.ignition === false) {
         lat = lastState.lat;
         lng = lastState.lng;
-      } else if (speedKph < 3) {
-        // If ignition is on but speed is very low, check distance
+        speedKph = 0;
+      } else if (speedKph < 3.5) {
+        // If speed is low (idling on kickstand), clamp speed to 0 and filter GPS jitter
+        speedKph = 0;
+
         const R = 6371000; // Earth radius in meters
         const dLat = ((lat - lastState.lat) * Math.PI) / 180;
         const dLng = ((lng - lastState.lng) * Math.PI) / 180;
@@ -69,11 +72,10 @@ export class LiveStateService {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c;
 
-        // If moved less than 15 meters, it is likely just stationary jitter
-        if (distance < 15) {
+        // If moved less than 30 meters while idling, lock to last coordinates to eliminate jitter
+        if (distance < 30) {
           lat = lastState.lat;
           lng = lastState.lng;
-          speedKph = 0;
         }
       }
     }
