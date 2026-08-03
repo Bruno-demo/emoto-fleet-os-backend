@@ -223,7 +223,7 @@ function SubscriptionNotice({
           </p>
           <p className={cx('mt-1 text-xs leading-5', isActive ? 'text-ink-muted' : 'text-danger-ink')}>
             {isActive
-              ? t('Upgrade to Operations Plus for device provisioning, zones, reports, audit logs, evidence packs, and remote commands.')
+              ? t('Upgrade to Delivery Fleet for device provisioning, zones, reports, audit logs, evidence packs, and remote commands.')
               : t('Open settings to review the fleet subscription before continuing operations.')}
           </p>
         </div>

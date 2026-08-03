@@ -16,7 +16,7 @@ export function PendingSetupGate({ isRefetching, onRefresh }: PendingSetupGatePr
     return null;
   }
 
-  const chosenPlanLabel = auth.riderMe.plan === 'PREMIUM' ? 'Operations Plus Plan' : 'Safety Core Plan';
+  const chosenPlanLabel = auth.riderMe.plan === 'PREMIUM' ? 'Delivery Fleet Plan' : 'Cooperative & Individual Plan';
 
   return (
     <View style={styles.pendingContainer}>

@@ -646,13 +646,13 @@ export default function FleetDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</p>
-              <p className="mt-2 text-2xl font-bold text-white">
+              <p className="mt-2 text-xl font-bold text-white">
                 {fleet.plan === 'PREMIUM'
-                  ? 'Operations Plus'
+                  ? 'Delivery Fleet'
                   : fleet.plan === 'DEMO'
-                  ? 'Safety Core'
+                  ? 'Cooperative & Individual'
                   : fleet.plan === 'INSURANCE'
-                  ? 'Insurance'
+                  ? 'Insurance Partner'
                   : fleet.plan}
               </p>
               <p className="mt-1 text-xs text-zinc-600">
@@ -695,11 +695,11 @@ export default function FleetDetailPage() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
               Fleet Type
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <button
                 onClick={() => typeMutation.mutate('COOP')}
                 disabled={typeMutation.isPending || fleet.type === 'COOP'}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
                   fleet.type === 'COOP'
                     ? 'bg-accent text-white'
                     : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
@@ -710,13 +710,24 @@ export default function FleetDetailPage() {
               <button
                 onClick={() => typeMutation.mutate('DELIVERY')}
                 disabled={typeMutation.isPending || fleet.type === 'DELIVERY'}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
                   fleet.type === 'DELIVERY'
                     ? 'bg-accent text-white'
                     : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
                 DELIVERY
+              </button>
+              <button
+                onClick={() => typeMutation.mutate('PERSONAL')}
+                disabled={typeMutation.isPending || fleet.type === 'PERSONAL'}
+                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
+                  fleet.type === 'PERSONAL'
+                    ? 'bg-accent text-white'
+                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                }`}
+              >
+                PERSONAL
               </button>
             </div>
           </div>
@@ -730,24 +741,24 @@ export default function FleetDetailPage() {
               <button
                 onClick={() => planMutation.mutate('DEMO')}
                 disabled={planMutation.isPending || fleet.plan === 'DEMO'}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
                   fleet.plan === 'DEMO'
                     ? 'bg-accent text-white'
                     : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
-                Safety Core
+                Coop/Indiv (10k)
               </button>
               <button
                 onClick={() => planMutation.mutate('PREMIUM')}
                 disabled={planMutation.isPending || fleet.plan === 'PREMIUM'}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold transition-all disabled:opacity-50 ${
+                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
                   fleet.plan === 'PREMIUM'
                     ? 'bg-accent text-white'
                     : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
                 }`}
               >
-                Operations Plus
+                Delivery (15k)
               </button>
             </div>
           </div>

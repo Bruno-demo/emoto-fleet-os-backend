@@ -516,8 +516,8 @@ export default function HqBillingPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
-                  const setupAmount = fleet.plan === 'INSURANCE' ? 0 : fleet._count.bikes * 35000;
-                  const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'PREMIUM' ? 10000 : fleet.plan === 'INSURANCE' ? 0 : 5000);
+                  const setupAmount = 0;
+                  const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'PREMIUM' ? 15000 : fleet.plan === 'INSURANCE' ? 0 : 10000);
                   const monthlyAmount = fleet._count.bikes * rate;
                   const hasUpgrade = fleet.upgradeRequested;
 
@@ -541,7 +541,7 @@ export default function HqBillingPage() {
                                 "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
                                 fleet.plan === 'PREMIUM' ? 'bg-emerald-500/15 text-emerald-400' : fleet.plan === 'INSURANCE' ? 'bg-purple-500/15 text-purple-400' : 'bg-white/5 text-zinc-500'
                               )}>
-                                {fleet.plan === 'PREMIUM' ? 'Plus' : fleet.plan === 'INSURANCE' ? 'Insurance' : 'Core'}
+                                {fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : fleet.plan === 'INSURANCE' ? 'Insurance Partner' : 'Cooperative & Individual'}
                               </span>
                               {fleet.trialEndsAt && new Date(fleet.trialEndsAt) > new Date() && (
                                 <span className="rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
@@ -1114,7 +1114,7 @@ export default function HqBillingPage() {
                     ? 'border-purple-500/30 bg-purple-500/10 text-purple-400'
                     : 'border-line bg-white/5 text-zinc-500'
                 )}>
-                  {activeFleetDetails.plan === 'PREMIUM' ? 'Operations Plus' : activeFleetDetails.plan === 'INSURANCE' ? 'Insurance' : 'Safety Core'}
+                  {activeFleetDetails.plan === 'PREMIUM' ? 'Delivery Fleet' : activeFleetDetails.plan === 'INSURANCE' ? 'Insurance Partner' : 'Cooperative & Individual'}
                 </span>
               </div>
               
@@ -1198,7 +1198,7 @@ export default function HqBillingPage() {
               <div className="flex gap-2">
                 <input
                   type="number"
-                  defaultValue={activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'PREMIUM' ? 10000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 5000)}
+                  defaultValue={activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'PREMIUM' ? 15000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 10000)}
                   key={activeFleetDetails.id}
                   id={`rate-input-${activeFleetDetails.id}`}
                   placeholder="Rate in RWF..."

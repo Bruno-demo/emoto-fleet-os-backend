@@ -43,7 +43,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   return (
     <DashboardCard
       eyebrow={isInactive ? 'Subscription inactive' : 'Upgrade required'}
-      title={isInactive ? 'Restore your subscription to continue' : `${lockedLabel} is on Operations Plus`}
+      title={isInactive ? 'Restore your subscription to continue' : `${lockedLabel} requires plan update`}
       description={
         isInactive
           ? 'Your fleet can still access account settings, but operational dashboard features are paused until the subscription is active again.'

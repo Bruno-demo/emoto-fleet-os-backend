@@ -52,7 +52,7 @@ export default function HqFleetsPage() {
     if (!query) return true;
 
     const tokens = query.split(/\s+/).filter(Boolean);
-    const planText = f.plan === 'PREMIUM' ? 'operations plus' : f.plan === 'DEMO' ? 'safety core' : f.plan;
+    const planText = f.plan === 'PREMIUM' ? 'delivery fleet' : f.plan === 'DEMO' ? 'cooperative individual' : f.plan;
 
     return tokens.every((token) => {
       return [
@@ -121,8 +121,8 @@ export default function HqFleetsPage() {
               className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-white focus:border-accent focus:outline-none cursor-pointer"
             >
               <option value="">All Service Plans</option>
-              <option value="PREMIUM">Operations Plus (Premium)</option>
-              <option value="DEMO">Safety Core (Core)</option>
+              <option value="PREMIUM">Delivery Fleet (15,000 RWF)</option>
+              <option value="DEMO">Cooperative & Individual (10,000 RWF)</option>
             </select>
           </div>
           
@@ -155,45 +155,44 @@ export default function HqFleetsPage() {
         </div>
       )}
 
-      <div className="rounded-[32px] border border-line bg-surface-strong overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-line bg-white/[0.02]">
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Fleet identity</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Type</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Service Plan</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Network Status</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Utilization</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Commissioned</th>
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={7} className="px-8 py-6">
-                      <div className="h-4 w-full rounded bg-white/5" />
-                    </td>
-                  </tr>
-                ))
-              ) : filteredFleets?.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-8 py-16 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-zinc-500">
-                      <Search size={20} />
-                    </div>
-                    <p className="mt-4 text-sm font-medium text-zinc-400">No fleets matching your search</p>
-                  </td>
+      {/* Fleets Table */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 w-full rounded-2xl bg-surface-strong border border-line animate-pulse" />
+          ))}
+        </div>
+      ) : !filteredFleets || filteredFleets.length === 0 ? (
+        <div className="rounded-[24px] border border-line bg-surface-strong p-12 text-center">
+          <Building2 className="mx-auto text-zinc-600 mb-4" size={48} />
+          <h3 className="font-display text-lg font-bold text-white mb-1">No Fleets Found</h3>
+          <p className="text-sm text-zinc-400">No organizations match your current search or filter criteria.</p>
+        </div>
+      ) : (
+        <div className="rounded-[24px] border border-line bg-surface-strong overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-line bg-white/[0.01] text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  <th className="px-8 py-5">Fleet Organization</th>
+                  <th className="px-8 py-5">Fleet Type</th>
+                  <th className="px-8 py-5">Service Plan</th>
+                  <th className="px-8 py-5">Subscription</th>
+                  <th className="px-8 py-5">Metrics (Users / Bikes)</th>
+                  <th className="px-8 py-5">Created Date</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
-              ) : (
-                filteredFleets?.map((fleet) => (
-                  <tr key={fleet.id} className="group transition-colors hover:bg-white/[0.02]">
+              </thead>
+              <tbody className="divide-y divide-line text-zinc-300">
+                {filteredFleets.map((fleet) => (
+                  <tr 
+                    key={fleet.id} 
+                    className="hover:bg-white/[0.02] transition-colors"
+                  >
                     <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 group-hover:text-white transition-colors">
-                          <Building2 size={18} />
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white/5 text-accent font-bold">
+                          {fleet.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -217,7 +216,7 @@ export default function HqFleetsPage() {
                     <td className="px-8 py-6">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">
                         <div className="h-1 w-1 rounded-full bg-accent" />
-                        {fleet.plan === 'PREMIUM' ? 'Operations Plus' : fleet.plan === 'DEMO' ? 'Safety Core' : fleet.plan}
+                        {fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : fleet.plan === 'DEMO' ? 'Cooperative & Individual' : fleet.plan}
                       </span>
                     </td>
                     <td className="px-8 py-6">
@@ -262,12 +261,12 @@ export default function HqFleetsPage() {
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

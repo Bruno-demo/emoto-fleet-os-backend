@@ -81,10 +81,10 @@ export class HqController {
   }
 
   @Put('fleets/:id/type')
-  @ApiOperation({ summary: 'Change fleet type (COOP vs DELIVERY)' })
+  @ApiOperation({ summary: 'Change fleet type (COOP, DELIVERY, or PERSONAL)' })
   updateFleetType(
     @Param('id') id: string,
-    @Body() body: { type: 'COOP' | 'DELIVERY' },
+    @Body() body: { type: 'COOP' | 'DELIVERY' | 'PERSONAL' },
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.hqService.updateFleetType(id, body.type, user);

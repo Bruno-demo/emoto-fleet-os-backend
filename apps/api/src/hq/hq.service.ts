@@ -386,7 +386,7 @@ export class HqService {
 
   async updateFleetType(
     fleetId: string,
-    type: 'COOP' | 'DELIVERY',
+    type: 'COOP' | 'DELIVERY' | 'PERSONAL',
     actor: AuthenticatedUser,
   ) {
     const fleet = await this.prisma.fleet.findUnique({
@@ -394,9 +394,9 @@ export class HqService {
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
-    if (!['COOP', 'DELIVERY'].includes(type)) {
+    if (!['COOP', 'DELIVERY', 'PERSONAL'].includes(type)) {
       throw new BadRequestException(
-        'Invalid fleet type. Must be COOP or DELIVERY',
+        'Invalid fleet type. Must be COOP, DELIVERY, or PERSONAL',
       );
     }
 

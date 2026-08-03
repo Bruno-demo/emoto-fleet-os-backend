@@ -309,10 +309,10 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                       selectedPlan === 'DEMO' ? styles.planTitleActive : null,
                     ]}
                   >
-                    Safety Core
+                    Co-op & Individual
                   </Text>
                   <Text style={styles.planDetail}>
-                    Essential safety & analytics.
+                    Full live map & remote commands.
                   </Text>
                   <Text style={styles.planPrice}>10K RWF/mo</Text>
                 </Pressable>
@@ -330,12 +330,12 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                       selectedPlan === 'PREMIUM' ? styles.planTitleActive : null,
                     ]}
                   >
-                    Operations Plus
+                    Delivery Fleet
                   </Text>
                   <Text style={styles.planDetail}>
-                    Adds Remote Lock/Unlock & Map.
+                    Adds delivery dispatch & reports.
                   </Text>
-                  <Text style={styles.planPrice}>25K RWF/mo</Text>
+                  <Text style={styles.planPrice}>15K RWF/mo</Text>
                 </Pressable>
               </View>
             </View>

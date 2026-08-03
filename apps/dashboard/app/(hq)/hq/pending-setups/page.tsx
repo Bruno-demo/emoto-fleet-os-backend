@@ -187,7 +187,7 @@ export default function PendingSetupsPage() {
                       </td>
                       <td className="px-6 py-5">
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold text-cyan-300 uppercase tracking-wider shadow-sm">
-                          {user.fleet.plan === 'PREMIUM' ? 'Operations Plus' : user.fleet.plan === 'DEMO' ? 'Safety Core' : user.fleet.plan === 'INSURANCE' ? 'Insurance' : user.fleet.plan}
+                          {user.fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : user.fleet.plan === 'DEMO' ? 'Cooperative & Individual' : user.fleet.plan === 'INSURANCE' ? 'Insurance Partner' : user.fleet.plan}
                         </span>
                       </td>
                       <td className="px-6 py-5">
@@ -242,19 +242,19 @@ export default function PendingSetupsPage() {
                 ) : bikes?.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-8 py-20 text-center">
-                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
-                        <Cpu size={32} />
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-lg shadow-amber-500/10">
+                        <Bike size={32} />
                       </div>
-                      <p className="mt-5 text-base font-bold text-white">All Bikes Assigned</p>
-                      <p className="mt-1 text-sm text-slate-400">Every bike has a tracking device installed.</p>
+                      <p className="mt-5 text-base font-bold text-white">All Hardware Commissioned</p>
+                      <p className="mt-1 text-sm text-slate-400">No bikes are currently awaiting device installation.</p>
                     </td>
                   </tr>
                 ) : (
                   bikes?.map((bike) => (
-                    <tr key={bike.id} className="group transition-colors hover:bg-blue-500/[0.04]">
+                    <tr key={bike.id} className="group transition-colors hover:bg-amber-500/[0.04]">
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3.5">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400 shadow-inner">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-inner">
                             <Bike size={18} />
                           </div>
                           <div>
@@ -269,7 +269,7 @@ export default function PendingSetupsPage() {
                           <span className="text-xs font-bold text-slate-200">{bike.fleet.name}</span>
                         </div>
                         <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-blue-300">
-                          {bike.fleet.plan === 'PREMIUM' ? 'Operations Plus' : bike.fleet.plan === 'DEMO' ? 'Safety Core' : bike.fleet.plan}
+                          {bike.fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : bike.fleet.plan === 'DEMO' ? 'Cooperative & Individual' : bike.fleet.plan}
                         </span>
                       </td>
                       <td className="px-6 py-5">
