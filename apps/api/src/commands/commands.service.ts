@@ -652,6 +652,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       | 'fleetId'
       | 'bikeId'
       | 'deviceUid'
+      | 'imei'
       | 'secretHash'
       | 'secretEncrypted'
     >
@@ -670,6 +671,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
         fleetId: true,
         bikeId: true,
         deviceUid: true,
+        imei: true,
         secretHash: true,
         secretEncrypted: true,
       },
