@@ -36,48 +36,12 @@ export class LiveStateService {
     },
   ): Promise<{ lat: number; lng: number; speedKph: number }> {
     let speedKph = incoming.speedKph;
-    let lat = incoming.lat;
-    let lng = incoming.lng;
+    const lat = incoming.lat;
+    const lng = incoming.lng;
 
-    // 1. Clamp speed if ignition is off
-    if (incoming.ignition === false) {
+    // Clamp speed if ignition is off or speed is below 1.5 km/h noise threshold
+    if (incoming.ignition === false || speedKph < 1.5) {
       speedKph = 0;
-    }
-
-    if (!bikeId) {
-      return { lat, lng, speedKph };
-    }
-
-    // 2. Fetch the last cached state
-    const lastState = await this.getBikeState(fleetId, bikeId);
-    if (lastState) {
-      // If ignition is off, lock coordinates to prevent parked drift
-      if (incoming.ignition === false) {
-        lat = lastState.lat;
-        lng = lastState.lng;
-        speedKph = 0;
-      } else if (speedKph < 3.5) {
-        // If speed is low (idling on kickstand), clamp speed to 0 and filter GPS jitter
-        speedKph = 0;
-
-        const R = 6371000; // Earth radius in meters
-        const dLat = ((lat - lastState.lat) * Math.PI) / 180;
-        const dLng = ((lng - lastState.lng) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lastState.lat * Math.PI) / 180) *
-            Math.cos((lat * Math.PI) / 180) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
-
-        // If moved less than 30 meters while idling, lock to last coordinates to eliminate jitter
-        if (distance < 30) {
-          lat = lastState.lat;
-          lng = lastState.lng;
-        }
-      }
     }
 
     return { lat, lng, speedKph };
