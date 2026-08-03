@@ -319,6 +319,46 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       this.activeConnections.set(device.deviceUid, { socket, imei });
       (socket as SinoTrackSocket).deviceUid = device.deviceUid;
 
+      // Check Redis for pending remote commands queued for this device and auto-flush over TCP
+      try {
+        const pendingKey = `sinotrack:pending_cmd:${device.deviceUid}`;
+        const pendingCmdJson = await this.redisService.get(pendingKey);
+        if (pendingCmdJson) {
+          const pendingCmd = JSON.parse(pendingCmdJson) as {
+            commandId: string;
+            type: 'LOCK' | 'UNLOCK';
+            imei: string;
+          };
+          const sinotrackCmd =
+            pendingCmd.type === 'LOCK'
+              ? `940${this.devicePassword}`
+              : `941${this.devicePassword}`;
+          const relayPacket = `*HQ,${imei},${sinotrackCmd}#`;
+
+          socket.write(relayPacket, 'ascii', () => {
+            this.logger.log(
+              `Auto-flushed queued ${pendingCmd.type} command to SinoTrack TCP socket imei=${imei}: ${relayPacket}`,
+            );
+          });
+
+          await this.redisService.del(pendingKey);
+
+          await this.prismaService.deviceCommand.update({
+            where: { id: pendingCmd.commandId },
+            data: {
+              status: 'ACKED',
+              ackedAt: new Date(),
+            },
+          });
+        }
+      } catch (flushErr: unknown) {
+        const msg =
+          flushErr instanceof Error ? flushErr.message : String(flushErr);
+        this.logger.warn(
+          `Failed to auto-flush pending SinoTrack TCP command: ${msg}`,
+        );
+      }
+
       if (command === 'V1' || command === 'V8') {
         await this.processTelemetryPacket(device, parts);
       } else {

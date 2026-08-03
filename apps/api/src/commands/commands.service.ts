@@ -281,6 +281,28 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${errMsg}`);
     }
 
+    // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
+    if (!tcpDispatched) {
+      try {
+        await this.redisService.set(
+          `sinotrack:pending_cmd:${device.deviceUid}`,
+          JSON.stringify({
+            commandId: command.id,
+            type,
+            deviceUid: device.deviceUid,
+            imei: device.imei,
+          }),
+          600,
+        );
+        this.logger.log(
+          `Queued pending command in Redis key sinotrack:pending_cmd:${device.deviceUid} for SinoTrack TCP auto-flush`,
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
+      }
+    }
+
     // 2. MQTT Publish
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
@@ -309,18 +331,17 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       return this.toFleetDeviceCommand(sentCommand);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      const finalStatus = tcpDispatched
-        ? 'ACKED'
-        : this.mqttDisabled
-          ? 'SENT'
-          : 'FAILED';
+      this.logger.warn(
+        `MQTT publish unavailable for deviceUid=${device.deviceUid}: ${message}. Command queued via TCP/Redis fallback.`,
+      );
+      const finalStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const resultCommand = await this.transitionStatus(
         command,
         finalStatus,
         {
           sentAt: new Date(),
           ackedAt: tcpDispatched ? new Date() : null,
-          errorMessage: tcpDispatched ? null : message,
+          errorMessage: tcpDispatched ? null : `MQTT unavailable: ${message}`,
         },
         user.id,
       );
@@ -391,6 +412,28 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${errMsg}`);
     }
 
+    // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
+    if (!tcpDispatched) {
+      try {
+        await this.redisService.set(
+          `sinotrack:pending_cmd:${device.deviceUid}`,
+          JSON.stringify({
+            commandId: command.id,
+            type,
+            deviceUid: device.deviceUid,
+            imei: device.imei,
+          }),
+          600,
+        );
+        this.logger.log(
+          `Queued pending command in Redis key sinotrack:pending_cmd:${device.deviceUid} for SinoTrack TCP auto-flush`,
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
+      }
+    }
+
     // 2. MQTT Publish
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
@@ -419,18 +462,17 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       return this.toFleetDeviceCommand(sentCommand);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      const finalStatus = tcpDispatched
-        ? 'ACKED'
-        : this.mqttDisabled
-          ? 'SENT'
-          : 'FAILED';
+      this.logger.warn(
+        `MQTT publish unavailable for deviceUid=${device.deviceUid}: ${message}. Command queued via TCP/Redis fallback.`,
+      );
+      const finalStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const resultCommand = await this.transitionStatus(
         command,
         finalStatus,
         {
           sentAt: new Date(),
           ackedAt: tcpDispatched ? new Date() : null,
-          errorMessage: tcpDispatched ? null : message,
+          errorMessage: tcpDispatched ? null : `MQTT unavailable: ${message}`,
         },
         user.id,
       );

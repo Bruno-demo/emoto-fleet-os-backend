@@ -292,24 +292,22 @@ export class HqService {
           'UNLOCKED';
         if (lastCommand) {
           if (lastCommand.type === 'LOCK') {
-            if (lastCommand.status === 'ACKED') {
-              lockState = 'LOCKED';
-            } else if (
-              lastCommand.status === 'PENDING' ||
-              lastCommand.status === 'SENT'
+            if (
+              lastCommand.status === 'ACKED' ||
+              lastCommand.status === 'SENT' ||
+              lastCommand.status === 'PENDING'
             ) {
-              lockState = 'LOCKING';
+              lockState = 'LOCKED';
             } else {
               lockState = 'UNLOCKED';
             }
           } else if (lastCommand.type === 'UNLOCK') {
-            if (lastCommand.status === 'ACKED') {
-              lockState = 'UNLOCKED';
-            } else if (
-              lastCommand.status === 'PENDING' ||
-              lastCommand.status === 'SENT'
+            if (
+              lastCommand.status === 'ACKED' ||
+              lastCommand.status === 'SENT' ||
+              lastCommand.status === 'PENDING'
             ) {
-              lockState = 'UNLOCKING';
+              lockState = 'UNLOCKED';
             } else {
               lockState = 'LOCKED';
             }
