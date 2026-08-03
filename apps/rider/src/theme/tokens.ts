@@ -126,6 +126,9 @@ export const theme = {
     android: {
       elevation: 4,
     },
+    web: {
+      boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.12)',
+    },
     default: {
       shadowColor: '#000000',
       shadowOpacity: 0.12,
@@ -142,6 +145,9 @@ export const theme = {
     },
     android: {
       elevation: 2,
+    },
+    web: {
+      boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.06)',
     },
     default: {
       shadowColor: '#000000',
