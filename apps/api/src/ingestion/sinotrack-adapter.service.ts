@@ -375,6 +375,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (command === 'V1' || command === 'V8') {
+        socket.write(`*HQ,${imei},V1#\r\n`, 'ascii');
         await this.processTelemetryPacket(device, parts);
       } else if (
         command === 'S20' ||
@@ -408,6 +409,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           });
         }
       } else {
+        socket.write(`*HQ,${imei},LINK#\r\n`, 'ascii');
         await this.processHeartbeatPacket(device);
       }
     } catch (error: unknown) {
