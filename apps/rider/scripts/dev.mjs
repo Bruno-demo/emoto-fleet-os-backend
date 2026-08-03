@@ -189,7 +189,7 @@ function attachStream(stream, target, onChunk) {
 function launchExpoAttempt({ apiBaseUrl, offline, port, setActiveChild }) {
   const modeLabel = offline ? 'offline fallback' : 'online';
   const child = spawn(process.execPath, [expoCliBin, 'start', '--port', String(port)], {
-    stdio: ['inherit', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe'],
     env: buildExpoEnv(apiBaseUrl, offline),
   });
   setActiveChild(child);
