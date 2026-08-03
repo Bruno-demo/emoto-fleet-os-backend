@@ -695,36 +695,42 @@ export default function FleetDetailPage() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
               Fleet Type
             </p>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-background/50 border border-line rounded-xl">
               <button
+                type="button"
+                title="Cooperative (COOP)"
                 onClick={() => typeMutation.mutate('COOP')}
                 disabled={typeMutation.isPending || fleet.type === 'COOP'}
-                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
+                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
                   fleet.type === 'COOP'
-                    ? 'bg-accent text-white'
-                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 COOP
               </button>
               <button
+                type="button"
+                title="Delivery Fleet"
                 onClick={() => typeMutation.mutate('DELIVERY')}
                 disabled={typeMutation.isPending || fleet.type === 'DELIVERY'}
-                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
+                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
                   fleet.type === 'DELIVERY'
-                    ? 'bg-accent text-white'
-                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 DELIVERY
               </button>
               <button
+                type="button"
+                title="Personal / Individual"
                 onClick={() => typeMutation.mutate('PERSONAL')}
                 disabled={typeMutation.isPending || fleet.type === 'PERSONAL'}
-                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
+                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
                   fleet.type === 'PERSONAL'
-                    ? 'bg-accent text-white'
-                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 PERSONAL
@@ -737,25 +743,29 @@ export default function FleetDetailPage() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
               Service Plan
             </p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-background/50 border border-line rounded-xl">
               <button
+                type="button"
+                title="Cooperative & Individual Plan (10,000 RWF/mo)"
                 onClick={() => planMutation.mutate('DEMO')}
                 disabled={planMutation.isPending || fleet.plan === 'DEMO'}
-                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
+                className={`rounded-lg px-1.5 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
                   fleet.plan === 'DEMO'
-                    ? 'bg-accent text-white'
-                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 Coop/Indiv (10k)
               </button>
               <button
+                type="button"
+                title="Delivery Fleet Plan (15,000 RWF/mo)"
                 onClick={() => planMutation.mutate('PREMIUM')}
                 disabled={planMutation.isPending || fleet.plan === 'PREMIUM'}
-                className={`flex-1 rounded-xl px-2 py-2.5 text-[11px] font-bold transition-all disabled:opacity-50 ${
+                className={`rounded-lg px-1.5 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
                   fleet.plan === 'PREMIUM'
-                    ? 'bg-accent text-white'
-                    : 'border border-line bg-white/5 text-zinc-400 hover:bg-white/10'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 Delivery (15k)
