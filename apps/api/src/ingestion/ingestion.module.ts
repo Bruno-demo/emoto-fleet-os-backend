@@ -29,6 +29,6 @@ import { SinoTrackAdapterService } from './sinotrack-adapter.service';
     TripBuilderService,
     SinoTrackAdapterService,
   ],
-  exports: [LiveStateService],
+  exports: [LiveStateService, SinoTrackAdapterService],
 })
 export class IngestionModule {}

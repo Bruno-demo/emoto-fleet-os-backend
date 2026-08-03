@@ -988,6 +988,40 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     return decrypted;
   }
 
+  /**
+   * Dispatches a LOCK or UNLOCK command directly to an active SinoTrack TCP socket connection if connected.
+   */
+  public dispatchDirectCommand(
+    deviceUid: string,
+    type: 'LOCK' | 'UNLOCK',
+  ): boolean {
+    const connection = this.activeConnections.get(deviceUid);
+    if (!connection || !connection.socket || connection.socket.destroyed) {
+      return false;
+    }
+
+    const sinotrackCmd =
+      type === 'LOCK'
+        ? `940${this.devicePassword}`
+        : `941${this.devicePassword}`;
+    const packet = `*HQ,${connection.imei},${sinotrackCmd}#`;
+
+    try {
+      connection.socket.write(packet, 'ascii', () => {
+        this.logger.log(
+          `Directly dispatched TCP packet to SinoTrack device imei=${connection.imei} (deviceUid=${deviceUid}): ${packet}`,
+        );
+      });
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'unknown error';
+      this.logger.error(
+        `Failed to send direct TCP packet to SinoTrack deviceUid=${deviceUid}: ${msg}`,
+      );
+      return false;
+    }
+  }
+
   private timingSafeHexEqual(leftHex: string, rightHex: string): boolean {
     const left = Buffer.from(leftHex, 'hex');
     const right = Buffer.from(rightHex, 'hex');

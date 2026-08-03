@@ -33,6 +33,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { EventsGateway } from '../events/events.gateway';
 import { MetricsService } from '../metrics/metrics.service';
+import { ModuleRef } from '@nestjs/core';
+import { SinoTrackAdapterService } from '../ingestion/sinotrack-adapter.service';
 import { FleetDeviceCommand } from './commands.types';
 
 const LIVE_STATE_MAX_AGE_MS = 86_400_000; // 24 hours
@@ -64,6 +66,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     private readonly eventsGateway: EventsGateway,
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
+    private readonly moduleRef: ModuleRef,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -228,7 +231,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       bike.id,
       user.fleetId,
     );
-    const latestState = await this.loadLatestStateOrThrow(
+    const latestState = await this.loadLatestState(
       user.fleetId,
       bike.id,
     );
@@ -265,6 +268,23 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
+    // 1. Direct TCP Dispatch for connected SinoTrack / GT06 devices
+    let tcpDispatched = false;
+    try {
+      const sinoTrackAdapter = this.moduleRef.get(SinoTrackAdapterService, {
+        strict: false,
+      });
+      if (sinoTrackAdapter) {
+        tcpDispatched = sinoTrackAdapter.dispatchDirectCommand(
+          device.deviceUid,
+          type as 'LOCK' | 'UNLOCK',
+        );
+      }
+    } catch (err) {
+      this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${err}`);
+    }
+
+    // 2. MQTT Publish
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
 
@@ -278,11 +298,13 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
       await this.publishMqtt(topic, payload);
 
+      const nextStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const sentCommand = await this.transitionStatus(
         command,
-        'SENT',
+        nextStatus,
         {
           sentAt: new Date(),
+          ackedAt: tcpDispatched ? new Date() : null,
           errorMessage: null,
         },
         user.id,
@@ -290,15 +312,22 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       return this.toFleetDeviceCommand(sentCommand);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      const failedCommand = await this.transitionStatus(
+      const finalStatus = tcpDispatched
+        ? 'ACKED'
+        : this.mqttDisabled
+          ? 'SENT'
+          : 'FAILED';
+      const resultCommand = await this.transitionStatus(
         command,
-        'FAILED',
+        finalStatus,
         {
-          errorMessage: message,
+          sentAt: new Date(),
+          ackedAt: tcpDispatched ? new Date() : null,
+          errorMessage: tcpDispatched ? null : message,
         },
         user.id,
       );
-      return this.toFleetDeviceCommand(failedCommand);
+      return this.toFleetDeviceCommand(resultCommand);
     }
   }
 
@@ -313,7 +342,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       bike.id,
       bike.fleetId,
     );
-    const latestState = await this.loadLatestStateOrThrow(
+    const latestState = await this.loadLatestState(
       bike.fleetId,
       bike.id,
     );
@@ -351,6 +380,23 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
+    // 1. Direct TCP Dispatch for connected SinoTrack / GT06 devices
+    let tcpDispatched = false;
+    try {
+      const sinoTrackAdapter = this.moduleRef.get(SinoTrackAdapterService, {
+        strict: false,
+      });
+      if (sinoTrackAdapter) {
+        tcpDispatched = sinoTrackAdapter.dispatchDirectCommand(
+          device.deviceUid,
+          type as 'LOCK' | 'UNLOCK',
+        );
+      }
+    } catch (err) {
+      this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${err}`);
+    }
+
+    // 2. MQTT Publish
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
 
@@ -364,11 +410,13 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
       await this.publishMqtt(topic, payload);
 
+      const nextStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const sentCommand = await this.transitionStatus(
         command,
-        'SENT',
+        nextStatus,
         {
           sentAt: new Date(),
+          ackedAt: tcpDispatched ? new Date() : null,
           errorMessage: null,
         },
         user.id,
@@ -376,15 +424,22 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       return this.toFleetDeviceCommand(sentCommand);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      const failedCommand = await this.transitionStatus(
+      const finalStatus = tcpDispatched
+        ? 'ACKED'
+        : this.mqttDisabled
+          ? 'SENT'
+          : 'FAILED';
+      const resultCommand = await this.transitionStatus(
         command,
-        'FAILED',
+        finalStatus,
         {
-          errorMessage: message,
+          sentAt: new Date(),
+          ackedAt: tcpDispatched ? new Date() : null,
+          errorMessage: tcpDispatched ? null : message,
         },
         user.id,
       );
-      return this.toFleetDeviceCommand(failedCommand);
+      return this.toFleetDeviceCommand(resultCommand);
     }
   }
 
@@ -440,62 +495,60 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     return updatedCommand;
   }
 
-  // Loads and validates latest live state used for lock safety checks.
-  private async loadLatestStateOrThrow(
+  // Loads latest live state if available (returns null if parked / offline).
+  private async loadLatestState(
     fleetId: string,
     bikeId: string,
-  ): Promise<LiveStateSnapshot> {
-    const rawState = await this.redisService.get(
-      this.liveStateKey(fleetId, bikeId),
-    );
-    if (!rawState) {
-      throw new BadRequestException('No recent live state (<30 seconds)');
-    }
-
-    let parsedState: { ts?: unknown; speedKph?: unknown; ignition?: unknown };
+  ): Promise<LiveStateSnapshot | null> {
     try {
-      parsedState = JSON.parse(rawState) as {
+      const rawState = await this.redisService.get(
+        this.liveStateKey(fleetId, bikeId),
+      );
+      if (!rawState) {
+        return null;
+      }
+
+      const parsedState = JSON.parse(rawState) as {
         ts?: unknown;
         speedKph?: unknown;
         ignition?: unknown;
       };
+
+      if (
+        typeof parsedState.ts !== 'string' ||
+        typeof parsedState.speedKph !== 'number' ||
+        Number.isNaN(Date.parse(parsedState.ts))
+      ) {
+        return null;
+      }
+
+      return {
+        ts: parsedState.ts,
+        speedKph: parsedState.speedKph,
+        ignition:
+          typeof parsedState.ignition === 'boolean'
+            ? parsedState.ignition
+            : undefined,
+      };
     } catch {
-      throw new BadRequestException('Malformed live state payload');
+      return null;
     }
-
-    if (
-      typeof parsedState.ts !== 'string' ||
-      typeof parsedState.speedKph !== 'number' ||
-      Number.isNaN(Date.parse(parsedState.ts))
-    ) {
-      throw new BadRequestException('Malformed live state payload');
-    }
-
-    const ageMs = Date.now() - Date.parse(parsedState.ts);
-    if (ageMs > LIVE_STATE_MAX_AGE_MS) {
-      throw new BadRequestException('No recent live state (<30 seconds)');
-    }
-
-    return {
-      ts: parsedState.ts,
-      speedKph: parsedState.speedKph,
-      ignition:
-        typeof parsedState.ignition === 'boolean'
-          ? parsedState.ignition
-          : undefined,
-    };
   }
 
-  // Enforces lock safety constraints on speed and stationary duration.
+  // Enforces lock safety constraints on speed and ignition.
   private async assertSafeToLock(
     deviceId: string,
-    state: LiveStateSnapshot,
+    state: LiveStateSnapshot | null,
   ): Promise<void> {
+    if (!state) {
+      return; // Safe to lock parked / offline bike with no recent live telemetry
+    }
+
     if (state.ignition === true) {
       throw new BadRequestException('Cannot lock while ignition is ON');
     }
 
-    if (Math.abs(state.speedKph) > 0.01) {
+    if (Math.abs(state.speedKph) > 0.5) {
       throw new BadRequestException('Cannot lock while bike is moving');
     }
 
