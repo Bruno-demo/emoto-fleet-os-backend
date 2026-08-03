@@ -906,13 +906,13 @@ export default function BikesPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    disabled={true}
-                    onClick={() => {}}
+                    disabled={!canSendCommands || isSendingCommand}
+                    onClick={() => setCommandIntent('LOCK')}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ background: '#EF4444', color: 'white' }}
                   >
                     <Lock size={16} />
-                    {t('Lock bike (Coming Soon)')}
+                    {t('Lock bike')}
                   </button>
                   <button
                     type="button"

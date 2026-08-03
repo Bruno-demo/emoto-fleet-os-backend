@@ -920,10 +920,20 @@ export function LiveMapPanel() {
               <div className="space-y-3">
                 <ActionButton
                   icon={<Lock size={16} />}
-                  label={t('Lock bike (Coming Soon)')}
+                  label={
+                    isSendingCommand && commandIntent === 'LOCK'
+                      ? t('Sending lock...')
+                      : t('Lock bike')
+                  }
                   tone="danger"
-                  disabled={true}
-                  onClick={() => {}}
+                  disabled={
+                    !canSendCommands ||
+                    !lockRule.allowed ||
+                    isSendingCommand ||
+                    selectedBikeLockStatus === 'LOCKED' ||
+                    selectedBikeLockStatus === 'LOCKING'
+                  }
+                  onClick={() => setCommandIntent('LOCK')}
                 />
                 {!commandFeatureEnabled ? (
                   <ActionNotice message={t("Remote lock and unlock controls are available on Operations Plus.")} tone="warning" />
