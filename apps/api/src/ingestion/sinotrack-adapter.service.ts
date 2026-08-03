@@ -20,6 +20,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { EventsGateway } from '../events/events.gateway';
 import { LiveBikeState } from './ingestion.types';
 import { LiveStateService } from './live-state.service';
 import { RulesEngineService } from './rules-engine.service';
@@ -69,6 +70,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     private readonly rulesEngineService: RulesEngineService,
     private readonly tripBuilderService: TripBuilderService,
     private readonly metricsService: MetricsService,
+    private readonly eventsGateway: EventsGateway,
   ) {
     this.enabled = this.configService.get<boolean>('SINOTRACK_ENABLED', true);
     this.port = this.configService.get<number>('SINOTRACK_PORT', 5013);
@@ -332,15 +334,25 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
             type: 'LOCK' | 'UNLOCK';
             imei: string;
           };
+          const hhmmss = new Date()
+            .toISOString()
+            .substring(11, 19)
+            .replace(/:/g, '');
+          const s20Cmd =
+            pendingCmd.type === 'LOCK'
+              ? `S20,${hhmmss},1,1`
+              : `S20,${hhmmss},0,1`;
+          const s20Packet = `*HQ,${imei},${s20Cmd}#`;
           const sinotrackCmd =
             pendingCmd.type === 'LOCK'
               ? `940${this.devicePassword}`
               : `941${this.devicePassword}`;
-          const relayPacket = `*HQ,${imei},${sinotrackCmd}#`;
+          const hqPacket = `*HQ,${imei},${sinotrackCmd}#`;
+          const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
 
-          socket.write(relayPacket, 'ascii', () => {
+          socket.write(combinedPackets, 'ascii', () => {
             this.logger.log(
-              `Auto-flushed queued ${pendingCmd.type} command to SinoTrack TCP socket imei=${imei}: ${relayPacket}`,
+              `Auto-flushed queued ${pendingCmd.type} command to SinoTrack TCP socket imei=${imei}: ${s20Packet} & ${hqPacket}`,
             );
           });
 
@@ -364,6 +376,37 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
       if (command === 'V1' || command === 'V8') {
         await this.processTelemetryPacket(device, parts);
+      } else if (
+        command === 'S20' ||
+        command.startsWith('94') ||
+        command === '555' ||
+        command === '666' ||
+        command === 'R12'
+      ) {
+        this.logger.log(
+          `Received command ACK response from SinoTrack tracker imei=${imei}: ${trimmed}`,
+        );
+        const latestCmd = await this.prismaService.deviceCommand.findFirst({
+          where: {
+            deviceId: device.id,
+            status: { in: ['PENDING', 'SENT'] },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (latestCmd) {
+          await this.prismaService.deviceCommand.update({
+            where: { id: latestCmd.id },
+            data: { status: 'ACKED', ackedAt: new Date() },
+          });
+          this.eventsGateway.emitCommandStatus(device.fleetId, {
+            commandId: latestCmd.id,
+            status: 'ACKED',
+            ts: new Date().toISOString(),
+            bikeId: device.bikeId ?? undefined,
+            deviceId: device.id,
+            action: latestCmd.type,
+          });
+        }
       } else {
         await this.processHeartbeatPacket(device);
       }
@@ -1059,16 +1102,20 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
 
+    const hhmmss = new Date().toISOString().substring(11, 19).replace(/:/g, '');
+    const s20Cmd = type === 'LOCK' ? `S20,${hhmmss},1,1` : `S20,${hhmmss},0,1`;
+    const s20Packet = `*HQ,${connection.imei},${s20Cmd}#`;
     const sinotrackCmd =
       type === 'LOCK'
         ? `940${this.devicePassword}`
         : `941${this.devicePassword}`;
-    const packet = `*HQ,${connection.imei},${sinotrackCmd}#`;
+    const hqPacket = `*HQ,${connection.imei},${sinotrackCmd}#`;
+    const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
 
     try {
-      connection.socket.write(packet, 'ascii', () => {
+      connection.socket.write(combinedPackets, 'ascii', () => {
         this.logger.log(
-          `Directly dispatched TCP packet to SinoTrack device imei=${connection.imei} (deviceUid=${deviceUid}): ${packet}`,
+          `Directly dispatched SinoTrack GPRS TCP packets to imei=${connection.imei} (deviceUid=${deviceUid}): ${s20Packet} & ${hqPacket}`,
         );
       });
       return true;
