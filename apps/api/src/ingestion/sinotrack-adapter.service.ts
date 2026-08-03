@@ -315,8 +315,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      // Bind socket to deviceUid for connection mapping
+      // Bind socket to deviceUid and imei for dual connection mapping
       this.activeConnections.set(device.deviceUid, { socket, imei });
+      if (imei) {
+        this.activeConnections.set(imei, { socket, imei });
+      }
       (socket as SinoTrackSocket).deviceUid = device.deviceUid;
 
       // Check Redis for pending remote commands queued for this device and auto-flush over TCP
@@ -1035,7 +1038,23 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     deviceUid: string,
     type: 'LOCK' | 'UNLOCK',
   ): boolean {
-    const connection = this.activeConnections.get(deviceUid);
+    let connection = this.activeConnections.get(deviceUid);
+    if (
+      (!connection || !connection.socket || connection.socket.destroyed) &&
+      deviceUid
+    ) {
+      for (const entry of this.activeConnections.values()) {
+        if (
+          entry.imei === deviceUid &&
+          entry.socket &&
+          !entry.socket.destroyed
+        ) {
+          connection = entry;
+          break;
+        }
+      }
+    }
+
     if (!connection || !connection.socket || connection.socket.destroyed) {
       return false;
     }
