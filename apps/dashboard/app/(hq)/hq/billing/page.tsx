@@ -744,8 +744,6 @@ export default function HqBillingPage() {
                     <label className="text-zinc-400 font-bold block mb-1">Applies To</label>
                     <select name="appliesTo" className="h-9 w-full bg-background border border-line rounded-xl px-2 text-white">
                       <option value="SUBSCRIPTION">Subscription Fees</option>
-                      <option value="SETUP_FEE">Setup Fees Only</option>
-                      <option value="BOTH">Both Setup & Subscription</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">

@@ -843,7 +843,7 @@ model PricingTier {
   name                String
   planCode            FleetPlan @unique
   monthlyRatePerBike  Int
-  setupFeePerBike     Int       @default(35000)
+  setupFeePerBike     Int       @default(0)
   description         String?
   isActive            Boolean   @default(true)
   sortOrder           Int       @default(0)

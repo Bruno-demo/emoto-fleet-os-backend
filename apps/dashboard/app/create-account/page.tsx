@@ -133,7 +133,7 @@ const PLAN_DETAILS: Record<
   },
 };
 
-type SignupType = 'rider' | 'admin';
+type SignupType = 'admin';
 
 const BIKE_RANGE_OPTIONS = [
   { value: '1-10', label: '1 – 10 bikes' },
@@ -275,7 +275,7 @@ function CreateAccountInner() {
   }, []);
   const isDemo = flow === 'demo';
   const { data: currentUser, isLoading, isError } = useCurrentUser();
-  const [signupType, setSignupType] = useState<SignupType>(tokenFromUrl ? 'rider' : planSlugFromUrl ? 'admin' : 'rider');
+  const [signupType] = useState<SignupType>('admin');
   const [inviteToken, setInviteToken] = useState(tokenFromUrl ?? '');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -290,7 +290,7 @@ function CreateAccountInner() {
   const [isCompresingPassport, setIsCompresingPassport] = useState(false);
   const [isCompresingLicence, setIsCompresingLicence] = useState(false);
   const [isCompresingIdCard, setIsCompresingIdCard] = useState(false);
-  const [role, setRole] = useState<UserRole>(planSlugFromUrl ? 'ADMIN' : 'DISPATCHER');
+  const [role, setRole] = useState<UserRole>('ADMIN');
   const [fleetName, setFleetName] = useState('');
   const [fleetType, setFleetType] = useState<'COOP' | 'DELIVERY' | 'PERSONAL'>('COOP');
   const [bikeRange, setBikeRange] = useState('11-50');
@@ -560,18 +560,8 @@ function CreateAccountInner() {
       return;
     }
 
-    // Rider public signup requires invite code
-    if (isPublicMode && signupType === 'rider') {
-      const parsedToken = z
-        .string()
-        .min(12, 'invite_code_error')
-        .safeParse(inviteToken.trim());
-      if (!parsedToken.success) {
-        setFieldErrors({ inviteToken: parsedToken.error.issues[0]?.message });
-        setError(parsedToken.error.issues[0]?.message ? t(parsedToken.error.issues[0].message) : t('invite_code_error'));
-        return;
-      }
-    }
+    // Rider public signup via invite code is disabled on the web dashboard.
+    // Riders must use the mobile app or be created by an admin in /riders.
 
     let finalFleetName = fleetName.trim();
     let finalInsurerName = selectedPlanSlug === 'insurance' ? insurerName : undefined;
@@ -643,7 +633,7 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
-              plan: selectedPlanSlug === 'safety-core' ? 'DEMO' : selectedPlanSlug === 'insurance' ? 'INSURANCE' : 'PREMIUM',
+              plan: selectedPlanSlug === 'coop-individual' || selectedPlanSlug === 'safety-core' ? 'DEMO' : selectedPlanSlug === 'insurance' ? 'INSURANCE' : 'PREMIUM',
               fleetType: selectedPlanSlug === 'insurance' ? undefined : fleetType,
               insurerName: finalInsurerName,
               fullName: fullName.trim() || undefined,
@@ -652,27 +642,7 @@ function CreateAccountInner() {
           },
           { auth: false },
         );
-      } else if (isPublicMode && signupType === 'rider') {
-        // Rider flow: redeem invite token
-        await apiFetch(
-          '/auth/register-invite',
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              token: inviteToken.trim(),
-              email: parsed.data.email,
-              phone: parsed.data.phone,
-              password: parsed.data.password,
-              fullName: fullName.trim(),
-              licenceNumber: licenceNumber.trim() || undefined,
-              identityNumber: identityNumber.trim() || undefined,
-              passportPhoto: passportPhoto || undefined,
-              licencePhoto: licencePhoto || undefined,
-              identityCardPhoto: identityCardPhoto || undefined,
-            }),
-          },
-          { auth: false },
-        );
+
       } else {
         await apiFetch('/auth/register', {
           method: 'POST',
@@ -1033,207 +1003,20 @@ function CreateAccountInner() {
           </AuthSelect>
         ) : (
           <>
-            <div>
-              <p className="text-sm font-medium text-ink">{t('i_am_a')}</p>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => { setSignupType('rider'); setRole('RIDER'); }}
-                  disabled={isFormDisabled || isGateLocked}
-                  className={`flex items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 transition-all ${
-                    signupType === 'rider'
-                      ? 'border-2 border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)]'
-                      : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
-                  } disabled:opacity-50`}
-                >
-                  <Bike size={14} /> {t('role_rider')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setSignupType('admin'); setRole('ADMIN'); }}
-                  disabled={isFormDisabled || isGateLocked}
-                  className={`flex items-center justify-center gap-2 rounded-[14px] px-3 py-2.5 transition-all ${
-                    signupType === 'admin'
-                      ? 'border-2 border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)]'
-                      : 'border border-line bg-surface text-ink-muted hover:bg-surface-hover'
-                  } disabled:opacity-50`}
-                >
-                  <ShieldCheck size={14} /> {t('role_admin')}
-                </button>
+            {/* Public mode: Admin-only registration. Riders use the mobile app or are created by admins. */}
+            <div className="rounded-[16px] border border-blue-500/20 bg-blue-500/[0.05] p-3.5 flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400 mt-0.5">
+                <ShieldCheck size={16} />
+              </span>
+              <div>
+                <p className="text-xs font-bold text-white">{t('admin_only_registration_title', 'Fleet Admin Registration')}</p>
+                <p className="text-[11px] text-ink-muted leading-relaxed mt-0.5">
+                  {t('admin_only_registration_desc', 'This form creates a fleet admin account. Riders can register through the E-Moto mobile app or be added by admins from the dashboard.')}
+                </p>
               </div>
             </div>
 
-            {signupType === 'rider' && (
-              <>
-                <AuthInput
-                  label={t('invite_code_label')}
-                  placeholder={t('invite_code_placeholder', 'Paste the code from your fleet admin')}
-                  value={inviteToken}
-                  onChange={(event) => setInviteToken(event.target.value)}
-                  onBlur={() => setTouched((prev) => ({ ...prev, inviteToken: true }))}
-                  error={mergedErrors.inviteToken}
-                  disabled={isFormDisabled || isGateLocked}
-                  icon={<UsersRound size={16} />}
-                  helper={t('invite_code_helper', 'Ask your fleet admin for an invite code to join their fleet.')}
-                />
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <AuthInput
-                    label={t('licence_number_label')}
-                    placeholder={t('licence_number_placeholder', 'e.g. DL-12345')}
-                    value={licenceNumber}
-                    onChange={(event) => setLicenceNumber(event.target.value)}
-                    disabled={isFormDisabled || isGateLocked}
-                    icon={<User size={16} />}
-                  />
-                  <AuthInput
-                    label={t('identity_number_label')}
-                    placeholder={t('identity_number_placeholder', 'e.g. ID-54321')}
-                    value={identityNumber}
-                    onChange={(event) => setIdentityNumber(event.target.value)}
-                    disabled={isFormDisabled || isGateLocked}
-                    icon={<ShieldCheck size={16} />}
-                  />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3 mt-4">
-                  {/* Passport Photo */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t('passport_photo_label')}</label>
-                    {passportPhoto ? (
-                      <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
-                        <img src={passportPhoto} alt="Passport" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setPassportPhoto('')}
-                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
-                        <span className="text-lg mb-0.5">👤</span>
-                        <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingPassport ? t('compressing', 'Compressing...') : t('passport_photo_label')}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          disabled={isCompresingPassport || isFormDisabled || isGateLocked}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                setIsCompresingPassport(true);
-                                const compressed = await compressImage(file);
-                                setPassportPhoto(compressed);
-                              } catch (err) {
-                                console.error(err);
-                              } finally {
-                                setIsCompresingPassport(false);
-                              }
-                            }
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-
-                  {/* Licence Photo */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t('licence_photo_label')}</label>
-                    {licencePhoto ? (
-                      <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
-                        <img src={licencePhoto} alt="Licence" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setLicencePhoto('')}
-                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
-                        <span className="text-lg mb-0.5">💳</span>
-                        <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingLicence ? t('compressing', 'Compressing...') : t('licence_photo_label')}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          disabled={isCompresingLicence || isFormDisabled || isGateLocked}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                setIsCompresingLicence(true);
-                                const compressed = await compressImage(file);
-                                setLicencePhoto(compressed);
-                              } catch (err) {
-                                console.error(err);
-                              } finally {
-                                setIsCompresingLicence(false);
-                              }
-                            }
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-
-                  {/* ID Card Photo */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t('id_photo_label')}</label>
-                    {identityCardPhoto ? (
-                      <div className="relative group rounded-xl border border-line overflow-hidden h-[100px]">
-                        <img src={identityCardPhoto} alt="ID Card" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setIdentityCardPhoto('')}
-                          className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white hover:bg-black/80 transition"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface-muted p-3 cursor-pointer hover:border-accent/30 transition h-[100px]">
-                        <span className="text-lg mb-0.5">🆔</span>
-                        <span className="text-[9px] font-semibold text-ink-muted text-center leading-tight">
-                          {isCompresingIdCard ? t('compressing', 'Compressing...') : t('id_photo_label')}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          disabled={isCompresingIdCard || isFormDisabled || isGateLocked}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                setIsCompresingIdCard(true);
-                                const compressed = await compressImage(file);
-                                setIdentityCardPhoto(compressed);
-                              } catch (err) {
-                                console.error(err);
-                              } finally {
-                                setIsCompresingIdCard(false);
-                              }
-                            }
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {signupType === 'admin' && (
-              <div className="space-y-3">
+            <div className="space-y-3">
                 {selectedPlanSlug === 'insurance' ? (
                   <>
                     <AuthSelect
@@ -1374,7 +1157,6 @@ function CreateAccountInner() {
                   </>
                 )}
               </div>
-            )}
           </>
         )}
 
@@ -1542,9 +1324,6 @@ function getRegisterFieldErrors({
 }): FieldErrors {
   const errors: FieldErrors = {};
 
-  if (isPublicMode && signupType === 'rider' && touched.inviteToken && inviteToken.trim().length < 12) {
-    errors.inviteToken = 'invite_code_error';
-  }
   if (touched.fullName && fullName.trim().length < 2) {
     errors.fullName = 'full_name_error';
   }
