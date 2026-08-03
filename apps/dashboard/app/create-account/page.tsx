@@ -1009,7 +1009,7 @@ function CreateAccountInner() {
                 <ShieldCheck size={16} />
               </span>
               <div>
-                <p className="text-xs font-bold text-white">{t('admin_only_registration_title', 'Fleet Admin Registration')}</p>
+                <p className="text-xs font-bold text-ink">{t('admin_only_registration_title', 'Fleet Admin Registration')}</p>
                 <p className="text-[11px] text-ink-muted leading-relaxed mt-0.5">
                   {t('admin_only_registration_desc', 'This form creates a fleet admin account. Riders can register through the E-Moto mobile app or be added by admins from the dashboard.')}
                 </p>
@@ -1102,9 +1102,9 @@ function CreateAccountInner() {
                         })}
                       </div>
 
-                      <div className="mt-2.5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 text-[11px] text-zinc-300 flex items-center gap-2">
-                        <ShieldCheck size={14} className="text-blue-400 shrink-0" />
-                        <span><strong>Hardware Policy:</strong> 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.</span>
+                      <div className="mt-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-2.5 text-[11px] text-ink-muted flex items-center gap-2">
+                        <ShieldCheck size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                        <span><strong className="text-ink">Hardware Policy:</strong> 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.</span>
                       </div>
                     </div>
 
@@ -1120,13 +1120,13 @@ function CreateAccountInner() {
                           value={promoCode}
                           onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                           disabled={isFormDisabled || isGateLocked}
-                          className="h-9 flex-1 bg-background border border-line rounded-xl px-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-accent"
+                          className="h-9 flex-1 bg-surface border border-line rounded-xl px-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                         />
                         <button
                           type="button"
                           onClick={handleValidatePromo}
                           disabled={!promoCode || isValidatingPromo || isFormDisabled || isGateLocked}
-                          className="px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
+                          className="px-4 rounded-xl text-xs font-bold bg-accent text-white hover:bg-accent-hover transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isValidatingPromo ? t('promo_code_checking', 'Checking...') : t('promo_code_apply', 'Apply')}
                         </button>
