@@ -37,7 +37,6 @@ import { ModuleRef } from '@nestjs/core';
 import { SinoTrackAdapterService } from '../ingestion/sinotrack-adapter.service';
 import { FleetDeviceCommand } from './commands.types';
 
-const LIVE_STATE_MAX_AGE_MS = 86_400_000; // 24 hours
 const LOCK_MIN_STATIONARY_MS = 15_000;
 const MQTT_PUBLISH_TIMEOUT_MS = 10_000;
 
@@ -231,10 +230,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       bike.id,
       user.fleetId,
     );
-    const latestState = await this.loadLatestState(
-      user.fleetId,
-      bike.id,
-    );
+    const latestState = await this.loadLatestState(user.fleetId, bike.id);
 
     if (type === 'LOCK') {
       await this.assertSafeToLock(device.id, latestState);
@@ -277,11 +273,12 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       if (sinoTrackAdapter) {
         tcpDispatched = sinoTrackAdapter.dispatchDirectCommand(
           device.deviceUid,
-          type as 'LOCK' | 'UNLOCK',
+          type,
         );
       }
-    } catch (err) {
-      this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${err}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${errMsg}`);
     }
 
     // 2. MQTT Publish
@@ -342,10 +339,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       bike.id,
       bike.fleetId,
     );
-    const latestState = await this.loadLatestState(
-      bike.fleetId,
-      bike.id,
-    );
+    const latestState = await this.loadLatestState(bike.fleetId, bike.id);
 
     if (type === 'LOCK') {
       await this.assertSafeToLock(device.id, latestState);
@@ -389,11 +383,12 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       if (sinoTrackAdapter) {
         tcpDispatched = sinoTrackAdapter.dispatchDirectCommand(
           device.deviceUid,
-          type as 'LOCK' | 'UNLOCK',
+          type,
         );
       }
-    } catch (err) {
-      this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${err}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${errMsg}`);
     }
 
     // 2. MQTT Publish
