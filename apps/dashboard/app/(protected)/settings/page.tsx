@@ -405,7 +405,7 @@ export default function SettingsPage() {
             description={t("Operational billing overview based on your active fleet size and plan.")}
           >
             {(() => {
-              const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? premiumMonthlyRate : user?.fleetPlan === 'INSURANCE' ? 0 : coreMonthlyRate);
+              const rate = user?.monthlyRatePerBike ?? (user?.fleetType === 'DELIVERY' || user?.fleetPlan === 'PREMIUM' ? 15000 : 10000);
               const isInsurance = user?.fleetPlan === 'INSURANCE';
               return (
                 <>
@@ -637,7 +637,7 @@ export default function SettingsPage() {
                   { duration: 'ANNUAL', months: 12, label: t('1 Year'), discount: 15 },
                   { duration: 'BIENNIAL', months: 24, label: t('2 Years'), discount: 20 },
                 ].map((plan) => {
-                  const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? premiumMonthlyRate : user?.fleetPlan === 'INSURANCE' ? 0 : 15000);
+                  const rate = user?.monthlyRatePerBike ?? (user?.fleetType === 'DELIVERY' || user?.fleetPlan === 'PREMIUM' ? 15000 : 10000);
                   const discountedRate = Math.round(rate * (1 - plan.discount / 100));
                   const isSelected = selectedPlanDuration === plan.duration;
 
