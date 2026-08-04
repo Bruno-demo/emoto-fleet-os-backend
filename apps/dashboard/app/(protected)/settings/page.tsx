@@ -637,7 +637,7 @@ export default function SettingsPage() {
                   { duration: 'ANNUAL', months: 12, label: t('1 Year'), discount: 15 },
                   { duration: 'BIENNIAL', months: 24, label: t('2 Years'), discount: 20 },
                 ].map((plan) => {
-                  const rate = user?.monthlyRatePerBike ?? 10000;
+                  const rate = user?.monthlyRatePerBike ?? (user?.fleetPlan === 'PREMIUM' ? premiumMonthlyRate : user?.fleetPlan === 'INSURANCE' ? 0 : 15000);
                   const discountedRate = Math.round(rate * (1 - plan.discount / 100));
                   const isSelected = selectedPlanDuration === plan.duration;
 
