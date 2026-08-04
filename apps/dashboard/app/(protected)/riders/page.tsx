@@ -405,7 +405,7 @@ export default function RidersPage() {
 
   const handleCopyLink = () => {
     if (!generatedInvite) return;
-    navigator.clipboard.writeText(generatedInvite.link);
+    navigator.clipboard.writeText(generatedInvite.token);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
   };
@@ -812,7 +812,7 @@ export default function RidersPage() {
                 )}
               >
                 <KeyRound size={14} />
-                {t("Generate Invite Link")}
+                {t("Generate Invite Code")}
               </button>
             </div>
 
@@ -1064,40 +1064,51 @@ export default function RidersPage() {
               </>
             ) : (
               <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <label className="block text-sm font-medium text-ink">
-                    {t("Rider's email (optional constraint)")}
+                <div className="grid gap-3 sm:grid-cols-4 items-end">
+                  <div className="flex flex-col justify-end">
+                    <label className="text-sm font-medium text-ink mb-1.5 min-h-[38px] flex items-end">
+                      {t("Rider's email (optional constraint)")}
+                    </label>
                     <input
                       type="email"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="rider@fleet.co"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                      className="w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
-                  </label>
-                  <label className="block text-sm font-medium text-ink">
-                    {t("Rider's phone (optional constraint)")}
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="text-sm font-medium text-ink mb-1.5 min-h-[38px] flex items-end">
+                      {t("Rider's phone (optional constraint)")}
+                    </label>
                     <input
                       type="tel"
                       value={newPhone}
                       onChange={(e) => setNewPhone(e.target.value)}
                       placeholder="0781234567"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
+                      className="w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
-                  </label>
-                  <label className="block text-sm font-medium text-ink">
-                    {t("Expiry duration (hours)")}
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="text-sm font-medium text-ink mb-1.5 min-h-[38px] flex items-end">
+                      {t("Expiry duration (hours)")}
+                    </label>
                     <input
                       type="number"
                       value={expiresInHours}
                       onChange={(e) => setExpiresInHours(e.target.value)}
                       min="1"
                       max="720"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      className="w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     />
-                  </label>
-                  <label className="block text-sm font-medium text-ink">
-                    {t("Max Uses (Multi-Use Code)")}
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="text-sm font-medium text-ink mb-1.5 min-h-[38px] flex items-end">
+                      {t("Max Uses (Multi-Use Code)")}
+                    </label>
                     <input
                       type="number"
                       value={maxUses}
@@ -1105,9 +1116,9 @@ export default function RidersPage() {
                       min="1"
                       max="10000"
                       placeholder="e.g. 100"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      className="w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     />
-                  </label>
+                  </div>
                 </div>
 
                 {generatedInvite && (
@@ -1118,23 +1129,23 @@ export default function RidersPage() {
                       </h4>
                     </div>
                     <p className="text-xs text-success-ink/80 mb-3">
-                      {t("Share this unique link with the rider. They can register their account directly.")}
+                      {t("Share this invitation code with riders. They can enter it directly in the Rider mobile app during registration.")}
                     </p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         readOnly
-                        value={generatedInvite.link}
-                        className="flex-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-ink outline-none"
+                        value={generatedInvite.token}
+                        className="flex-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-sm font-mono font-bold text-ink outline-none"
                       />
                       <button
                         type="button"
                         onClick={handleCopyLink}
-                        className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-accent-strong"
+                        className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-accent-strong shrink-0"
                         style={{ background: '#3B82F6', color: 'white' }}
                       >
                         {copiedInvite ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedInvite ? t('Copied') : t('Copy link')}
+                        {copiedInvite ? t('Copied') : t('Copy Code')}
                       </button>
                     </div>
                   </div>
@@ -1185,7 +1196,7 @@ export default function RidersPage() {
                   className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: '#3B82F6', color: 'white' }}
                 >
-                  {isGeneratingInvite ? t('Generating...') : t('Generate Invite Link')}
+                  {isGeneratingInvite ? t('Generating...') : t('Generate Invite Code')}
                 </button>
               )}
             </div>
