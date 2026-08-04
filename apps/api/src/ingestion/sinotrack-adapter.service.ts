@@ -195,7 +195,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   private handleSocketConnection(socket: net.Socket): void {
     const remoteAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     this.logger.debug(`New SinoTrack TCP connection from ${remoteAddress}`);
-    this.activeSockets.add(socket);
+    // Enable TCP Keep-Alive every 30s to prevent mobile GPRS carrier idle drops
+    socket.setKeepAlive(true, 30000);
+    socket.setNoDelay(true);
 
     // Secure timeout: destroy connection if idle for 2 minutes
     socket.setTimeout(120000);
