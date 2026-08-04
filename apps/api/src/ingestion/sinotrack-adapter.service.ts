@@ -365,7 +365,13 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
               ? `940${this.devicePassword}`
               : `941${this.devicePassword}`;
           const hqPacket = `*HQ,${imei},${sinotrackCmd}#`;
-          const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
+          const defaultHqCmd =
+            pendingCmd.type === 'LOCK' ? '9400000' : '9410000';
+          const defaultHqPacket = `*HQ,${imei},${defaultHqCmd}#`;
+          const combinedPackets =
+            this.devicePassword === '0000'
+              ? `${s20Packet}\r\n${hqPacket}\r\n`
+              : `${s20Packet}\r\n${hqPacket}\r\n${defaultHqPacket}\r\n`;
 
           socket.write(combinedPackets, 'ascii', () => {
             this.logger.log(
@@ -1089,7 +1095,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         ? `940${this.devicePassword}`
         : `941${this.devicePassword}`;
     const hqPacket = `*HQ,${connection.imei},${sinotrackCmd}#`;
-    const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
+    const defaultHqCmd = type === 'LOCK' ? '9400000' : '9410000';
+    const defaultHqPacket = `*HQ,${connection.imei},${defaultHqCmd}#`;
+    const combinedPackets =
+      this.devicePassword === '0000'
+        ? `${s20Packet}\r\n${hqPacket}\r\n`
+        : `${s20Packet}\r\n${hqPacket}\r\n${defaultHqPacket}\r\n`;
 
     try {
       connection.socket.write(combinedPackets, 'ascii', () => {
