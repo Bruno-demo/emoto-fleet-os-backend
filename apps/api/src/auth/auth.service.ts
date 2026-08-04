@@ -792,28 +792,52 @@ export class AuthService {
       dto.expiresInHours ??
       this.configService.get<number>('INVITE_TOKEN_TTL_HOURS', 168);
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+    const maxUsesVal = dto.maxUses ?? 1;
 
-    const createdInvite = await this.prismaService.registrationInvite.create({
-      data: {
-        fleetId: actor.fleetId,
-        role,
-        email: normalizedEmail,
-        phone: dto.phone,
-        tokenHash,
-        maxUses: dto.maxUses ?? 1,
-        expiresAt,
-      },
-      select: {
-        id: true,
-        fleetId: true,
-        role: true,
-        email: true,
-        phone: true,
-        maxUses: true,
-        usedCount: true,
-        expiresAt: true,
-      },
-    });
+    let createdInvite: any;
+    try {
+      createdInvite = await this.prismaService.registrationInvite.create({
+        data: {
+          fleetId: actor.fleetId,
+          role,
+          email: normalizedEmail,
+          phone: dto.phone,
+          tokenHash,
+          maxUses: maxUsesVal,
+          expiresAt,
+        },
+        select: {
+          id: true,
+          fleetId: true,
+          role: true,
+          email: true,
+          phone: true,
+          maxUses: true,
+          usedCount: true,
+          expiresAt: true,
+        },
+      });
+    } catch {
+      // Fallback for database instances where maxUses/usedCount columns have not been migrated yet
+      createdInvite = await this.prismaService.registrationInvite.create({
+        data: {
+          fleetId: actor.fleetId,
+          role,
+          email: normalizedEmail,
+          phone: dto.phone,
+          tokenHash,
+          expiresAt,
+        },
+        select: {
+          id: true,
+          fleetId: true,
+          role: true,
+          email: true,
+          phone: true,
+          expiresAt: true,
+        },
+      });
+    }
 
     await this.auditService.createAuditLog({
       fleetId: actor.fleetId,
@@ -825,7 +849,7 @@ export class AuthService {
         role: createdInvite.role,
         email: createdInvite.email,
         phone: createdInvite.phone,
-        maxUses: createdInvite.maxUses,
+        maxUses: createdInvite.maxUses ?? maxUsesVal,
       },
     });
 
@@ -836,8 +860,8 @@ export class AuthService {
       role: createdInvite.role,
       email: createdInvite.email,
       phone: createdInvite.phone,
-      maxUses: createdInvite.maxUses,
-      usedCount: createdInvite.usedCount,
+      maxUses: createdInvite.maxUses ?? maxUsesVal,
+      usedCount: createdInvite.usedCount ?? 0,
       expiresAt: createdInvite.expiresAt,
     };
   }
@@ -933,18 +957,29 @@ export class AuthService {
             });
           }
 
-          const newUsedCount = invite.usedCount + 1;
-          const isFullyUsed = invite.maxUses > 0 && newUsedCount >= invite.maxUses;
+          const newUsedCount = ((invite as any).usedCount ?? 0) + 1;
+          const isFullyUsed = ((invite as any).maxUses ?? 1) > 0 && newUsedCount >= ((invite as any).maxUses ?? 1);
 
-          await tx.registrationInvite.update({
-            where: { id: invite.id },
-            data: {
-              usedCount: { increment: 1 },
-              status: isFullyUsed ? 'USED' : 'ACTIVE',
-              usedAt: now,
-              usedByUserId: user.id,
-            },
-          });
+          try {
+            await tx.registrationInvite.update({
+              where: { id: invite.id },
+              data: {
+                usedCount: { increment: 1 },
+                status: isFullyUsed ? 'USED' : 'ACTIVE',
+                usedAt: now,
+                usedByUserId: user.id,
+              },
+            });
+          } catch {
+            await tx.registrationInvite.update({
+              where: { id: invite.id },
+              data: {
+                status: 'USED',
+                usedAt: now,
+                usedByUserId: user.id,
+              },
+            });
+          }
 
           return user;
         },
