@@ -321,8 +321,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      // Auto-populate 15-digit hardware IMEI in DB if missing
-      if (!device.imei && imei) {
+      // Auto-populate / update 15-digit hardware IMEI in DB if missing or mismatched
+      if (imei && imei.length >= 10 && device.imei !== imei) {
         try {
           await this.prismaService.device.update({
             where: { id: device.id },
@@ -330,7 +330,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           });
           device.imei = imei;
           this.logger.log(
-            `Auto-populated hardware IMEI ${imei} for deviceUid=${device.deviceUid}`,
+            `Auto-updated hardware IMEI ${imei} for deviceUid=${device.deviceUid}`,
           );
         } catch {
           // Ignore unique constraint collision if another device record already holds this IMEI
@@ -338,7 +338,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
 
       // Bind socket to deviceUid and imei for dual connection mapping
-      this.activeConnections.set(device.deviceUid, { socket, imei });
+      this.activeConnections.set(device.deviceUid, { socket, imei: imei || device.imei || device.deviceUid });
       if (imei) {
         this.activeConnections.set(imei, { socket, imei });
       }
@@ -1084,20 +1084,31 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
 
+    let targetImei = connection.imei;
+    if (!targetImei || targetImei.length < 10) {
+      for (const [key, value] of this.activeConnections.entries()) {
+        if (value.socket === connection.socket && key && key.length >= 10) {
+          targetImei = key;
+          break;
+        }
+      }
+    }
+    targetImei = targetImei || deviceUid;
+
     const hhmmss = new Date().toISOString().substring(11, 19).replace(/:/g, '');
     const s20Cmd = type === 'LOCK' ? `S20,${hhmmss},1,1` : `S20,${hhmmss},0,1`;
-    const s20Packet = `*HQ,${connection.imei},${s20Cmd}#`;
+    const s20Packet = `*HQ,${targetImei},${s20Cmd}#`;
     const sinotrackCmd =
       type === 'LOCK'
         ? `940${this.devicePassword}`
         : `941${this.devicePassword}`;
-    const hqPacket = `*HQ,${connection.imei},${sinotrackCmd}#`;
+    const hqPacket = `*HQ,${targetImei},${sinotrackCmd}#`;
     const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
 
     try {
       connection.socket.write(combinedPackets, 'ascii', () => {
         this.logger.log(
-          `Directly dispatched SinoTrack GPRS TCP packets to imei=${connection.imei} (deviceUid=${deviceUid}): ${s20Packet} & ${hqPacket}`,
+          `Directly dispatched SinoTrack GPRS TCP packets to imei=${targetImei} (deviceUid=${deviceUid}): ${s20Packet} & ${hqPacket}`,
         );
       });
       return true;
