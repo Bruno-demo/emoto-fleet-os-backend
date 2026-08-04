@@ -281,29 +281,44 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${errMsg}`);
     }
 
-    // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
-    if (!tcpDispatched) {
-      try {
-        await this.redisService.set(
-          `sinotrack:pending_cmd:${device.deviceUid}`,
-          JSON.stringify({
-            commandId: command.id,
-            type,
-            deviceUid: device.deviceUid,
-            imei: device.imei,
-          }),
-          600,
-        );
-        this.logger.log(
-          `Queued pending command in Redis key sinotrack:pending_cmd:${device.deviceUid} for SinoTrack TCP auto-flush`,
-        );
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
-      }
+    if (tcpDispatched) {
+      this.logger.log(
+        `Direct TCP command ${type} dispatched instantly to SinoTrack deviceUid=${device.deviceUid}`,
+      );
+      const ackedCommand = await this.transitionStatus(
+        command,
+        'ACKED',
+        {
+          sentAt: new Date(),
+          ackedAt: new Date(),
+          errorMessage: null,
+        },
+        user.id,
+      );
+      return this.toFleetDeviceCommand(ackedCommand);
     }
 
-    // 2. MQTT Publish
+    // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
+    try {
+      await this.redisService.set(
+        `sinotrack:pending_cmd:${device.deviceUid}`,
+        JSON.stringify({
+          commandId: command.id,
+          type,
+          deviceUid: device.deviceUid,
+          imei: device.imei,
+        }),
+        600,
+      );
+      this.logger.log(
+        `Queued pending command in Redis key sinotrack:pending_cmd:${device.deviceUid} for SinoTrack TCP auto-flush`,
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
+    }
+
+    // 2. MQTT Fallback Publish for Native MQTT hardware devices
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
 
@@ -317,13 +332,12 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
       await this.publishMqtt(topic, payload);
 
-      const nextStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const sentCommand = await this.transitionStatus(
         command,
-        nextStatus,
+        'SENT',
         {
           sentAt: new Date(),
-          ackedAt: tcpDispatched ? new Date() : null,
+          ackedAt: null,
           errorMessage: null,
         },
         user.id,
@@ -334,14 +348,13 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(
         `MQTT publish unavailable for deviceUid=${device.deviceUid}: ${message}. Command queued via TCP/Redis fallback.`,
       );
-      const finalStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const resultCommand = await this.transitionStatus(
         command,
-        finalStatus,
+        'SENT',
         {
           sentAt: new Date(),
-          ackedAt: tcpDispatched ? new Date() : null,
-          errorMessage: tcpDispatched ? null : `MQTT unavailable: ${message}`,
+          ackedAt: null,
+          errorMessage: `MQTT unavailable: ${message}`,
         },
         user.id,
       );
@@ -412,29 +425,44 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`SinoTrack TCP direct dispatch skipped: ${errMsg}`);
     }
 
-    // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
-    if (!tcpDispatched) {
-      try {
-        await this.redisService.set(
-          `sinotrack:pending_cmd:${device.deviceUid}`,
-          JSON.stringify({
-            commandId: command.id,
-            type,
-            deviceUid: device.deviceUid,
-            imei: device.imei,
-          }),
-          600,
-        );
-        this.logger.log(
-          `Queued pending command in Redis key sinotrack:pending_cmd:${device.deviceUid} for SinoTrack TCP auto-flush`,
-        );
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
-      }
+    if (tcpDispatched) {
+      this.logger.log(
+        `HQ Direct TCP command ${type} dispatched instantly to SinoTrack deviceUid=${device.deviceUid}`,
+      );
+      const ackedCommand = await this.transitionStatus(
+        command,
+        'ACKED',
+        {
+          sentAt: new Date(),
+          ackedAt: new Date(),
+          errorMessage: null,
+        },
+        user.id,
+      );
+      return this.toFleetDeviceCommand(ackedCommand);
     }
 
-    // 2. MQTT Publish
+    // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
+    try {
+      await this.redisService.set(
+        `sinotrack:pending_cmd:${device.deviceUid}`,
+        JSON.stringify({
+          commandId: command.id,
+          type,
+          deviceUid: device.deviceUid,
+          imei: device.imei,
+        }),
+        600,
+      );
+      this.logger.log(
+        `Queued pending command in Redis key sinotrack:pending_cmd:${device.deviceUid} for SinoTrack TCP auto-flush`,
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
+    }
+
+    // 2. MQTT Fallback Publish for Native MQTT hardware devices
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
 
@@ -448,13 +476,12 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
       await this.publishMqtt(topic, payload);
 
-      const nextStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const sentCommand = await this.transitionStatus(
         command,
-        nextStatus,
+        'SENT',
         {
           sentAt: new Date(),
-          ackedAt: tcpDispatched ? new Date() : null,
+          ackedAt: null,
           errorMessage: null,
         },
         user.id,
@@ -465,14 +492,13 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(
         `MQTT publish unavailable for deviceUid=${device.deviceUid}: ${message}. Command queued via TCP/Redis fallback.`,
       );
-      const finalStatus = tcpDispatched ? 'ACKED' : 'SENT';
       const resultCommand = await this.transitionStatus(
         command,
-        finalStatus,
+        'SENT',
         {
           sentAt: new Date(),
-          ackedAt: tcpDispatched ? new Date() : null,
-          errorMessage: tcpDispatched ? null : `MQTT unavailable: ${message}`,
+          ackedAt: null,
+          errorMessage: `MQTT unavailable: ${message}`,
         },
         user.id,
       );
