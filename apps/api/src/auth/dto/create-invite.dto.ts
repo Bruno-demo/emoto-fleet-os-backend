@@ -32,4 +32,11 @@ export class CreateInviteDto {
   @Min(1)
   @Max(720)
   expiresInHours?: number;
+
+  @ApiPropertyOptional({ example: 10, description: 'Maximum number of uses for multi-usable codes (default 1)' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  maxUses?: number;
 }

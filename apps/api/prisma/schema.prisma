@@ -328,6 +328,8 @@ model RegistrationInvite {
   email         String?
   phone         String?
   tokenHash     String
+  maxUses       Int          @default(1)
+  usedCount     Int          @default(0)
   status        InviteStatus @default(ACTIVE)
   createdAt     DateTime     @default(now()) @db.Timestamptz(6)
   expiresAt     DateTime     @db.Timestamptz(6)

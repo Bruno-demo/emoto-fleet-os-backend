@@ -194,6 +194,8 @@ export class AuthController {
     role: UserRole;
     email: string | null;
     phone: string | null;
+    maxUses: number;
+    usedCount: number;
     expiresAt: Date;
   }> {
     return this.authService.createInvite(actor, dto);

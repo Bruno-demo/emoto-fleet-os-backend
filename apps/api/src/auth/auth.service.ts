@@ -765,6 +765,8 @@ export class AuthService {
     role: UserRole;
     email: string | null;
     phone: string | null;
+    maxUses: number;
+    usedCount: number;
     expiresAt: Date;
   }> {
     const registerEnabled = this.configService.get<boolean>(
@@ -798,6 +800,7 @@ export class AuthService {
         email: normalizedEmail,
         phone: dto.phone,
         tokenHash,
+        maxUses: dto.maxUses ?? 1,
         expiresAt,
       },
       select: {
@@ -806,6 +809,8 @@ export class AuthService {
         role: true,
         email: true,
         phone: true,
+        maxUses: true,
+        usedCount: true,
         expiresAt: true,
       },
     });
@@ -820,6 +825,7 @@ export class AuthService {
         role: createdInvite.role,
         email: createdInvite.email,
         phone: createdInvite.phone,
+        maxUses: createdInvite.maxUses,
       },
     });
 
@@ -830,6 +836,8 @@ export class AuthService {
       role: createdInvite.role,
       email: createdInvite.email,
       phone: createdInvite.phone,
+      maxUses: createdInvite.maxUses,
+      usedCount: createdInvite.usedCount,
       expiresAt: createdInvite.expiresAt,
     };
   }
@@ -851,6 +859,10 @@ export class AuthService {
 
     if (!invite || invite.status !== 'ACTIVE') {
       throw new ForbiddenException('Invite is invalid or already used');
+    }
+
+    if (invite.maxUses > 0 && invite.usedCount >= invite.maxUses) {
+      throw new ForbiddenException('Invite code usage limit reached');
     }
 
     const now = new Date();
@@ -921,10 +933,14 @@ export class AuthService {
             });
           }
 
+          const newUsedCount = invite.usedCount + 1;
+          const isFullyUsed = invite.maxUses > 0 && newUsedCount >= invite.maxUses;
+
           await tx.registrationInvite.update({
             where: { id: invite.id },
             data: {
-              status: 'USED',
+              usedCount: { increment: 1 },
+              status: isFullyUsed ? 'USED' : 'ACTIVE',
               usedAt: now,
               usedByUserId: user.id,
             },

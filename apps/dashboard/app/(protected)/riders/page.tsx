@@ -365,6 +365,7 @@ export default function RidersPage() {
   // Invite creation state
   const [formMode, setFormMode] = useState<'direct' | 'invite'>('direct');
   const [expiresInHours, setExpiresInHours] = useState('168');
+  const [maxUses, setMaxUses] = useState('10');
   const [generatedInvite, setGeneratedInvite] = useState<{ inviteId: string; token: string; link: string } | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
@@ -382,6 +383,7 @@ export default function RidersPage() {
           email: newEmail || undefined,
           phone: newPhone || undefined,
           expiresInHours: Number(expiresInHours),
+          maxUses: Number(maxUses),
         }),
       });
       const inviteLink = `${window.location.origin}/create-account?token=${data.token}`;
@@ -1062,7 +1064,7 @@ export default function RidersPage() {
               </>
             ) : (
               <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-4">
                   <label className="block text-sm font-medium text-ink">
                     {t("Rider's email (optional constraint)")}
                     <input
@@ -1079,7 +1081,7 @@ export default function RidersPage() {
                       type="tel"
                       value={newPhone}
                       onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="+254..."
+                      placeholder="0781234567"
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted outline-none focus:border-accent/50"
                     />
                   </label>
@@ -1091,6 +1093,18 @@ export default function RidersPage() {
                       onChange={(e) => setExpiresInHours(e.target.value)}
                       min="1"
                       max="720"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Max Uses (Multi-Use Code)")}
+                    <input
+                      type="number"
+                      value={maxUses}
+                      onChange={(e) => setMaxUses(e.target.value)}
+                      min="1"
+                      max="10000"
+                      placeholder="e.g. 100"
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     />
                   </label>

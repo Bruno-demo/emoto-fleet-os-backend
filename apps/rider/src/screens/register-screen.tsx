@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { AuthShell } from '../components/auth-shell';
 import { InlineNotice } from '../components/ui/error-state';
 import { InputField } from '../components/ui/input-field';
-import { PrimaryButton } from '../components/ui/button';
+import { PrimaryButton, SecondaryButton } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { logAppError } from '../lib/monitoring/error-log';
@@ -16,13 +17,17 @@ type RegisterScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Regi
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [inviteCode, setInviteCode] = useState('');
   const [fullName, setFullName] = useState('');
-  const [countryCode, setCountryCode] = useState('+250');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [identityNumber, setIdentityNumber] = useState('');
   const [licenceNumber, setLicenceNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Image uploads (base64 data URIs)
+  const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
+  const [identityCardPhoto, setIdentityCardPhoto] = useState<string | null>(null);
+  const [licencePhoto, setLicencePhoto] = useState<string | null>(null);
 
   const [inviteCodeError, setInviteCodeError] = useState<string | null>(null);
   const [fullNameError, setFullNameError] = useState<string | null>(null);
@@ -42,6 +47,35 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
 
+  const pickImage = async (setter: (uri: string) => void) => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        setErrorMessage('Permission to access camera roll is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        if (asset.base64) {
+          const mimeType = asset.mimeType || 'image/jpeg';
+          setter(`data:${mimeType};base64,${asset.base64}`);
+        } else if (asset.uri) {
+          setter(asset.uri);
+        }
+      }
+    } catch (err) {
+      logAppError('rider.pick_image_failed', err, { feature: 'auth' });
+    }
+  };
+
   const validateForm = () => {
     let hasError = false;
 
@@ -59,11 +93,14 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       setFullNameError(null);
     }
 
-    if (!phoneNumber.trim()) {
-      setPhoneError('Enter your phone number.');
+    // Strict 10-digit Rwandan phone number check (078..., 079..., 072..., 073...)
+    const cleanPhone = phoneNumber.trim();
+    const rwandaPhoneRegex = /^07[2389]\d{7}$/;
+    if (!cleanPhone) {
+      setPhoneError('Enter your 10-digit phone number.');
       hasError = true;
-    } else if (phoneNumber.trim().length < 8) {
-      setPhoneError('Phone number is too short.');
+    } else if (!rwandaPhoneRegex.test(cleanPhone)) {
+      setPhoneError('Phone must be a 10-digit Rwandan number (e.g. 0788123456).');
       hasError = true;
     } else {
       setPhoneError(null);
@@ -148,7 +185,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     setSuccessMessage(null);
     setIsSubmitting(true);
 
-    const fullPhone = countryCode + phoneNumber.trim();
+    const cleanPhone = phoneNumber.trim();
 
     try {
       await apiFetch(
@@ -159,10 +196,13 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             token: inviteCode.trim(),
             fullName: fullName.trim(),
             email: email.trim(),
-            phone: fullPhone,
+            phone: cleanPhone,
             password: password,
             identityNumber: identityNumber.trim() || undefined,
             licenceNumber: licenceNumber.trim() || undefined,
+            passportPhoto: passportPhoto || undefined,
+            identityCardPhoto: identityCardPhoto || undefined,
+            licencePhoto: licencePhoto || undefined,
           }),
         },
         { auth: false },
@@ -177,6 +217,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       setEmail('');
       setIdentityNumber('');
       setLicenceNumber('');
+      setPassportPhoto(null);
+      setIdentityCardPhoto(null);
+      setLicencePhoto(null);
       setPassword('');
       setConfirmPassword('');
       setIsOtpSent(false);
@@ -196,8 +239,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       if (error instanceof ApiError) {
         const msg = error.message.toLowerCase();
         if (msg.includes('invite')) {
-          setInviteCodeError('Invalid, expired, or already used invitation code.');
-          setErrorMessage('Invalid, expired, or already used invitation code.');
+          setInviteCodeError('Invalid, expired, or fully used invitation code.');
+          setErrorMessage('Invalid, expired, or fully used invitation code.');
         } else if (msg.includes('email')) {
           setErrorMessage('This email address is already in use by another account.');
         } else if (msg.includes('phone')) {
@@ -224,13 +267,13 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       <AuthShell
         eyebrow="eMoto Fleet Rider"
         title="Rider Registration"
-        description="Enter the invitation code provided by your Fleet Admin to create your rider account."
+        description="Enter your Fleet Admin invitation code and upload your documents to register."
       >
         {/* Registration form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
             <Text style={styles.formTitle}>Create Rider Account</Text>
-            <Badge label="Fleet Invite Code" tone="primary" />
+            <Badge label="Fleet Invitation Code" tone="primary" />
           </View>
 
           {successMessage ? (
@@ -263,46 +306,13 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             autoComplete="name"
           />
 
-          {/* Country Code Selector */}
-          <View style={styles.countrySelectorWrap}>
-            <Text style={styles.label}>Country Code</Text>
-            <View style={styles.countryRow}>
-              {[
-                { code: '+250', flag: '🇷🇼', name: 'Rwanda' },
-                { code: '+254', flag: '🇰🇪', name: 'Kenya' },
-                { code: '+256', flag: '🇺🇬', name: 'Uganda' },
-                { code: '+255', flag: '🇹🇿', name: 'Tanzania' },
-                { code: '+257', flag: '🇧🇮', name: 'Burundi' },
-              ].map((c) => (
-                <Pressable
-                  key={c.code}
-                  onPress={() => setCountryCode(c.code)}
-                  style={[
-                    styles.countryBadge,
-                    countryCode === c.code ? styles.countryBadgeActive : null,
-                  ]}
-                >
-                  <Text style={styles.countryFlag}>{c.flag}</Text>
-                  <Text
-                    style={[
-                      styles.countryCodeText,
-                      countryCode === c.code ? styles.countryCodeTextActive : null,
-                    ]}
-                  >
-                    {c.code}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Phone Number */}
+          {/* 10-Digit Phone Number */}
           <InputField
-            label="Phone number *"
+            label="Phone number (10 Digits) *"
             value={phoneNumber}
-            onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, ''))}
+            onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, '').slice(0, 10))}
             error={phoneError}
-            placeholder="e.g. 788123456"
+            placeholder="e.g. 0788123456"
             keyboardType="phone-pad"
             autoCapitalize="none"
             autoComplete="tel"
@@ -396,6 +406,74 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             autoCapitalize="none"
             autoComplete="off"
           />
+
+          {/* Document Uploads Section */}
+          <View style={styles.uploadSection}>
+            <Text style={styles.uploadSectionTitle}>Upload Rider Verification Documents</Text>
+
+            {/* Passport Photo Upload */}
+            <View style={styles.uploadRow}>
+              <View style={styles.uploadInfo}>
+                <Text style={styles.uploadLabel}>Passport Photo</Text>
+                <Text style={styles.uploadSub}>Headshot photo for rider identification</Text>
+              </View>
+              {passportPhoto ? (
+                <View style={styles.previewWrap}>
+                  <Image source={{ uri: passportPhoto }} style={styles.previewImage} />
+                  <Pressable onPress={() => setPassportPhoto(null)} style={styles.removeBadge}>
+                    <Text style={styles.removeText}>✕</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <SecondaryButton
+                  label="📷 Choose"
+                  onPress={() => { void pickImage(setPassportPhoto); }}
+                />
+              )}
+            </View>
+
+            {/* National ID Photo Upload */}
+            <View style={styles.uploadRow}>
+              <View style={styles.uploadInfo}>
+                <Text style={styles.uploadLabel}>National ID Card</Text>
+                <Text style={styles.uploadSub}>Front photo of your National ID or Passport</Text>
+              </View>
+              {identityCardPhoto ? (
+                <View style={styles.previewWrap}>
+                  <Image source={{ uri: identityCardPhoto }} style={styles.previewImage} />
+                  <Pressable onPress={() => setIdentityCardPhoto(null)} style={styles.removeBadge}>
+                    <Text style={styles.removeText}>✕</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <SecondaryButton
+                  label="📷 Choose"
+                  onPress={() => { void pickImage(setIdentityCardPhoto); }}
+                />
+              )}
+            </View>
+
+            {/* Driver's License Photo Upload */}
+            <View style={styles.uploadRow}>
+              <View style={styles.uploadInfo}>
+                <Text style={styles.uploadLabel}>Driver's License</Text>
+                <Text style={styles.uploadSub}>Photo of your active motorcycle driving license</Text>
+              </View>
+              {licencePhoto ? (
+                <View style={styles.previewWrap}>
+                  <Image source={{ uri: licencePhoto }} style={styles.previewImage} />
+                  <Pressable onPress={() => setLicencePhoto(null)} style={styles.removeBadge}>
+                    <Text style={styles.removeText}>✕</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <SecondaryButton
+                  label="📷 Choose"
+                  onPress={() => { void pickImage(setLicencePhoto); }}
+                />
+              )}
+            </View>
+          </View>
 
           {/* Password */}
           <InputField
@@ -533,6 +611,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.primary,
   },
+  uploadSection: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.surfaceRaised,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.xs,
+  },
+  uploadSectionTitle: {
+    fontSize: theme.typography.body,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  uploadRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  uploadInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  uploadLabel: {
+    fontSize: theme.typography.body,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  uploadSub: {
+    fontSize: theme.typography.caption,
+    color: theme.colors.textMuted,
+  },
+  previewWrap: {
+    position: 'relative',
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.input,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  removeBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 10,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   helpCard: {
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -573,47 +713,5 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '300',
     color: theme.colors.textMuted,
-  },
-  countrySelectorWrap: {
-    gap: theme.layout.textGap,
-    marginBottom: theme.spacing.xs,
-  },
-  countryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-  },
-  countryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.input,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surfaceRaised,
-  },
-  countryBadgeActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
-  },
-  countryFlag: {
-    fontSize: 16,
-  },
-  countryCodeText: {
-    fontSize: theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  countryCodeTextActive: {
-    color: theme.colors.text,
-    fontWeight: '800',
-  },
-  label: {
-    fontSize: theme.typography.body,
-    lineHeight: theme.typography.lineHeight.body,
-    fontWeight: '700',
-    color: theme.colors.text,
   },
 });
