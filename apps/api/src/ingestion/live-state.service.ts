@@ -24,7 +24,27 @@ export class LiveStateService {
     private readonly batterySwapDetectorService: BatterySwapDetectorService,
   ) {}
 
-  // Filters out stationary GPS drift and clamps speed when ignition is off.
+  // Calculates Haversine distance between two lat/lng points in meters
+  private calculateHaversineDistanceMeters(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number,
+  ): number {
+    const R = 6371000; // Earth radius in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Filters out stationary GPS drift, normalizes precision to 6 decimals (~11cm), and locks location when parked.
   async filterStationaryDrift(
     fleetId: string,
     bikeId: string | null,
@@ -35,13 +55,42 @@ export class LiveStateService {
       ignition?: boolean;
     },
   ): Promise<{ lat: number; lng: number; speedKph: number }> {
+    // Normalize coordinates to 6 decimal places (~0.11m precision)
+    let lat = Math.round(incoming.lat * 1000000) / 1000000;
+    let lng = Math.round(incoming.lng * 1000000) / 1000000;
     let speedKph = incoming.speedKph;
-    const lat = incoming.lat;
-    const lng = incoming.lng;
 
-    // Clamp speed if ignition is off or speed is below 1.5 km/h noise threshold
-    if (incoming.ignition === false || speedKph < 1.5) {
+    // Noise threshold for low speeds
+    if (speedKph < 2.0) {
       speedKph = 0;
+    }
+
+    if (bikeId) {
+      try {
+        const cached = await this.getBikeState(fleetId, bikeId);
+        if (cached && cached.lat && cached.lng) {
+          const distMeters = this.calculateHaversineDistanceMeters(
+            cached.lat,
+            cached.lng,
+            lat,
+            lng,
+          );
+
+          // 1. If ignition is OFF, lock coordinates to last known parked location
+          if (incoming.ignition === false) {
+            lat = cached.lat;
+            lng = cached.lng;
+            speedKph = 0;
+          }
+          // 2. If stationary/low speed and drift is under 15 meters, lock position to eliminate map jitter
+          else if (speedKph === 0 && distMeters < 15.0) {
+            lat = cached.lat;
+            lng = cached.lng;
+          }
+        }
+      } catch (err: unknown) {
+        this.logger.debug(`Failed to fetch cached state for drift filter: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     return { lat, lng, speedKph };
