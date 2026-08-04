@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
@@ -769,6 +770,10 @@ export class AuthService {
     usedCount: number;
     expiresAt: Date;
   }> {
+    if (!actor?.fleetId) {
+      throw new BadRequestException('Caller must belong to a fleet to create invites');
+    }
+
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
       true,
@@ -787,12 +792,15 @@ export class AuthService {
 
     const token = this.generateInviteToken();
     const tokenHash = this.hashInviteToken(token);
-    const normalizedEmail = dto.email?.toLowerCase();
-    const expiresInHours =
-      dto.expiresInHours ??
-      this.configService.get<number>('INVITE_TOKEN_TTL_HOURS', 168);
+    const normalizedEmail = dto.email?.trim() ? dto.email.trim().toLowerCase() : null;
+    const phone = dto.phone?.trim() ? dto.phone.trim() : null;
+
+    const rawExpiry = Number(dto.expiresInHours);
+    const expiresInHours = (!isNaN(rawExpiry) && rawExpiry > 0 && rawExpiry <= 720) ? rawExpiry : 168;
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
-    const maxUsesVal = dto.maxUses ?? 1;
+
+    const rawMaxUses = Number(dto.maxUses);
+    const maxUsesVal = (!isNaN(rawMaxUses) && rawMaxUses > 0) ? rawMaxUses : 1;
 
     let createdInvite: any;
     try {
@@ -801,7 +809,7 @@ export class AuthService {
           fleetId: actor.fleetId,
           role,
           email: normalizedEmail,
-          phone: dto.phone,
+          phone,
           tokenHash,
           maxUses: maxUsesVal,
           expiresAt,
@@ -817,41 +825,50 @@ export class AuthService {
           expiresAt: true,
         },
       });
-    } catch {
-      // Fallback for database instances where maxUses/usedCount columns have not been migrated yet
-      createdInvite = await this.prismaService.registrationInvite.create({
-        data: {
-          fleetId: actor.fleetId,
-          role,
-          email: normalizedEmail,
-          phone: dto.phone,
-          tokenHash,
-          expiresAt,
-        },
-        select: {
-          id: true,
-          fleetId: true,
-          role: true,
-          email: true,
-          phone: true,
-          expiresAt: true,
-        },
-      });
+    } catch (dbError: any) {
+      this.logger.warn(`Primary registrationInvite.create failed, trying legacy fallback: ${dbError?.message}`);
+      try {
+        createdInvite = await this.prismaService.registrationInvite.create({
+          data: {
+            fleetId: actor.fleetId,
+            role,
+            email: normalizedEmail,
+            phone,
+            tokenHash,
+            expiresAt,
+          },
+          select: {
+            id: true,
+            fleetId: true,
+            role: true,
+            email: true,
+            phone: true,
+            expiresAt: true,
+          },
+        });
+      } catch (fallbackError: any) {
+        this.logger.error(`registrationInvite.create fallback failed: ${fallbackError?.message}`, fallbackError?.stack);
+        throw new InternalServerErrorException(fallbackError?.message || 'Failed to create invite code');
+      }
     }
 
-    await this.auditService.createAuditLog({
-      fleetId: actor.fleetId,
-      actorUserId: actor.id,
-      actionType: AuditActionType.USER_INVITED,
-      targetType: 'REGISTRATION_INVITE',
-      targetId: createdInvite.id,
-      metaJson: {
-        role: createdInvite.role,
-        email: createdInvite.email,
-        phone: createdInvite.phone,
-        maxUses: createdInvite.maxUses ?? maxUsesVal,
-      },
-    });
+    try {
+      await this.auditService.createAuditLog({
+        fleetId: actor.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.USER_INVITED,
+        targetType: 'REGISTRATION_INVITE',
+        targetId: createdInvite.id,
+        metaJson: {
+          role: createdInvite.role,
+          email: createdInvite.email,
+          phone: createdInvite.phone,
+          maxUses: createdInvite.maxUses ?? maxUsesVal,
+        },
+      });
+    } catch (auditErr: any) {
+      this.logger.warn(`Failed to create audit log for invite ${createdInvite.id}: ${auditErr?.message}`);
+    }
 
     return {
       inviteId: createdInvite.id,
