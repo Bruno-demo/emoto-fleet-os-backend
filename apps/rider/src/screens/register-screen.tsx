@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthShell } from '../components/auth-shell';
 import { InlineNotice } from '../components/ui/error-state';
 import { InputField } from '../components/ui/input-field';
-import { PrimaryButton, SecondaryButton } from '../components/ui/button';
+import { PrimaryButton } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ApiError, apiFetch } from '../lib/api/client';
 import { logAppError } from '../lib/monitoring/error-log';
@@ -14,13 +14,13 @@ import { theme } from '../theme/tokens';
 type RegisterScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Register'>;
 
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
-  const [registerType, setRegisterType] = useState<'fleet' | 'self'>('fleet');
-  const [selectedPlan, setSelectedPlan] = useState<'DEMO' | 'PREMIUM'>('DEMO');
   const [inviteCode, setInviteCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [countryCode, setCountryCode] = useState('+250');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [identityNumber, setIdentityNumber] = useState('');
+  const [licenceNumber, setLicenceNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -45,13 +45,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
   const validateForm = () => {
     let hasError = false;
 
-    if (registerType === 'fleet') {
-      if (!inviteCode.trim() || inviteCode.trim().length < 12) {
-        setInviteCodeError('Enter the invite code from your fleet admin.');
-        hasError = true;
-      } else {
-        setInviteCodeError(null);
-      }
+    if (!inviteCode.trim()) {
+      setInviteCodeError('Enter the invitation code provided by your Fleet Admin.');
+      hasError = true;
     } else {
       setInviteCodeError(null);
     }
@@ -87,7 +83,6 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       setConfirmPasswordError(null);
     }
 
-    // Email is now strictly required and must be verified with OTP
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setErrorMessage('Enter a valid email address.');
       hasError = true;
@@ -156,47 +151,32 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const fullPhone = countryCode + phoneNumber.trim();
 
     try {
-      if (registerType === 'fleet') {
-        await apiFetch(
-          '/auth/register-invite',
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              token: inviteCode.trim(),
-              email: email.trim(),
-              phone: fullPhone,
-              password: password,
-            }),
-          },
-          { auth: false },
-        );
-      } else {
-        await apiFetch(
-          '/auth/register-self',
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              fullName: fullName.trim(),
-              email: email.trim(),
-              phone: fullPhone,
-              password: password,
-              plan: selectedPlan,
-            }),
-          },
-          { auth: false },
-        );
-      }
+      await apiFetch(
+        '/auth/register-invite',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            token: inviteCode.trim(),
+            fullName: fullName.trim(),
+            email: email.trim(),
+            phone: fullPhone,
+            password: password,
+            identityNumber: identityNumber.trim() || undefined,
+            licenceNumber: licenceNumber.trim() || undefined,
+          }),
+        },
+        { auth: false },
+      );
 
-      if (registerType === 'self') {
-        setSuccessMessage('Account created! Your hardware installation is pending. E-Moto HQ will activate your profile shortly.');
-      } else {
-        setSuccessMessage('Account created! You can now sign in with your credentials.');
-      }
+      setSuccessMessage('Rider account created! You have been successfully registered under your fleet.');
+
       // Clear form
       setInviteCode('');
       setFullName('');
       setPhoneNumber('');
       setEmail('');
+      setIdentityNumber('');
+      setLicenceNumber('');
       setPassword('');
       setConfirmPassword('');
       setIsOtpSent(false);
@@ -215,7 +195,10 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       });
       if (error instanceof ApiError) {
         const msg = error.message.toLowerCase();
-        if (msg.includes('email')) {
+        if (msg.includes('invite')) {
+          setInviteCodeError('Invalid, expired, or already used invitation code.');
+          setErrorMessage('Invalid, expired, or already used invitation code.');
+        } else if (msg.includes('email')) {
           setErrorMessage('This email address is already in use by another account.');
         } else if (msg.includes('phone')) {
           setPhoneError('This phone number is already in use by another account.');
@@ -226,7 +209,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Unable to create your account right now.');
+        setErrorMessage('Unable to create your rider account right now.');
       }
     } finally {
       setIsSubmitting(false);
@@ -239,107 +222,16 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
       style={styles.container}
     >
       <AuthShell
-        eyebrow="eMoto Fleet"
-        title={registerType === 'fleet' ? 'Join your fleet.' : 'Register as Owner.'}
-        description={
-          registerType === 'fleet'
-            ? 'Use the invite code from your fleet admin to create your rider account.'
-            : 'Register your personal bike and start driving independently.'
-        }
+        eyebrow="eMoto Fleet Rider"
+        title="Rider Registration"
+        description="Enter the invitation code provided by your Fleet Admin to create your rider account."
       >
         {/* Registration form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Create Account</Text>
-            <Badge label={registerType === 'fleet' ? 'Invite' : 'Self Owner'} tone="primary" />
+            <Text style={styles.formTitle}>Create Rider Account</Text>
+            <Badge label="Fleet Invite Code" tone="primary" />
           </View>
-
-          {/* Registration Type Selector Segmented Control */}
-          <View style={styles.segmentContainer}>
-            <Pressable
-              onPress={() => setRegisterType('fleet')}
-              style={[
-                styles.segmentButton,
-                registerType === 'fleet' ? styles.segmentButtonActive : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.segmentButtonText,
-                  registerType === 'fleet' ? styles.segmentButtonTextActive : null,
-                ]}
-              >
-                Join Fleet
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setRegisterType('self')}
-              style={[
-                styles.segmentButton,
-                registerType === 'self' ? styles.segmentButtonActive : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.segmentButtonText,
-                  registerType === 'self' ? styles.segmentButtonTextActive : null,
-                ]}
-              >
-                Self Bike Owner
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Plan Selector for Self Bike Owner */}
-          {registerType === 'self' && (
-            <View style={styles.planSelectorWrap}>
-              <Text style={styles.label}>Choose Your Plan</Text>
-              <View style={styles.planCardsRow}>
-                <Pressable
-                  onPress={() => setSelectedPlan('DEMO')}
-                  style={[
-                    styles.planCard,
-                    selectedPlan === 'DEMO' ? styles.planCardActive : null,
-                  ]}
-                >
-                  <Text style={styles.planIcon}>🛡️</Text>
-                  <Text
-                    style={[
-                      styles.planTitle,
-                      selectedPlan === 'DEMO' ? styles.planTitleActive : null,
-                    ]}
-                  >
-                    Co-op & Individual
-                  </Text>
-                  <Text style={styles.planDetail}>
-                    Full live map & remote commands.
-                  </Text>
-                  <Text style={styles.planPrice}>10K RWF/mo</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setSelectedPlan('PREMIUM')}
-                  style={[
-                    styles.planCard,
-                    selectedPlan === 'PREMIUM' ? styles.planCardActive : null,
-                  ]}
-                >
-                  <Text style={styles.planIcon}>⚡</Text>
-                  <Text
-                    style={[
-                      styles.planTitle,
-                      selectedPlan === 'PREMIUM' ? styles.planTitleActive : null,
-                    ]}
-                  >
-                    Delivery Fleet
-                  </Text>
-                  <Text style={styles.planDetail}>
-                    Adds delivery dispatch & reports.
-                  </Text>
-                  <Text style={styles.planPrice}>15K RWF/mo</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
 
           {successMessage ? (
             <View style={styles.successContainer}>
@@ -349,20 +241,20 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {errorMessage ? <InlineNotice description={errorMessage} /> : null}
 
-          {registerType === 'fleet' ? (
-            <InputField
-              label="Invite code"
-              value={inviteCode}
-              onChangeText={setInviteCode}
-              error={inviteCodeError}
-              placeholder="Paste the invite code from your admin"
-              autoCapitalize="none"
-              autoComplete="off"
-            />
-          ) : null}
-
+          {/* Invitation Code from Fleet Admin */}
           <InputField
-            label="Full name"
+            label="Invitation code *"
+            value={inviteCode}
+            onChangeText={setInviteCode}
+            error={inviteCodeError}
+            placeholder="e.g. invite_abcdef123456"
+            autoCapitalize="none"
+            autoComplete="off"
+          />
+
+          {/* Full Name */}
+          <InputField
+            label="Full name *"
             value={fullName}
             onChangeText={setFullName}
             error={fullNameError}
@@ -404,8 +296,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             </View>
           </View>
 
+          {/* Phone Number */}
           <InputField
-            label="Phone number"
+            label="Phone number *"
             value={phoneNumber}
             onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, ''))}
             error={phoneError}
@@ -415,8 +308,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             autoComplete="tel"
           />
 
+          {/* Email Address */}
           <InputField
-            label="Email"
+            label="Email address *"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -483,8 +377,29 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             </View>
           )}
 
+          {/* National ID / Passport Number */}
           <InputField
-            label="Password"
+            label="National ID / Identity Number (Optional)"
+            value={identityNumber}
+            onChangeText={setIdentityNumber}
+            placeholder="e.g. 1199880011223344"
+            autoCapitalize="none"
+            autoComplete="off"
+          />
+
+          {/* Driver's License Number */}
+          <InputField
+            label="Driver's License Number (Optional)"
+            value={licenceNumber}
+            onChangeText={setLicenceNumber}
+            placeholder="e.g. RND-987654"
+            autoCapitalize="none"
+            autoComplete="off"
+          />
+
+          {/* Password */}
+          <InputField
+            label="Password *"
             value={password}
             onChangeText={setPassword}
             error={passwordError}
@@ -494,8 +409,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             autoComplete="new-password"
           />
 
+          {/* Confirm Password */}
           <InputField
-            label="Confirm password"
+            label="Confirm password *"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             error={confirmPasswordError}
@@ -506,7 +422,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
           />
 
           <PrimaryButton
-            label={isSubmitting ? 'Creating account...' : 'Create account'}
+            label={isSubmitting ? 'Creating rider account...' : 'Create rider account'}
             loading={isSubmitting}
             onPress={() => { void handleRegister(); }}
           />
@@ -658,33 +574,6 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: theme.colors.textMuted,
   },
-  segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surfaceMuted,
-    borderRadius: theme.radius.input,
-    padding: 4,
-    marginBottom: theme.spacing.sm,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: theme.spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: theme.radius.input - 2,
-  },
-  segmentButtonActive: {
-    backgroundColor: theme.colors.surface,
-    ...theme.shadowLight,
-  },
-  segmentButtonText: {
-    fontSize: theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.textMuted,
-  },
-  segmentButtonTextActive: {
-    color: theme.colors.text,
-    fontWeight: '800',
-  },
   countrySelectorWrap: {
     gap: theme.layout.textGap,
     marginBottom: theme.spacing.xs,
@@ -726,55 +615,5 @@ const styles = StyleSheet.create({
     lineHeight: theme.typography.lineHeight.body,
     fontWeight: '700',
     color: theme.colors.text,
-  },
-  planSelectorWrap: {
-    gap: theme.layout.textGap,
-    marginBottom: theme.spacing.md,
-    marginTop: theme.spacing.xs,
-  },
-  planCardsRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  planCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.card,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surfaceRaised,
-    alignItems: 'center',
-    gap: 4,
-  },
-  planCardActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
-  },
-  planIcon: {
-    fontSize: 24,
-    marginBottom: 2,
-  },
-  planTitle: {
-    fontSize: theme.typography.body,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  planTitleActive: {
-    color: theme.colors.text,
-    fontWeight: '800',
-  },
-  planDetail: {
-    fontSize: 10,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 14,
-    minHeight: 28,
-  },
-  planPrice: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: theme.colors.primary,
-    marginTop: 4,
   },
 });
