@@ -53,11 +53,6 @@ export class DevicesController {
     @Body() dto: CreateDeviceDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ device: PublicDevice; deviceSecret: string }> {
-    if (user.fleetName !== 'E-Moto HQ') {
-      throw new ForbiddenException(
-        'Only E-Moto HQ Super Admin staff are permitted to register new devices.',
-      );
-    }
     return this.devicesService.createDeviceForUser(dto, user);
   }
 
