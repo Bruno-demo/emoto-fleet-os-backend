@@ -162,17 +162,19 @@ export default function DevicesPage() {
             <h1 className="text-xl font-bold text-ink">{t('Devices')}</h1>
             <p className="text-sm text-ink-soft">{t('Manage GPS tracking devices and assignments')}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setFormError(null);
-              setIsAddModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm transition hover:bg-accent-hover hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Cpu size={16} />
-            {t('+ Add Device')}
-          </button>
+          {(currentUser?.fleetName === 'E-Moto HQ' || currentUser?.role === 'ADMIN' || currentUser?.role === 'OWNER') && currentUser?.fleetName === 'E-Moto HQ' && (
+            <button
+              type="button"
+              onClick={() => {
+                setFormError(null);
+                setIsAddModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm transition hover:bg-accent-hover hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Cpu size={16} />
+              {t('+ Add Device')}
+            </button>
+          )}
         </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

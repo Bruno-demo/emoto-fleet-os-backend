@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
@@ -44,7 +45,7 @@ export class DevicesController {
   }
 
   @Post()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH, UserRole.RIDER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create device and return one-time provisioning secret',
   })
@@ -52,6 +53,11 @@ export class DevicesController {
     @Body() dto: CreateDeviceDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ device: PublicDevice; deviceSecret: string }> {
+    if (user.fleetName !== 'E-Moto HQ') {
+      throw new ForbiddenException(
+        'Only E-Moto HQ Super Admin staff are permitted to register new devices.',
+      );
+    }
     return this.devicesService.createDeviceForUser(dto, user);
   }
 
