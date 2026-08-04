@@ -35,6 +35,7 @@ interface DeviceForIngestion {
   fleetId: string;
   bikeId: string | null;
   deviceUid: string;
+  imei: string | null;
   status: DeviceStatus;
   secretHash: string;
   secretEncrypted: string | null;
@@ -315,6 +316,22 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           `Ignoring packet from unknown/inactive device with IMEI: ${imei}`,
         );
         return;
+      }
+
+      // Auto-populate 15-digit hardware IMEI in DB if missing
+      if (!device.imei && imei) {
+        try {
+          await this.prismaService.device.update({
+            where: { id: device.id },
+            data: { imei },
+          });
+          device.imei = imei;
+          this.logger.log(
+            `Auto-populated hardware IMEI ${imei} for deviceUid=${device.deviceUid}`,
+          );
+        } catch {
+          // Ignore unique constraint collision if another device record already holds this IMEI
+        }
       }
 
       // Bind socket to deviceUid and imei for dual connection mapping
@@ -833,13 +850,16 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   private async loadDeviceByImei(
     imei: string,
   ): Promise<DeviceForIngestion | null> {
-    return this.prismaService.device.findUnique({
-      where: { imei },
+    return this.prismaService.device.findFirst({
+      where: {
+        OR: [{ imei }, { deviceUid: imei }],
+      },
       select: {
         id: true,
         fleetId: true,
         bikeId: true,
         deviceUid: true,
+        imei: true,
         status: true,
         secretHash: true,
         secretEncrypted: true,
