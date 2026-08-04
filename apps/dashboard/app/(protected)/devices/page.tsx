@@ -116,9 +116,65 @@ export default function DevicesPage() {
     [t],
   );
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deviceUidInput, setDeviceUidInput] = useState('');
+  const [imeiInput, setImeiInput] = useState('');
+  const [fwVersionInput, setFwVersionInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleRegisterDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deviceUidInput.trim()) {
+      setFormError(t('Device ID (UID) is required.'));
+      return;
+    }
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await apiFetch('/devices', {
+        method: 'POST',
+        body: JSON.stringify({
+          deviceUid: deviceUidInput.trim(),
+          imei: imeiInput.trim() || undefined,
+          fwVersion: fwVersionInput.trim() || undefined,
+        }),
+      });
+      setIsAddModalOpen(false);
+      setDeviceUidInput('');
+      setImeiInput('');
+      setFwVersionInput('');
+      setPage(1);
+      devicesQuery.refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <SubscriptionGate>
       <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-ink">{t('Devices')}</h1>
+            <p className="text-sm text-ink-soft">{t('Manage GPS tracking devices and assignments')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFormError(null);
+              setIsAddModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm transition hover:bg-accent-hover hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Cpu size={16} />
+            {t('+ Add Device')}
+          </button>
+        </div>
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title={t('Registered Devices')}
@@ -192,6 +248,97 @@ export default function DevicesPage() {
           )}
         </DashboardCard>
       </section>
+
+      {/* Add Device Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-line pb-4">
+              <div className="flex items-center gap-2 text-ink">
+                <Cpu className="text-accent" size={20} />
+                <h2 className="text-lg font-bold">{t('Register New Device')}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="rounded-lg p-1 text-ink-soft hover:bg-surface-hover hover:text-ink"
+              >
+                ✕
+              </button>
+            </div>
+
+            {formError && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-500">
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleRegisterDevice} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+                  {t('Device ID / UID')} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. DEV-10001 or ST-901-01"
+                  value={deviceUidInput}
+                  onChange={(e) => setDeviceUidInput(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                />
+                <p className="mt-1 text-[11px] text-ink-soft">{t('Unique hardware identifier or internal device tag.')}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+                  {t('IMEI Number')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 864012345678901"
+                  value={imeiInput}
+                  onChange={(e) => setImeiInput(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                />
+                <p className="mt-1 text-[11px] text-ink-soft">{t('15-digit SinoTrack hardware IMEI for GPRS matching.')}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+                  {t('Firmware Version')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. v1.0.0 (optional)"
+                  value={fwVersionInput}
+                  onChange={(e) => setFwVersionInput(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-line pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink-soft hover:bg-surface-hover"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-accent-contrast shadow-sm transition hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-contrast border-t-transparent" />
+                  ) : null}
+                  {isSubmitting ? t('Registering...') : t('Save Device')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
     </SubscriptionGate>
   );
