@@ -15,6 +15,8 @@ export const MQTT_COMMAND_ACK_TOPIC_REGEX =
 export const MQTT_MAX_TIMESTAMP_DRIFT_MS = 5 * 60 * 1000;
 export const MQTT_NONCE_TTL_SECONDS = 10 * 60;
 
+const nonceSchema = z.string().min(8).max(128);
+
 const telemetryPayloadWithoutSigSchema = z.object({
   ts: z.string().datetime({ offset: true }),
   lat: finiteNumber.min(-90).max(90),
@@ -32,7 +34,7 @@ const telemetryPayloadWithoutSigSchema = z.object({
   batteryPct: finiteNumber.min(0).max(100).optional(),
   ignition: z.boolean().optional(),
   mainPowerCut: z.boolean().optional(),
-  nonce: z.string().uuid(),
+  nonce: nonceSchema,
 });
 
 export const telemetryPayloadSchema = telemetryPayloadWithoutSigSchema.extend({
@@ -44,7 +46,7 @@ const eventPayloadWithoutSigSchema = z.object({
   type: z.nativeEnum(EventType),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   meta: z.record(z.string(), z.unknown()).default({}),
-  nonce: z.string().uuid(),
+  nonce: nonceSchema,
 });
 
 export const eventPayloadSchema = eventPayloadWithoutSigSchema.extend({
@@ -55,7 +57,7 @@ const commandDownlinkPayloadWithoutSigSchema = z.object({
   commandId: z.string().uuid(),
   type: z.enum(['LOCK', 'UNLOCK']),
   ts: z.string().datetime({ offset: true }),
-  nonce: z.string().uuid(),
+  nonce: nonceSchema,
   expiresAt: z.string().datetime({ offset: true }),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
@@ -69,7 +71,7 @@ const commandAckPayloadWithoutSigSchema = z.object({
   commandId: z.string().uuid(),
   status: z.enum(['ACKED', 'FAILED']),
   ts: z.string().datetime({ offset: true }),
-  nonce: z.string().uuid(),
+  nonce: nonceSchema,
   errorMessage: z.string().min(1).max(500).optional(),
 });
 

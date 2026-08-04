@@ -9,6 +9,7 @@ import { DeviceStatus } from '@prisma/client';
 import * as net from 'net';
 import * as mqtt from 'mqtt';
 import { timingSafeEqual } from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import {
   TelemetryPayload,
   computePayloadSignature,
@@ -548,7 +549,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       batteryPct,
       ignition,
       mainPowerCut,
-      nonce: `sinotrack-${device.id}-${ts.getTime()}`,
+      nonce: uuidv4(),
       sig: 'bypassed-sinotrack-secure-local-adapter',
     };
 
@@ -998,7 +999,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         commandId: command.commandId,
         status: 'ACKED',
         ts: new Date().toISOString(),
-        nonce: `ack-${command.commandId}-${Date.now()}`,
+        nonce: uuidv4(),
       };
 
       const sig = computePayloadSignature(deviceSecret, ackPayload);
