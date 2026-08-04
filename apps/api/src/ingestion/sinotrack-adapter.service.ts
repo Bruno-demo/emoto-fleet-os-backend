@@ -321,8 +321,9 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      // Auto-populate / update 15-digit hardware IMEI in DB if missing or mismatched
-      if (imei && imei.length >= 10 && device.imei !== imei) {
+      // Only auto-populate 15-digit hardware IMEI if device.imei is empty AND incoming IMEI is valid 15-digit hardware IMEI
+      const is15DigitImei = imei && imei.length === 15 && /^\d{15}$/.test(imei);
+      if (is15DigitImei && !device.imei) {
         try {
           await this.prismaService.device.update({
             where: { id: device.id },
@@ -330,17 +331,18 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           });
           device.imei = imei;
           this.logger.log(
-            `Auto-updated hardware IMEI ${imei} for deviceUid=${device.deviceUid}`,
+            `Auto-populated 15-digit hardware IMEI ${imei} for deviceUid=${device.deviceUid}`,
           );
         } catch {
-          // Ignore unique constraint collision if another device record already holds this IMEI
+          // Ignore unique constraint collision
         }
       }
 
-      // Bind socket to deviceUid and imei for dual connection mapping
-      this.activeConnections.set(device.deviceUid, { socket, imei: imei || device.imei || device.deviceUid });
+      // Bind socket using true 15-digit hardware IMEI if available
+      const activeImei = device.imei || (is15DigitImei ? imei : device.deviceUid);
+      this.activeConnections.set(device.deviceUid, { socket, imei: activeImei });
       if (imei) {
-        this.activeConnections.set(imei, { socket, imei });
+        this.activeConnections.set(imei, { socket, imei: activeImei });
       }
       (socket as SinoTrackSocket).deviceUid = device.deviceUid;
 
@@ -1084,16 +1086,16 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
 
-    let targetImei = connection.imei;
-    if (!targetImei || targetImei.length < 10) {
+    let targetImei = connection.imei && connection.imei.length === 15 ? connection.imei : '';
+    if (!targetImei) {
       for (const [key, value] of this.activeConnections.entries()) {
-        if (value.socket === connection.socket && key && key.length >= 10) {
+        if (value.socket === connection.socket && key && key.length === 15) {
           targetImei = key;
           break;
         }
       }
     }
-    targetImei = targetImei || deviceUid;
+    targetImei = targetImei || connection.imei || deviceUid;
 
     const hhmmss = new Date().toISOString().substring(11, 19).replace(/:/g, '');
     const s20Cmd = type === 'LOCK' ? `S20,${hhmmss},1,1` : `S20,${hhmmss},0,1`;
