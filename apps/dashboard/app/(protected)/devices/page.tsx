@@ -101,6 +101,20 @@ export default function DevicesPage() {
         ),
       },
       {
+        header: t('SIM Phone (SMS Fallback)'),
+        render: (device) => (
+          <span className="text-xs font-mono text-ink-soft">
+            {device.simPhoneNumber ? (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/10 px-2 py-1 text-sky-400 font-semibold">
+                📱 {device.simPhoneNumber}
+              </span>
+            ) : (
+              <span className="text-ink-soft/60 italic">{t('No SIM set')}</span>
+            )}
+          </span>
+        ),
+      },
+      {
         header: t('Bike'),
         render: (device) => <span className="text-sm text-ink-soft">{device.bike?.label ?? t('Unassigned')}</span>,
       },
@@ -120,6 +134,7 @@ export default function DevicesPage() {
   const [deviceUidInput, setDeviceUidInput] = useState('');
   const [imeiInput, setImeiInput] = useState('');
   const [fwVersionInput, setFwVersionInput] = useState('');
+  const [simPhoneInput, setSimPhoneInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -138,12 +153,14 @@ export default function DevicesPage() {
           deviceUid: deviceUidInput.trim(),
           imei: imeiInput.trim() || undefined,
           fwVersion: fwVersionInput.trim() || undefined,
+          simPhoneNumber: simPhoneInput.trim() || undefined,
         }),
       });
       setIsAddModalOpen(false);
       setDeviceUidInput('');
       setImeiInput('');
       setFwVersionInput('');
+      setSimPhoneInput('');
       setPage(1);
       devicesQuery.refetch();
     } catch (err: unknown) {
@@ -303,6 +320,20 @@ export default function DevicesPage() {
                   className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
                 />
                 <p className="mt-1 text-[11px] text-ink-soft">{t('15-digit SinoTrack hardware IMEI for GPRS matching.')}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1">
+                  {t('Tracker SIM Phone (SMS Fallback)')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 0781234567 or +250781234567"
+                  value={simPhoneInput}
+                  onChange={(e) => setSimPhoneInput(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-4 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                />
+                <p className="mt-1 text-[11px] text-ink-soft">{t('Used for budget-friendly SMS lock/unlock commands when GPRS/TCP is offline.')}</p>
               </div>
 
               <div>

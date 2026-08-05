@@ -29,6 +29,7 @@ import { MailModule } from './mail/mail.module';
 import { BillingModule } from './billing/billing.module';
 import { DeliveriesModule } from './deliveries/deliveries.module';
 import { TrafficFinesModule } from './traffic-fines/traffic-fines.module';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { TrafficFinesModule } from './traffic-fines/traffic-fines.module';
     BillingModule,
     DeliveriesModule,
     TrafficFinesModule,
+    SmsModule,
   ],
   providers: [
     {

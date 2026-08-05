@@ -166,6 +166,19 @@ export const envSchema = z
       .min(0)
       .max(14)
       .default(2),
+    // ── SMS Fallback Service ─────────────────────────────────
+    SMS_FALLBACK_ENABLED: booleanStringDefaultTrue,
+    SMS_PROVIDER: z
+      .enum(['africastalking', 'twilio', 'generic', 'log'])
+      .default('log'),
+    AFRICASTALKING_USERNAME: z.string().optional(),
+    AFRICASTALKING_API_KEY: z.string().optional(),
+    AFRICASTALKING_SENDER_ID: z.string().optional(),
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_FROM_NUMBER: z.string().optional(),
+    GENERIC_SMS_WEBHOOK_URL: z.string().url().optional(),
+    GENERIC_SMS_WEBHOOK_TOKEN: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {

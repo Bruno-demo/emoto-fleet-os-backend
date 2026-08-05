@@ -383,6 +383,7 @@ model Device {
   bikeId          String?          @db.Uuid
   secretHash      String
   secretEncrypted String?
+  simPhoneNumber  String?
   lastSeenAt      DateTime?        @db.Timestamptz(6)
   fwVersion       String?
   status          DeviceStatus     @default(ACTIVE)

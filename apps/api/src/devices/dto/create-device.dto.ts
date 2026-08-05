@@ -18,4 +18,10 @@ export class CreateDeviceDto {
   @IsString()
   @MaxLength(40)
   fwVersion?: string;
+
+  @ApiPropertyOptional({ example: '0781234567' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  simPhoneNumber?: string;
 }

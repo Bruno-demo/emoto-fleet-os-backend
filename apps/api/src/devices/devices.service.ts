@@ -35,6 +35,7 @@ interface DeviceWithBike {
   fleetId: string;
   imei: string | null;
   deviceUid: string;
+  simPhoneNumber: string | null;
   bikeId: string | null;
   lastSeenAt: Date | null;
   fwVersion: string | null;
@@ -53,6 +54,7 @@ export interface PublicDevice {
   fleetId: string;
   imei: string | null;
   deviceUid: string;
+  simPhoneNumber: string | null;
   bikeId: string | null;
   lastSeenAt: Date | null;
   fwVersion: string | null;
@@ -156,6 +158,7 @@ export class DevicesService {
           deviceUid: dto.deviceUid,
           imei: dto.imei,
           fwVersion: dto.fwVersion,
+          simPhoneNumber: dto.simPhoneNumber,
           secretHash,
           secretEncrypted,
           status: 'ACTIVE',
@@ -338,6 +341,7 @@ export class DevicesService {
       fleetId: device.fleetId,
       imei: device.imei,
       deviceUid: device.deviceUid,
+      simPhoneNumber: device.simPhoneNumber,
       bikeId: device.bikeId,
       lastSeenAt: device.lastSeenAt,
       fwVersion: device.fwVersion,

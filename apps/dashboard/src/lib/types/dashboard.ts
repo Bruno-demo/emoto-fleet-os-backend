@@ -65,6 +65,7 @@ export interface Device {
   fleetId: string;
   imei: string | null;
   deviceUid: string;
+  simPhoneNumber?: string | null;
   bikeId: string | null;
   lastSeenAt: string | null;
   fwVersion: string | null;

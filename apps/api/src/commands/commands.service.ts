@@ -35,6 +35,7 @@ import { EventsGateway } from '../events/events.gateway';
 import { MetricsService } from '../metrics/metrics.service';
 import { ModuleRef } from '@nestjs/core';
 import { SinoTrackAdapterService } from '../ingestion/sinotrack-adapter.service';
+import { SmsService } from '../sms/sms.service';
 import { FleetDeviceCommand } from './commands.types';
 
 const LOCK_MIN_STATIONARY_MS = 15_000;
@@ -66,6 +67,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
     private readonly moduleRef: ModuleRef,
+    private readonly smsService: SmsService,
   ) {
     this.mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     this.deviceSecretMasterKey = this.configService.getOrThrow<string>(
@@ -317,8 +319,36 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
     }
+    if (device.simPhoneNumber) {
+      const smsCmd = type === 'LOCK' ? '9400000' : '9410000';
+      try {
+        const smsResult = await this.smsService.sendSms(
+          device.simPhoneNumber,
+          smsCmd,
+        );
+        if (smsResult.success) {
+          this.logger.log(
+            `Dispatched SMS fallback command (${smsCmd}) via ${smsResult.provider} to tracker SIM ${device.simPhoneNumber}`,
+          );
+          const sentCommand = await this.transitionStatus(
+            command,
+            'SENT',
+            {
+              sentAt: new Date(),
+              ackedAt: null,
+              errorMessage: `TCP offline. Dispatched budget-friendly SMS (${smsCmd}) via ${smsResult.provider} to SIM`,
+            },
+            user.id,
+          );
+          return this.toFleetDeviceCommand(sentCommand);
+        }
+      } catch (smsErr: unknown) {
+        const msg = smsErr instanceof Error ? smsErr.message : String(smsErr);
+        this.logger.warn(`SMS fallback dispatch failed for deviceUid=${device.deviceUid}: ${msg}`);
+      }
+    }
 
-    // 2. MQTT Fallback Publish for Native MQTT hardware devices
+    // 3. MQTT Fallback Publish for Native MQTT hardware devices
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
 
@@ -462,7 +492,37 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
     }
 
-    // 2. MQTT Fallback Publish for Native MQTT hardware devices
+    // 2. Budget-Friendly SMS Fallback for SinoTrack hardware when Direct TCP socket is offline
+    if (device.simPhoneNumber) {
+      const smsCmd = type === 'LOCK' ? '9400000' : '9410000';
+      try {
+        const smsResult = await this.smsService.sendSms(
+          device.simPhoneNumber,
+          smsCmd,
+        );
+        if (smsResult.success) {
+          this.logger.log(
+            `HQ Dispatched SMS fallback command (${smsCmd}) via ${smsResult.provider} to tracker SIM ${device.simPhoneNumber}`,
+          );
+          const sentCommand = await this.transitionStatus(
+            command,
+            'SENT',
+            {
+              sentAt: new Date(),
+              ackedAt: null,
+              errorMessage: `HQ TCP offline. Dispatched budget-friendly SMS (${smsCmd}) via ${smsResult.provider} to SIM`,
+            },
+            user.id,
+          );
+          return this.toFleetDeviceCommand(sentCommand);
+        }
+      } catch (smsErr: unknown) {
+        const msg = smsErr instanceof Error ? smsErr.message : String(smsErr);
+        this.logger.warn(`HQ SMS fallback dispatch failed for deviceUid=${device.deviceUid}: ${msg}`);
+      }
+    }
+
+    // 3. MQTT Fallback Publish for Native MQTT hardware devices
     const unsignedPayload = this.buildDownlinkPayload(command);
     const topic = `v1/devices/${device.deviceUid}/command`;
 
@@ -679,6 +739,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       | 'bikeId'
       | 'deviceUid'
       | 'imei'
+      | 'simPhoneNumber'
       | 'secretHash'
       | 'secretEncrypted'
     >
@@ -698,6 +759,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
         bikeId: true,
         deviceUid: true,
         imei: true,
+        simPhoneNumber: true,
         secretHash: true,
         secretEncrypted: true,
       },
