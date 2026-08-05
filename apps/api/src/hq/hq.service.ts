@@ -1408,7 +1408,17 @@ export class HqService {
         skip: (opts.page - 1) * opts.pageSize,
         take: opts.pageSize,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          fleetId: true,
+          imei: true,
+          deviceUid: true,
+          bikeId: true,
+          lastSeenAt: true,
+          fwVersion: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
           bike: {
             select: { id: true, label: true, plate: true, status: true },
           },

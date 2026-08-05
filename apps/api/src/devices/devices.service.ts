@@ -99,7 +99,18 @@ export class DevicesService {
     const [devices, total] = await Promise.all([
       this.prismaService.device.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          fleetId: true,
+          imei: true,
+          deviceUid: true,
+          simPhoneNumber: true,
+          bikeId: true,
+          lastSeenAt: true,
+          fwVersion: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
           bike: {
             select: {
               id: true,
