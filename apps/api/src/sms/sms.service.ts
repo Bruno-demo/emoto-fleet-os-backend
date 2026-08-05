@@ -271,12 +271,14 @@ export class SmsService {
         this.httpService.post<GenericSmsResponse>(
           webhookUrl,
           {
+            action: 'send-sms',
             to,
             phone: to,
+            recipient: to,
+            recipients: [to],
             message,
             text: message,
             phoneNumbers: [to],
-            recipients: [to],
           },
           { headers },
         ),
