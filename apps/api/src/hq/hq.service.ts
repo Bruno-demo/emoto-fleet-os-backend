@@ -1518,6 +1518,7 @@ export class HqService {
     body: {
       deviceUid: string;
       imei?: string;
+      simPhoneNumber?: string;
       fleetId: string;
     },
     actor: AuthenticatedUser,
@@ -1542,6 +1543,7 @@ export class HqService {
           fleetId: body.fleetId,
           deviceUid: body.deviceUid,
           imei: body.imei || null,
+          simPhoneNumber: body.simPhoneNumber || null,
           secretHash,
           secretEncrypted,
           status: 'ACTIVE',

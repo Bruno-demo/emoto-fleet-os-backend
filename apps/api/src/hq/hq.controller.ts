@@ -535,7 +535,13 @@ export class HqController {
   @Post('devices')
   @ApiOperation({ summary: 'Create a new global device identity' })
   createDevice(
-    @Body() body: { deviceUid: string; imei?: string; fleetId: string },
+    @Body()
+    body: {
+      deviceUid: string;
+      imei?: string;
+      simPhoneNumber?: string;
+      fleetId: string;
+    },
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.hqService.createDevice(body, user);

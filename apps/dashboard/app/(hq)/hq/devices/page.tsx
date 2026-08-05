@@ -103,6 +103,7 @@ export default function HqDevicesPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newDeviceUid, setNewDeviceUid] = useState('');
   const [newImei, setNewImei] = useState('');
+  const [newSimPhoneNumber, setNewSimPhoneNumber] = useState('');
   const [newFleetId, setNewFleetId] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -225,7 +226,7 @@ export default function HqDevicesPage() {
   });
 
   const createDeviceMutation = useMutation({
-    mutationFn: (body: { deviceUid: string; imei?: string; fleetId: string }) =>
+    mutationFn: (body: { deviceUid: string; imei?: string; simPhoneNumber?: string; fleetId: string }) =>
       apiFetch('/hq/devices', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -239,6 +240,7 @@ export default function HqDevicesPage() {
       setIsAddModalOpen(false);
       setNewDeviceUid('');
       setNewImei('');
+      setNewSimPhoneNumber('');
       setNewFleetId('');
       setAddError(null);
       setOneTimeSecret(result.deviceSecret);
@@ -672,6 +674,7 @@ export default function HqDevicesPage() {
                 createDeviceMutation.mutate({
                   deviceUid: newDeviceUid.trim(),
                   imei: newImei.trim() || undefined,
+                  simPhoneNumber: newSimPhoneNumber.trim() || undefined,
                   fleetId: newFleetId,
                 });
               }}
@@ -689,14 +692,26 @@ export default function HqDevicesPage() {
               </div>
               
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('IMEI (Optional)')}</label>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('Hardware IMEI')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. 863219041234567"
+                  placeholder="e.g. 864012345678901"
                   value={newImei}
                   onChange={(e) => setNewImei(e.target.value)}
                   className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-2">{t('Tracker SIM Phone (SMS Fallback)')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 0781234567 or +250781234567"
+                  value={newSimPhoneNumber}
+                  onChange={(e) => setNewSimPhoneNumber(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
+                />
+                <p className="mt-1 text-[11px] text-ink-soft">{t('Used for budget-friendly SMS lock/unlock commands when GPRS/TCP is offline.')}</p>
               </div>
               
               <div>
