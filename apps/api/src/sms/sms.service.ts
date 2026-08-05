@@ -272,7 +272,11 @@ export class SmsService {
           webhookUrl,
           {
             to,
+            phone: to,
             message,
+            text: message,
+            phoneNumbers: [to],
+            recipients: [to],
           },
           { headers },
         ),
