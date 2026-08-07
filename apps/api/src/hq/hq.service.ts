@@ -341,8 +341,12 @@ export class HqService {
       throw new BadRequestException('Invalid plan. Must be DEMO or PREMIUM');
     }
 
+    const tier = await this.prisma.pricingTier.findUnique({
+      where: { planCode: plan as FleetPlan },
+    });
     const monthlyRatePerBike =
-      plan === 'PREMIUM' ? 15000 : plan === 'INSURANCE' ? 0 : 10000;
+      tier?.monthlyRatePerBike ??
+      (plan === 'PREMIUM' ? 15000 : plan === 'INSURANCE' ? 0 : 10000);
     const newFleetType: FleetType =
       plan === 'PREMIUM' ? FleetType.DELIVERY : FleetType.COOP;
 
@@ -398,8 +402,13 @@ export class HqService {
       );
     }
 
-    const newRate = type === 'DELIVERY' ? 15000 : 10000;
     const newPlan = type === 'DELIVERY' ? 'PREMIUM' : 'DEMO';
+    const tier = await this.prisma.pricingTier.findUnique({
+      where: { planCode: newPlan as FleetPlan },
+    });
+    const newRate =
+      tier?.monthlyRatePerBike ?? (type === 'DELIVERY' ? 15000 : 10000);
+
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {

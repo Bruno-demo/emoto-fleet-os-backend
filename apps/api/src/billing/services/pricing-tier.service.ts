@@ -65,6 +65,13 @@ export class PricingTierService implements OnModuleInit {
     return updated;
   }
 
+  async getRateForFleetPlan(planCode: FleetPlan): Promise<number> {
+    const tier = await this.prisma.pricingTier.findUnique({
+      where: { planCode },
+    });
+    return tier?.monthlyRatePerBike ?? 10000;
+  }
+
   static getRateForFleetType(fleetType?: string): number {
     if (fleetType === 'DELIVERY') return 15000;
     if (fleetType === 'INSURER') return 0;
@@ -105,7 +112,7 @@ export class PricingTierService implements OnModuleInit {
     for (const tier of defaults) {
       await this.prisma.pricingTier.upsert({
         where: { planCode: tier.planCode },
-        update: tier,
+        update: {}, // DO NOT OVERWRITE DATABASE CUSTOMIZATIONS ON SERVER RESTART
         create: tier,
       });
     }
