@@ -45,6 +45,9 @@ export class SubscriptionFeatureGuard implements CanActivate {
     const isAllowed =
       user.subscriptionStatus === FleetSubscriptionStatus.ACTIVE &&
       (feature === 'commands' ||
+        feature === 'reports' ||
+        feature === 'devices' ||
+        user.fleetPlan === FleetPlan.DEMO ||
         user.fleetPlan === FleetPlan.PREMIUM ||
         user.fleetPlan === FleetPlan.INSURANCE);
 
