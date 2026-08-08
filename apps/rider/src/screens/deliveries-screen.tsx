@@ -23,12 +23,21 @@ type DeliveriesScreenProps = NativeStackScreenProps<
 export function DeliveriesScreen({ navigation }: DeliveriesScreenProps) {
   const deliveriesQuery = useQuery({
     queryKey: ['rider-deliveries'],
-    queryFn: () =>
-      apiFetch<RiderDelivery[]>(
-        '/deliveries',
-        undefined,
-        { schema: z.array(riderDeliverySchema) },
-      ),
+    queryFn: async () => {
+      try {
+        return await apiFetch<RiderDelivery[]>(
+          '/deliveries',
+          undefined,
+          { schema: z.array(riderDeliverySchema) },
+        );
+      } catch (error) {
+        // 403 means rider's fleet is not a DELIVERY fleet — not an error, just no deliveries
+        if (error instanceof ApiError && error.status === 403) {
+          return [] as RiderDelivery[];
+        }
+        throw error;
+      }
+    },
   });
 
   const payload = deliveriesQuery.data || [];

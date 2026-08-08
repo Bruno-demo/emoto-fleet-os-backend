@@ -18,6 +18,7 @@ export type RiderTabParamList = {
   Home: undefined;
   TripsStack: undefined;
   DeliveriesStack: undefined;
+  Payments: undefined;
   SOS: undefined;
   PoiNearby: undefined;
   Profile: undefined;

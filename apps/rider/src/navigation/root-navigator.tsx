@@ -18,6 +18,7 @@ import { TripDetailScreen } from '../screens/trip-detail-screen';
 import { TripsScreen } from '../screens/trips-screen';
 import { DeliveriesScreen } from '../screens/deliveries-screen';
 import { DeliveryDetailScreen } from '../screens/delivery-detail-screen';
+import { PaymentsScreen } from '../screens/payments-screen';
 import { theme } from '../theme/tokens';
 import type {
   RiderAuthStackParamList,
@@ -45,6 +46,9 @@ function getTabIconName(
   }
   if (routeName === 'DeliveriesStack') {
     return focused ? 'cube' : 'cube-outline';
+  }
+  if (routeName === 'Payments') {
+    return focused ? 'card' : 'card-outline';
   }
   if (routeName === 'SOS') {
     return focused ? 'warning' : 'warning-outline';
@@ -172,6 +176,11 @@ function RiderTabsNavigator() {
         name="DeliveriesStack"
         component={DeliveriesStackNavigator}
         options={{ title: 'Deliveries' }}
+      />
+      <Tab.Screen
+        name="Payments"
+        component={PaymentsScreen}
+        options={{ title: 'Payments' }}
       />
       <Tab.Screen name="SOS" component={SosScreen} options={{ title: 'SOS' }} />
       <Tab.Screen

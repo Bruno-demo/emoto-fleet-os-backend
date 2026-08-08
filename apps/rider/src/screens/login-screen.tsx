@@ -23,6 +23,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
  
+  // Accepts local 10-digit numbers (07xxxxxxxx), international (+250...),
+  // or email addresses as the login identifier.
   const validateForm = () => {
     let hasError = false;
     const trimmed = phoneNumber.trim();
@@ -30,15 +32,22 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       setPhoneError('Enter your phone number or email.');
       hasError = true;
     } else if (!trimmed.includes('@')) {
-      // It's a phone number, validate country code starting with '+'
-      if (!trimmed.startsWith('+')) {
-        setPhoneError('Include country code starting with + (e.g. +250788123456)');
-        hasError = true;
-      } else if (trimmed.replace(/\D/g, '').length < 8) {
-        setPhoneError('Enter a valid phone number with country code.');
-        hasError = true;
-      } else {
+      // It's a phone number
+      const digitsOnly = trimmed.replace(/\D/g, '');
+      if (trimmed.startsWith('+')) {
+        // International format — need at least 8 digits after +
+        if (digitsOnly.length < 8) {
+          setPhoneError('Enter a valid phone number with country code.');
+          hasError = true;
+        } else {
+          setPhoneError(null);
+        }
+      } else if (/^0\d{9}$/.test(digitsOnly)) {
+        // Local 10-digit number (e.g. 0780000100) — accepted
         setPhoneError(null);
+      } else {
+        setPhoneError('Enter a 10-digit phone (e.g. 0788123456) or international format (+250788123456).');
+        hasError = true;
       }
     } else {
       setPhoneError(null);
@@ -64,9 +73,16 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     const trimmedInput = phoneNumber.trim();
     let finalIdentifier = trimmedInput;
     if (!trimmedInput.includes('@')) {
-      const hasPlus = trimmedInput.startsWith('+');
       const digitsOnly = trimmedInput.replace(/\D/g, '');
-      finalIdentifier = (hasPlus ? '+' : '') + digitsOnly;
+      if (trimmedInput.startsWith('+')) {
+        // Keep international format as-is (strip non-digits but preserve +)
+        finalIdentifier = '+' + digitsOnly;
+      } else if (/^0\d{9}$/.test(digitsOnly)) {
+        // Local 10-digit numbers are stored as-is in the database
+        finalIdentifier = digitsOnly;
+      } else {
+        finalIdentifier = digitsOnly;
+      }
     }
  
     try {

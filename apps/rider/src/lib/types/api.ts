@@ -230,3 +230,35 @@ export interface RiderDelivery {
   failedAt: string | null;
   createdAt: string;
 }
+
+export interface RiderPaymentRecord {
+  id: string;
+  amount: number;
+  paidAt: string;
+  method: string;
+  status: string;
+  reference: string | null;
+  notes: string | null;
+}
+
+export interface RiderPaymentSummary {
+  isLeaseToOwn: boolean;
+  leasePrincipal: number;
+  leaseDailyRate: number;
+  totalPaid: number;
+  expectedPaid: number;
+  arrears: number;
+  status: 'UP_TO_DATE' | 'DELINQUENT' | 'PAID_OFF';
+  phone: string | null;
+  recentPayments: RiderPaymentRecord[];
+}
+
+export interface MomoPaymentResponse {
+  referenceId: string;
+  externalId: string;
+  amount: number;
+  status: string;
+  payerPhone: string;
+  financialTransactionId?: string;
+  failureReason?: string;
+}

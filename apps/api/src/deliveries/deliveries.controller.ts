@@ -51,9 +51,7 @@ export class DeliveriesController {
     @Query('riderId') riderId?: string,
   ) {
     if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
+      return [];
     }
     // Security check: riders can only see their own deliveries
     const effectiveRiderId = user.role === UserRole.RIDER ? user.id : riderId;

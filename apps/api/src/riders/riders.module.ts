@@ -6,6 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CommandsModule } from '../commands/commands.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { RedisModule } from '../redis/redis.module';
+import { BillingModule } from '../billing/billing.module';
 import { RiderController } from './rider.controller';
 import { RidersAdminController } from './riders-admin.controller';
 import { RidersService } from './riders.service';
@@ -19,6 +20,7 @@ import { RidersService } from './riders.service';
     CommandsModule,
     IngestionModule,
     RedisModule,
+    BillingModule,
   ],
   controllers: [RidersAdminController, RiderController],
   providers: [RidersService],

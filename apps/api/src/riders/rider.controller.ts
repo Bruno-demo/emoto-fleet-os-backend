@@ -19,6 +19,7 @@ import { RiderEventsQueryDto } from './dto/rider-events-query.dto';
 import { RiderSosDto } from './dto/rider-sos.dto';
 import { RiderTripsQueryDto } from './dto/rider-trips-query.dto';
 import { RiderWeeklyScoreQueryDto } from './dto/rider-weekly-score-query.dto';
+import { RiderPayCollectionDto } from './dto/rider-pay-collection.dto';
 import type {
   NearbyPoiSummary,
   RiderEventSummary,
@@ -170,5 +171,38 @@ export class RiderController {
     @Body() dto: RiderSosDto,
   ): Promise<RiderSosResponse> {
     return this.ridersService.triggerRiderSos(user, dto);
+  }
+
+  @Get('payments/summary')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({
+    summary: 'Get lease-to-own balance, arrears, and daily collection payment history',
+  })
+  async getPaymentSummary(@CurrentUser() user: AuthenticatedUser) {
+    return this.ridersService.getRiderPaymentSummary(user);
+  }
+
+  @Post('payments/pay-now')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({
+    summary: 'Initiate a Mobile Money payment prompt for daily collection or lease-to-own',
+  })
+  async payCollection(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RiderPayCollectionDto,
+  ) {
+    return this.ridersService.payRiderCollection(user, dto);
+  }
+
+  @Get('payments/status/:referenceId')
+  @Roles(UserRole.RIDER)
+  @ApiOperation({
+    summary: 'Check status of a pending rider Mobile Money payment',
+  })
+  async getPaymentStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('referenceId') referenceId: string,
+  ) {
+    return this.ridersService.getRiderPaymentStatus(user, referenceId);
   }
 }

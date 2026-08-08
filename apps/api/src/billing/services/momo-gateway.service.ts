@@ -165,6 +165,95 @@ export class MomoGatewayService {
     }
   }
 
+  async requestRiderCollectionToPay(
+    fleetId: string,
+    riderId: string,
+    amount: number,
+    payerPhone: string,
+  ) {
+    const normalizedPhone = this.normalizePhone(payerPhone);
+    const referenceId = uuidv4();
+    const timestamp = Date.now();
+    const idempotencyKey = `rider-coll-${riderId}-${timestamp}`;
+    const externalId = `RIDER-${riderId.slice(0, 6)}-${timestamp.toString().slice(-6)}`;
+
+    let transaction = await this.prisma.momoTransaction.create({
+      data: {
+        referenceId,
+        idempotencyKey,
+        externalId,
+        amount,
+        payerPhone: normalizedPhone,
+        status: MomoTransactionStatus.PENDING,
+        fleetId,
+        riderId,
+      },
+    });
+
+    try {
+      const token = await this.getAccessToken();
+      const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
+      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV');
+      const subscriptionKey = this.configService.get<string>(
+        'MOMO_SUBSCRIPTION_KEY',
+      );
+      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL');
+
+      await firstValueFrom(
+        this.httpService.post(
+          `${baseUrl}/collection/v1_0/requesttopay`,
+          {
+            amount: String(amount),
+            currency: 'RWF',
+            externalId,
+            payer: {
+              partyIdType: 'MSISDN',
+              partyId: normalizedPhone,
+            },
+            payerMessage: `E-Moto Fleet OS daily collection payment`,
+            payeeNote: 'Rider daily lease collection',
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'X-Reference-Id': referenceId,
+              'X-Target-Environment': targetEnv,
+              'Ocp-Apim-Subscription-Key': subscriptionKey,
+              'X-Callback-Url': callbackUrl,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      );
+
+      await this.auditService.createAuditLog({
+        fleetId,
+        actorUserId: riderId,
+        actionType: AuditActionType.MOMO_PAYMENT_REQUESTED,
+        targetType: 'MomoTransaction',
+        targetId: transaction.id,
+        metaJson: { amount, referenceId, riderId },
+      });
+
+      return transaction;
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to execute requestRiderCollectionToPay for ${referenceId}`,
+        error?.response?.data || error,
+      );
+
+      transaction = await this.prisma.momoTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: MomoTransactionStatus.FAILED,
+          failureReason: error.response?.data?.message || error.message,
+        },
+      });
+
+      return transaction;
+    }
+  }
+
   async checkTransactionStatus(referenceId: string) {
     try {
       const token = await this.getAccessToken();
@@ -283,6 +372,26 @@ export class MomoGatewayService {
               }
             }
           }
+        }
+
+        // Handle Rider Daily Collection / Lease Payment
+        if (transaction.riderId) {
+          const paidAt = new Date();
+          await prisma.riderPayment.create({
+            data: {
+              fleetId: transaction.fleetId,
+              riderId: transaction.riderId,
+              amount: transaction.amount,
+              paidAt,
+              method: 'MOBILE_MONEY',
+              status: 'PAID',
+              reference: financialTransactionId || transaction.referenceId,
+              notes: `Auto-recorded MoMo collection payment (${transaction.payerPhone})`,
+            },
+          });
+          this.logger.log(
+            `Auto-recorded RiderPayment of ${transaction.amount} RWF for rider ${transaction.riderId}`,
+          );
         }
       });
 

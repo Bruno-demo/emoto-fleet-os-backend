@@ -313,6 +313,7 @@ model User {
   deliveries            Delivery[]           @relation("DeliveryRider")
   trafficFines          TrafficFine[]        @relation("RiderTrafficFines")
   batterySwaps          BatterySwap[]        @relation("BatterySwapRider")
+  momoTransactions      MomoTransaction[]
 
 
   @@unique([fleetId, email])
@@ -967,6 +968,7 @@ model MomoTransaction {
   id                     String                @id @default(uuid()) @db.Uuid
   fleetId                String                @db.Uuid
   billingCycleId         String?               @db.Uuid
+  riderId                String?               @db.Uuid
   referenceId            String                @unique
   externalId             String
   amount                 Int
@@ -985,9 +987,11 @@ model MomoTransaction {
   updatedAt              DateTime              @updatedAt @db.Timestamptz(6)
   fleet                  Fleet                 @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   billingCycle           BillingCycle?          @relation(fields: [billingCycleId], references: [id])
+  rider                  User?                 @relation(fields: [riderId], references: [id], onDelete: SetNull)
 
   @@index([fleetId])
   @@index([billingCycleId])
+  @@index([riderId])
   @@index([status])
   @@index([referenceId])
   @@index([nextRetryAt])

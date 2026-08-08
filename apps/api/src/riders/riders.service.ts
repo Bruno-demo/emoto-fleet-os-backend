@@ -97,6 +97,9 @@ interface RiderIdentity {
   }>;
 }
 
+import { MomoGatewayService } from '../billing/services/momo-gateway.service';
+import { RiderPayCollectionDto } from './dto/rider-pay-collection.dto';
+
 @Injectable()
 export class RidersService {
   private readonly tripScoreMinDistanceKm: number;
@@ -111,6 +114,7 @@ export class RidersService {
     private readonly notificationOutboxService: NotificationOutboxService,
     private readonly commandsService: CommandsService,
     private readonly liveStateService: LiveStateService,
+    private readonly momoGatewayService: MomoGatewayService,
   ) {
     this.tripScoreMinDistanceKm = this.configService.get<number>(
       'TRIP_SCORE_MIN_DISTANCE_KM',
@@ -1895,6 +1899,136 @@ export class RidersService {
       tripCount: trips.length,
       periodStart: thirtyDaysAgo.toISOString(),
       periodEnd: new Date().toISOString(),
+    };
+  }
+
+  async getRiderPaymentSummary(user: AuthenticatedUser) {
+    const rider = await this.prismaService.user.findUnique({
+      where: { id: user.id },
+      include: {
+        riderProfile: true,
+        trafficFines: true,
+        bikeAssignments: {
+          where: { active: true },
+          include: { bike: true },
+        },
+        payments: {
+          orderBy: { paidAt: 'desc' },
+          take: 20,
+        },
+      },
+    });
+
+    if (!rider) {
+      throw new NotFoundException('Rider account not found');
+    }
+
+    const profile = rider.riderProfile;
+    const isLeaseToOwn = profile?.leaseToOwn ?? false;
+    const leasePrincipal = profile?.leasePrincipal ?? 2500000;
+    const leaseDailyRate = profile?.leaseDailyRate ?? 15000;
+
+    const allPaidPayments = await this.prismaService.riderPayment.findMany({
+      where: { riderId: user.id, status: 'PAID' },
+    });
+    const totalPaid = allPaidPayments.reduce(
+      (sum, p) => sum + p.amount.toNumber(),
+      0,
+    );
+
+    const activeAssignment = rider.bikeAssignments[0];
+    let arrears = 0;
+    let expectedPaid = 0;
+
+    if (activeAssignment) {
+      const msDiff = Date.now() - activeAssignment.assignedAt.getTime();
+      const daysDiff = Math.max(0, Math.floor(msDiff / (1000 * 60 * 60 * 24)));
+      expectedPaid = daysDiff * leaseDailyRate;
+      arrears = Math.max(0, expectedPaid - totalPaid);
+    }
+
+    const pendingFines = rider.trafficFines
+      .filter((f) => f.status === 'PENDING')
+      .reduce((sum, f) => sum + f.amount, 0);
+
+    arrears += pendingFines;
+
+    let status: 'UP_TO_DATE' | 'DELINQUENT' | 'PAID_OFF' = 'UP_TO_DATE';
+    if (isLeaseToOwn && totalPaid >= leasePrincipal) {
+      status = 'PAID_OFF';
+    } else if (arrears > 0) {
+      status = 'DELINQUENT';
+    }
+
+    return {
+      isLeaseToOwn,
+      leasePrincipal,
+      leaseDailyRate,
+      totalPaid,
+      expectedPaid,
+      arrears,
+      status,
+      phone: rider.phone,
+      recentPayments: rider.payments.map((p) => ({
+        id: p.id,
+        amount: p.amount.toNumber(),
+        paidAt: p.paidAt,
+        method: p.method,
+        status: p.status,
+        reference: p.reference,
+        notes: p.notes,
+      })),
+    };
+  }
+
+  async payRiderCollection(user: AuthenticatedUser, dto: RiderPayCollectionDto) {
+    const rider = await this.prismaService.user.findUnique({
+      where: { id: user.id },
+      include: { riderProfile: true },
+    });
+
+    if (!rider) {
+      throw new NotFoundException('Rider account not found');
+    }
+
+    const amount = dto.amount || rider.riderProfile?.leaseDailyRate || 15000;
+    const phone = dto.momoPhoneNumber || rider.phone;
+
+    if (!phone) {
+      throw new BadRequestException(
+        'No valid phone number provided for Mobile Money payment',
+      );
+    }
+
+    return this.momoGatewayService.requestRiderCollectionToPay(
+      user.fleetId,
+      user.id,
+      amount,
+      phone,
+    );
+  }
+
+  async getRiderPaymentStatus(user: AuthenticatedUser, referenceId: string) {
+    const transaction = await this.prismaService.momoTransaction.findFirst({
+      where: {
+        referenceId,
+        riderId: user.id,
+      },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Payment transaction not found');
+    }
+
+    return {
+      referenceId: transaction.referenceId,
+      externalId: transaction.externalId,
+      amount: transaction.amount,
+      status: transaction.status,
+      payerPhone: transaction.payerPhone,
+      financialTransactionId: transaction.financialTransactionId,
+      failureReason: transaction.failureReason,
+      createdAt: transaction.createdAt,
     };
   }
 }
