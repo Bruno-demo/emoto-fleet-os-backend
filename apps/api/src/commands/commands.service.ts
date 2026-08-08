@@ -344,7 +344,9 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
         }
       } catch (smsErr: unknown) {
         const msg = smsErr instanceof Error ? smsErr.message : String(smsErr);
-        this.logger.warn(`SMS fallback dispatch failed for deviceUid=${device.deviceUid}: ${msg}`);
+        this.logger.warn(
+          `SMS fallback dispatch failed for deviceUid=${device.deviceUid}: ${msg}`,
+        );
       }
     }
 
@@ -518,7 +520,9 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
         }
       } catch (smsErr: unknown) {
         const msg = smsErr instanceof Error ? smsErr.message : String(smsErr);
-        this.logger.warn(`HQ SMS fallback dispatch failed for deviceUid=${device.deviceUid}: ${msg}`);
+        this.logger.warn(
+          `HQ SMS fallback dispatch failed for deviceUid=${device.deviceUid}: ${msg}`,
+        );
       }
     }
 

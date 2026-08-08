@@ -771,7 +771,9 @@ export class AuthService {
     expiresAt: Date;
   }> {
     if (!actor?.fleetId) {
-      throw new BadRequestException('Caller must belong to a fleet to create invites');
+      throw new BadRequestException(
+        'Caller must belong to a fleet to create invites',
+      );
     }
 
     const registerEnabled = this.configService.get<boolean>(
@@ -792,15 +794,18 @@ export class AuthService {
 
     const token = this.generateInviteToken();
     const tokenHash = this.hashInviteToken(token);
-    const normalizedEmail = dto.email?.trim() ? dto.email.trim().toLowerCase() : null;
+    const normalizedEmail = dto.email?.trim()
+      ? dto.email.trim().toLowerCase()
+      : null;
     const phone = dto.phone?.trim() ? dto.phone.trim() : null;
 
     const rawExpiry = Number(dto.expiresInHours);
-    const expiresInHours = (!isNaN(rawExpiry) && rawExpiry > 0 && rawExpiry <= 720) ? rawExpiry : 168;
+    const expiresInHours =
+      !isNaN(rawExpiry) && rawExpiry > 0 && rawExpiry <= 720 ? rawExpiry : 168;
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
     const rawMaxUses = Number(dto.maxUses);
-    const maxUsesVal = (!isNaN(rawMaxUses) && rawMaxUses > 0) ? rawMaxUses : 1;
+    const maxUsesVal = !isNaN(rawMaxUses) && rawMaxUses > 0 ? rawMaxUses : 1;
 
     let createdInvite: any;
     try {
@@ -826,7 +831,9 @@ export class AuthService {
         },
       });
     } catch (dbError: any) {
-      this.logger.warn(`Primary registrationInvite.create failed, trying legacy fallback: ${dbError?.message}`);
+      this.logger.warn(
+        `Primary registrationInvite.create failed, trying legacy fallback: ${dbError?.message}`,
+      );
       try {
         createdInvite = await this.prismaService.registrationInvite.create({
           data: {
@@ -847,8 +854,13 @@ export class AuthService {
           },
         });
       } catch (fallbackError: any) {
-        this.logger.error(`registrationInvite.create fallback failed: ${fallbackError?.message}`, fallbackError?.stack);
-        throw new InternalServerErrorException(fallbackError?.message || 'Failed to create invite code');
+        this.logger.error(
+          `registrationInvite.create fallback failed: ${fallbackError?.message}`,
+          fallbackError?.stack,
+        );
+        throw new InternalServerErrorException(
+          fallbackError?.message || 'Failed to create invite code',
+        );
       }
     }
 
@@ -867,7 +879,9 @@ export class AuthService {
         },
       });
     } catch (auditErr: any) {
-      this.logger.warn(`Failed to create audit log for invite ${createdInvite.id}: ${auditErr?.message}`);
+      this.logger.warn(
+        `Failed to create audit log for invite ${createdInvite.id}: ${auditErr?.message}`,
+      );
     }
 
     return {
@@ -975,7 +989,9 @@ export class AuthService {
           }
 
           const newUsedCount = ((invite as any).usedCount ?? 0) + 1;
-          const isFullyUsed = ((invite as any).maxUses ?? 1) > 0 && newUsedCount >= ((invite as any).maxUses ?? 1);
+          const isFullyUsed =
+            ((invite as any).maxUses ?? 1) > 0 &&
+            newUsedCount >= ((invite as any).maxUses ?? 1);
 
           try {
             await tx.registrationInvite.update({

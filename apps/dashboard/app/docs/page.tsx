@@ -49,7 +49,7 @@ export default function DocsPage() {
     {
       icon: <Coins size={18} className="text-emerald-400" />,
       title: 'Pricing & Subscriptions',
-      desc: 'Compare the Safety Core and Operations Plus tiers, and understand the device setup and active bike costs.',
+      desc: 'Compare Cooperative & Individual and Delivery Fleet plans, with 0 RWF hardware setup fees.',
     },
     {
       icon: <Key size={18} className="text-amber-400" />,
@@ -212,20 +212,20 @@ export default function DocsPage() {
                   <thead className="border-b border-white/[0.08] bg-white/[0.02] text-xs font-bold text-white">
                     <tr>
                       <th className="p-4">Feature / Metric</th>
-                      <th className="p-4">Safety Core Plan</th>
-                      <th className="p-4">Operations Plus Plan</th>
+                      <th className="p-4">Cooperative & Individual Plan</th>
+                      <th className="p-4">Delivery Fleet Plan</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
                     <tr>
-                      <td className="p-4 font-semibold text-white">Monthly Active Cost</td>
-                      <td className="p-4">5,000 RWF / bike</td>
+                      <td className="p-4 font-semibold text-white">Monthly Rate Per Bike</td>
                       <td className="p-4">10,000 RWF / bike</td>
+                      <td className="p-4">15,000 RWF / bike</td>
                     </tr>
                     <tr>
-                      <td className="p-4 font-semibold text-white">One-Time Setup Fee</td>
-                      <td className="p-4">35,000 RWF / bike (Device installation)</td>
-                      <td className="p-4">35,000 RWF / bike (Device installation)</td>
+                      <td className="p-4 font-semibold text-white">Device Setup Fee</td>
+                      <td className="p-4">0 RWF (eMoto company property)</td>
+                      <td className="p-4">0 RWF (eMoto company property)</td>
                     </tr>
                     <tr>
                       <td className="p-4 font-semibold text-white">Realtime Telemetry</td>
@@ -290,7 +290,7 @@ export default function DocsPage() {
                 <h2 className="text-xl font-bold text-white">4. Operations &amp; Financial Ledger</h2>
               </div>
               <p className="text-xs md:text-sm leading-relaxed text-zinc-400">
-                The Operations Plus tier unlocks the high-fidelity billing control desk. Fleet operators can track lease transactions, capture arrears, and audit rider payments:
+                The financial &amp; billing control desk allows fleet operators to track lease transactions, capture arrears, and audit rider payments:
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">

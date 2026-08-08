@@ -18,7 +18,7 @@ export class SubscriptionService {
   }> {
     if (plan !== FleetPlan.PREMIUM) {
       throw new BadRequestException(
-        'Only Operations Plus upgrades are supported right now',
+        'Only Delivery Fleet upgrades are supported right now',
       );
     }
 

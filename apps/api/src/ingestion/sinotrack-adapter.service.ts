@@ -339,8 +339,12 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
 
       // Bind socket using true 15-digit hardware IMEI if available
-      const activeImei = device.imei || (is15DigitImei ? imei : device.deviceUid);
-      this.activeConnections.set(device.deviceUid, { socket, imei: activeImei });
+      const activeImei =
+        device.imei || (is15DigitImei ? imei : device.deviceUid);
+      this.activeConnections.set(device.deviceUid, {
+        socket,
+        imei: activeImei,
+      });
       if (imei) {
         this.activeConnections.set(imei, { socket, imei: activeImei });
       }
@@ -1086,7 +1090,8 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
 
-    let targetImei = connection.imei && connection.imei.length === 15 ? connection.imei : '';
+    let targetImei =
+      connection.imei && connection.imei.length === 15 ? connection.imei : '';
     if (!targetImei) {
       for (const [key, value] of this.activeConnections.entries()) {
         if (value.socket === connection.socket && key && key.length === 15) {

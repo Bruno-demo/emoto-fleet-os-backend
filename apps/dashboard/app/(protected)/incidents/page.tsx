@@ -159,7 +159,7 @@ export default function IncidentsPage() {
       return;
     }
     if (!canGenerateEvidence) {
-      setActionError(t('Evidence packs are available on Operations Plus.'));
+      setActionError(t('Evidence packs are available on Delivery Fleet.'));
       return;
     }
 
@@ -503,7 +503,7 @@ export default function IncidentsPage() {
                   {isGeneratingEvidence ? t('Generating evidence pack...') : t('Generate evidence pack')}
                 </button>
                 {!canGenerateEvidence ? (
-                  <InlineNotice message={t("Evidence packs are available on Operations Plus.")} />
+                  <InlineNotice message={t("Evidence packs are available on Delivery Fleet.")} />
                 ) : null}
 
                 {isGeneratingEvidence ? (

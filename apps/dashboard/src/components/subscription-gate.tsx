@@ -67,7 +67,7 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
           description={
             isInactive
               ? 'Paused while the subscription is not active.'
-              : 'Available after upgrading this fleet to Operations Plus.'
+              : 'Available after upgrading this fleet to Delivery Fleet.'
           }
         />
         <SubscriptionReason

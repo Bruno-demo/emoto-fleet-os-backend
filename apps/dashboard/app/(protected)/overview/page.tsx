@@ -108,14 +108,14 @@ export default function OverviewPage() {
             <MetricCard
               title={user?.role === 'INSURER' ? t('Insured Trips') : t('Weekly Trips')}
               value={canUseReports ? (report ? String(report.tripCount) : '--') : '🔒'}
-              hint={canUseReports ? (user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in the current 7-day window')) : t('Upgrade to Operations Plus to unlock')}
+              hint={canUseReports ? (user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in the current 7-day window')) : t('Upgrade fleet plan to unlock')}
               icon={<Bike size={18} />}
               tone="info"
             />
             <MetricCard
               title={user?.role === 'INSURER' ? t('Covered Score') : t('Fleet Score')}
               value={canUseReports ? (report ? report.avgScore.toFixed(1) : '--') : '🔒'}
-              hint={canUseReports ? (user?.role === 'INSURER' ? t('Avg driving score of covered bikes') : t('Avg driving score across completed trips')) : t('Upgrade to Operations Plus to unlock')}
+              hint={canUseReports ? (user?.role === 'INSURER' ? t('Avg driving score of covered bikes') : t('Avg driving score across completed trips')) : t('Upgrade fleet plan to unlock')}
               icon={<TrendingUp size={18} />}
               tone={
                 report
@@ -130,14 +130,14 @@ export default function OverviewPage() {
             <MetricCard
               title={user?.role === 'INSURER' ? t('Open Covered Incidents') : t('Open Incidents')}
               value={canUseIncidents ? String(openIncidents) : '🔒'}
-              hint={canUseIncidents ? t('Awaiting acknowledgement or resolution') : t('Upgrade to Operations Plus to unlock')}
+              hint={canUseIncidents ? t('Awaiting acknowledgement or resolution') : t('Upgrade fleet plan to unlock')}
               icon={<ShieldAlert size={18} />}
               tone={canUseIncidents && openIncidents > 0 ? 'danger' : 'neutral'}
             />
             <MetricCard
               title={user?.role === 'INSURER' ? t('Covered Events') : t('Total Events')}
               value={canUseReports ? String(totalEvents) : '🔒'}
-              hint={canUseReports ? `${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}` : t('Upgrade to Operations Plus to unlock')}
+              hint={canUseReports ? `${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}` : t('Upgrade fleet plan to unlock')}
               icon={<Zap size={18} />}
               tone="warning"
             />
@@ -197,13 +197,13 @@ export default function OverviewPage() {
                 </span>
                 <p className="text-xs font-bold text-ink">{t('Event Breakdown Locked')}</p>
                 <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
-                  {t('Detailed crash, speeding, and driving safety event breakdowns require an active Operations Plus plan.')}
+                  {t('Detailed crash, speeding, and driving safety event breakdowns require an active fleet plan.')}
                 </p>
                 <Link
-                  href="/checkout?plan=operations-plus"
+                  href="/checkout?plan=delivery"
                   className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
                 >
-                  {t('Upgrade to Operations Plus')}
+                  {t('Upgrade fleet plan')}
                 </Link>
               </div>
             ) : weeklyReportQuery.isLoading ? (
@@ -292,13 +292,13 @@ export default function OverviewPage() {
                 </span>
                 <p className="text-xs font-bold text-ink">{t('Incident Desk Locked')}</p>
                 <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
-                  {t('Real-time crash tracking, safety alerts, and dispatch incident desk requires an active Operations Plus plan.')}
+                  {t('Real-time crash tracking, safety alerts, and dispatch incident desk require an active fleet plan.')}
                 </p>
                 <Link
-                  href="/checkout?plan=operations-plus"
+                  href="/checkout?plan=delivery"
                   className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
                 >
-                  {t('Upgrade to Operations Plus')}
+                  {t('Upgrade fleet plan')}
                 </Link>
               </div>
             ) : recentIncidentsQuery.isLoading ? (
@@ -385,10 +385,10 @@ export default function OverviewPage() {
                 </span>
                 <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
                 <p className="text-[10px] text-ink-muted max-w-[200px] mt-1 mb-3">
-                  {t('Rider safety scoring and risky vehicle watchlist require Operations Plus.')}
+                  {t('Rider safety scoring and risky vehicle watchlist require an active fleet plan.')}
                 </p>
                 <Link
-                  href="/checkout?plan=operations-plus"
+                  href="/checkout?plan=delivery"
                   className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
                 >
                   {t('Upgrade')}
@@ -429,10 +429,10 @@ export default function OverviewPage() {
                 </span>
                 <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
                 <p className="text-[10px] text-ink-muted max-w-[200px] mt-1 mb-3">
-                  {t('Rider safety scoring and risky vehicle watchlist require Operations Plus.')}
+                  {t('Rider safety scoring and risky vehicle watchlist require an active fleet plan.')}
                 </p>
                 <Link
-                  href="/checkout?plan=operations-plus"
+                  href="/checkout?plan=delivery"
                   className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
                 >
                   {t('Upgrade')}

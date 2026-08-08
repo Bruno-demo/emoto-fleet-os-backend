@@ -89,7 +89,9 @@ export class LiveStateService {
           }
         }
       } catch (err: unknown) {
-        this.logger.debug(`Failed to fetch cached state for drift filter: ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.debug(
+          `Failed to fetch cached state for drift filter: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 

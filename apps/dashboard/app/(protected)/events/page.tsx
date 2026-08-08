@@ -478,11 +478,11 @@ export default function EventsPage() {
                 </h3>
                 <p className="text-sm text-zinc-400 max-w-sm mb-6 leading-relaxed">
                   {t(
-                    'Detailed event explanations, exact GPS coordinates, and historical location mapping are premium features. Upgrade to Operations Plus to unlock.',
+                    'Detailed event explanations, exact GPS coordinates, and historical location mapping require an active fleet plan.',
                   )}
                 </p>
                 <Link
-                  href="/checkout?plan=operations-plus"
+                  href="/checkout?plan=delivery"
                   onClick={() => setSelectedEvent(null)}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent-strong active:scale-95"
                 >

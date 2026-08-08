@@ -651,7 +651,7 @@ export class HqController {
   }
 
   @Post('fleets/:id/approve-upgrade')
-  @ApiOperation({ summary: 'Approve pending Operations Plus upgrade request' })
+  @ApiOperation({ summary: 'Approve pending Delivery Fleet upgrade request' })
   approveFleetUpgrade(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,

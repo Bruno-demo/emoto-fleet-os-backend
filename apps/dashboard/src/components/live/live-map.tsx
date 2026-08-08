@@ -936,7 +936,7 @@ export function LiveMapPanel() {
                   onClick={() => setCommandIntent('LOCK')}
                 />
                 {!commandFeatureEnabled ? (
-                  <ActionNotice message={t("Remote lock and unlock controls are available on Operations Plus.")} tone="warning" />
+                  <ActionNotice message={t("Remote lock and unlock controls are available on Delivery Fleet.")} tone="warning" />
                 ) : !canSendCommands ? (
                   <ActionNotice message={t("Your role cannot send device commands.")} tone="warning" />
                 ) : !lockRule.allowed && lockRule.reason ? (

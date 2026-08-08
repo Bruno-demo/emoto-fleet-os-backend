@@ -56,7 +56,7 @@ export class SubscriptionFeatureGuard implements CanActivate {
     }
 
     throw new ForbiddenException(
-      `${FEATURE_LABELS[feature]} requires an active Operations Plus subscription`,
+      `${FEATURE_LABELS[feature]} requires an active fleet subscription`,
     );
   }
 }

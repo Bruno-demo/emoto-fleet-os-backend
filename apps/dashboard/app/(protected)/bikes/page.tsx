@@ -926,7 +926,7 @@ export default function BikesPage() {
                 </div>
 
                 {!canUseFeature(currentUser, 'commands') ? (
-                  <InlineNotice message={t('Remote lock and unlock controls are available on Operations Plus.')} />
+                  <InlineNotice message={t('Remote lock and unlock controls are available on Delivery Fleet.')} />
                 ) : null}
                 {canSendCommands && bikeLiveStateQuery.data?.ignition === true ? (
                   <InlineNotice message={t('Cannot lock while ignition is ON')} tone="warning" />
