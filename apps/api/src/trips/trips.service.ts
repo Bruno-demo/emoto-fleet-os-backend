@@ -306,14 +306,7 @@ export class TripsService {
 
   // Retrieves historical telemetry path coordinates for a trip.
   async getTripRouteForUser(user: AuthenticatedUser, id: string): Promise<any> {
-    // 1. Enforce subscription plan validation
-    if (user.fleetPlan === 'DEMO') {
-      throw new ForbiddenException(
-        'Trip route replay requires an active Operations Plus subscription',
-      );
-    }
-
-    // 2. Retrieve trip and check permissions
+    // 1. Retrieve trip and check permissions
     const trip = await this.prismaService.trip.findUnique({
       where: { id },
       select: {

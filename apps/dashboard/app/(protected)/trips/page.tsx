@@ -483,7 +483,7 @@ export default function TripsPage() {
               title={t('Interactive Journey Replay')}
               description={t('Play back the historical telemetry path and vehicle status on the map.')}
             >
-              {entitlements.isPremium ? (
+              {entitlements.isActive ? (
                 <TripRouteReplay tripId={selectedTrip.id} />
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center bg-surface-hover/30">

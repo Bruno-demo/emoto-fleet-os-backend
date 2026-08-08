@@ -93,7 +93,7 @@ export function getSubscriptionEntitlements(
     };
   }
 
-  const isPremium = plan === 'PREMIUM' && isActive;
+  const isPremium = (plan === 'PREMIUM' || plan === 'DEMO') && isActive;
   const tier: SubscriptionTier = isPremium ? 'premium' : 'core';
   const allowedFeatures = !isActive ? INACTIVE_FEATURES : PREMIUM_FEATURES;
 
@@ -107,7 +107,7 @@ export function getSubscriptionEntitlements(
     planLabel,
     statusLabel: formatSubscriptionStatus(status),
     isActive,
-    isPremium: true,
+    isPremium,
     allowedFeatures: new Set(allowedFeatures),
   };
 }
