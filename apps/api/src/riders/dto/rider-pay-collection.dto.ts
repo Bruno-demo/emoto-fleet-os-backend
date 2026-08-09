@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
 
 export class RiderPayCollectionDto {
   @ApiPropertyOptional({
@@ -21,4 +21,20 @@ export class RiderPayCollectionDto {
     message: 'Phone must be a valid Rwandan mobile number (e.g., 0788123456)',
   })
   momoPhoneNumber?: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether this payment is a partial payment',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isPartial?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Reason for partial payment (required if isPartial is true)',
+    example: 'Bike was undergoing maintenance in morning',
+  })
+  @IsOptional()
+  @IsString()
+  partialReason?: string;
 }

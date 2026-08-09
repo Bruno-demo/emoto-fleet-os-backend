@@ -77,4 +77,19 @@ export class CreateRiderDto {
   @IsOptional()
   @IsNumber()
   leaseDailyRate?: number;
+
+  @ApiPropertyOptional({ example: 'DAILY', enum: ['DAILY', 'WEEKLY', 'CUSTOM'] })
+  @IsOptional()
+  @IsString()
+  paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM';
+
+  @ApiPropertyOptional({ example: 15000 })
+  @IsOptional()
+  @IsNumber()
+  assignedRate?: number;
+
+  @ApiPropertyOptional({ example: 7 })
+  @IsOptional()
+  @IsNumber()
+  customScheduleDays?: number;
 }

@@ -106,6 +106,8 @@ export class FinancialsService {
           paidAt: paidAtDate,
           method: dto.method,
           status: dto.status,
+          isPartial: dto.isPartial ?? dto.status === 'PARTIAL',
+          partialReason: dto.partialReason || null,
           reference: dto.reference || null,
           notes: dto.notes || null,
         },
@@ -152,6 +154,8 @@ export class FinancialsService {
         paidAt: paidAtDate,
         method: dto.method,
         status: dto.status,
+        isPartial: dto.isPartial ?? dto.status === 'PARTIAL',
+        partialReason: dto.partialReason || null,
         reference: dto.reference || null,
         notes: dto.notes || null,
       },
@@ -540,6 +544,8 @@ export class FinancialsService {
       paidAt: p.paidAt,
       method: p.method,
       status: p.status,
+      isPartial: p.isPartial ?? p.status === 'PARTIAL',
+      partialReason: p.partialReason,
       reference: p.reference,
       notes: p.notes,
       createdAt: p.createdAt,
@@ -852,6 +858,8 @@ interface PaymentWithRider {
   paidAt: Date;
   method: PaymentMethod;
   status: PaymentStatus;
+  isPartial?: boolean;
+  partialReason?: string | null;
   reference: string | null;
   notes: string | null;
   createdAt: Date;

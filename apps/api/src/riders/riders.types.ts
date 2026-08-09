@@ -18,6 +18,9 @@ export interface RiderSummary {
   leaseToOwn?: boolean;
   leasePrincipal?: number;
   leaseDailyRate?: number;
+  paymentSchedule?: string;
+  assignedRate?: number;
+  customScheduleDays?: number | null;
   safetyScore?: number;
 }
 

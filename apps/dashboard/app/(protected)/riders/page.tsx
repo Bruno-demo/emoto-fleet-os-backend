@@ -97,6 +97,9 @@ export default function RidersPage() {
   const [leaseToOwn, setLeaseToOwn] = useState(false);
   const [leasePrincipal, setLeasePrincipal] = useState('2500000');
   const [leaseDailyRate, setLeaseDailyRate] = useState('15000');
+  const [newPaymentSchedule, setNewPaymentSchedule] = useState<'DAILY' | 'WEEKLY' | 'CUSTOM'>('DAILY');
+  const [newAssignedRate, setNewAssignedRate] = useState('15000');
+  const [newCustomScheduleDays, setNewCustomScheduleDays] = useState('7');
   const [isCompresingPassport, setIsCompresingPassport] = useState(false);
   const [isCompresingLicence, setIsCompresingLicence] = useState(false);
   const [isCompresingIdentity, setIsCompresingIdentity] = useState(false);
@@ -146,6 +149,9 @@ export default function RidersPage() {
   const [editLeaseToOwn, setEditLeaseToOwn] = useState(false);
   const [editLeasePrincipal, setEditLeasePrincipal] = useState('2500000');
   const [editLeaseDailyRate, setEditLeaseDailyRate] = useState('15000');
+  const [editPaymentSchedule, setEditPaymentSchedule] = useState<'DAILY' | 'WEEKLY' | 'CUSTOM'>('DAILY');
+  const [editAssignedRate, setEditAssignedRate] = useState('15000');
+  const [editCustomScheduleDays, setEditCustomScheduleDays] = useState('7');
 
   const [isCompresingEditPassport, setIsCompresingEditPassport] = useState(false);
   const [isCompresingEditLicence, setIsCompresingEditLicence] = useState(false);
@@ -223,6 +229,9 @@ export default function RidersPage() {
     setEditLeaseToOwn(selectedRider.leaseToOwn ?? false);
     setEditLeasePrincipal(String(selectedRider.leasePrincipal ?? '2500000'));
     setEditLeaseDailyRate(String(selectedRider.leaseDailyRate ?? '15000'));
+    setEditPaymentSchedule((selectedRider.paymentSchedule as any) ?? 'DAILY');
+    setEditAssignedRate(String(selectedRider.assignedRate ?? selectedRider.leaseDailyRate ?? '15000'));
+    setEditCustomScheduleDays(String(selectedRider.customScheduleDays ?? '7'));
     
     setEditError(null);
     setIsEditing(true);
@@ -357,6 +366,9 @@ export default function RidersPage() {
         leaseToOwn: editLeaseToOwn,
         leasePrincipal: editLeaseToOwn ? Number(editLeasePrincipal) : null,
         leaseDailyRate: Number(editLeaseDailyRate),
+        paymentSchedule: editPaymentSchedule,
+        assignedRate: Number(editAssignedRate),
+        customScheduleDays: editPaymentSchedule === 'CUSTOM' ? Number(editCustomScheduleDays) : null,
       }
     });
   };
@@ -573,6 +585,9 @@ export default function RidersPage() {
           leaseToOwn,
           leasePrincipal: leaseToOwn ? Number(leasePrincipal) : undefined,
           leaseDailyRate: Number(leaseDailyRate),
+          paymentSchedule: newPaymentSchedule,
+          assignedRate: Number(newAssignedRate),
+          customScheduleDays: newPaymentSchedule === 'CUSTOM' ? Number(newCustomScheduleDays) : undefined,
         }),
       });
       await queryClient.invalidateQueries({ queryKey: ['riders'] });
@@ -911,6 +926,40 @@ export default function RidersPage() {
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     />
                   </label>
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Payment Schedule")}
+                    <select
+                      value={newPaymentSchedule}
+                      onChange={(e) => setNewPaymentSchedule(e.target.value as any)}
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    >
+                      <option value="DAILY">{t("Daily")}</option>
+                      <option value="WEEKLY">{t("Weekly")}</option>
+                      <option value="CUSTOM">{t("Custom Days")}</option>
+                    </select>
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Assigned Rate (RWF)")}
+                    <input
+                      type="number"
+                      value={newAssignedRate}
+                      onChange={(e) => setNewAssignedRate(e.target.value)}
+                      placeholder="15000"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  {newPaymentSchedule === 'CUSTOM' && (
+                    <label className="block text-sm font-medium text-ink">
+                      {t("Custom Schedule Days")}
+                      <input
+                        type="number"
+                        value={newCustomScheduleDays}
+                        onChange={(e) => setNewCustomScheduleDays(e.target.value)}
+                        placeholder="7"
+                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      />
+                    </label>
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3 mt-4">
@@ -1390,6 +1439,40 @@ export default function RidersPage() {
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     />
                   </label>
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Payment Schedule")}
+                    <select
+                      value={editPaymentSchedule}
+                      onChange={(e) => setEditPaymentSchedule(e.target.value as any)}
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    >
+                      <option value="DAILY">{t("Daily")}</option>
+                      <option value="WEEKLY">{t("Weekly")}</option>
+                      <option value="CUSTOM">{t("Custom Days")}</option>
+                    </select>
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    {t("Assigned Rate (RWF)")}
+                    <input
+                      type="number"
+                      value={editAssignedRate}
+                      onChange={(e) => setEditAssignedRate(e.target.value)}
+                      placeholder="15000"
+                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                    />
+                  </label>
+                  {editPaymentSchedule === 'CUSTOM' && (
+                    <label className="block text-sm font-medium text-ink">
+                      {t("Custom Schedule Days")}
+                      <input
+                        type="number"
+                        value={editCustomScheduleDays}
+                        onChange={(e) => setEditCustomScheduleDays(e.target.value)}
+                        placeholder="7"
+                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      />
+                    </label>
+                  )}
                 </div>
 
                 {/* Edit Photo Uploads */}
@@ -1627,6 +1710,8 @@ export default function RidersPage() {
                       )
                     }
                   />
+                  <KeyMetric label={t("Payment Schedule")} value={<span>{formatEnumLabel(selectedRider.paymentSchedule ?? 'DAILY')}</span>} />
+                  <KeyMetric label={t("Assigned Rate")} value={<span>{`${(selectedRider.assignedRate ?? selectedRider.leaseDailyRate ?? 15000).toLocaleString()} RWF`}</span>} />
                 </section>
 
                 {/* Documents Section */}

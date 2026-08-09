@@ -228,12 +228,17 @@ export interface RiderPaymentRecord {
   status: string;
   reference: string | null;
   notes: string | null;
+  isPartial?: boolean;
+  partialReason?: string | null;
 }
 
 export interface RiderPaymentSummary {
   isLeaseToOwn: boolean;
   leasePrincipal: number;
   leaseDailyRate: number;
+  assignedRate?: number;
+  paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM' | string;
+  customScheduleDays?: number | null;
   totalPaid: number;
   expectedPaid: number;
   arrears: number;

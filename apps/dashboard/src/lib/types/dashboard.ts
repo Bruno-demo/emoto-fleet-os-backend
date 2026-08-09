@@ -293,6 +293,9 @@ export interface Rider {
   leaseToOwn?: boolean;
   leasePrincipal?: number;
   leaseDailyRate?: number;
+  paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM' | string;
+  assignedRate?: number;
+  customScheduleDays?: number | null;
   safetyScore?: number;
 }
 

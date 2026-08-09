@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -40,4 +41,14 @@ export class RecordPaymentDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isPartial?: boolean;
+
+  @ApiPropertyOptional({ example: 'Maintenance delay' })
+  @IsOptional()
+  @IsString()
+  partialReason?: string;
 }

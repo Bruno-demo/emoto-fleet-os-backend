@@ -81,6 +81,9 @@ interface RiderIdentity {
     leaseToOwn: boolean;
     leasePrincipal: number;
     leaseDailyRate: number;
+    paymentSchedule: string;
+    assignedRate: number;
+    customScheduleDays: number | null;
   } | null;
   bikeAssignments: Array<{
     id: string;
@@ -267,6 +270,9 @@ export class RidersService {
             leaseToOwn: dto.leaseToOwn ?? false,
             leasePrincipal: dto.leasePrincipal ?? 2500000,
             leaseDailyRate: dto.leaseDailyRate ?? 15000,
+            paymentSchedule: dto.paymentSchedule ?? 'DAILY',
+            assignedRate: dto.assignedRate ?? dto.leaseDailyRate ?? 15000,
+            customScheduleDays: dto.customScheduleDays ?? null,
           },
         });
 
@@ -538,6 +544,12 @@ export class RidersService {
         profileData.leasePrincipal = dto.leasePrincipal;
       if (dto.leaseDailyRate !== undefined)
         profileData.leaseDailyRate = dto.leaseDailyRate;
+      if (dto.paymentSchedule !== undefined)
+        profileData.paymentSchedule = dto.paymentSchedule;
+      if (dto.assignedRate !== undefined)
+        profileData.assignedRate = dto.assignedRate;
+      if (dto.customScheduleDays !== undefined)
+        profileData.customScheduleDays = dto.customScheduleDays;
 
       if (Object.keys(profileData).length > 0) {
         await tx.riderProfile.update({
@@ -1590,6 +1602,9 @@ export class RidersService {
             leaseToOwn: true,
             leasePrincipal: true,
             leaseDailyRate: true,
+            paymentSchedule: true,
+            assignedRate: true,
+            customScheduleDays: true,
           },
         },
         bikeAssignments: {
@@ -1648,6 +1663,9 @@ export class RidersService {
             leaseToOwn: true,
             leasePrincipal: true,
             leaseDailyRate: true,
+            paymentSchedule: true,
+            assignedRate: true,
+            customScheduleDays: true,
           },
         },
         bikeAssignments: {
@@ -1740,6 +1758,9 @@ export class RidersService {
       leaseToOwn: rider.riderProfile?.leaseToOwn ?? false,
       leasePrincipal: rider.riderProfile?.leasePrincipal ?? 2500000,
       leaseDailyRate: rider.riderProfile?.leaseDailyRate ?? 15000,
+      paymentSchedule: rider.riderProfile?.paymentSchedule ?? 'DAILY',
+      assignedRate: rider.riderProfile?.assignedRate ?? rider.riderProfile?.leaseDailyRate ?? 15000,
+      customScheduleDays: rider.riderProfile?.customScheduleDays ?? null,
     };
   }
 
@@ -1960,10 +1981,17 @@ export class RidersService {
       status = 'DELINQUENT';
     }
 
+    const assignedRate = profile?.assignedRate ?? leaseDailyRate;
+    const paymentSchedule = profile?.paymentSchedule ?? 'DAILY';
+    const customScheduleDays = profile?.customScheduleDays ?? null;
+
     return {
       isLeaseToOwn,
       leasePrincipal,
       leaseDailyRate,
+      assignedRate,
+      paymentSchedule,
+      customScheduleDays,
       totalPaid,
       expectedPaid,
       arrears,
@@ -1977,6 +2005,8 @@ export class RidersService {
         status: p.status,
         reference: p.reference,
         notes: p.notes,
+        isPartial: p.isPartial,
+        partialReason: p.partialReason,
       })),
     };
   }
@@ -1991,7 +2021,7 @@ export class RidersService {
       throw new NotFoundException('Rider account not found');
     }
 
-    const amount = dto.amount || rider.riderProfile?.leaseDailyRate || 15000;
+    const amount = dto.amount || rider.riderProfile?.assignedRate || rider.riderProfile?.leaseDailyRate || 15000;
     const phone = dto.momoPhoneNumber || rider.phone;
 
     if (!phone) {
@@ -2005,6 +2035,8 @@ export class RidersService {
       user.id,
       amount,
       phone,
+      dto.isPartial,
+      dto.partialReason,
     );
   }
 

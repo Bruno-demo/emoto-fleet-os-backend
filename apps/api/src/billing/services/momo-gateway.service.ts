@@ -170,12 +170,15 @@ export class MomoGatewayService {
     riderId: string,
     amount: number,
     payerPhone: string,
+    isPartial?: boolean,
+    partialReason?: string,
   ) {
     const normalizedPhone = this.normalizePhone(payerPhone);
     const referenceId = uuidv4();
     const timestamp = Date.now();
     const idempotencyKey = `rider-coll-${riderId}-${timestamp}`;
     const externalId = `RIDER-${riderId.slice(0, 6)}-${timestamp.toString().slice(-6)}`;
+    const payerMsg = isPartial && partialReason ? `PARTIAL:${partialReason}` : 'Rider collection payment';
 
     let transaction = await this.prisma.momoTransaction.create({
       data: {
@@ -187,6 +190,7 @@ export class MomoGatewayService {
         status: MomoTransactionStatus.PENDING,
         fleetId,
         riderId,
+        payerMessage: payerMsg,
       },
     });
 
@@ -377,6 +381,11 @@ export class MomoGatewayService {
         // Handle Rider Daily Collection / Lease Payment
         if (transaction.riderId) {
           const paidAt = new Date();
+          const isPartial = transaction.payerMessage?.startsWith('PARTIAL:') ?? false;
+          const partialReason = isPartial
+            ? transaction.payerMessage?.replace('PARTIAL:', '').trim()
+            : null;
+
           await prisma.riderPayment.create({
             data: {
               fleetId: transaction.fleetId,
@@ -384,13 +393,17 @@ export class MomoGatewayService {
               amount: transaction.amount,
               paidAt,
               method: 'MOBILE_MONEY',
-              status: 'PAID',
+              status: isPartial ? 'PARTIAL' : 'PAID',
+              isPartial,
+              partialReason,
               reference: financialTransactionId || transaction.referenceId,
-              notes: `Auto-recorded MoMo collection payment (${transaction.payerPhone})`,
+              notes: isPartial
+                ? `Partial MoMo payment: ${partialReason}`
+                : `Auto-recorded MoMo collection payment (${transaction.payerPhone})`,
             },
           });
           this.logger.log(
-            `Auto-recorded RiderPayment of ${transaction.amount} RWF for rider ${transaction.riderId}`,
+            `Auto-recorded RiderPayment of ${transaction.amount} RWF (isPartial: ${isPartial}) for rider ${transaction.riderId}`,
           );
         }
       });

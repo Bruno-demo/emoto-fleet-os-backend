@@ -30,6 +30,8 @@ export function PaymentsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [amountInput, setAmountInput] = useState('15000');
   const [phoneInput, setPhoneInput] = useState(riderPhone);
+  const [isPartial, setIsPartial] = useState(false);
+  const [partialReason, setPartialReason] = useState('');
   const [activeRefId, setActiveRefId] = useState<string | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
 
@@ -39,7 +41,12 @@ export function PaymentsScreen() {
   });
 
   const payMutation = useMutation({
-    mutationFn: (body: { amount?: number; momoPhoneNumber?: string }) =>
+    mutationFn: (body: {
+      amount?: number;
+      momoPhoneNumber?: string;
+      isPartial?: boolean;
+      partialReason?: string;
+    }) =>
       apiFetch<MomoPaymentResponse>('/rider/payments/pay-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,6 +81,8 @@ export function PaymentsScreen() {
     }
   }, [statusQuery.data?.status]);
 
+  const defaultRate = summaryQuery.data?.assignedRate || summaryQuery.data?.leaseDailyRate || 15000;
+
   const handlePayPress = () => {
     setPayError(null);
     const amountNum = parseInt(amountInput, 10);
@@ -81,9 +90,18 @@ export function PaymentsScreen() {
       setPayError('Please enter a valid amount (minimum 100 RWF)');
       return;
     }
+
+    const checkPartial = isPartial || amountNum < defaultRate;
+    if (checkPartial && !partialReason.trim()) {
+      setPayError('Please enter a reason for paying a partial amount (Required by Fleet Admin)');
+      return;
+    }
+
     payMutation.mutate({
       amount: amountNum,
       momoPhoneNumber: phoneInput,
+      isPartial: checkPartial,
+      partialReason: checkPartial ? partialReason.trim() : undefined,
     });
   };
 
@@ -91,6 +109,8 @@ export function PaymentsScreen() {
     setModalVisible(false);
     setActiveRefId(null);
     setPayError(null);
+    setIsPartial(false);
+    setPartialReason('');
   };
 
   const summary = summaryQuery.data;
@@ -103,7 +123,7 @@ export function PaymentsScreen() {
       ? 'primary'
       : 'danger';
 
-  const defaultDailyRate = summary?.leaseDailyRate || 15000;
+  const defaultDailyRate = summary?.assignedRate || summary?.leaseDailyRate || 15000;
 
   return (
     <ScreenContainer
@@ -240,15 +260,24 @@ export function PaymentsScreen() {
                       </Text>
                     </View>
                     <View style={styles.historyRight}>
-                      <Badge
-                        label={p.method}
-                        tone={p.method === 'MOBILE_MONEY' ? 'primary' : 'neutral'}
-                      />
+                      {p.isPartial || p.status === 'PARTIAL' ? (
+                        <Badge label="PARTIAL" tone="warning" />
+                      ) : (
+                        <Badge
+                          label={p.method}
+                          tone={p.method === 'MOBILE_MONEY' ? 'primary' : 'neutral'}
+                        />
+                      )}
                       {p.reference && (
                         <Text style={styles.historyRef}>Ref: {p.reference}</Text>
                       )}
                     </View>
                   </View>
+                  {p.partialReason && (
+                    <Text style={styles.partialReasonText}>
+                      Reason: {p.partialReason}
+                    </Text>
+                  )}
                 </AppCard>
               </View>
             ))
@@ -273,7 +302,7 @@ export function PaymentsScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Mobile Money Collection</Text>
             <Text style={styles.modalSubtitle}>
-              Prompt will be sent directly to your phone.
+              Prompt will be sent directly to your phone. Assigned rate: {formatRwf(defaultDailyRate)} ({summary?.paymentSchedule || 'DAILY'}).
             </Text>
 
             {!activeRefId ? (
@@ -283,12 +312,17 @@ export function PaymentsScreen() {
                 <View style={styles.presetsRow}>
                   {[
                     defaultDailyRate,
+                    Math.round(defaultDailyRate / 2),
                     defaultDailyRate * 2,
-                    defaultDailyRate * 3,
                   ].map((amt) => (
                     <Pressable
                       key={amt}
-                      onPress={() => setAmountInput(String(amt))}
+                      onPress={() => {
+                        setAmountInput(String(amt));
+                        if (amt < defaultDailyRate) {
+                          setIsPartial(true);
+                        }
+                      }}
                       style={[
                         styles.presetChip,
                         amountInput === String(amt) && styles.presetChipActive,
@@ -309,11 +343,41 @@ export function PaymentsScreen() {
                 <TextInput
                   style={styles.textInput}
                   value={amountInput}
-                  onChangeText={setAmountInput}
+                  onChangeText={(val) => {
+                    setAmountInput(val);
+                    const n = parseInt(val, 10);
+                    if (!isNaN(n) && n < defaultDailyRate) {
+                      setIsPartial(true);
+                    }
+                  }}
                   keyboardType="numeric"
                   placeholder="Amount in RWF"
                   placeholderTextColor={theme.colors.textMuted}
                 />
+
+                <Pressable
+                  style={styles.partialToggleRow}
+                  onPress={() => setIsPartial(!isPartial)}
+                >
+                  <Text style={styles.partialToggleText}>
+                    {isPartial ? '☑ Paying Partial / Half Amount' : '☐ Paying Partial / Half Amount'}
+                  </Text>
+                </Pressable>
+
+                {(isPartial || parseInt(amountInput, 10) < defaultDailyRate) && (
+                  <>
+                    <Text style={styles.inputLabel}>
+                      Reason for Partial Payment (Required by Admin)
+                    </Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={partialReason}
+                      onChangeText={setPartialReason}
+                      placeholder="e.g., Bike maintenance / half-day trip"
+                      placeholderTextColor={theme.colors.textMuted}
+                    />
+                  </>
+                )}
 
                 <Text style={styles.inputLabel}>MoMo Phone Number</Text>
                 <TextInput
@@ -652,5 +716,20 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.caption,
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  partialToggleRow: {
+    paddingVertical: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
+  },
+  partialToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.warning,
+  },
+  partialReasonText: {
+    fontSize: 11,
+    color: theme.colors.warning,
+    marginTop: theme.spacing.xs,
+    fontStyle: 'italic',
   },
 });

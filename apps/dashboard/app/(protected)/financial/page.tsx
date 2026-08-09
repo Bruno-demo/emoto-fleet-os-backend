@@ -86,6 +86,8 @@ interface PaymentRecord {
   paidAt: string;
   method: 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER';
   status: 'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE';
+  isPartial?: boolean;
+  partialReason?: string | null;
   reference: string | null;
   notes: string | null;
   createdAt: string;
@@ -367,6 +369,7 @@ export default function FinancialsPage() {
   const [formPaidAt, setFormPaidAt] = useState(() => getLocalDatetimeString(new Date()));
   const [formMethod, setFormMethod] = useState<'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER'>('CASH');
   const [formStatus, setFormStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID' | 'OVERDUE'>('PAID');
+  const [formPartialReason, setFormPartialReason] = useState('');
   const [formReference, setFormReference] = useState('');
   const [formNotes, setFormNotes] = useState('');
 
@@ -507,6 +510,8 @@ export default function FinancialsPage() {
       paidAt: string;
       method: string;
       status: string;
+      isPartial?: boolean;
+      partialReason?: string;
       reference?: string;
       notes?: string;
     }) =>
@@ -536,6 +541,7 @@ export default function FinancialsPage() {
     setFormPaidAt(getLocalDatetimeString(new Date()));
     setFormMethod('CASH');
     setFormStatus('PAID');
+    setFormPartialReason('');
     setFormReference('');
     setFormNotes('');
     setCollectError(null);
@@ -754,6 +760,8 @@ export default function FinancialsPage() {
       paidAt: new Date(formPaidAt).toISOString(),
       method: formMethod,
       status: formStatus,
+      isPartial: formStatus === 'PARTIAL',
+      partialReason: formStatus === 'PARTIAL' ? formPartialReason : undefined,
       reference: formReference || undefined,
       notes: formNotes || undefined,
     });
@@ -823,18 +831,25 @@ export default function FinancialsPage() {
         className: 'whitespace-nowrap',
         cellClassName: 'whitespace-nowrap',
         render: (pay) => (
-          <Badge
-            label={t(pay.status)}
-            tone={
-              pay.status === 'PAID'
-                ? 'success'
-                : pay.status === 'PARTIAL'
-                  ? 'warning'
-                  : pay.status === 'OVERDUE'
-                    ? 'danger'
-                    : 'neutral'
-            }
-          />
+          <div>
+            <Badge
+              label={t(pay.isPartial || pay.status === 'PARTIAL' ? 'PARTIAL' : pay.status)}
+              tone={
+                pay.status === 'PAID' && !pay.isPartial
+                  ? 'success'
+                  : pay.isPartial || pay.status === 'PARTIAL'
+                    ? 'warning'
+                    : pay.status === 'OVERDUE'
+                      ? 'danger'
+                      : 'neutral'
+              }
+            />
+            {pay.partialReason && (
+              <p className="text-[10px] text-amber-500 font-medium italic mt-0.5 max-w-[150px] truncate" title={pay.partialReason}>
+                {pay.partialReason}
+              </p>
+            )}
+          </div>
         ),
       },
       {
@@ -2046,6 +2061,16 @@ export default function FinancialsPage() {
                   <option value="OVERDUE">{t("Overdue Rate")}</option>
                 </SelectField>
               </div>
+
+              {formStatus === 'PARTIAL' && (
+                <TextField
+                  label={t("Reason for Partial Payment (Why)")}
+                  type="text"
+                  placeholder={t("e.g. Mechanical issue in morning / half-day trip")}
+                  value={formPartialReason}
+                  onChange={(e) => setFormPartialReason(e.target.value)}
+                />
+              )}
 
               <TextField
                 label={t("Transaction Reference Code (Optional)")}
