@@ -229,7 +229,7 @@ export default function RidersPage() {
     setEditLeaseToOwn(selectedRider.leaseToOwn ?? false);
     setEditLeasePrincipal(String(selectedRider.leasePrincipal ?? '2500000'));
     setEditLeaseDailyRate(String(selectedRider.leaseDailyRate ?? '15000'));
-    setEditPaymentSchedule((selectedRider.paymentSchedule as any) ?? 'DAILY');
+    setEditPaymentSchedule((selectedRider.paymentSchedule as 'DAILY' | 'WEEKLY' | 'CUSTOM') ?? 'DAILY');
     setEditAssignedRate(String(selectedRider.assignedRate ?? selectedRider.leaseDailyRate ?? '15000'));
     setEditCustomScheduleDays(String(selectedRider.customScheduleDays ?? '7'));
     
@@ -930,7 +930,7 @@ export default function RidersPage() {
                     {t("Payment Schedule")}
                     <select
                       value={newPaymentSchedule}
-                      onChange={(e) => setNewPaymentSchedule(e.target.value as any)}
+                      onChange={(e) => setNewPaymentSchedule(e.target.value as 'DAILY' | 'WEEKLY' | 'CUSTOM')}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     >
                       <option value="DAILY">{t("Daily")}</option>
@@ -1443,7 +1443,7 @@ export default function RidersPage() {
                     {t("Payment Schedule")}
                     <select
                       value={editPaymentSchedule}
-                      onChange={(e) => setEditPaymentSchedule(e.target.value as any)}
+                      onChange={(e) => setEditPaymentSchedule(e.target.value as 'DAILY' | 'WEEKLY' | 'CUSTOM')}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     >
                       <option value="DAILY">{t("Daily")}</option>
