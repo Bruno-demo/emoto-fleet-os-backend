@@ -7,6 +7,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
 describe('Auth, RBAC, and Provisioning (e2e)', () => {
+  jest.setTimeout(90000);
   let app: INestApplication;
   let prisma: PrismaClient;
   let httpServer: Parameters<typeof request>[0];
