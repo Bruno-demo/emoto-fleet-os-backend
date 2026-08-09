@@ -194,30 +194,18 @@ export const nearbyPoiSchema = z.object({
 });
 
 export const riderEventSchema = z.object({
-  id: numericIdSchema,
-  bikeId: uuidLikeSchema.nullable(),
-  deviceId: uuidLikeSchema,
+  id: z.string(),
+  bikeId: z.string().nullable(),
+  deviceId: z.string(),
   ts: z.string(),
-  type: z.enum([
-    'OVERSPEED',
-    'SPEED_LIMIT_VIOLATION',
-    'SCHOOL_ZONE_SPEED',
-    'HOSPITAL_ZONE_SPEED',
-    'MARKET_ZONE_SPEED',
-    'HARSH_BRAKE',
-    'HARSH_ACCEL',
-    'HARSH_CORNER',
-    'CRASH',
-    'THEFT_SUSPECTED',
-    'SOS',
-  ]),
+  type: z.string(),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   createdAt: z.string(),
 });
 
 export const riderSosResponseSchema = z.object({
   event: z.object({
-    id: numericIdSchema,
+    id: z.string(),
     fleetId: fleetIdSchema,
     bikeId: uuidLikeSchema.nullable(),
     deviceId: uuidLikeSchema,

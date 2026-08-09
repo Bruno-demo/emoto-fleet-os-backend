@@ -99,6 +99,30 @@ enum NotificationStatus {
   FAILED
 }
 
+enum WorkOrderType {
+  INSTALLATION
+  OFFLINE_REPAIR
+  REMOVAL_RECLAMATION
+}
+
+enum WorkOrderStatus {
+  PENDING
+  ASSIGNED
+  COMPLETED
+  CANCELLED
+}
+
+enum RiderPaymentSchedule {
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+
+enum FleetBillingMode {
+  FIXED_MONTHLY
+  PAYG_TRIP_VALIDATED
+}
+
 enum InviteStatus {
   ACTIVE
   USED
@@ -280,10 +304,13 @@ model Fleet {
   deliveries        Delivery[]
   trafficFines      TrafficFine[]
   batterySwaps      BatterySwap[]
-  momoPhoneNumber    String?
-  autoPayEnabled     Boolean              @default(false)
-  fleetSubscriptions FleetSubscription[]
-  momoTransactions   MomoTransaction[]
+  momoPhoneNumber          String?
+  autoPayEnabled           Boolean              @default(false)
+  emotoPaygRatePerActiveDay Int                 @default(350)
+  billingMode              FleetBillingMode     @default(PAYG_TRIP_VALIDATED)
+  fleetSubscriptions       FleetSubscription[]
+  momoTransactions         MomoTransaction[]
+  trackerWorkOrders        TrackerWorkOrder[]
 }
 
 model User {
@@ -392,10 +419,15 @@ model Device {
   updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
   fleet           Fleet            @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   bike            Bike?            @relation(fields: [bikeId], references: [id], onDelete: SetNull)
-  telemetry       TelemetryPoint[]
-  events          Event[]
-  commands        DeviceCommand[]
-  incidents       Incident[]
+  offlineReason          String?
+  offlineReasonUpdatedAt DateTime?        @db.Timestamptz(6)
+  lastTripAt             DateTime?        @db.Timestamptz(6)
+  lastSwapAt             DateTime?        @db.Timestamptz(6)
+  telemetry              TelemetryPoint[]
+  events                 Event[]
+  commands               DeviceCommand[]
+  incidents              Incident[]
+  trackerWorkOrders      TrackerWorkOrder[]
 
   @@unique([imei])
   @@index([fleetId])
@@ -421,7 +453,6 @@ model TelemetryPoint {
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@id([id, ts])
-  @@unique([deviceId, ts])
   @@index([deviceId])
   @@index([ts])
   @@index([deviceId, ts])
@@ -459,10 +490,13 @@ model RiderProfile {
   passportPhoto     String?
   licencePhoto      String?
   identityCardPhoto String?
-  leaseToOwn        Boolean  @default(false)
-  leasePrincipal    Int      @default(2500000)
-  leaseDailyRate    Int      @default(15000)
-  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  leaseToOwn        Boolean              @default(false)
+  leasePrincipal    Int                  @default(2500000)
+  leaseDailyRate    Int                  @default(15000)
+  paymentSchedule   RiderPaymentSchedule @default(DAILY)
+  assignedRate      Int                  @default(15000)
+  customScheduleDays Int?
+  createdAt         DateTime             @default(now()) @db.Timestamptz(6)
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -791,9 +825,11 @@ model RiderPayment {
   paidAt    DateTime      @db.Timestamptz(6)
   method    PaymentMethod @default(CASH)
   status    PaymentStatus @default(PAID)
-  reference String?
-  notes     String?
-  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+  reference     String?
+  notes         String?
+  isPartial     Boolean       @default(false)
+  partialReason String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
   updatedAt DateTime      @updatedAt @db.Timestamptz(6)
 
   fleet     Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
@@ -1087,6 +1123,25 @@ model BatterySwap {
   @@index([riderId])
   @@index([ts])
   @@index([fleetId, ts])
+}
+
+model TrackerWorkOrder {
+  id          String          @id @default(uuid()) @db.Uuid
+  fleetId     String          @db.Uuid
+  deviceId    String          @db.Uuid
+  type        WorkOrderType
+  status      WorkOrderStatus @default(PENDING)
+  notes       String?
+  assignedTo  String?         @db.Uuid
+  completedAt DateTime?       @db.Timestamptz(6)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(6)
+  device      Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  fleet       Fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
+  @@index([fleetId])
+  @@index([deviceId])
+  @@index([status])
 }
 
 

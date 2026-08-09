@@ -179,18 +179,7 @@ export interface RiderEventSummary {
   bikeId: string | null;
   deviceId: string;
   ts: string;
-  type:
-    | 'OVERSPEED'
-    | 'SPEED_LIMIT_VIOLATION'
-    | 'SCHOOL_ZONE_SPEED'
-    | 'HOSPITAL_ZONE_SPEED'
-    | 'MARKET_ZONE_SPEED'
-    | 'HARSH_BRAKE'
-    | 'HARSH_ACCEL'
-    | 'HARSH_CORNER'
-    | 'CRASH'
-    | 'THEFT_SUSPECTED'
-    | 'SOS';
+  type: string;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   createdAt: string;
 }
