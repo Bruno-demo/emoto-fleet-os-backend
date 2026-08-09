@@ -453,6 +453,7 @@ model TelemetryPoint {
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@id([id, ts])
+  @@unique([deviceId, ts])
   @@index([deviceId])
   @@index([ts])
   @@index([deviceId, ts])
