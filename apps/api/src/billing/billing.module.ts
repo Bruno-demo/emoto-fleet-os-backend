@@ -16,6 +16,7 @@ import { BillingPaymentService } from './services/billing-payment.service';
 import { BillingCronService } from './services/billing-cron.service';
 import { MomoGatewayService } from './services/momo-gateway.service';
 import { SubscriptionPlanService } from './services/subscription-plan.service';
+import { PaygAuditService } from './services/payg-audit.service';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { SubscriptionPlanService } from './services/subscription-plan.service';
     BillingCronService,
     MomoGatewayService,
     SubscriptionPlanService,
+    PaygAuditService,
   ],
   exports: [
     PricingTierService,
@@ -48,6 +50,7 @@ import { SubscriptionPlanService } from './services/subscription-plan.service';
     BillingPaymentService,
     MomoGatewayService,
     SubscriptionPlanService,
+    PaygAuditService,
   ],
 })
 export class BillingModule {}

@@ -3,12 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BillingCycle, BillingCycleStatus, Prisma } from '@prisma/client';
+import { BillingCycle, BillingCycleStatus, FleetBillingMode, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { AuthenticatedUser } from '../../auth/auth.types';
 import { PricingTierService } from './pricing-tier.service';
 import { DiscountService } from './discount.service';
+import { PaygAuditService } from './payg-audit.service';
 import { ListBillingCyclesDto } from '../dto/list-billing-cycles.dto';
 import {
   PaginatedResponse,
@@ -38,6 +39,7 @@ export class BillingCycleService {
     private readonly auditService: AuditService,
     private readonly pricingTierService: PricingTierService,
     private readonly discountService: DiscountService,
+    private readonly paygAuditService: PaygAuditService,
   ) {}
 
   async listCycles(
@@ -172,7 +174,20 @@ export class BillingCycleService {
     const dueDate = new Date(periodEnd);
 
     const bikeCount = fleet.bikes.length;
-    const subtotal = bikeCount * ratePerBike;
+    let subtotal = 0;
+    let effectiveRatePerBike = ratePerBike;
+
+    if (fleet.billingMode === FleetBillingMode.PAYG_TRIP_VALIDATED) {
+      const audit = await this.paygAuditService.getPaygAuditForFleet(
+        fleetId,
+        periodStart.toISOString(),
+        periodEnd.toISOString(),
+      );
+      subtotal = audit.totalPaygSubtotalRwf;
+      effectiveRatePerBike = fleet.emotoPaygRatePerActiveDay ?? 350;
+    } else {
+      subtotal = bikeCount * ratePerBike;
+    }
 
     // Check if fleet has an active subscription plan for discount
     const activeSubscription = await this.prisma.fleetSubscription.findFirst({
@@ -203,7 +218,7 @@ export class BillingCycleService {
         periodEnd,
         dueDate,
         bikeCount,
-        ratePerBike,
+        ratePerBike: effectiveRatePerBike,
         subtotal,
         discountAmount,
         totalDue,
@@ -225,7 +240,7 @@ export class BillingCycleService {
       actionType: 'BILLING_CYCLE_GENERATED',
       targetType: 'BillingCycle',
       targetId: cycle.id,
-      metaJson: { cycle, isManual },
+      metaJson: { cycle, isManual, billingMode: fleet.billingMode },
     });
 
     return cycle;

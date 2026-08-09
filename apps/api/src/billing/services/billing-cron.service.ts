@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   BillingCycleStatus,
+  FleetBillingMode,
   FleetSubscriptionStatus,
   MomoTransactionStatus,
 } from '@prisma/client';
@@ -11,6 +12,7 @@ import { MailService } from '../../mail/mail.service';
 import { BillingCycleService } from './billing-cycle.service';
 import { BillingConfigService } from './billing-config.service';
 import { MomoGatewayService } from './momo-gateway.service';
+import { PaygAuditService } from './payg-audit.service';
 
 @Injectable()
 export class BillingCronService {
@@ -23,6 +25,7 @@ export class BillingCronService {
     private readonly billingConfigService: BillingConfigService,
     private readonly mailService: MailService,
     private readonly momoGatewayService: MomoGatewayService,
+    private readonly paygAuditService: PaygAuditService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
@@ -406,6 +409,52 @@ export class BillingCronService {
       }
     }
     this.logger.log('Finished trial expiration cron job.');
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async auditDailyPaygUsage() {
+    this.logger.log('Starting daily PAYG active-day audit cron job...');
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().slice(0, 10);
+
+    const paygFleets = await this.prisma.fleet.findMany({
+      where: {
+        billingMode: FleetBillingMode.PAYG_TRIP_VALIDATED,
+        subscriptionStatus: FleetSubscriptionStatus.ACTIVE,
+      },
+      select: { id: true, name: true, emotoPaygRatePerActiveDay: true },
+    });
+
+    for (const fleet of paygFleets) {
+      try {
+        const audit = await this.paygAuditService.getPaygAuditForFleet(
+          fleet.id,
+          dateStr,
+          dateStr,
+        );
+
+        await this.auditService.createAuditLog({
+          fleetId: fleet.id,
+          actionType: 'BILLING_CYCLE_GENERATED',
+          targetType: 'Fleet',
+          targetId: fleet.id,
+          metaJson: {
+            date: dateStr,
+            activeBikesCount: audit.totalActiveBikeDays,
+            exemptBikesCount: audit.totalExemptBikeDays,
+            ratePerActiveDay: audit.paygRatePerActiveDay,
+            totalDailyChargesRwf: audit.totalPaygSubtotalRwf,
+          },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed daily PAYG audit for fleet ${fleet.name} (${fleet.id}):`,
+          error,
+        );
+      }
+    }
+    this.logger.log('Finished daily PAYG active-day audit cron job.');
   }
 
   // ── MoMo Cron Jobs ───────────────────────────────────────────────

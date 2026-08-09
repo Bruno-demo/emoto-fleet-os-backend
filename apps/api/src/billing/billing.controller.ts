@@ -37,6 +37,8 @@ import { ListBillingCyclesDto } from './dto/list-billing-cycles.dto';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { MomoPayNowDto } from './dto/momo-pay-now.dto';
 
+import { PaygAuditService } from './services/payg-audit.service';
+
 @ApiTags('Billing')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -50,8 +52,28 @@ export class BillingController {
     private readonly billingPaymentService: BillingPaymentService,
     private readonly momoGatewayService: MomoGatewayService,
     private readonly subscriptionPlanService: SubscriptionPlanService,
+    private readonly paygAuditService: PaygAuditService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Get('payg-audit')
+  @ApiOperation({ summary: 'Get PAYG active-day trip validation audit breakdown for a fleet' })
+  async getPaygAudit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('fleetId') fleetId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const targetFleetId = fleetId || user.fleetId;
+    if (targetFleetId !== user.fleetId && user.role !== 'OWNER' && user.role !== 'ADMIN') {
+      throw new ForbiddenException('Access to this fleet billing audit is denied');
+    }
+    return await this.paygAuditService.getPaygAuditForFleet(
+      targetFleetId,
+      startDate,
+      endDate,
+    );
+  }
 
   // ── Fleet-Operator Endpoints ─────────────────────────────────────
 

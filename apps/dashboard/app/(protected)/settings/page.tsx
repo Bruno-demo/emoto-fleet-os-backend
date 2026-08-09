@@ -169,6 +169,42 @@ export default function SettingsPage() {
     enabled: !!user && user.fleetType === 'COOP',
   });
 
+  const paygAuditQuery = useQuery({
+    queryKey: ['billing', 'payg-audit'],
+    queryFn: () => apiFetch<{
+      fleetId: string;
+      fleetName: string;
+      billingMode: string;
+      paygRatePerActiveDay: number;
+      periodStart: string;
+      periodEnd: string;
+      totalBikes: number;
+      totalActiveBikeDays: number;
+      totalExemptBikeDays: number;
+      totalPaygSubtotalRwf: number;
+      perBikeSummary: Array<{
+        bikeId: string;
+        bikeLabel: string;
+        bikePlate: string | null;
+        activeDays: number;
+        exemptDays: number;
+        totalDistanceKm: number;
+        paygChargesRwf: number;
+      }>;
+      dailyBreakdown: Array<{
+        date: string;
+        bikeId: string;
+        bikeLabel?: string;
+        bikePlate?: string | null;
+        distanceKm: number;
+        tripCount: number;
+        isActive: boolean;
+        chargeRwf: number;
+      }>;
+    }>('/billing/payg-audit'),
+    enabled: !!user,
+  });
+
   // Notification preferences derived from server state
   const notifPrefs = {
     openIncidents: user?.notifOpenIncidents ?? DEFAULT_NOTIF_PREFS.openIncidents,
@@ -575,6 +611,82 @@ export default function SettingsPage() {
                 </table>
               </div>
             )}
+          </DashboardCard>
+
+          {/* PAYG Active-Day Audit Card */}
+          <DashboardCard
+            eyebrow={t("Pay As You Go (PAYG) Audit")}
+            title={t("Trip-Validated Daily Usage Breakdown")}
+            description={t("Bikes are billed 350 RWF/day ONLY on days with validated trips (>0.5 km). Idle days or maintenance days are exempt.")}
+          >
+            <div className="space-y-6">
+              {paygAuditQuery.isLoading ? (
+                <p className="text-xs text-ink-muted">{t("Loading PAYG active-day audit data...")}</p>
+              ) : paygAuditQuery.error ? (
+                <p className="text-xs font-bold text-error-ink">{t("Failed to load PAYG audit details.")}</p>
+              ) : paygAuditQuery.data ? (
+                <>
+                  {/* Summary Metric Cards */}
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl border border-line bg-surface-muted p-4 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Billing Mode")}</p>
+                      <p className="text-sm font-extrabold text-ink">{paygAuditQuery.data.billingMode === 'PAYG_TRIP_VALIDATED' ? t('PAYG Validated') : t('Fixed Monthly')}</p>
+                      <p className="text-[10px] text-ink-faint">{paygAuditQuery.data.paygRatePerActiveDay} RWF / {t("active day")}</p>
+                    </div>
+                    <div className="rounded-xl border border-success-ink/20 bg-success-soft/10 p-4 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-success-ink">{t("Active Bike-Days")}</p>
+                      <p className="text-xl font-extrabold text-success-ink">{paygAuditQuery.data.totalActiveBikeDays}</p>
+                      <p className="text-[10px] text-success-ink/70">{t("Verified trips > 0.5 km")}</p>
+                    </div>
+                    <div className="rounded-xl border border-line bg-surface-muted p-4 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Exempt Idle Days")}</p>
+                      <p className="text-xl font-extrabold text-ink-muted">{paygAuditQuery.data.totalExemptBikeDays}</p>
+                      <p className="text-[10px] text-ink-faint">{t("0 trips / zero charges")}</p>
+                    </div>
+                    <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">{t("Calculated PAYG Total")}</p>
+                      <p className="text-xl font-extrabold text-accent">{paygAuditQuery.data.totalPaygSubtotalRwf.toLocaleString()} RWF</p>
+                      <p className="text-[10px] text-accent/70">{t("Current cycle charges")}</p>
+                    </div>
+                  </div>
+
+                  {/* Per-Bike Summary Table */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-ink">{t("Per-Bike Active Days Breakdown")}</h4>
+                    {paygAuditQuery.data.perBikeSummary.length === 0 ? (
+                      <p className="text-xs text-ink-muted">{t("No active bikes found in fleet.")}</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-line text-ink-muted font-bold uppercase tracking-wider">
+                              <th className="py-2.5 px-3">{t("Bike Label")}</th>
+                              <th className="py-2.5 px-3">{t("Plate")}</th>
+                              <th className="py-2.5 px-3 text-center">{t("Active Days")}</th>
+                              <th className="py-2.5 px-3 text-center">{t("Exempt Days")}</th>
+                              <th className="py-2.5 px-3 text-right">{t("Total Dist (km)")}</th>
+                              <th className="py-2.5 px-3 text-right">{t("Total PAYG Fee")}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-line text-ink-soft">
+                            {paygAuditQuery.data.perBikeSummary.map((b) => (
+                              <tr key={b.bikeId} className="hover:bg-white/[0.01]">
+                                <td className="py-2.5 px-3 font-bold text-ink">{b.bikeLabel}</td>
+                                <td className="py-2.5 px-3 font-mono text-ink-muted">{b.bikePlate || '-'}</td>
+                                <td className="py-2.5 px-3 text-center font-bold text-success-ink">{b.activeDays}</td>
+                                <td className="py-2.5 px-3 text-center text-ink-muted">{b.exemptDays}</td>
+                                <td className="py-2.5 px-3 text-right font-mono">{b.totalDistanceKm} km</td>
+                                <td className="py-2.5 px-3 text-right font-bold text-ink">{b.paygChargesRwf.toLocaleString()} RWF</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
           </DashboardCard>
 
           {/* MoMo Automated Subscriptions Card */}
