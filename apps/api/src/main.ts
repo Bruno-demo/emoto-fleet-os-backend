@@ -125,7 +125,7 @@ async function bootstrap(): Promise<void> {
     configService.get<string>('API_PUBLIC_URL') ?? `http://localhost:${port}`;
 
   app.enableShutdownHooks();
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port);
 
   logger.log(`API listening on ${publicUrl}`);
   logger.log(`Swagger docs available at ${publicUrl}/docs`);
