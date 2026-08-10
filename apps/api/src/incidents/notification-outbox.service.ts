@@ -55,10 +55,16 @@ export class NotificationOutboxService
     @Inject(NOTIFICATION_PROVIDER)
     private readonly notificationProvider: NotificationProvider,
   ) {
-    this.inlineMode = this.configService.get<boolean>(
-      'NOTIFICATION_OUTBOX_INLINE',
+    const redisInMemory = this.configService.get<boolean>(
+      'REDIS_IN_MEMORY',
       false,
     );
+    this.inlineMode =
+      redisInMemory ||
+      this.configService.get<boolean>(
+        'NOTIFICATION_OUTBOX_INLINE',
+        false,
+      );
     const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
     this.connection = this.buildBullMqConnection(redisUrl);
   }

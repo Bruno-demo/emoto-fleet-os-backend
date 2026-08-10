@@ -35,7 +35,7 @@ import { SmsModule } from './sms/sms.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['../../.env', '.env'],
+      envFilePath: ['.env', '../../.env', '../.env'],
       // Validates required environment variables before booting the app.
       validate: (env) => envSchema.parse(env),
     }),
