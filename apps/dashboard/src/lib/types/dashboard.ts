@@ -277,7 +277,7 @@ export interface Rider {
   fleetId: string;
   phone: string | null;
   email: string | null;
-  status: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  status: 'INVITED' | 'PENDING_SETUP' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
   fullName: string | null;
   licenceNumber?: string | null;
   identityNumber?: string | null;

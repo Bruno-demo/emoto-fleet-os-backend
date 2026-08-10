@@ -962,6 +962,8 @@ export class AuthService {
     try {
       const createdUser = await this.prismaService.$transaction(
         async (tx) => {
+          const initialStatus = invite.role === UserRole.RIDER ? 'PENDING_SETUP' : 'ACTIVE';
+
           const user = await tx.user.create({
             data: {
               fleetId: invite.fleetId,
@@ -969,7 +971,7 @@ export class AuthService {
               email: normalizedEmail ?? invite.email,
               phone: dto.phone ?? invite.phone,
               passwordHash,
-              status: 'ACTIVE',
+              status: initialStatus,
             },
             select: userSelectForAuth,
           });

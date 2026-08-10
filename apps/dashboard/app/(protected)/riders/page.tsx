@@ -495,6 +495,7 @@ export default function RidersPage() {
   const filteredRiders = accumulatedRiders;
 
   const activeCount = accumulatedRiders.filter((r) => r.status === 'ACTIVE').length;
+  const pendingCount = accumulatedRiders.filter((r) => r.status === 'PENDING_SETUP').length;
   const suspendedCount = accumulatedRiders.filter((r) => r.status === 'SUSPENDED').length;
   const assignedCount = accumulatedRiders.filter(
     (r) => r.activeAssignments && r.activeAssignments.length > 0,
@@ -735,6 +736,13 @@ export default function RidersPage() {
               tone="info"
             />
             <MetricCard
+              title={t("Pending Approval")}
+              value={String(pendingCount)}
+              hint={t("Self-onboarded riders awaiting admin review")}
+              icon={<Shield size={18} />}
+              tone={pendingCount > 0 ? 'warning' : 'neutral'}
+            />
+            <MetricCard
               title={t("Active")}
               value={String(activeCount)}
               hint={t("Riders with active status")}
@@ -747,13 +755,6 @@ export default function RidersPage() {
               hint={t("Riders with an active bike assignment")}
               icon={<Bike size={18} />}
               tone="info"
-            />
-            <MetricCard
-              title={t("Suspended")}
-              value={String(suspendedCount)}
-              hint={t("Riders temporarily removed from operations")}
-              icon={<Shield size={18} />}
-              tone={suspendedCount > 0 ? 'warning' : 'neutral'}
             />
           </>
         )}
@@ -1813,7 +1814,47 @@ export default function RidersPage() {
                       <UserPlus size={14} />
                       {t('Edit Details')}
                     </button>
-                    {selectedRider.status === 'ACTIVE' ? (
+                    {selectedRider.status === 'PENDING_SETUP' ? (
+                      <div className="w-full space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 mb-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
+                          <span>⏳</span>
+                          <span>{t('Self-Onboarding Registration Awaiting Approval')}</span>
+                        </div>
+                        <p className="text-xs text-ink-muted leading-relaxed">
+                          {t('This rider submitted their profile via fleet invite code. Review their license, ID card, and photos above before approving.')}
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            disabled={statusMutation.isPending}
+                            onClick={() => {
+                              setStatusTargetId(selectedRider.id);
+                              setStatusTargetName(selectedRider.fullName ?? 'Rider');
+                              setStatusTargetNext('ACTIVE');
+                              setStatusConfirmOpen(true);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition-all shadow-md shadow-emerald-500/15"
+                          >
+                            <Check size={14} />
+                            {t('Approve Rider & Activate')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={statusMutation.isPending}
+                            onClick={() => {
+                              setStatusTargetId(selectedRider.id);
+                              setStatusTargetName(selectedRider.fullName ?? 'Rider');
+                              setStatusTargetNext('DISABLED');
+                              setStatusConfirmOpen(true);
+                            }}
+                            className="flex items-center justify-center gap-1.5 rounded-xl bg-rose-600/15 border border-rose-500/30 hover:bg-rose-600/25 px-3.5 py-2.5 text-xs font-bold text-rose-500 transition-all"
+                          >
+                            <X size={14} />
+                            {t('Reject Application')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : selectedRider.status === 'ACTIVE' ? (
                       <button
                         onClick={() => {
                           setStatusTargetId(selectedRider.id);
@@ -1874,14 +1915,28 @@ export default function RidersPage() {
       {/* Confirm Modals */}
       <ConfirmModal
         open={statusConfirmOpen}
-        title={statusTargetNext === 'SUSPENDED' ? t('Suspend Rider') : t('Reactivate Rider')}
-        description={
-          statusTargetNext === 'SUSPENDED'
-            ? `${t('Are you sure you want to suspend rider')} "${statusTargetName}"? ${t('They will not be able to log in or start bike operations.')}`
-            : `${t('Reactivate rider profile for')} "${statusTargetName}"?`
+        title={
+          statusTargetNext === 'ACTIVE'
+            ? t('Approve & Activate Rider')
+            : statusTargetNext === 'DISABLED'
+              ? t('Reject Application')
+              : t('Suspend Rider')
         }
-        confirmLabel={statusTargetNext === 'SUSPENDED' ? t('Suspend') : t('Reactivate')}
-        tone="default"
+        description={
+          statusTargetNext === 'ACTIVE'
+            ? `${t('Approve rider registration and grant access for')} "${statusTargetName}"?`
+            : statusTargetNext === 'DISABLED'
+              ? `${t('Reject and disable rider application for')} "${statusTargetName}"?`
+              : `${t('Are you sure you want to suspend rider')} "${statusTargetName}"?`
+        }
+        confirmLabel={
+          statusTargetNext === 'ACTIVE'
+            ? t('Approve')
+            : statusTargetNext === 'DISABLED'
+              ? t('Reject')
+              : t('Suspend')
+        }
+        tone={statusTargetNext === 'DISABLED' ? 'danger' : 'default'}
         isSubmitting={statusMutation.isPending}
         onConfirm={() => {
           if (statusTargetId) {
