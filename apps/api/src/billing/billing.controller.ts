@@ -64,8 +64,11 @@ export class BillingController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const targetFleetId = fleetId || user.fleetId;
-    if (targetFleetId !== user.fleetId && user.role !== 'OWNER' && user.role !== 'ADMIN') {
+    const targetFleetId = fleetId || user?.fleetId;
+    if (!targetFleetId) {
+      throw new BadRequestException('Fleet ID is required for PAYG audit');
+    }
+    if (targetFleetId !== user?.fleetId && user?.role !== 'OWNER' && user?.role !== 'ADMIN') {
       throw new ForbiddenException('Access to this fleet billing audit is denied');
     }
     return await this.paygAuditService.getPaygAuditForFleet(

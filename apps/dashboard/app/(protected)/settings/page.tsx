@@ -202,7 +202,7 @@ export default function SettingsPage() {
         chargeRwf: number;
       }>;
     }>('/billing/payg-audit'),
-    enabled: !!user,
+    enabled: !!user?.fleetId,
   });
 
   // Notification preferences derived from server state
