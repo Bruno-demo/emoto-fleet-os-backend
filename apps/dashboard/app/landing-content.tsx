@@ -252,7 +252,7 @@ export default function LandingContent() {
   const [pricingTiers, setPricingTiers] = useState<LandingPricingTier[] | null>(null);
 
   useEffect(() => {
-    const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+    const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
     fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
       .then((res) => {
         if (res.ok) {

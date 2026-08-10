@@ -146,7 +146,7 @@ async function main() {
 
   const child = spawn(
     process.execPath,
-    [nextBin, 'dev', '--port', String(port)],
+    [nextBin, 'dev', '--webpack', '--port', String(port)],
     {
       stdio: 'inherit',
       env: process.env,
