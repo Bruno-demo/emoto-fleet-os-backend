@@ -17,6 +17,7 @@ import type { PaginatedResponse, RiderTripSummary } from '../lib/types/api';
 import type { RiderTripsStackParamList } from '../navigation/navigation.types';
 import { getScoreTone, theme } from '../theme/tokens';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { PendingSetupGate } from '../components/pending-setup-gate';
 
 type TripsScreenProps = NativeStackScreenProps<
@@ -54,6 +55,7 @@ function formatShortDate(iso: string): string {
 
 export function TripsScreen({ navigation }: TripsScreenProps) {
   const auth = useAuth();
+  const { t } = useLanguage();
   const [page, setPage] = useState(1);
 
   const tripsQuery = useQuery({
@@ -102,7 +104,7 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
   if (tripsQuery.isLoading && !payload) {
     return (
       <ScreenContainer>
-        <SectionHeader title="Trips" subtitle="Loading your scored rides..." />
+        <SectionHeader title={t.trips.title} subtitle={t.common.loading} />
         <ListSkeleton rows={4} />
       </ScreenContainer>
     );
@@ -112,8 +114,8 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
     return (
       <ScreenContainer>
         <ErrorState
-          title="Unable to load trips"
-          description="Pull to refresh or try again."
+          title={t.common.error}
+          description={t.trips.noTripsFound}
           onRetry={() => {
             void tripsQuery.refetch();
           }}
@@ -130,17 +132,17 @@ export function TripsScreen({ navigation }: TripsScreenProps) {
       }}
     >
       <SectionHeader
-        title="Trips"
-        subtitle="Your scored rides at a glance"
+        title={t.trips.title}
+        subtitle={t.home.safetyScore}
         rightSlot={
-          <Badge label={`${payload?.total ?? 0} total`} tone="primary" />
+          <Badge label={`${payload?.total ?? 0} ${t.common.total}`} tone="primary" />
         }
       />
 
       {rows.length === 0 ? (
         <EmptyState
-          title="No trips yet"
-          description="Your scored trips will appear here after your first ride."
+          title={t.trips.noTripsFound}
+          description={t.home.noRecentTrips}
         />
       ) : (
         <View style={styles.tripsList}>

@@ -12,6 +12,7 @@ import { ApiError, apiFetch } from '../lib/api/client';
 import { riderDeliverySchema } from '../lib/api/schemas';
 import type { RiderDelivery } from '../lib/types/api';
 import type { RiderDeliveriesStackParamList } from '../navigation/navigation.types';
+import { useLanguage } from '../lib/i18n/language-context';
 import { theme } from '../theme/tokens';
 import { z } from 'zod';
 
@@ -21,6 +22,7 @@ type DeliveriesScreenProps = NativeStackScreenProps<
 >;
 
 export function DeliveriesScreen({ navigation }: DeliveriesScreenProps) {
+  const { t } = useLanguage();
   const deliveriesQuery = useQuery({
     queryKey: ['rider-deliveries'],
     queryFn: async () => {
@@ -45,7 +47,7 @@ export function DeliveriesScreen({ navigation }: DeliveriesScreenProps) {
   if (deliveriesQuery.isLoading) {
     return (
       <ScreenContainer>
-        <SectionHeader title="Deliveries" subtitle="Loading assigned orders..." />
+        <SectionHeader title={t.deliveries.title} subtitle={t.common.loading} />
         <ListSkeleton rows={4} />
       </ScreenContainer>
     );
@@ -55,8 +57,8 @@ export function DeliveriesScreen({ navigation }: DeliveriesScreenProps) {
     return (
       <ScreenContainer>
         <ErrorState
-          title="Unable to load deliveries"
-          description="Pull to refresh or try again."
+          title={t.common.error}
+          description={t.deliveries.noDeliveries}
           onRetry={() => {
             void deliveriesQuery.refetch();
           }}
@@ -85,17 +87,17 @@ export function DeliveriesScreen({ navigation }: DeliveriesScreenProps) {
       }}
     >
       <SectionHeader
-        title="Deliveries"
-        subtitle="Your assigned delivery packages"
+        title={t.deliveries.title}
+        subtitle={t.deliveries.title}
         rightSlot={
-          <Badge label={`${payload.length} active`} tone="primary" />
+          <Badge label={`${payload.length} ${t.common.total}`} tone="primary" />
         }
       />
 
       {payload.length === 0 ? (
         <EmptyState
-          title="No deliveries assigned"
-          description="New orders will appear here when dispatcher assigns you."
+          title={t.deliveries.noDeliveries}
+          description={t.deliveries.noDeliveries}
         />
       ) : (
         <FlatList

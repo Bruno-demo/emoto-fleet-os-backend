@@ -16,6 +16,7 @@ import { SectionHeader } from '../components/ui/section-header';
 import { ListSkeleton } from '../components/ui/skeleton';
 import { apiFetch } from '../lib/api/client';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import type { RiderPaymentSummary, MomoPaymentResponse } from '../lib/types/api';
 import { theme } from '../theme/tokens';
 
@@ -25,6 +26,7 @@ function formatRwf(amount: number): string {
 
 export function PaymentsScreen() {
   const auth = useAuth();
+  const { t } = useLanguage();
   const riderPhone = auth.riderMe?.phone || auth.user?.phone || '0780000100';
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -131,8 +133,8 @@ export function PaymentsScreen() {
       onRefresh={() => void summaryQuery.refetch()}
     >
       <SectionHeader
-        title="Lease & Collections"
-        subtitle="Manage daily collection payments & track your balance"
+        title={t.payments.title}
+        subtitle={t.payments.weeklyGrid}
       />
 
       {summaryQuery.isLoading ? (
@@ -144,11 +146,11 @@ export function PaymentsScreen() {
             <View style={styles.cardHeader}>
               <View>
                 <Text style={styles.cardSubtitle}>
-                  {summary?.isLeaseToOwn ? 'Lease-to-Own Plan' : 'Daily Rental'}
+                  {summary?.isLeaseToOwn ? t.payments.leaseToOwnPlan : t.payments.dailyRental}
                 </Text>
                 <Text style={styles.cardTitle}>
                   {formatRwf(summary?.leaseDailyRate || 15000)}{' '}
-                  <Text style={styles.perDay}>/ day</Text>
+                  <Text style={styles.perDay}>{t.payments.perDay}</Text>
                 </Text>
               </View>
               <Badge
@@ -160,7 +162,7 @@ export function PaymentsScreen() {
             {summary?.isLeaseToOwn && (
               <View style={styles.progressContainer}>
                 <View style={styles.progressTextRow}>
-                  <Text style={styles.progressLabel}>Lease Principal Paid</Text>
+                  <Text style={styles.progressLabel}>{t.payments.leasePrincipalPaid}</Text>
                   <Text style={styles.progressValue}>
                     {Math.round(
                       ((summary?.totalPaid || 0) /
@@ -189,10 +191,10 @@ export function PaymentsScreen() {
                 </View>
                 <View style={styles.progressSubRow}>
                   <Text style={styles.subText}>
-                    Paid: {formatRwf(summary?.totalPaid || 0)}
+                    {t.payments.paid}: {formatRwf(summary?.totalPaid || 0)}
                   </Text>
                   <Text style={styles.subText}>
-                    Total: {formatRwf(summary?.leasePrincipal || 2500000)}
+                    {t.payments.total}: {formatRwf(summary?.leasePrincipal || 2500000)}
                   </Text>
                 </View>
               </View>
@@ -200,7 +202,7 @@ export function PaymentsScreen() {
 
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
-                <Text style={styles.statBoxLabel}>Total Paid</Text>
+                <Text style={styles.statBoxLabel}>{t.payments.paid}</Text>
                 <Text style={styles.statBoxValue}>
                   {formatRwf(summary?.totalPaid || 0)}
                 </Text>
@@ -211,7 +213,7 @@ export function PaymentsScreen() {
                   (summary?.arrears || 0) > 0 && styles.statBoxDanger,
                 ]}
               >
-                <Text style={styles.statBoxLabel}>Arrears / Balance</Text>
+                <Text style={styles.statBoxLabel}>{t.payments.unpaidDebts}</Text>
                 <Text
                   style={[
                     styles.statBoxValue,
@@ -225,7 +227,7 @@ export function PaymentsScreen() {
 
             <View style={styles.payButtonWrapper}>
               <PrimaryButton
-                label="💳 Pay Collection via MoMo"
+                label={`💳 ${t.payments.payNow}`}
                 onPress={() => {
                   setAmountInput(String(defaultDailyRate));
                   setPhoneInput(riderPhone);
@@ -237,8 +239,8 @@ export function PaymentsScreen() {
 
           {/* Payment History Section */}
           <SectionHeader
-            title="Recent Payments"
-            subtitle="Auto-recorded Mobile Money payments"
+            title={t.payments.paymentHistory}
+            subtitle={t.payments.weeklyGrid}
           />
 
           {summary?.recentPayments && summary.recentPayments.length > 0 ? (
@@ -261,7 +263,7 @@ export function PaymentsScreen() {
                     </View>
                     <View style={styles.historyRight}>
                       {p.isPartial || p.status === 'PARTIAL' ? (
-                        <Badge label="PARTIAL" tone="warning" />
+                        <Badge label={t.payments.statusPartial} tone="warning" />
                       ) : (
                         <Badge
                           label={p.method}
@@ -284,7 +286,7 @@ export function PaymentsScreen() {
           ) : (
             <AppCard>
               <View style={styles.emptyHistory}>
-                <Text style={styles.emptyText}>No recorded payments found</Text>
+                <Text style={styles.emptyText}>{t.payments.noPaymentsYet}</Text>
               </View>
             </AppCard>
           )}

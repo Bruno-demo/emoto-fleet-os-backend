@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { AppCard } from './ui/card';
 import { PrimaryButton, SecondaryButton } from './ui/button';
 import { theme } from '../theme/tokens';
@@ -11,6 +12,7 @@ interface PendingSetupGateProps {
 
 export function PendingSetupGate({ isRefetching, onRefresh }: PendingSetupGateProps) {
   const auth = useAuth();
+  const { t } = useLanguage();
 
   if (auth.riderMe?.status !== 'PENDING_SETUP') {
     return null;
@@ -21,27 +23,27 @@ export function PendingSetupGate({ isRefetching, onRefresh }: PendingSetupGatePr
   return (
     <View style={styles.pendingContainer}>
       <Text style={styles.pendingIcon}>⚙️</Text>
-      <Text style={styles.pendingTitle}>Hardware Installation Pending</Text>
+      <Text style={styles.pendingTitle}>{t.statusBanners.pendingTitle}</Text>
       <Text style={styles.pendingText}>
-        Your {auth.riderMe.isPersonalOwner ? 'personal owner' : 'rider'} profile has been created successfully on the <Text style={{ fontWeight: '800', color: theme.colors.primary }}>{chosenPlanLabel}</Text>, but your telemetry hardware node is pending installation.
+        {t.statusBanners.pendingSub} (<Text style={{ fontWeight: '800', color: theme.colors.primary }}>{chosenPlanLabel}</Text>).
       </Text>
       
-      <AppCard title="What happens next" subtitle="Our team is preparing your hardware kit.">
+      <AppCard title="Next steps" subtitle="Preparing hardware node kit.">
         <View style={styles.stepList}>
-          <Text style={styles.stepText}>1. E-Moto technicians will schedule your vehicle's device deployment.</Text>
-          <Text style={styles.stepText}>2. The tracker is physically installed and calibrated on your bike.</Text>
-          <Text style={styles.stepText}>3. HQ activates your account, enabling remote controls, mapping, and analytics instantly!</Text>
+          <Text style={styles.stepText}>1. E-Moto technicians schedule vehicle device deployment.</Text>
+          <Text style={styles.stepText}>2. Tracker is physically installed and calibrated on your bike.</Text>
+          <Text style={styles.stepText}>3. HQ activates your account enabling remote controls.</Text>
         </View>
       </AppCard>
 
       <View style={styles.pendingButtons}>
         <SecondaryButton 
-          label={isRefetching ? 'Refreshing...' : 'Refresh status'} 
+          label={isRefetching ? t.common.updating : t.common.retry} 
           onPress={onRefresh} 
           disabled={isRefetching}
         />
         <View style={{ height: theme.spacing.sm }} />
-        <PrimaryButton label="Sign out" onPress={() => void auth.logout()} />
+        <PrimaryButton label={t.profile.signOut} onPress={() => void auth.logout()} />
       </View>
     </View>
   );

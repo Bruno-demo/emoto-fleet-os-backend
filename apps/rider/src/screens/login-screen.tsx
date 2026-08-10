@@ -8,6 +8,7 @@ import { PrimaryButton } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ApiError } from '../lib/api/client';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderAuthStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
@@ -16,6 +17,7 @@ type LoginScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Login'>
  
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const auth = useAuth();
+  const { t } = useLanguage();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -118,26 +120,26 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         {/* Login form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Sign In</Text>
+            <Text style={styles.formTitle}>{t.auth.welcomeTitle}</Text>
             <Badge label="Secure" tone="primary" />
           </View>
  
           <InputField
-            label="Phone number or Email"
+            label={t.auth.identifierLabel}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             error={phoneError}
-            placeholder="e.g. +250788123456 or rider@example.com"
+            placeholder={t.auth.identifierPlaceholder}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="username"
           />
           <InputField
-            label="Password"
+            label={t.auth.passwordLabel}
             value={password}
             onChangeText={setPassword}
             error={passwordError}
-            placeholder="Enter your password"
+            placeholder={t.auth.passwordPlaceholder}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="password"
@@ -146,7 +148,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           {errorMessage ? <InlineNotice description={errorMessage} /> : null}
  
           <PrimaryButton
-            label={isSubmitting ? 'Signing in...' : 'Sign in'}
+            label={isSubmitting ? t.auth.loggingIn : t.auth.loginButton}
             loading={isSubmitting}
             onPress={() => {
               void handleLogin();

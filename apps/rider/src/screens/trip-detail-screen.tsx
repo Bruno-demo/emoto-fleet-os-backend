@@ -16,6 +16,8 @@ import type { RiderTripDetail } from '../lib/types/api';
 import type { RiderTripsStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
 
+import { useLanguage } from '../lib/i18n/language-context';
+
 type TripDetailScreenProps = NativeStackScreenProps<
   RiderTripsStackParamList,
   'TripDetail'
@@ -85,6 +87,7 @@ function EventCountBar({ label, icon, count, maxCount, color, bgColor }: EventCo
 
 export function TripDetailScreen({ route }: TripDetailScreenProps) {
   const { tripId } = route.params;
+  const { t } = useLanguage();
 
   const tripDetailQuery = useQuery({
     queryKey: ['rider-trip-detail', tripId],
@@ -128,7 +131,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
   if (tripDetailQuery.isLoading && !trip) {
     return (
       <ScreenContainer>
-        <SectionHeader title="Trip Detail" />
+        <SectionHeader title={t.trips.tripDetailTitle} />
         <CardSkeleton />
         <ListSkeleton rows={3} />
       </ScreenContainer>
@@ -139,8 +142,8 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
     return (
       <ScreenContainer>
         <ErrorState
-          title="Unable to load trip detail"
-          description="This trip could not be fetched right now."
+          title={t.common.error}
+          description={t.trips.noTripsFound}
           onRetry={() => {
             void tripDetailQuery.refetch();
           }}
@@ -153,8 +156,8 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
     return (
       <ScreenContainer>
         <EmptyState
-          title="Trip not available"
-          description="The selected trip is missing or no longer accessible."
+          title={t.trips.noTripsFound}
+          description={t.trips.noTripsFound}
         />
       </ScreenContainer>
     );
@@ -187,7 +190,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
               <Text style={styles.heroMetricValue}>
                 {formatDuration(trip.durationSec)}
               </Text>
-              <Text style={styles.heroMetricUnit}>duration</Text>
+              <Text style={styles.heroMetricUnit}>{t.common.duration}</Text>
             </View>
             {trip.consumptionPct !== null && (
               <>
@@ -196,7 +199,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
                   <Text style={[styles.heroMetricValue, { color: theme.colors.success }]}>
                     {trip.consumptionPct.toFixed(0)}%
                   </Text>
-                  <Text style={styles.heroMetricUnit}>used</Text>
+                  <Text style={styles.heroMetricUnit}>{t.common.used}</Text>
                 </View>
               </>
             )}
@@ -209,7 +212,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
         <View style={styles.timelineRow}>
           <View style={[styles.timelineDot, { backgroundColor: theme.colors.success }]} />
           <View style={styles.timelineContent}>
-            <Text style={styles.timelineLabel}>Start</Text>
+            <Text style={styles.timelineLabel}>{t.trips.start}</Text>
             <Text style={styles.timelineTime}>{formatTimestamp(trip.startTs)}</Text>
           </View>
         </View>
@@ -217,17 +220,17 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
         <View style={styles.timelineRow}>
           <View style={[styles.timelineDot, { backgroundColor: trip.endTs ? theme.colors.primary : theme.colors.warning }]} />
           <View style={styles.timelineContent}>
-            <Text style={styles.timelineLabel}>End</Text>
-            <Text style={styles.timelineTime}>{formatTimestamp(trip.endTs)}</Text>
+            <Text style={styles.timelineLabel}>{t.trips.end}</Text>
+            <Text style={styles.timelineTime}>{trip.endTs ? formatTimestamp(trip.endTs) : t.trips.inProgress}</Text>
           </View>
         </View>
       </View>
 
       {/* Event counts with visual bars */}
-      <SectionHeader title="Events" subtitle="Penalties by type" />
+      <SectionHeader title={t.trips.eventsDetected} subtitle={t.trips.eventsSubtitle} />
       <View style={styles.eventsCard}>
         <EventCountBar
-          label="Overspeed"
+          label={t.trips.overspeed}
           icon="⚡"
           count={trip.eventCounts.OVERSPEED}
           maxCount={maxEventCount}
@@ -235,7 +238,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
           bgColor={theme.colors.warningSoft}
         />
         <EventCountBar
-          label="Hard Brake"
+          label={t.trips.hardBrake}
           icon="🛑"
           count={trip.eventCounts.HARSH_BRAKE}
           maxCount={maxEventCount}
@@ -243,7 +246,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
           bgColor={theme.colors.dangerSoft}
         />
         <EventCountBar
-          label="Hard Accel"
+          label={t.trips.hardAccel}
           icon="🏎️"
           count={trip.eventCounts.HARSH_ACCEL}
           maxCount={maxEventCount}
@@ -251,7 +254,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
           bgColor={theme.colors.primarySoft}
         />
         <EventCountBar
-          label="Hard Corner"
+          label={t.trips.hardCorner}
           icon="↩️"
           count={trip.eventCounts.HARSH_CORNER}
           maxCount={maxEventCount}
@@ -259,7 +262,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
           bgColor={theme.colors.purpleSoft}
         />
         <EventCountBar
-          label="Crash"
+          label={t.trips.crash}
           icon="💥"
           count={trip.eventCounts.CRASH}
           maxCount={maxEventCount}
@@ -271,39 +274,39 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
         <View style={styles.eventSummaryRow}>
           <View style={styles.eventSummaryItem}>
             <Text style={styles.eventSummaryValue}>{harshEventTotal}</Text>
-            <Text style={styles.eventSummaryLabel}>Harsh total</Text>
+            <Text style={styles.eventSummaryLabel}>{t.trips.harshTotal}</Text>
           </View>
           <View style={styles.eventSummaryItem}>
             <Text style={styles.eventSummaryValue}>{trip.eventCounts.OVERSPEED}</Text>
-            <Text style={styles.eventSummaryLabel}>Overspeed</Text>
+            <Text style={styles.eventSummaryLabel}>{t.trips.overspeed}</Text>
           </View>
           <View style={styles.eventSummaryItem}>
             <Text style={[styles.eventSummaryValue, criticalTotal > 0 ? { color: theme.colors.danger } : null]}>
               {criticalTotal}
             </Text>
-            <Text style={styles.eventSummaryLabel}>Critical</Text>
+            <Text style={styles.eventSummaryLabel}>{t.trips.critical}</Text>
           </View>
         </View>
       </View>
 
       {/* Score breakdown */}
-      <SectionHeader title="Score Breakdown" subtitle="Penalty details" />
+      <SectionHeader title={t.profile.scoreBreakdown} subtitle={t.trips.scoreBreakdownSubtitle} />
       <View style={styles.breakdownCard}>
         <View style={styles.breakdownRow}>
-          <Text style={styles.breakdownLabel}>Total penalty</Text>
+          <Text style={styles.breakdownLabel}>{t.trips.totalPenalty}</Text>
           <Text style={[styles.breakdownValue, { color: theme.colors.danger }]}>
             -{trip.scoreBreakdown.penalties.total.toFixed(2)}
           </Text>
         </View>
         <View style={styles.breakdownDivider} />
         <View style={styles.breakdownRow}>
-          <Text style={styles.breakdownLabel}>Overspeed</Text>
+          <Text style={styles.breakdownLabel}>{t.trips.overspeed}</Text>
           <Text style={styles.breakdownValue}>
             -{trip.scoreBreakdown.penalties.OVERSPEED.toFixed(2)}
           </Text>
         </View>
         <View style={styles.breakdownRow}>
-          <Text style={styles.breakdownLabel}>Harsh riding</Text>
+          <Text style={styles.breakdownLabel}>{t.trips.harshRiding}</Text>
           <Text style={styles.breakdownValue}>
             -{(
               trip.scoreBreakdown.penalties.HARSH_BRAKE +
@@ -314,7 +317,7 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
         </View>
         <View style={styles.breakdownDivider} />
         <View style={styles.breakdownRow}>
-          <Text style={styles.breakdownLabel}>Scored distance</Text>
+          <Text style={styles.breakdownLabel}>{t.trips.scoredDistance}</Text>
           <Text style={styles.breakdownValue}>
             {trip.scoreBreakdown.normalizedDistanceKm.toFixed(2)} km
           </Text>
@@ -323,9 +326,9 @@ export function TripDetailScreen({ route }: TripDetailScreenProps) {
 
       {tripDetailQuery.isError ? (
         <ErrorState
-          title="Some details may be stale"
-          description="The latest refresh did not complete."
-          retryLabel="Reload trip"
+          title={t.common.error}
+          description={t.common.error}
+          retryLabel={t.common.retry}
           onRetry={() => {
             void tripDetailQuery.refetch();
           }}

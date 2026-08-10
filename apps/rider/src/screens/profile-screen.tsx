@@ -11,6 +11,7 @@ import { ApiError, apiFetch } from '../lib/api/client';
 import { buildQueryString } from '../lib/api/query-string';
 import { paginatedResponseSchema, riderTripSchema, riderWeeklyScoreSchema } from '../lib/api/schemas';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { PaginatedResponse, RiderTripSummary, RiderWeeklyScoreResponse } from '../lib/types/api';
 import { getScoreTone, theme } from '../theme/tokens';
@@ -48,6 +49,7 @@ function InfoRow({ label, value, fallback = '—' }: InfoRowProps) {
 
 export function ProfileScreen() {
   const auth = useAuth();
+  const { t, locale, setLocale } = useLanguage();
   const me = auth.riderMe;
   const user = auth.user;
   const [copiedId, setCopiedId] = useState<'rider' | 'fleet' | null>(null);
@@ -91,7 +93,6 @@ export function ProfileScreen() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const firstName = (me?.fullName ?? 'Rider').split(' ')[0];
   const initials = (me?.fullName ?? 'R')
     .split(' ')
     .map((n) => n.charAt(0))
@@ -176,52 +177,90 @@ export function ProfileScreen() {
         >
           <Text style={styles.onlineButtonText}>
             {toggleOnlineMutation.isPending
-              ? 'Updating...'
+              ? t.common.updating
               : isOnline
-              ? '🟢 Active & Online'
-              : '⚫ Offline'}
+              ? t.profile.toggleActiveOnline
+              : t.profile.toggleOffline}
           </Text>
         </Pressable>
       </View>
+
+      {/* Language Selection Card */}
+      <AppCard title={t.profile.languageSection}>
+        <View style={styles.languageContainer}>
+          <Pressable
+            onPress={() => void setLocale('en')}
+            style={[
+              styles.languageButton,
+              locale === 'en' ? styles.languageButtonActive : styles.languageButtonInactive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.languageButtonText,
+                locale === 'en' ? styles.languageTextActive : styles.languageTextInactive,
+              ]}
+            >
+              {t.profile.languageEnglish}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void setLocale('rw')}
+            style={[
+              styles.languageButton,
+              locale === 'rw' ? styles.languageButtonActive : styles.languageButtonInactive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.languageButtonText,
+                locale === 'rw' ? styles.languageTextActive : styles.languageTextInactive,
+              ]}
+            >
+              {t.profile.languageKinyarwanda}
+            </Text>
+          </Pressable>
+        </View>
+      </AppCard>
 
       {/* Stats row */}
       <View style={styles.statsRow}>
         <StatBox
           icon="🏆"
           value={weeklyScore?.avgScore?.toFixed(0) ?? '--'}
-          label="Avg Score"
+          label={t.home.avgWeeklyScore}
         />
         <StatBox
           icon="🛣️"
           value={String(weeklyScore?.tripCount ?? 0)}
-          label="This Week"
+          label={t.common.thisWeek}
         />
         <StatBox
           icon="📊"
           value={String(totalTrips)}
-          label="Total Trips"
+          label={t.common.total}
         />
         <StatBox
           icon="🏍️"
           value={String(activeAssignments.length)}
-          label="Bikes"
+          label={t.profile.assignedBikes}
         />
       </View>
 
       {/* Account info */}
-      <AppCard title="Account">
+      <AppCard title={t.profile.accountSection}>
         <View style={styles.infoStack}>
-          <InfoRow label="Full Name" value={me?.fullName} />
-          <InfoRow label="Phone" value={me?.phone} />
-          <InfoRow label="Email" value={me?.email} fallback="Not set" />
+          <InfoRow label={t.profile.fullName} value={me?.fullName} />
+          <InfoRow label={t.profile.phone} value={me?.phone} />
+          <InfoRow label={t.profile.email} value={me?.email} fallback={t.profile.notSet} />
         </View>
       </AppCard>
 
       {/* Assigned bikes */}
       <SectionHeader
-        title="Assigned Bikes"
+        title={t.profile.assignedBikes}
         rightSlot={
-          <Badge label={`${assignments.length} total`} tone="primary" />
+          <Badge label={`${assignments.length} ${t.common.total}`} tone="primary" />
         }
       />
       {assignments.length > 0 ? (
@@ -237,13 +276,13 @@ export function ProfileScreen() {
                     {assignment.bikeLabel}
                   </Text>
                   {assignment.active ? (
-                    <Badge label="Active" tone="success" />
+                    <Badge label={t.profile.activeStatus} tone="success" />
                   ) : (
-                    <Badge label="Inactive" tone="neutral" />
+                    <Badge label={t.profile.inactiveStatus} tone="neutral" />
                   )}
                 </View>
                 <Text style={styles.bikeMeta}>
-                  {assignment.bikeStatus} · Since{' '}
+                  {assignment.bikeStatus} · {t.profile.since}{' '}
                   {new Date(assignment.assignedAt).toLocaleDateString([], {
                     month: 'short',
                     day: 'numeric',
@@ -256,7 +295,7 @@ export function ProfileScreen() {
         </View>
       ) : (
         <View style={styles.emptyBikes}>
-          <Text style={styles.emptyText}>No bikes assigned yet</Text>
+          <Text style={styles.emptyText}>{t.profile.noBikesAssigned}</Text>
         </View>
       )}
 
@@ -264,32 +303,32 @@ export function ProfileScreen() {
       {weeklyScoreQuery.isLoading ? (
         <ListSkeleton rows={2} />
       ) : weeklyScore ? (
-        <AppCard title="Score Breakdown">
+        <AppCard title={t.profile.scoreBreakdown}>
           <View style={styles.scoreTrendRow}>
             <View style={[styles.trendCard, { borderColor: theme.colors.successBorder }]}>
               <Text style={[styles.trendValue, { color: theme.colors.success }]}>
                 {weeklyScore.bestScore?.toFixed(0) ?? '--'}
               </Text>
-              <Text style={styles.trendLabel}>Best</Text>
+              <Text style={styles.trendLabel}>{t.profile.bestScore}</Text>
             </View>
             <View style={[styles.trendCard, { borderColor: theme.colors.primaryBorder }]}>
               <Text style={[styles.trendValue, { color: theme.colors.primary }]}>
                 {weeklyScore.avgScore?.toFixed(0) ?? '--'}
               </Text>
-              <Text style={styles.trendLabel}>Average</Text>
+              <Text style={styles.trendLabel}>{t.profile.averageScore}</Text>
             </View>
             <View style={[styles.trendCard, { borderColor: theme.colors.warningBorder }]}>
               <Text style={[styles.trendValue, { color: theme.colors.warning }]}>
                 {weeklyScore.worstScore?.toFixed(0) ?? '--'}
               </Text>
-              <Text style={styles.trendLabel}>Worst</Text>
+              <Text style={styles.trendLabel}>{t.profile.worstScore}</Text>
             </View>
           </View>
         </AppCard>
       ) : null}
 
       {/* Support & Diagnostics */}
-      <AppCard title="Support & Diagnostics">
+      <AppCard title={t.profile.supportDiagnostics}>
         <Pressable
           onPress={() => setShowDiagnostics(!showDiagnostics)}
           style={({ pressed }) => [
@@ -298,9 +337,9 @@ export function ProfileScreen() {
           ]}
         >
           <View style={styles.diagnosticsHeader}>
-            <Text style={styles.diagnosticsTitle}>🔧 System Diagnostics</Text>
+            <Text style={styles.diagnosticsTitle}>🔧 {t.profile.systemDiagnostics}</Text>
             <Text style={styles.diagnosticsToggle}>
-              {showDiagnostics ? 'Hide details ▲' : 'Show details ▼'}
+              {showDiagnostics ? t.profile.hideDetails : t.profile.showDetails}
             </Text>
           </View>
         </Pressable>
@@ -308,7 +347,7 @@ export function ProfileScreen() {
         {showDiagnostics && (
           <View style={styles.diagnosticsContent}>
             <Text style={styles.diagnosticsDescription}>
-              If you are experiencing issues with your bike, connectivity, or trips, our support team may request the parameters below. Tap any value to copy it.
+              {t.profile.diagnosticsDesc}
             </Text>
 
             <View style={styles.diagnosticsStack}>
@@ -320,12 +359,12 @@ export function ProfileScreen() {
                 ]}
               >
                 <View>
-                  <Text style={styles.copyableLabel}>RIDER USER ID</Text>
+                  <Text style={styles.copyableLabel}>{t.profile.riderUserId}</Text>
                   <Text style={styles.copyableValue}>{me?.userId ?? '—'}</Text>
                 </View>
                 <View style={styles.copyBadge}>
                   <Text style={styles.copyBadgeText}>
-                    {copiedId === 'rider' ? '✓ Copied' : '📋 Copy'}
+                    {copiedId === 'rider' ? t.common.copied : t.common.copy}
                   </Text>
                 </View>
               </Pressable>
@@ -338,12 +377,12 @@ export function ProfileScreen() {
                 ]}
               >
                 <View>
-                  <Text style={styles.copyableLabel}>OPERATING FLEET ID</Text>
+                  <Text style={styles.copyableLabel}>{t.profile.operatingFleetId}</Text>
                   <Text style={styles.copyableValue}>{me?.fleetId ?? '—'}</Text>
                 </View>
                 <View style={styles.copyBadge}>
                   <Text style={styles.copyBadgeText}>
-                    {copiedId === 'fleet' ? '✓ Copied' : '📋 Copy'}
+                    {copiedId === 'fleet' ? t.common.copied : t.common.copy}
                   </Text>
                 </View>
               </Pressable>
@@ -354,7 +393,7 @@ export function ProfileScreen() {
 
       {/* Sign out */}
       <View style={styles.signOutWrap}>
-        <SecondaryButton label="Sign out" onPress={() => void auth.logout()} />
+        <SecondaryButton label={t.profile.signOut} onPress={() => void auth.logout()} />
       </View>
     </ScreenContainer>
   );
@@ -617,6 +656,37 @@ const styles = StyleSheet.create({
   onlineButtonText: {
     fontSize: theme.typography.body,
     fontWeight: '700',
+    color: theme.colors.text,
+  },
+  languageContainer: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  languageButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  languageButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  languageButtonInactive: {
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.border,
+  },
+  languageButtonText: {
+    fontSize: theme.typography.body,
+    fontWeight: '700',
+  },
+  languageTextActive: {
+    color: '#ffffff',
+  },
+  languageTextInactive: {
     color: theme.colors.text,
   },
 });

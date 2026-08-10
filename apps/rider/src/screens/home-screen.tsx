@@ -21,6 +21,7 @@ import {
   riderWeeklyScoreSchema,
 } from '../lib/api/schemas';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { logAppError } from '../lib/monitoring/error-log';
 import type {
   LiveBikeState,
@@ -147,6 +148,7 @@ function buildCoachingTips(
 // Shows rider home insights including weekly score, latest trip, and recent alerts.
 export function HomeScreen() {
   const auth = useAuth();
+  const { t } = useLanguage();
 
   const weeklyScoreQuery = useQuery({
     queryKey: ['rider-score', 'weekly'],
@@ -327,10 +329,10 @@ export function HomeScreen() {
             </Text>
           </View>
           <View style={styles.greetingText}>
-            <Text style={styles.greetingName}>Hi, {firstName}</Text>
+            <Text style={styles.greetingName}>{t.home.greeting}, {firstName}</Text>
             <Text style={styles.greetingSubtitle}>
               {weeklyScore?.tripCount
-                ? `${weeklyScore.tripCount} rides this week`
+                ? `${weeklyScore.tripCount} rides ${t.common.thisWeek.toLowerCase()}`
                 : 'Stay smooth, ride safe'}
             </Text>
           </View>
@@ -343,23 +345,23 @@ export function HomeScreen() {
         <View style={styles.scoreCardInner}>
           <ScoreRing score={weeklyScore?.avgScore ?? null} size={130} />
           <View style={styles.scoreSummary}>
-            <Text style={styles.scoreCardTitle}>Weekly Score</Text>
+            <Text style={styles.scoreCardTitle}>{t.home.safetyScore}</Text>
             <Text style={styles.scoreHeadline}>{scoreTone.label}</Text>
             <Text style={styles.scoreBody}>
-              {weeklyScore?.tripCount ?? 0} trips scored this week
+              {weeklyScore?.tripCount ?? 0} trips scored {t.common.thisWeek.toLowerCase()}
             </Text>
             <View style={styles.bestWorstRow}>
               <View style={[styles.miniStat, { borderColor: theme.colors.successBorder, backgroundColor: theme.colors.successSoft }]}>
                 <Text style={[styles.miniStatValue, { color: theme.colors.success }]}>
                   {weeklyScore?.bestScore?.toFixed(0) ?? '--'}
                 </Text>
-                <Text style={styles.miniStatLabel}>Best</Text>
+                <Text style={styles.miniStatLabel}>{t.profile.bestScore}</Text>
               </View>
               <View style={[styles.miniStat, { borderColor: theme.colors.warningBorder, backgroundColor: theme.colors.warningSoft }]}>
                 <Text style={[styles.miniStatValue, { color: theme.colors.warning }]}>
                   {weeklyScore?.worstScore?.toFixed(0) ?? '--'}
                 </Text>
-                <Text style={styles.miniStatLabel}>Worst</Text>
+                <Text style={styles.miniStatLabel}>{t.profile.worstScore}</Text>
               </View>
             </View>
           </View>
@@ -371,37 +373,37 @@ export function HomeScreen() {
         <View style={styles.quickStatCard}>
           <Text style={styles.quickStatIcon}>🏍️</Text>
           <Text style={styles.quickStatValue}>{assignmentCount}</Text>
-          <Text style={styles.quickStatLabel}>Bikes</Text>
+          <Text style={styles.quickStatLabel}>{t.home.bikesCount}</Text>
         </View>
         <View style={styles.quickStatCard}>
           <Text style={styles.quickStatIcon}>📍</Text>
           <Text style={styles.quickStatValue} numberOfLines={1}>
             {activeAssignment?.bikeLabel ?? '—'}
           </Text>
-          <Text style={styles.quickStatLabel}>Primary</Text>
+          <Text style={styles.quickStatLabel}>{t.home.primaryBike}</Text>
         </View>
         <View style={styles.quickStatCard}>
           <Text style={styles.quickStatIcon}>⚠️</Text>
           <Text style={styles.quickStatValue}>{recentAlerts.length}</Text>
-          <Text style={styles.quickStatLabel}>Alerts</Text>
+          <Text style={styles.quickStatLabel}>{t.home.alertsCount}</Text>
         </View>
       </View>
 
       {/* Personal Owner Controls */}
       {auth.riderMe?.isPersonalOwner && activeAssignment && (
-        <AppCard title="My Bike Controls">
+        <AppCard title={t.home.myBikeControls}>
           <View style={styles.ownerControls}>
             <View style={styles.batteryRow}>
               <View style={styles.batteryIconWrap}>
                 <Text style={styles.batteryIcon}>🔋</Text>
               </View>
               <View style={styles.batteryTextWrap}>
-                <Text style={styles.batteryTitle}>Battery Status</Text>
+                <Text style={styles.batteryTitle}>{t.home.batteryStatus}</Text>
                 <Text style={styles.batteryDetail}>
                   {liveStateQuery.data
                     ? `${liveStateQuery.data.batteryPct.toFixed(0)}% • ${liveStateQuery.data.batteryV.toFixed(1)}V`
                     : liveStateQuery.isLoading
-                    ? 'Loading...'
+                    ? t.common.loading
                     : 'Unknown'}
                 </Text>
               </View>
@@ -409,14 +411,14 @@ export function HomeScreen() {
             <View style={styles.lockButtons}>
               <View style={styles.lockBtnWrap}>
                 <PrimaryButton
-                  label="Unlock"
+                  label={t.home.unlock}
                   onPress={() => unlockMutation.mutate()}
                   loading={unlockMutation.isPending}
                 />
               </View>
               <View style={styles.lockBtnWrap}>
                 <PrimaryButton
-                  label="Lock (Coming Soon)"
+                  label={t.home.lock}
                   tone="danger"
                   disabled={true}
                   onPress={() => {}}
@@ -430,7 +432,7 @@ export function HomeScreen() {
 
       {/* Personal Owner Bike Location */}
       {auth.riderMe?.isPersonalOwner && activeAssignment && (
-        <AppCard title="My Bike Location">
+        <AppCard title={t.home.myBikeLocation}>
           <View style={styles.ownerLocation}>
             <View style={styles.locationMetaRow}>
               <View style={styles.gpsIconWrap}>
@@ -438,21 +440,21 @@ export function HomeScreen() {
               </View>
               <View style={styles.gpsTextWrap}>
                 <View style={styles.gpsStatusRow}>
-                  <Text style={styles.gpsTitle}>GPS Tracking</Text>
+                  <Text style={styles.gpsTitle}>{t.home.gpsTracking}</Text>
                   {liveStateQuery.data ? (
                     <View style={styles.activeGlowContainer}>
                       <View style={styles.activeGlowPulse} />
-                      <Text style={styles.activeGlowText}>Live</Text>
+                      <Text style={styles.activeGlowText}>{t.common.online}</Text>
                     </View>
                   ) : (
-                    <Badge label="Off" tone="warning" />
+                    <Badge label={t.common.offline} tone="warning" />
                   )}
                 </View>
                 <Text style={styles.gpsDetail}>
                   {liveStateQuery.data
                     ? `${liveStateQuery.data.lat.toFixed(6)}, ${liveStateQuery.data.lng.toFixed(6)}`
                     : liveStateQuery.isLoading
-                    ? 'Acquiring satellites...'
+                    ? t.common.loading
                     : 'Coordinates unavailable'}
                 </Text>
               </View>
@@ -478,7 +480,7 @@ export function HomeScreen() {
             )}
 
             <PrimaryButton
-              label="Track on Live Map"
+              label={t.home.trackOnLiveMap}
               disabled={!liveStateQuery.data}
               onPress={async () => {
                 if (liveStateQuery.data) {
@@ -496,7 +498,7 @@ export function HomeScreen() {
 
       {/* Last trip card */}
       <AppCard
-        title="Last Trip"
+        title={t.home.lastTrip}
         rightSlot={<ScoreBadge score={latestTrip?.score ?? null} />}
       >
         {latestTrip ? (
@@ -513,7 +515,7 @@ export function HomeScreen() {
                 <Text style={styles.tripMetricValue}>
                   {formatDuration(latestTrip.durationSec)}
                 </Text>
-                <Text style={styles.tripMetricUnit}>duration</Text>
+                <Text style={styles.tripMetricUnit}>{t.common.duration}</Text>
               </View>
               {latestTrip.consumptionPct !== null && (
                 <>
@@ -522,7 +524,7 @@ export function HomeScreen() {
                     <Text style={[styles.tripMetricValue, { color: theme.colors.success }]}>
                       {latestTrip.consumptionPct.toFixed(0)}%
                     </Text>
-                    <Text style={styles.tripMetricUnit}>used</Text>
+                    <Text style={styles.tripMetricUnit}>{t.common.used}</Text>
                   </View>
                 </>
               )}
@@ -533,14 +535,14 @@ export function HomeScreen() {
           </View>
         ) : (
           <EmptyState
-            title="No trips yet"
-            description="Your first ride will unlock scoring and coaching."
+            title={t.home.noRecentTrips}
+            description={t.home.scoreSubtitle}
           />
         )}
       </AppCard>
 
       {/* Coaching tips */}
-      <SectionHeader title="Coaching" subtitle="Quick actions for a safer week" />
+      <SectionHeader title={t.home.coaching} subtitle={t.home.coachingSubtitle} />
       <View style={styles.tipsGrid}>
         {coachingTips.map((tip) => {
           const toneColor =
@@ -574,10 +576,10 @@ export function HomeScreen() {
 
       {/* Recent alerts */}
       <SectionHeader
-        title="Recent Alerts"
+        title={t.home.recentAlerts}
         rightSlot={
           recentAlerts.length > 0 ? (
-            <Badge label={`${recentAlerts.length} recent`} tone="warning" />
+            <Badge label={`${recentAlerts.length}`} tone="warning" />
           ) : undefined
         }
       />
@@ -606,16 +608,16 @@ export function HomeScreen() {
         </View>
       ) : (
         <EmptyState
-          title="All clear"
-          description="No recent alerts. Clean riding keeps this feed quiet."
+          title={t.home.allClear}
+          description={t.home.allClearDesc}
         />
       )}
 
       {latestAlertQuery.isError ? (
         <ErrorState
-          title="Alerts unavailable"
-          description="Alerts could not be refreshed right now."
-          retryLabel="Reload alerts"
+          title={t.common.error}
+          description={t.common.error}
+          retryLabel={t.common.retry}
           onRetry={() => {
             void latestAlertQuery.refetch();
           }}
@@ -623,7 +625,7 @@ export function HomeScreen() {
       ) : null}
 
       <View style={styles.logoutWrap}>
-        <SecondaryButton label="Sign out" onPress={() => void auth.logout()} />
+        <SecondaryButton label={t.common.signOut} onPress={() => void auth.logout()} />
       </View>
     </ScreenContainer>
   );

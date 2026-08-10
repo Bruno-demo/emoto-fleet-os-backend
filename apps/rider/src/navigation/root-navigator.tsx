@@ -59,7 +59,10 @@ function getTabIconName(
   return focused ? 'navigate' : 'navigate-outline';
 }
 
+import { useLanguage } from '../lib/i18n/language-context';
+
 function DeliveriesStackNavigator() {
+  const { t } = useLanguage();
   return (
     <DeliveriesStack.Navigator
       screenOptions={{
@@ -76,12 +79,12 @@ function DeliveriesStackNavigator() {
       <DeliveriesStack.Screen
         name="DeliveriesList"
         component={DeliveriesScreen}
-        options={{ title: 'Deliveries' }}
+        options={{ title: t.deliveries.title }}
       />
       <DeliveriesStack.Screen
         name="DeliveryDetail"
         component={DeliveryDetailScreen}
-        options={{ title: 'Order Details' }}
+        options={{ title: t.deliveries.orderDetailTitle }}
       />
     </DeliveriesStack.Navigator>
   );
@@ -109,6 +112,7 @@ function AuthStackNavigator() {
 
 // Wraps trips list/detail flows in a dedicated stack under the Trips tab.
 function TripsStackNavigator() {
+  const { t } = useLanguage();
   return (
     <TripsStack.Navigator
       screenOptions={{
@@ -125,12 +129,12 @@ function TripsStackNavigator() {
       <TripsStack.Screen
         name="TripsList"
         component={TripsScreen}
-        options={{ title: 'Trips' }}
+        options={{ title: t.trips.title }}
       />
       <TripsStack.Screen
         name="TripDetail"
         component={TripDetailScreen}
-        options={{ title: 'Trip Detail' }}
+        options={{ title: t.trips.tripDetailTitle }}
       />
     </TripsStack.Navigator>
   );
@@ -138,6 +142,7 @@ function TripsStackNavigator() {
 
 // Defines the authenticated rider tab shell used after successful login.
 function RiderTabsNavigator() {
+  const { t } = useLanguage();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -166,32 +171,32 @@ function RiderTabsNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t.tabs.home }} />
       <Tab.Screen
         name="TripsStack"
         component={TripsStackNavigator}
-        options={{ title: 'Trips' }}
+        options={{ title: t.tabs.trips }}
       />
       <Tab.Screen
         name="DeliveriesStack"
         component={DeliveriesStackNavigator}
-        options={{ title: 'Deliveries' }}
+        options={{ title: t.tabs.deliveries }}
       />
       <Tab.Screen
         name="Payments"
         component={PaymentsScreen}
-        options={{ title: 'Payments' }}
+        options={{ title: t.tabs.payments }}
       />
-      <Tab.Screen name="SOS" component={SosScreen} options={{ title: 'SOS' }} />
+      <Tab.Screen name="SOS" component={SosScreen} options={{ title: t.tabs.sos }} />
       <Tab.Screen
         name="PoiNearby"
         component={PoiNearbyScreen}
-        options={{ title: 'Nearby' }}
+        options={{ title: t.tabs.nearby }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: 'Profile' }}
+        options={{ title: t.tabs.profile }}
       />
     </Tab.Navigator>
   );

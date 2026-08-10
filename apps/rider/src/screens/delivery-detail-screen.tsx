@@ -14,6 +14,8 @@ import type { RiderDelivery } from '../lib/types/api';
 import type { RiderDeliveriesStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
 
+import { useLanguage } from '../lib/i18n/language-context';
+
 type DeliveryDetailScreenProps = NativeStackScreenProps<
   RiderDeliveriesStackParamList,
   'DeliveryDetail'
@@ -21,6 +23,7 @@ type DeliveryDetailScreenProps = NativeStackScreenProps<
 
 export function DeliveryDetailScreen({ route, navigation }: DeliveryDetailScreenProps) {
   const { deliveryId } = route.params;
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   const [simulatedPhoto, setSimulatedPhoto] = useState<string | null>(null);
@@ -59,7 +62,7 @@ export function DeliveryDetailScreen({ route, navigation }: DeliveryDetailScreen
   if (deliveryQuery.isLoading) {
     return (
       <ScreenContainer>
-        <SectionHeader title="Delivery Detail" subtitle="Loading details..." />
+        <SectionHeader title={t.deliveries.orderDetailTitle} subtitle={t.common.loading} />
         <ListSkeleton rows={3} />
       </ScreenContainer>
     );
@@ -69,8 +72,8 @@ export function DeliveryDetailScreen({ route, navigation }: DeliveryDetailScreen
     return (
       <ScreenContainer>
         <ErrorState
-          title="Delivery not found"
-          description="Could not load the specified delivery."
+          title={t.common.error}
+          description={t.deliveries.noDeliveries}
           onRetry={() => {
             void deliveryQuery.refetch();
           }}
@@ -92,9 +95,9 @@ export function DeliveryDetailScreen({ route, navigation }: DeliveryDetailScreen
 
   const getStatusActionLabel = () => {
     switch (payload.status) {
-      case 'ASSIGNED': return 'Pick Up Package';
-      case 'PICKED_UP': return 'Start Transit';
-      case 'IN_TRANSIT': return 'Mark as Delivered';
+      case 'ASSIGNED': return t.deliveries.startDelivery;
+      case 'PICKED_UP': return t.deliveries.startDelivery;
+      case 'IN_TRANSIT': return t.deliveries.completeDelivery;
       default: return null;
     }
   };
@@ -115,12 +118,12 @@ export function DeliveryDetailScreen({ route, navigation }: DeliveryDetailScreen
     <ScrollView style={styles.container}>
       <SectionHeader
         title={payload.orderNumber}
-        subtitle="Delivery detail & actions"
+        subtitle={t.deliveries.orderDetailTitle}
         rightSlot={<Badge label={payload.status} tone="primary" />}
       />
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recipient Information</Text>
+        <Text style={styles.sectionTitle}>{t.deliveries.customer}</Text>
         <View style={styles.infoCard}>
           <Text style={styles.infoName}>{payload.customerName}</Text>
           <Text style={styles.infoPhone}>{payload.customerPhone}</Text>
@@ -131,14 +134,14 @@ export function DeliveryDetailScreen({ route, navigation }: DeliveryDetailScreen
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Route Details</Text>
+        <Text style={styles.sectionTitle}>{t.deliveries.orderDetailTitle}</Text>
         <View style={styles.infoCard}>
-          <Text style={styles.label}>PICKUP ADDRESS</Text>
+          <Text style={styles.label}>{t.deliveries.pickupAddress}</Text>
           <Text style={styles.addressText}>{payload.pickupAddress}</Text>
 
           <View style={styles.divider} />
 
-          <Text style={styles.label}>DROPOFF ADDRESS</Text>
+          <Text style={styles.label}>{t.deliveries.dropoffAddress}</Text>
           <Text style={styles.addressText}>{payload.dropoffAddress}</Text>
         </View>
       </View>

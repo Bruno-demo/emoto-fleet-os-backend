@@ -8,6 +8,7 @@ import { InputField } from '../components/ui/input-field';
 import { PrimaryButton, SecondaryButton } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ApiError, apiFetch } from '../lib/api/client';
+import { useLanguage } from '../lib/i18n/language-context';
 import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderAuthStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
@@ -15,6 +16,7 @@ import { theme } from '../theme/tokens';
 type RegisterScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'Register'>;
 
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
+  const { t } = useLanguage();
   const [inviteCode, setInviteCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -80,14 +82,14 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     let hasError = false;
 
     if (!inviteCode.trim()) {
-      setInviteCodeError('Enter the invitation code provided by your Fleet Admin.');
+      setInviteCodeError(t.auth.fleetCodeLabel);
       hasError = true;
     } else {
       setInviteCodeError(null);
     }
 
     if (!fullName.trim() || fullName.trim().length < 2) {
-      setFullNameError('Enter your full name.');
+      setFullNameError(t.auth.fullNameLabel);
       hasError = true;
     } else {
       setFullNameError(null);
@@ -97,34 +99,34 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const cleanPhone = phoneNumber.trim();
     const rwandaPhoneRegex = /^07[2389]\d{7}$/;
     if (!cleanPhone) {
-      setPhoneError('Enter your 10-digit phone number.');
+      setPhoneError(t.auth.phoneLabel);
       hasError = true;
     } else if (!rwandaPhoneRegex.test(cleanPhone)) {
-      setPhoneError('Phone must be a 10-digit Rwandan number (e.g. 0788123456).');
+      setPhoneError(t.auth.phoneLabel);
       hasError = true;
     } else {
       setPhoneError(null);
     }
 
     if (!password.trim() || password.trim().length < 8) {
-      setPasswordError('Password must be at least 8 characters.');
+      setPasswordError(t.auth.passwordLabel);
       hasError = true;
     } else {
       setPasswordError(null);
     }
 
     if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match.');
+      setConfirmPasswordError(t.auth.passwordLabel);
       hasError = true;
     } else {
       setConfirmPasswordError(null);
     }
 
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setErrorMessage('Enter a valid email address.');
+      setErrorMessage(t.auth.emailLabel);
       hasError = true;
     } else if (!isEmailVerified) {
-      setErrorMessage('Please verify your email address with the OTP first.');
+      setErrorMessage(t.auth.otpSub);
       hasError = true;
     }
 
@@ -148,32 +150,36 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
         setDevOtp(res.otp);
       }
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setOtpError(err.message);
-      } else {
-        setOtpError('Failed to send verification code.');
-      }
+      logAppError('rider.send_otp_failed', err, { feature: 'auth' });
+      setOtpError('Failed to send OTP code.');
     } finally {
       setIsSendingOtp(false);
     }
   };
 
   const handleVerifyOtp = async (): Promise<void> => {
+    if (!otpCode.trim()) {
+      setOtpError('Enter OTP code.');
+      return;
+    }
+
     setIsVerifyingOtp(true);
     setOtpError(null);
     try {
       await apiFetch('/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim(), otp: otpCode.trim(), reason: 'register' }),
+        body: JSON.stringify({
+          email: email.trim(),
+          otp: otpCode.trim(),
+          reason: 'register',
+        }),
       }, { auth: false });
 
       setIsEmailVerified(true);
+      setDevOtp(null);
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setOtpError(err.message);
-      } else {
-        setOtpError('Invalid or expired verification code.');
-      }
+      logAppError('rider.verify_otp_failed', err, { feature: 'auth' });
+      setOtpError('Invalid OTP code.');
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -181,25 +187,25 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
   const handleRegister = async (): Promise<void> => {
     if (!validateForm()) return;
+
     setErrorMessage(null);
     setSuccessMessage(null);
     setIsSubmitting(true);
 
-    const cleanPhone = phoneNumber.trim();
-
     try {
-      await apiFetch(
-        '/auth/register-invite',
+      await apiFetch<{ success: boolean; riderId: string }>(
+        '/auth/register-rider',
         {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            token: inviteCode.trim(),
+            inviteCode: inviteCode.trim(),
             fullName: fullName.trim(),
-            email: email.trim(),
-            phone: cleanPhone,
-            password: password,
+            phone: phoneNumber.trim(),
+            email: email.trim() || undefined,
             identityNumber: identityNumber.trim() || undefined,
             licenceNumber: licenceNumber.trim() || undefined,
+            password,
             passportPhoto: passportPhoto || undefined,
             identityCardPhoto: identityCardPhoto || undefined,
             licencePhoto: licencePhoto || undefined,
@@ -208,44 +214,22 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
         { auth: false },
       );
 
-      setSuccessMessage('Rider account created! You have been successfully registered under your fleet.');
-
-      // Clear form
-      setInviteCode('');
-      setFullName('');
-      setPhoneNumber('');
-      setEmail('');
-      setIdentityNumber('');
-      setLicenceNumber('');
-      setPassportPhoto(null);
-      setIdentityCardPhoto(null);
-      setLicencePhoto(null);
-      setPassword('');
-      setConfirmPassword('');
-      setIsOtpSent(false);
-      setIsEmailVerified(false);
-      setOtpCode('');
-
-      // Navigate to login after a brief delay
+      setSuccessMessage('Registration successful! Redirecting to login...');
       setTimeout(() => {
         navigation.navigate('Login');
-      }, 2500);
+      }, 1500);
     } catch (error: unknown) {
-      logAppError('rider.register_failed', error, {
-        feature: 'auth',
-        operation: 'register-invite',
-        status: error instanceof ApiError ? error.status : undefined,
-      });
+      logAppError('rider.register_failed', error, { feature: 'auth' });
       if (error instanceof ApiError) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes('invite')) {
-          setInviteCodeError('Invalid, expired, or fully used invitation code.');
-          setErrorMessage('Invalid, expired, or fully used invitation code.');
-        } else if (msg.includes('email')) {
-          setErrorMessage('This email address is already in use by another account.');
-        } else if (msg.includes('phone')) {
-          setPhoneError('This phone number is already in use by another account.');
-          setErrorMessage('This phone number is already in use by another account.');
+        if (error.status === 400 && error.details && typeof error.details === 'object') {
+          const bodyObj = error.details as { message?: string | string[] };
+          if (Array.isArray(bodyObj.message)) {
+            setErrorMessage(bodyObj.message.join(' '));
+          } else if (typeof bodyObj.message === 'string') {
+            setErrorMessage(bodyObj.message);
+          } else {
+            setErrorMessage('Invalid inputs. Check code and fields.');
+          }
         } else {
           setErrorMessage(error.message);
         }
@@ -266,14 +250,14 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     >
       <AuthShell
         eyebrow="eMoto Fleet Rider"
-        title="Rider Registration"
-        description="Enter your Fleet Admin invitation code and upload your documents to register."
+        title={t.auth.registerTitle}
+        description={t.auth.welcomeSub}
       >
         {/* Registration form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Create Rider Account</Text>
-            <Badge label="Fleet Invitation Code" tone="primary" />
+            <Text style={styles.formTitle}>{t.auth.registerTitle}</Text>
+            <Badge label="Code" tone="primary" />
           </View>
 
           {successMessage ? (

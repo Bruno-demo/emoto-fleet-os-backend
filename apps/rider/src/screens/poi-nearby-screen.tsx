@@ -19,6 +19,7 @@ import { logAppError } from '../lib/monitoring/error-log';
 import type { NearbyPoi, PoiType } from '../lib/types/api';
 import { theme } from '../theme/tokens';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { PendingSetupGate } from '../components/pending-setup-gate';
 
 const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC', 'OTHER'];
@@ -67,6 +68,7 @@ async function openDirections(poi: NearbyPoi): Promise<void> {
 // Retrieves and filters nearby POIs around current rider coordinates.
 export function PoiNearbyScreen() {
   const auth = useAuth();
+  const { t } = useLanguage();
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -161,13 +163,13 @@ export function PoiNearbyScreen() {
       }}
     >
       <SectionHeader
-        title="Nearby"
-        subtitle="Find garages, battery swaps, and clinics close to you."
+        title={t.nearby.title}
+        subtitle={t.nearby.searchPlaceholder}
       />
 
-      <AppCard title="📍 Location" subtitle="Use your GPS to sort help points by distance." tone="accent">
+      <AppCard title={`📍 ${t.nearby.locationSection}`} tone="accent">
         <PrimaryButton
-          label={isResolvingLocation ? 'Getting location...' : coordinates ? 'Refresh location' : 'Use current location'}
+          label={isResolvingLocation ? t.nearby.gettingLocation : coordinates ? t.nearby.refreshLocation : t.nearby.getLocation}
           loading={isResolvingLocation}
           onPress={() => {
             void resolveLocation();
@@ -175,15 +177,15 @@ export function PoiNearbyScreen() {
         />
         {coordinates ? (
           <Badge
-            label={`Searching within ${DEFAULT_RADIUS_KM} km`}
+            label={`${DEFAULT_RADIUS_KM} km`}
             tone="success"
           />
         ) : null}
         {locationError ? (
           <ErrorState
-            title="Location needed"
+            title={t.common.error}
             description={locationError}
-            retryLabel="Try location again"
+            retryLabel={t.common.retry}
             onRetry={() => {
               void resolveLocation();
             }}

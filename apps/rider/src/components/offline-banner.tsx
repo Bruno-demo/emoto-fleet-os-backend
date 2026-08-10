@@ -1,10 +1,12 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { StyleSheet, Text, View } from 'react-native';
+import { useLanguage } from '../lib/i18n/language-context';
 import { theme } from '../theme/tokens';
 
 // Shows a lightweight offline banner when device connectivity is lost.
 export function OfflineBanner() {
   const netInfo = useNetInfo();
+  const { t } = useLanguage();
   const isOffline =
     netInfo.isConnected === false || netInfo.isInternetReachable === false;
 
@@ -14,11 +16,8 @@ export function OfflineBanner() {
 
   return (
     <View style={styles.banner}>
-      <Text style={styles.title}>Offline mode</Text>
-      <Text style={styles.text}>
-        Showing cached data where available. Live actions resume when the
-        connection returns.
-      </Text>
+      <Text style={styles.title}>{t.statusBanners.offlineTitle}</Text>
+      <Text style={styles.text}>{t.statusBanners.offlineSub}</Text>
     </View>
   );
 }

@@ -46,6 +46,8 @@ import { configureOnlineManager } from './src/lib/netinfo/online-manager';
 import { RootNavigator } from './src/navigation/root-navigator';
 import { theme } from './src/theme/tokens';
 
+import { LanguageProvider } from './src/lib/i18n/language-context';
+
 const linking: any = {
   prefixes: ['/'],
   config: {
@@ -118,12 +120,14 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <NavigationContainer theme={navigationTheme} linking={linking}>
-              <StatusBar style="light" />
-              <RootNavigator />
-            </NavigationContainer>
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <NavigationContainer theme={navigationTheme} linking={linking}>
+                <StatusBar style="light" />
+                <RootNavigator />
+              </NavigationContainer>
+            </AuthProvider>
+          </LanguageProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

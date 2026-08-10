@@ -15,6 +15,7 @@ import { logAppError } from '../lib/monitoring/error-log';
 import type { RiderSosResponse } from '../lib/types/api';
 import { theme } from '../theme/tokens';
 import { useAuth } from '../lib/auth/auth-context';
+import { useLanguage } from '../lib/i18n/language-context';
 import { PendingSetupGate } from '../components/pending-setup-gate';
 
 async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | null> {
@@ -39,6 +40,7 @@ function toSosErrorMessage(error: unknown): string {
 
 export function SosScreen() {
   const auth = useAuth();
+  const { t } = useLanguage();
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [response, setResponse] = useState<RiderSosResponse | null>(null);
@@ -99,8 +101,8 @@ export function SosScreen() {
   return (
     <ScreenContainer>
       <SectionHeader
-        title="Emergency SOS"
-        subtitle="Fleet assistance when you need it most"
+        title={t.sos.title}
+        subtitle={t.sos.alertDesc}
       />
 
       {response ? (
@@ -109,23 +111,23 @@ export function SosScreen() {
           <View style={styles.successIconWrap}>
             <Text style={styles.successIcon}>✅</Text>
           </View>
-          <Text style={styles.successTitle}>Dispatcher Notified</Text>
+          <Text style={styles.successTitle}>{t.sos.sentSuccess}</Text>
           <Text style={styles.successSubtitle}>
-            Your emergency alert was accepted and routed to fleet response.
+            {t.sos.alertDesc}
           </Text>
           <View style={styles.successDetails}>
             <View style={styles.successRow}>
-              <Text style={styles.successLabel}>Contacts notified</Text>
+              <Text style={styles.successLabel}>{t.sos.notifyContacts}</Text>
               <Text style={styles.successValue}>{response.notifiedContacts}</Text>
             </View>
             <View style={styles.successDivider} />
             <View style={styles.successRow}>
-              <Text style={styles.successLabel}>Reference</Text>
+              <Text style={styles.successLabel}>{t.sos.reference}</Text>
               <Text style={styles.successValue}>{response.event.id.slice(0, 12)}</Text>
             </View>
           </View>
           <PrimaryButton
-            label="Send another SOS"
+            label={t.sos.sendAnother}
             onPress={() => {
               setResponse(null);
               setErrorMessage(null);
@@ -139,7 +141,7 @@ export function SosScreen() {
             <View style={styles.sosOuterRing}>
               <View style={styles.sosInnerRing}>
                 <PrimaryButton
-                  label={isSubmitting ? 'Sending...' : '🆘  SOS'}
+                  label={isSubmitting ? t.sos.sending : '🆘  SOS'}
                   loading={isSubmitting}
                   tone="danger"
                   onPress={() => setConfirmVisible(true)}
@@ -147,17 +149,17 @@ export function SosScreen() {
               </View>
             </View>
             <Text style={styles.sosInstruction}>
-              Tap to alert dispatch immediately
+              {t.sos.tapToAlert}
             </Text>
             <View style={styles.sosStatusRow}>
-              <Badge label="Location auto-attached" tone="primary" />
-              <Badge label="Instant dispatch" tone="warning" />
+              <Badge label="GPS" tone="primary" />
+              <Badge label="Instant" tone="warning" />
             </View>
           </View>
 
           {/* When to use guide */}
           <View style={styles.guideCard}>
-            <Text style={styles.guideTitle}>When to use SOS</Text>
+            <Text style={styles.guideTitle}>{t.sos.whenToUse}</Text>
             <View style={styles.guideItems}>
               {[
                 { icon: '💥', text: 'Crash or collision' },
