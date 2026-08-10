@@ -1985,6 +1985,16 @@ export class RidersService {
     const paymentSchedule = profile?.paymentSchedule ?? 'DAILY';
     const customScheduleDays = profile?.customScheduleDays ?? null;
 
+    const schedulePeriodDays =
+      paymentSchedule === 'WEEKLY'
+        ? 7
+        : paymentSchedule === 'CUSTOM'
+          ? Math.max(1, customScheduleDays ?? 1)
+          : 1;
+
+    const requiredPeriodAmount = assignedRate * schedulePeriodDays;
+    const requiredTotalAmount = requiredPeriodAmount + arrears;
+
     return {
       isLeaseToOwn,
       leasePrincipal,
@@ -1992,6 +2002,9 @@ export class RidersService {
       assignedRate,
       paymentSchedule,
       customScheduleDays,
+      schedulePeriodDays,
+      requiredPeriodAmount,
+      requiredTotalAmount,
       totalPaid,
       expectedPaid,
       arrears,
@@ -2021,7 +2034,20 @@ export class RidersService {
       throw new NotFoundException('Rider account not found');
     }
 
-    const amount = dto.amount || rider.riderProfile?.assignedRate || rider.riderProfile?.leaseDailyRate || 15000;
+    const profile = rider.riderProfile;
+    const assignedRate = profile?.assignedRate ?? profile?.leaseDailyRate ?? 15000;
+    const paymentSchedule = profile?.paymentSchedule ?? 'DAILY';
+    const customScheduleDays = profile?.customScheduleDays ?? null;
+
+    const schedulePeriodDays =
+      paymentSchedule === 'WEEKLY'
+        ? 7
+        : paymentSchedule === 'CUSTOM'
+          ? Math.max(1, customScheduleDays ?? 1)
+          : 1;
+
+    const requiredPeriodAmount = assignedRate * schedulePeriodDays;
+    const amount = dto.amount || requiredPeriodAmount;
     const phone = dto.momoPhoneNumber || rider.phone;
 
     if (!phone) {
@@ -2030,13 +2056,20 @@ export class RidersService {
       );
     }
 
+    const isPartial = dto.isPartial || amount < requiredPeriodAmount;
+    if (isPartial && !dto.partialReason?.trim()) {
+      throw new BadRequestException(
+        `You are paying ${amount.toLocaleString()} RWF, which is less than your required ${schedulePeriodDays}-day contribution (${requiredPeriodAmount.toLocaleString()} RWF). Please provide a reason for the partial payment.`,
+      );
+    }
+
     return this.momoGatewayService.requestRiderCollectionToPay(
       user.fleetId,
       user.id,
       amount,
       phone,
-      dto.isPartial,
-      dto.partialReason,
+      isPartial,
+      isPartial ? dto.partialReason?.trim() : undefined,
     );
   }
 

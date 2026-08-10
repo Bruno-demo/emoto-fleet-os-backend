@@ -239,6 +239,9 @@ export interface RiderPaymentSummary {
   assignedRate?: number;
   paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM' | string;
   customScheduleDays?: number | null;
+  schedulePeriodDays?: number;
+  requiredPeriodAmount?: number;
+  requiredTotalAmount?: number;
   totalPaid: number;
   expectedPaid: number;
   arrears: number;

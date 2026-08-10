@@ -83,7 +83,10 @@ export function PaymentsScreen() {
     }
   }, [statusQuery.data?.status]);
 
-  const defaultRate = summaryQuery.data?.assignedRate || summaryQuery.data?.leaseDailyRate || 15000;
+  const defaultDailyRate = summaryQuery.data?.assignedRate || summaryQuery.data?.leaseDailyRate || 15000;
+  const schedulePeriodDays = summaryQuery.data?.schedulePeriodDays || (summaryQuery.data?.paymentSchedule === 'WEEKLY' ? 7 : summaryQuery.data?.paymentSchedule === 'CUSTOM' ? (summaryQuery.data?.customScheduleDays || 1) : 1);
+  const requiredPeriodAmount = summaryQuery.data?.requiredPeriodAmount || (defaultDailyRate * schedulePeriodDays);
+  const requiredTotalAmount = summaryQuery.data?.requiredTotalAmount || (requiredPeriodAmount + (summaryQuery.data?.arrears || 0));
 
   const handlePayPress = () => {
     setPayError(null);
@@ -93,9 +96,9 @@ export function PaymentsScreen() {
       return;
     }
 
-    const checkPartial = isPartial || amountNum < defaultRate;
+    const checkPartial = isPartial || amountNum < requiredPeriodAmount;
     if (checkPartial && !partialReason.trim()) {
-      setPayError('Please enter a reason for paying a partial amount (Required by Fleet Admin)');
+      setPayError(t.payments.partialReasonError);
       return;
     }
 
@@ -125,7 +128,12 @@ export function PaymentsScreen() {
       ? 'primary'
       : 'danger';
 
-  const defaultDailyRate = summary?.assignedRate || summary?.leaseDailyRate || 15000;
+  const scheduleBadgeLabel =
+    summary?.paymentSchedule === 'WEEKLY'
+      ? t.payments.scheduleWeekly
+      : summary?.paymentSchedule === 'CUSTOM'
+      ? t.payments.scheduleCustom.replace('{days}', String(summary?.customScheduleDays || 1))
+      : t.payments.scheduleDaily;
 
   return (
     <ScreenContainer
@@ -144,13 +152,16 @@ export function PaymentsScreen() {
           {/* Main Financial Overview Card */}
           <AppCard>
             <View style={styles.cardHeader}>
-              <View>
+              <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={styles.cardSubtitle}>
                   {summary?.isLeaseToOwn ? t.payments.leaseToOwnPlan : t.payments.dailyRental}
                 </Text>
                 <Text style={styles.cardTitle}>
-                  {formatRwf(summary?.leaseDailyRate || 15000)}{' '}
-                  <Text style={styles.perDay}>{t.payments.perDay}</Text>
+                  {formatRwf(requiredPeriodAmount)}{' '}
+                  <Text style={styles.perDay}>({scheduleBadgeLabel})</Text>
+                </Text>
+                <Text style={{ fontSize: 11, color: theme.colors.textMuted, marginTop: 2 }}>
+                  {formatRwf(defaultDailyRate)} {t.payments.perDay}
                 </Text>
               </View>
               <Badge
@@ -229,7 +240,7 @@ export function PaymentsScreen() {
               <PrimaryButton
                 label={`💳 ${t.payments.payNow}`}
                 onPress={() => {
-                  setAmountInput(String(defaultDailyRate));
+                  setAmountInput(String(requiredPeriodAmount));
                   setPhoneInput(riderPhone);
                   setModalVisible(true);
                 }}
@@ -304,7 +315,7 @@ export function PaymentsScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Mobile Money Collection</Text>
             <Text style={styles.modalSubtitle}>
-              Prompt will be sent directly to your phone. Assigned rate: {formatRwf(defaultDailyRate)} ({summary?.paymentSchedule || 'DAILY'}).
+              Prompt will be sent directly to your phone. Schedule: {scheduleBadgeLabel} — Required contribution: {formatRwf(requiredPeriodAmount)}.
             </Text>
 
             {!activeRefId ? (
@@ -312,17 +323,19 @@ export function PaymentsScreen() {
                 {/* Preset amount selector */}
                 <Text style={styles.inputLabel}>Select Amount (RWF)</Text>
                 <View style={styles.presetsRow}>
-                  {[
-                    defaultDailyRate,
-                    Math.round(defaultDailyRate / 2),
-                    defaultDailyRate * 2,
-                  ].map((amt) => (
+                  {Array.from(new Set([
+                    requiredPeriodAmount,
+                    Math.round(requiredPeriodAmount / 2),
+                    ...(requiredTotalAmount > requiredPeriodAmount ? [requiredTotalAmount] : []),
+                  ])).map((amt) => (
                     <Pressable
                       key={amt}
                       onPress={() => {
                         setAmountInput(String(amt));
-                        if (amt < defaultDailyRate) {
+                        if (amt < requiredPeriodAmount) {
                           setIsPartial(true);
+                        } else {
+                          setIsPartial(false);
                         }
                       }}
                       style={[
@@ -348,7 +361,7 @@ export function PaymentsScreen() {
                   onChangeText={(val) => {
                     setAmountInput(val);
                     const n = parseInt(val, 10);
-                    if (!isNaN(n) && n < defaultDailyRate) {
+                    if (!isNaN(n) && n < requiredPeriodAmount) {
                       setIsPartial(true);
                     }
                   }}
@@ -362,20 +375,22 @@ export function PaymentsScreen() {
                   onPress={() => setIsPartial(!isPartial)}
                 >
                   <Text style={styles.partialToggleText}>
-                    {isPartial ? '☑ Paying Partial / Half Amount' : '☐ Paying Partial / Half Amount'}
+                    {isPartial || parseInt(amountInput, 10) < requiredPeriodAmount
+                      ? '☑ Paying Partial / Less than Required Period Amount'
+                      : '☐ Paying Partial / Less than Required Period Amount'}
                   </Text>
                 </Pressable>
 
-                {(isPartial || parseInt(amountInput, 10) < defaultDailyRate) && (
+                {(isPartial || parseInt(amountInput, 10) < requiredPeriodAmount) && (
                   <>
                     <Text style={styles.inputLabel}>
-                      Reason for Partial Payment (Required by Admin)
+                      {t.payments.partialReasonRequired}
                     </Text>
                     <TextInput
                       style={styles.textInput}
                       value={partialReason}
                       onChangeText={setPartialReason}
-                      placeholder="e.g., Bike maintenance / half-day trip"
+                      placeholder={t.payments.partialReasonPlaceholder}
                       placeholderTextColor={theme.colors.textMuted}
                     />
                   </>

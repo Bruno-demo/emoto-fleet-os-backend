@@ -201,6 +201,14 @@ export interface Translations {
     leasePrincipalPaid: string;
     paid: string;
     total: string;
+    periodSchedule: string;
+    requiredPeriodContribution: string;
+    scheduleDaily: string;
+    scheduleWeekly: string;
+    scheduleCustom: string;
+    partialReasonRequired: string;
+    partialReasonPlaceholder: string;
+    partialReasonError: string;
   };
   // Deliveries Screen
   deliveries: {
@@ -441,16 +449,24 @@ export const translations: Record<SupportedLanguage, Translations> = {
       amount: 'Amount (RWF)',
       method: 'Payment Method',
       reference: 'Transaction Ref',
-      payNow: 'Pay Daily Rate',
+      payNow: 'Pay Scheduled Amount',
       statusPaid: 'PAID',
       statusUnpaid: 'UNPAID',
       statusPartial: 'PARTIAL',
       leaseToOwnPlan: 'Lease-to-Own Plan',
-      dailyRental: 'Daily Rental',
+      dailyRental: 'Daily Rental Collection',
       perDay: '/ day',
       leasePrincipalPaid: 'Lease Principal Paid',
       paid: 'Paid',
       total: 'Total',
+      periodSchedule: 'Payment Schedule',
+      requiredPeriodContribution: 'Required Period Contribution',
+      scheduleDaily: 'Daily Schedule (1 Day)',
+      scheduleWeekly: 'Weekly Schedule (7 Days)',
+      scheduleCustom: 'Custom Schedule ({days} Days)',
+      partialReasonRequired: 'Reason for Partial Payment (Required by Fleet Admin)',
+      partialReasonPlaceholder: 'e.g., Bike undergoing maintenance / half-day trip',
+      partialReasonError: 'Please provide a reason why you are paying less than the required period contribution.',
     },
     deliveries: {
       title: 'Active Deliveries',
@@ -687,7 +703,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       amount: 'Amafaranga (RWF)',
       method: 'Uburyo bwo kwishyura',
       reference: 'Inomero y’icyemezo',
-      payNow: 'Ishyura umunsi',
+      payNow: 'Ishyura Ayagenwe',
       statusPaid: 'BYISHYUWE',
       statusUnpaid: 'NTIBYISHYUWE',
       statusPartial: 'BYISHYUWE MBEYA',
@@ -697,6 +713,14 @@ export const translations: Record<SupportedLanguage, Translations> = {
       leasePrincipalPaid: 'Ayatsinzwe mu nshingano',
       paid: 'Yishyuwe',
       total: 'Byose',
+      periodSchedule: 'Gahunda yo Kwishyura',
+      requiredPeriodContribution: 'Amafaranga Asabwa mu Gihe',
+      scheduleDaily: 'Gahunda y’Umunsi (1 Umunsi)',
+      scheduleWeekly: 'Gahunda y’Icyumweru (Iminsi 7)',
+      scheduleCustom: 'Gahunda yihariye (Iminsi {days})',
+      partialReasonRequired: 'Impamvu yo kwishyura igice (Isabwa na Admin)',
+      partialReasonPlaceholder: 'urug. Moto yari mu garage / ikibazo cy’ubukanishi',
+      partialReasonError: 'Nyamuneka tanga impamvu yatumye wishyura amafaranga atageze ku asabwa.',
     },
     deliveries: {
       title: 'Ibipaki byo gutwara',
