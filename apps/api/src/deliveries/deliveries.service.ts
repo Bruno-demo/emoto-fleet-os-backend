@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -16,6 +17,7 @@ import {
   NotificationType,
   NotificationChannel,
   Delivery,
+  FleetType,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { NotificationOutboxService } from '../incidents/notification-outbox.service';
@@ -31,11 +33,24 @@ export class DeliveriesService {
     private readonly redisService: RedisService,
   ) {}
 
+  private async ensureDeliveryFleet(fleetId: string): Promise<void> {
+    const fleet = await this.prisma.fleet.findUnique({
+      where: { id: fleetId },
+      select: { type: true },
+    });
+    if (!fleet || fleet.type !== FleetType.DELIVERY) {
+      throw new ForbiddenException(
+        'Delivery management is restricted to DELIVERY fleets',
+      );
+    }
+  }
+
   async createDelivery(
     fleetId: string,
     dto: CreateDeliveryDto,
     actor: AuthenticatedUser,
   ) {
+    await this.ensureDeliveryFleet(fleetId);
     const delivery = await this.prisma.delivery.create({
       data: {
         fleetId,
@@ -78,6 +93,7 @@ export class DeliveriesService {
     fleetId: string,
     query: { status?: DeliveryStatus; riderId?: string },
   ) {
+    await this.ensureDeliveryFleet(fleetId);
     const where: {
       fleetId: string;
       status?: DeliveryStatus;
@@ -109,6 +125,7 @@ export class DeliveriesService {
   }
 
   async getDelivery(fleetId: string, id: string, actor?: AuthenticatedUser) {
+    await this.ensureDeliveryFleet(fleetId);
     const delivery = await this.prisma.delivery.findFirst({
       where: { id, fleetId },
       include: {
