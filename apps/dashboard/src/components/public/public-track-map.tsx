@@ -186,6 +186,7 @@ export function PublicTrackMap({ pickup, dropoff, rider }: PublicTrackMapProps) 
         console.error('OSRM route fetch failed, falling back to straight lines:', err);
         setRouteCoords([]);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickup.lat, pickup.lng, dropoff.lat, dropoff.lng, rider?.lat, rider?.lng]);
 
   const fitCoords = useMemo(() => {

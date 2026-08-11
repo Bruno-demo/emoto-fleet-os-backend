@@ -7,7 +7,6 @@ import {
   Pause,
   RotateCcw,
   Gauge,
-  Battery,
   Clock,
   ShieldAlert,
 } from 'lucide-react';
@@ -24,32 +23,6 @@ import {
 import { formatTimestamp, formatEnumLabel } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { apiFetch } from '@/lib/api/client';
-
-// Custom motorcycle/bike marker icon
-const bikeMarkerIcon = L.divIcon({
-  className: 'trip-replay-marker',
-  html: `
-    <div style="
-      width: 30px;
-      height: 30px;
-      border-radius: 999px;
-      background: #3b82f6;
-      border: 2px solid #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
-      color: white;
-    ">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-        <path d="m12 8-4 4h8z"/>
-      </svg>
-    </div>
-  `,
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
-});
 
 const createEventMarkerIcon = (severity: string) => {
   const isCritical = severity === 'CRITICAL' || severity === 'HIGH';

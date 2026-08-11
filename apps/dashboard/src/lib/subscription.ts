@@ -50,10 +50,6 @@ const PREMIUM_FEATURES: DashboardFeature[] = [
   'financial',
 ];
 
-const DEMO_FEATURES: DashboardFeature[] = [
-  ...CORE_FEATURES,
-];
-
 const INACTIVE_FEATURES: DashboardFeature[] = ['settings'];
 
 const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
