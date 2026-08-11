@@ -129,17 +129,11 @@ export default function SettingsPage() {
   const paygDailyRate = fleetSettingsQuery.data?.emotoPaygRatePerActiveDay ?? 350;
   const coreMonthlyRate = paygDailyRate; // kept for backward compat references
 
-  const [receivingPhoneInput, setReceivingPhoneInput] = useState('');
+  const [phoneOverride, setPhoneOverride] = useState<string | null>(null);
+  const receivingPhoneInput = phoneOverride ?? fleetSettingsQuery.data?.momoPhoneNumber ?? '';
   const [savingReceivingPhone, setSavingReceivingPhone] = useState(false);
   const [receivingPhoneSuccess, setReceivingPhoneSuccess] = useState<string | null>(null);
   const [receivingPhoneError, setReceivingPhoneError] = useState<string | null>(null);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from server data
-  useEffect(() => {
-    if (fleetSettingsQuery.data?.momoPhoneNumber) {
-      setReceivingPhoneInput(fleetSettingsQuery.data.momoPhoneNumber);
-    }
-  }, [fleetSettingsQuery.data?.momoPhoneNumber]);
 
   const handleSaveReceivingPhone = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +146,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ momoPhoneNumber: receivingPhoneInput }),
       });
       await fleetSettingsQuery.refetch();
+      setPhoneOverride(null);
       setReceivingPhoneSuccess(t('Mobile Money receiving account updated successfully!'));
     } catch (err: unknown) {
       setReceivingPhoneError(err instanceof Error ? err.message : t('Failed to update Mobile Money receiving account'));
@@ -502,7 +497,7 @@ export default function SettingsPage() {
                   <input
                     type="tel"
                     value={receivingPhoneInput}
-                    onChange={(e) => setReceivingPhoneInput(e.target.value)}
+                    onChange={(e) => setPhoneOverride(e.target.value)}
                     placeholder="078XXXXXXX"
                     className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all font-mono"
                   />
