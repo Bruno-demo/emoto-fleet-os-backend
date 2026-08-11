@@ -138,7 +138,7 @@ export class BillingCycleService {
     const config = await this.prisma.billingConfig.findFirst();
     const cycleDays = config?.billingCycleDays ?? 30;
 
-    const defaultRate = PricingTierService.getRateForFleetType(fleet.type);
+    const defaultRate = PricingTierService.getRateForFleetType();
     const tier = await this.pricingTierService.getTierByPlanCode(fleet.plan);
     const ratePerBike =
       fleet.monthlyRatePerBike ??
