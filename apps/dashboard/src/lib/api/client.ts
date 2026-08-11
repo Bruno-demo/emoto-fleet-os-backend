@@ -20,6 +20,10 @@ interface ApiFetchOptions<T> {
   schema?: z.ZodType<T>;
 }
 
+interface RetryableRequestInit extends RequestInit {
+  _retryCount?: number;
+}
+
 // Joins relative API paths against the configured backend base URL.
 function resolveApiUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -72,7 +76,7 @@ function extractErrorMessage(body: unknown, fallback: string): string {
 // Performs authenticated API requests with optional Zod response validation.
 export async function apiFetch<T = unknown>(
   path: string,
-  init: RequestInit = {},
+  init: RetryableRequestInit = {},
   options: ApiFetchOptions<T> = {},
 ): Promise<T> {
   const headers = new Headers(init.headers);
@@ -159,7 +163,7 @@ export async function apiFetch<T = unknown>(
     if (error instanceof ApiError) throw error;
     
     // Retry up to 2 times on transient network drops or server restarts
-    const retryCount = (init as any)._retryCount ?? 0;
+    const retryCount = init._retryCount ?? 0;
     const isNetworkErr = error instanceof Error && (
       error.name === 'TypeError' || 
       error.message.includes('fetch') || 
@@ -171,7 +175,7 @@ export async function apiFetch<T = unknown>(
       const backoffMs = (retryCount + 1) * 400;
       console.warn(`[apiFetch] Transient network drop on ${init.method || 'GET'} ${path} (attempt ${retryCount + 1}). Retrying in ${backoffMs}ms...`);
       await new Promise((res) => setTimeout(res, backoffMs));
-      return apiFetch(path, { ...init, _retryCount: retryCount + 1 } as any, options);
+      return apiFetch(path, { ...init, _retryCount: retryCount + 1 }, options);
     }
 
     const isTimeout = error instanceof Error && error.name === 'AbortError';

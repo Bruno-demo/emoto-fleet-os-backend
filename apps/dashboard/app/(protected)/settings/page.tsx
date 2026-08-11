@@ -134,11 +134,14 @@ export default function SettingsPage() {
   const [receivingPhoneSuccess, setReceivingPhoneSuccess] = useState<string | null>(null);
   const [receivingPhoneError, setReceivingPhoneError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (fleetSettingsQuery.data?.momoPhoneNumber) {
-      setReceivingPhoneInput(fleetSettingsQuery.data.momoPhoneNumber);
+  const momoPhoneFromQuery = fleetSettingsQuery.data?.momoPhoneNumber;
+  const receivingPhoneInitRef = React.useRef(false);
+  if (momoPhoneFromQuery && !receivingPhoneInitRef.current) {
+    receivingPhoneInitRef.current = true;
+    if (receivingPhoneInput === '') {
+      setReceivingPhoneInput(momoPhoneFromQuery);
     }
-  }, [fleetSettingsQuery.data?.momoPhoneNumber]);
+  }
 
   const handleSaveReceivingPhone = async (e: React.FormEvent) => {
     e.preventDefault();
