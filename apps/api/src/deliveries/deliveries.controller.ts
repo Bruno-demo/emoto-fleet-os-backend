@@ -7,7 +7,6 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DeliveriesService } from './deliveries.service';
@@ -18,7 +17,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { Public } from '../auth/public.decorator';
-import { DeliveryStatus, UserRole, FleetType } from '@prisma/client';
+import { DeliveryStatus, UserRole } from '@prisma/client';
 
 @ApiTags('deliveries')
 @Controller('deliveries')

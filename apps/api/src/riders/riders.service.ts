@@ -1761,7 +1761,10 @@ export class RidersService {
       leasePrincipal: rider.riderProfile?.leasePrincipal ?? 2500000,
       leaseDailyRate: rider.riderProfile?.leaseDailyRate ?? 15000,
       paymentSchedule: rider.riderProfile?.paymentSchedule ?? 'DAILY',
-      assignedRate: rider.riderProfile?.assignedRate ?? rider.riderProfile?.leaseDailyRate ?? 15000,
+      assignedRate:
+        rider.riderProfile?.assignedRate ??
+        rider.riderProfile?.leaseDailyRate ??
+        15000,
       customScheduleDays: rider.riderProfile?.customScheduleDays ?? null,
     };
   }
@@ -1999,10 +2002,16 @@ export class RidersService {
 
     const timeArrears = Math.max(0, expectedPaid - totalPaid);
     const fineArrears = pendingFines;
-    const daysInArrears = assignedRate > 0 ? Math.ceil(timeArrears / assignedRate) : 0;
-    const remainingLeaseBalance = isLeaseToOwn ? Math.max(0, leasePrincipal - totalPaid) : 0;
+    const daysInArrears =
+      assignedRate > 0 ? Math.ceil(timeArrears / assignedRate) : 0;
+    const remainingLeaseBalance = isLeaseToOwn
+      ? Math.max(0, leasePrincipal - totalPaid)
+      : 0;
     const paidPeriodProgress = totalPaid % requiredPeriodAmount;
-    const remainingPeriodAmount = Math.max(0, requiredPeriodAmount - paidPeriodProgress);
+    const remainingPeriodAmount = Math.max(
+      0,
+      requiredPeriodAmount - paidPeriodProgress,
+    );
 
     let nextDueAt: Date;
     let daysUntilDue = 0;
@@ -2010,9 +2019,14 @@ export class RidersService {
 
     if (activeAssignment) {
       const assignedAt = activeAssignment.assignedAt;
-      const daysPaidFor = assignedRate > 0 ? Math.floor(totalPaid / assignedRate) : 0;
-      nextDueAt = new Date(assignedAt.getTime() + (daysPaidFor + 1) * 24 * 60 * 60 * 1000);
-      daysUntilDue = Math.ceil((nextDueAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const daysPaidFor =
+        assignedRate > 0 ? Math.floor(totalPaid / assignedRate) : 0;
+      nextDueAt = new Date(
+        assignedAt.getTime() + (daysPaidFor + 1) * 24 * 60 * 60 * 1000,
+      );
+      daysUntilDue = Math.ceil(
+        (nextDueAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+      );
       isPeriodOver = daysUntilDue <= 0 || arrears > 0;
     } else {
       nextDueAt = new Date();
@@ -2084,7 +2098,10 @@ export class RidersService {
     };
   }
 
-  async payRiderCollection(user: AuthenticatedUser, dto: RiderPayCollectionDto) {
+  async payRiderCollection(
+    user: AuthenticatedUser,
+    dto: RiderPayCollectionDto,
+  ) {
     const rider = await this.prismaService.user.findUnique({
       where: { id: user.id },
       include: { riderProfile: true },
@@ -2095,7 +2112,8 @@ export class RidersService {
     }
 
     const profile = rider.riderProfile;
-    const assignedRate = profile?.assignedRate ?? profile?.leaseDailyRate ?? 15000;
+    const assignedRate =
+      profile?.assignedRate ?? profile?.leaseDailyRate ?? 15000;
     const paymentSchedule = profile?.paymentSchedule ?? 'DAILY';
     const customScheduleDays = profile?.customScheduleDays ?? null;
 
@@ -2147,9 +2165,8 @@ export class RidersService {
 
     if (transaction.status === 'PENDING') {
       try {
-        const result = await this.momoGatewayService.checkTransactionStatus(
-          referenceId,
-        );
+        const result =
+          await this.momoGatewayService.checkTransactionStatus(referenceId);
         if (result?.status === 'SUCCESSFUL') {
           const finTxId = result.financialTransactionId || `MOMO-${Date.now()}`;
           await this.momoGatewayService.processSuccessfulPayment(
@@ -2170,7 +2187,9 @@ export class RidersService {
         }
       } catch (err) {
         // Log & proceed with existing stored status
-        this.logger.warn(`Failed live check for status of tx ${referenceId}: ${err}`);
+        this.logger.warn(
+          `Failed live check for status of tx ${referenceId}: ${err}`,
+        );
       }
     }
 

@@ -89,7 +89,12 @@ export class TrafficFinesService {
 
   async listFines(
     fleetId: string,
-    filters: { riderId?: string; status?: string; startDate?: string; endDate?: string },
+    filters: {
+      riderId?: string;
+      status?: string;
+      startDate?: string;
+      endDate?: string;
+    },
   ) {
     const where: any = {
       fleetId,

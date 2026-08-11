@@ -61,10 +61,7 @@ export class NotificationOutboxService
     );
     this.inlineMode =
       redisInMemory ||
-      this.configService.get<boolean>(
-        'NOTIFICATION_OUTBOX_INLINE',
-        false,
-      );
+      this.configService.get<boolean>('NOTIFICATION_OUTBOX_INLINE', false);
     const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
     this.connection = this.buildBullMqConnection(redisUrl);
   }

@@ -12,7 +12,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { FleetPlan, FleetType, SubscriptionPlanDuration } from '@prisma/client';
+import { FleetPlan, SubscriptionPlanDuration } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -57,7 +57,9 @@ export class BillingController {
   ) {}
 
   @Get('payg-audit')
-  @ApiOperation({ summary: 'Get PAYG active-day trip validation audit breakdown for a fleet' })
+  @ApiOperation({
+    summary: 'Get PAYG active-day trip validation audit breakdown for a fleet',
+  })
   async getPaygAudit(
     @CurrentUser() user: AuthenticatedUser,
     @Query('fleetId') fleetId?: string,
@@ -68,8 +70,14 @@ export class BillingController {
     if (!targetFleetId) {
       throw new BadRequestException('Fleet ID is required for PAYG audit');
     }
-    if (targetFleetId !== user?.fleetId && user?.role !== 'OWNER' && user?.role !== 'ADMIN') {
-      throw new ForbiddenException('Access to this fleet billing audit is denied');
+    if (
+      targetFleetId !== user?.fleetId &&
+      user?.role !== 'OWNER' &&
+      user?.role !== 'ADMIN'
+    ) {
+      throw new ForbiddenException(
+        'Access to this fleet billing audit is denied',
+      );
     }
     return await this.paygAuditService.getPaygAuditForFleet(
       targetFleetId,

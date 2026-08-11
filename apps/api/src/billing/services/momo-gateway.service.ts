@@ -39,8 +39,16 @@ export class MomoGatewayService {
       'MOMO_SUBSCRIPTION_KEY',
     );
 
-    if (!baseUrl || !apiUser || !apiKey || !subscriptionKey || process.env.MOMO_MOCK === 'true') {
-      this.logger.warn('MoMo API credentials not configured or MOMO_MOCK=true. Using simulated MoMo gateway.');
+    if (
+      !baseUrl ||
+      !apiUser ||
+      !apiKey ||
+      !subscriptionKey ||
+      process.env.MOMO_MOCK === 'true'
+    ) {
+      this.logger.warn(
+        'MoMo API credentials not configured or MOMO_MOCK=true. Using simulated MoMo gateway.',
+      );
       this.accessToken = 'sandbox_mock_token';
       this.tokenExpiry = Date.now() + 3600 * 1000;
       return this.accessToken;
@@ -108,13 +116,19 @@ export class MomoGatewayService {
       const token = await this.getAccessToken();
 
       if (token === 'sandbox_mock_token') {
-        this.logger.log(`[MOCK MOMO] Simulated subscription payment request for ${normalizedPhone} (${amount} RWF)`);
-        setTimeout(async () => {
-          try {
-            await this.processSuccessfulPayment(transaction, `MOMO-SIM-${Date.now()}`);
-          } catch (err) {
-            this.logger.error('Failed to auto-confirm mock subscription payment', err);
-          }
+        this.logger.log(
+          `[MOCK MOMO] Simulated subscription payment request for ${normalizedPhone} (${amount} RWF)`,
+        );
+        setTimeout(() => {
+          this.processSuccessfulPayment(
+            transaction,
+            `MOMO-SIM-${Date.now()}`,
+          ).catch((err) => {
+            this.logger.error(
+              'Failed to auto-confirm mock subscription payment',
+              err,
+            );
+          });
         }, 1500);
 
         return transaction;
@@ -194,13 +208,18 @@ export class MomoGatewayService {
     const timestamp = Date.now();
     const idempotencyKey = `rider-coll-${riderId}-${timestamp}`;
     const externalId = `RIDER-${riderId.slice(0, 6)}-${timestamp.toString().slice(-6)}`;
-    const payerMsg = isPartial && partialReason ? `PARTIAL:${partialReason}` : 'Rider collection payment';
+    const payerMsg =
+      isPartial && partialReason
+        ? `PARTIAL:${partialReason}`
+        : 'Rider collection payment';
 
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
       select: { momoPhoneNumber: true, name: true },
     });
-    const receivingTarget = fleet?.momoPhoneNumber ? `Fleet MoMo ${fleet.momoPhoneNumber}` : 'Fleet Default';
+    const receivingTarget = fleet?.momoPhoneNumber
+      ? `Fleet MoMo ${fleet.momoPhoneNumber}`
+      : 'Fleet Default';
 
     let transaction = await this.prisma.momoTransaction.create({
       data: {
@@ -220,16 +239,19 @@ export class MomoGatewayService {
       const token = await this.getAccessToken();
 
       if (token === 'sandbox_mock_token') {
-        this.logger.log(`[MOCK MOMO] Simulated rider collection payment of ${amount} RWF from ${normalizedPhone} -> Receiving Target: ${receivingTarget}`);
-        setTimeout(async () => {
-          try {
-            await this.processSuccessfulPayment(
-              transaction,
-              `MOMO-SIM-${Date.now()}`,
+        this.logger.log(
+          `[MOCK MOMO] Simulated rider collection payment of ${amount} RWF from ${normalizedPhone} -> Receiving Target: ${receivingTarget}`,
+        );
+        setTimeout(() => {
+          this.processSuccessfulPayment(
+            transaction,
+            `MOMO-SIM-${Date.now()}`,
+          ).catch((err) => {
+            this.logger.error(
+              'Failed to auto-confirm mock rider transaction',
+              err,
             );
-          } catch (err) {
-            this.logger.error('Failed to auto-confirm mock rider transaction', err);
-          }
+          });
         }, 1500);
 
         return transaction;
@@ -302,15 +324,27 @@ export class MomoGatewayService {
       where: { referenceId },
     });
 
-    if (tx && (tx.status === MomoTransactionStatus.SUCCESSFUL || tx.status === MomoTransactionStatus.FAILED)) {
-      return { status: tx.status, financialTransactionId: tx.financialTransactionId };
+    if (
+      tx &&
+      (tx.status === MomoTransactionStatus.SUCCESSFUL ||
+        tx.status === MomoTransactionStatus.FAILED)
+    ) {
+      return {
+        status: tx.status,
+        financialTransactionId: tx.financialTransactionId,
+      };
     }
 
     try {
       const token = await this.getAccessToken();
 
       if (token === 'sandbox_mock_token') {
-        return tx ? { status: tx.status, financialTransactionId: tx.financialTransactionId } : { status: 'PENDING' };
+        return tx
+          ? {
+              status: tx.status,
+              financialTransactionId: tx.financialTransactionId,
+            }
+          : { status: 'PENDING' };
       }
 
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
@@ -338,7 +372,12 @@ export class MomoGatewayService {
         `Failed to check transaction status for ${referenceId}`,
         error?.response?.data || error,
       );
-      return tx ? { status: tx.status, financialTransactionId: tx.financialTransactionId } : { status: 'FAILED' };
+      return tx
+        ? {
+            status: tx.status,
+            financialTransactionId: tx.financialTransactionId,
+          }
+        : { status: 'FAILED' };
     }
   }
 
@@ -430,7 +469,8 @@ export class MomoGatewayService {
         // Handle Rider Daily Collection / Lease Payment
         if (transaction.riderId) {
           const paidAt = new Date();
-          const isPartial = transaction.payerMessage?.startsWith('PARTIAL:') ?? false;
+          const isPartial =
+            transaction.payerMessage?.startsWith('PARTIAL:') ?? false;
           const partialReason = isPartial
             ? transaction.payerMessage?.replace('PARTIAL:', '').trim()
             : null;

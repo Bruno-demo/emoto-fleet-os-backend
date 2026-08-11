@@ -96,7 +96,9 @@ export class SubscriptionPlanService implements OnModuleInit {
       }
       this.logger.log(`Seeded ${DEFAULT_PLANS.length} subscription plans.`);
     } catch (err: any) {
-      this.logger.warn(`Skipping SubscriptionPlan seed: ${err?.message || err}`);
+      this.logger.warn(
+        `Skipping SubscriptionPlan seed: ${err?.message || err}`,
+      );
     }
   }
 

@@ -50,7 +50,10 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
       1000,
     );
 
-    const useInMemory = this.configService.get<boolean>('REDIS_IN_MEMORY', false);
+    const useInMemory = this.configService.get<boolean>(
+      'REDIS_IN_MEMORY',
+      false,
+    );
     if (!useInMemory) {
       const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
       this.redis = new Redis(redisUrl, {
@@ -65,9 +68,14 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
 
   // Boots the dispatcher and begins consuming webhook stream entries.
   async onModuleInit(): Promise<void> {
-    const useInMemory = this.configService.get<boolean>('REDIS_IN_MEMORY', false);
+    const useInMemory = this.configService.get<boolean>(
+      'REDIS_IN_MEMORY',
+      false,
+    );
     if (useInMemory) {
-      this.logger.log('WebhookDispatcherService running in in-memory mode (skipping Redis stream listener)');
+      this.logger.log(
+        'WebhookDispatcherService running in in-memory mode (skipping Redis stream listener)',
+      );
       return;
     }
     await this.redis.connect();
@@ -78,7 +86,10 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
   // Shuts down the dispatcher loop and closes Redis connections.
   async onModuleDestroy(): Promise<void> {
     this.stopped = true;
-    const useInMemory = this.configService.get<boolean>('REDIS_IN_MEMORY', false);
+    const useInMemory = this.configService.get<boolean>(
+      'REDIS_IN_MEMORY',
+      false,
+    );
     if (useInMemory) {
       return;
     }

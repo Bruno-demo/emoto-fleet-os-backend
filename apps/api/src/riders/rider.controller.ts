@@ -176,7 +176,8 @@ export class RiderController {
   @Get('payments/summary')
   @Roles(UserRole.RIDER, UserRole.ADMIN, UserRole.OWNER)
   @ApiOperation({
-    summary: 'Get lease-to-own balance, arrears, and daily collection payment history',
+    summary:
+      'Get lease-to-own balance, arrears, and daily collection payment history',
   })
   async getPaymentSummary(@CurrentUser() user: AuthenticatedUser) {
     return this.ridersService.getRiderPaymentSummary(user);
@@ -185,7 +186,8 @@ export class RiderController {
   @Post('payments/pay-now')
   @Roles(UserRole.RIDER, UserRole.ADMIN, UserRole.OWNER)
   @ApiOperation({
-    summary: 'Initiate a Mobile Money payment prompt for daily collection or lease-to-own',
+    summary:
+      'Initiate a Mobile Money payment prompt for daily collection or lease-to-own',
   })
   async payCollection(
     @CurrentUser() user: AuthenticatedUser,

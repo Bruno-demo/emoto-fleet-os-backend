@@ -1,9 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  Min,
+} from 'class-validator';
 
 export class RiderPayCollectionDto {
   @ApiPropertyOptional({
-    description: 'Amount in RWF to pay (defaults to daily lease rate if omitted)',
+    description:
+      'Amount in RWF to pay (defaults to daily lease rate if omitted)',
     example: 15000,
   })
   @IsOptional()
@@ -12,7 +20,8 @@ export class RiderPayCollectionDto {
   amount?: number;
 
   @ApiPropertyOptional({
-    description: 'MoMo phone number to charge (defaults to rider phone if omitted)',
+    description:
+      'MoMo phone number to charge (defaults to rider phone if omitted)',
     example: '0780000100',
   })
   @IsOptional()

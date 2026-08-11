@@ -951,7 +951,8 @@ export class AuthService {
     try {
       const createdUser = await this.prismaService.$transaction(
         async (tx) => {
-          const initialStatus = invite.role === UserRole.RIDER ? 'PENDING_SETUP' : 'ACTIVE';
+          const initialStatus =
+            invite.role === UserRole.RIDER ? 'PENDING_SETUP' : 'ACTIVE';
 
           const user = await tx.user.create({
             data: {
@@ -1335,7 +1336,9 @@ export class AuthService {
       payload = await this.jwtService.verifyAsync<JwtPayload>(accessToken);
     } catch (err: any) {
       if (err?.name === 'TokenExpiredError') {
-        throw new UnauthorizedException('Session expired. Please log in again.');
+        throw new UnauthorizedException(
+          'Session expired. Please log in again.',
+        );
       }
       throw new UnauthorizedException('Invalid token');
     }

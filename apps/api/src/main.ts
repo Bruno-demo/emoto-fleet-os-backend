@@ -38,7 +38,10 @@ function resolveCorsOrigins(configService: ConfigService): string[] {
   return [...dashboardOrigins, ...riderOrigins, 'http://localhost:19006'];
 }
 
-import { ExpressAdapter, NestExpressApplication } from '@nestjs/platform-express';
+import {
+  ExpressAdapter,
+  NestExpressApplication,
+} from '@nestjs/platform-express';
 
 // Bootstraps the HTTP server, global validation, and API documentation.
 async function bootstrap(): Promise<void> {

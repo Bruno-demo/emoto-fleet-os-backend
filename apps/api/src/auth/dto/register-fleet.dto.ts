@@ -38,7 +38,10 @@ export class RegisterFleetDto {
   @MinLength(8)
   password!: string;
 
-  @ApiPropertyOptional({ enum: ['PAYG', 'INSURANCE', 'ENTERPRISE'], example: 'PAYG' })
+  @ApiPropertyOptional({
+    enum: ['PAYG', 'INSURANCE', 'ENTERPRISE'],
+    example: 'PAYG',
+  })
   @IsOptional()
   @IsIn(['PAYG', 'INSURANCE', 'ENTERPRISE'])
   plan?: 'PAYG' | 'INSURANCE' | 'ENTERPRISE';

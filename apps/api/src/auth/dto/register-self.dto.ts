@@ -29,7 +29,10 @@ export class RegisterSelfDto {
   @MinLength(8)
   password!: string;
 
-  @ApiPropertyOptional({ example: 'PAYG', enum: ['PAYG', 'INSURANCE', 'ENTERPRISE'] })
+  @ApiPropertyOptional({
+    example: 'PAYG',
+    enum: ['PAYG', 'INSURANCE', 'ENTERPRISE'],
+  })
   @IsOptional()
   @IsEnum(['PAYG', 'INSURANCE', 'ENTERPRISE'])
   plan?: 'PAYG' | 'INSURANCE' | 'ENTERPRISE';

@@ -16,14 +16,19 @@ export class SubscriptionController {
 
   @Get('fleet-settings')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.DISPATCHER, UserRole.TECH)
-  @ApiOperation({ summary: 'Get current fleet settings including MoMo receiving phone number' })
+  @ApiOperation({
+    summary: 'Get current fleet settings including MoMo receiving phone number',
+  })
   async getFleetSettings(@CurrentUser() user: AuthenticatedUser) {
     return this.subscriptionService.getFleetSettings(user);
   }
 
   @Put('fleet-settings')
   @Roles(UserRole.OWNER, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Update fleet settings such as MoMo collection receiving phone number' })
+  @ApiOperation({
+    summary:
+      'Update fleet settings such as MoMo collection receiving phone number',
+  })
   async updateFleetSettings(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: UpdateFleetSettingsDto,

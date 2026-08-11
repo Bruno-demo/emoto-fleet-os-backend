@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BillingCycle, BillingCycleStatus, FleetBillingMode, Prisma } from '@prisma/client';
+import {
+  BillingCycle,
+  BillingCycleStatus,
+  FleetBillingMode,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { AuthenticatedUser } from '../../auth/auth.types';
