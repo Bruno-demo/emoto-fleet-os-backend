@@ -11,8 +11,8 @@ async function main(): Promise<void> {
   // Upsert the E-Moto HQ fleet first
   await prisma.fleet.upsert({
     where: { id: hqFleetId },
-    update: { name: 'E-Moto HQ', type: 'DELIVERY', plan: 'PREMIUM', subscriptionStatus: 'ACTIVE' },
-    create: { id: hqFleetId, name: 'E-Moto HQ', type: 'DELIVERY', plan: 'PREMIUM', subscriptionStatus: 'ACTIVE' },
+    update: { name: 'E-Moto HQ', type: 'DELIVERY', plan: 'PAYG', subscriptionStatus: 'ACTIVE' },
+    create: { id: hqFleetId, name: 'E-Moto HQ', type: 'DELIVERY', plan: 'PAYG', subscriptionStatus: 'ACTIVE' },
   });
 
   const BCRYPT_SALT_ROUNDS = 10;

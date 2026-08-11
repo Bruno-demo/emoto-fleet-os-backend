@@ -34,7 +34,7 @@ describe('Device Commands API (e2e)', () => {
       data: {
         name: `Demo Fleet Commands ${runId.slice(0, 6)}`,
         type: 'DELIVERY',
-        plan: 'PREMIUM',
+        plan: 'PAYG',
         subscriptionStatus: 'ACTIVE',
       },
     });

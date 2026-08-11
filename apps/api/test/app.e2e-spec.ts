@@ -36,14 +36,14 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     const fleet = await prisma.fleet.upsert({
       where: { id: primaryFleetSeedId },
       update: {
-        plan: 'PREMIUM',
+        plan: 'PAYG',
         subscriptionStatus: 'ACTIVE',
       },
       create: {
         id: primaryFleetSeedId,
         name: 'Demo Fleet',
         type: 'DELIVERY',
-        plan: 'PREMIUM',
+        plan: 'PAYG',
         subscriptionStatus: 'ACTIVE',
       },
     });
@@ -115,14 +115,14 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
     const foreignFleet = await prisma.fleet.upsert({
       where: { id: foreignFleetSeedId },
       update: {
-        plan: 'PREMIUM',
+        plan: 'PAYG',
         subscriptionStatus: 'ACTIVE',
       },
       create: {
         id: foreignFleetSeedId,
         name: 'Foreign Fleet',
         type: 'COOP',
-        plan: 'PREMIUM',
+        plan: 'PAYG',
         subscriptionStatus: 'ACTIVE',
       },
     });
@@ -834,7 +834,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
           email,
           phone: `+25081${runId.slice(0, 7)}`,
           password: 'ChangeMe123!',
-          plan: 'DEMO',
+          plan: 'PAYG',
           fullName: 'E2E Admin Full Name',
         })
         .expect(201);
