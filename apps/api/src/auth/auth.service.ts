@@ -472,7 +472,7 @@ export class AuthService {
       const createdUser = await this.prismaService.$transaction(
         async (tx) => {
           // Create the personal fleet for the self owner
-          const plan = dto.plan ?? 'DEMO';
+          const plan = dto.plan ?? 'PAYG';
           const monthlyRatePerBike = 10000; // Personal / Individual fleet rate
 
           const fleet = await tx.fleet.create({
@@ -592,20 +592,9 @@ export class AuthService {
         async (tx) => {
           const requestedType = dto.fleetType ?? 'COOP';
           const isInsurance = dto.plan === 'INSURANCE';
-
-          const syncedPlan = isInsurance
-            ? 'INSURANCE'
-            : requestedType === 'DELIVERY'
-              ? 'PREMIUM'
-              : 'DEMO';
-
-          const syncedType = isInsurance ? 'PERSONAL' : requestedType;
-
-          const monthlyRatePerBike = isInsurance
-            ? 0
-            : requestedType === 'DELIVERY'
-              ? 15000
-              : 10000;
+          const syncedPlan = 'PAYG';
+          const syncedType = requestedType;
+          const monthlyRatePerBike = 10000;
 
           let fleetDiscountConnect = undefined;
 
@@ -1344,7 +1333,10 @@ export class AuthService {
     let payload: JwtPayload;
     try {
       payload = await this.jwtService.verifyAsync<JwtPayload>(accessToken);
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Session expired. Please log in again.');
+      }
       throw new UnauthorizedException('Invalid token');
     }
 

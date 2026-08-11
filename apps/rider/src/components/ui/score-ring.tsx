@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { getScoreTone, theme } from '../../theme/tokens';
+import { useLanguage } from '../../lib/i18n/language-context';
 
 interface ScoreRingProps {
   score: number | null | undefined;
@@ -7,6 +8,7 @@ interface ScoreRingProps {
 }
 
 export function ScoreRing({ score, size = 120 }: ScoreRingProps) {
+  const { t } = useLanguage();
   const scoreTone = getScoreTone(score);
   const progress = Math.max(0, Math.min(100, Math.round(score ?? 0)));
   const ringWidth = Math.max(5, Math.round(size * 0.06));
@@ -39,7 +41,7 @@ export function ScoreRing({ score, size = 120 }: ScoreRingProps) {
           {score === null || score === undefined ? '--' : progress}
         </Text>
         <Text style={styles.scoreLabel}>
-          {score === null || score === undefined ? 'No data' : 'SCORE'}
+          {score === null || score === undefined ? t.home.noData : t.home.scoreLabel}
         </Text>
       </View>
     </View>

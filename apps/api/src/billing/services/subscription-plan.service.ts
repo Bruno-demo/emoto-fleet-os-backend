@@ -83,17 +83,21 @@ export class SubscriptionPlanService implements OnModuleInit {
    * Seed default subscription plans if none exist.
    */
   async seedDefaultPlans() {
-    const existing = await this.prisma.subscriptionPlan.count();
-    if (existing > 0) {
-      this.logger.log('Subscription plans already exist, skipping seed.');
-      return;
-    }
+    try {
+      const existing = await this.prisma.subscriptionPlan.count();
+      if (existing > 0) {
+        this.logger.log('Subscription plans already exist, skipping seed.');
+        return;
+      }
 
-    this.logger.log('Seeding default subscription plans...');
-    for (const plan of DEFAULT_PLANS) {
-      await this.prisma.subscriptionPlan.create({ data: plan });
+      this.logger.log('Seeding default subscription plans...');
+      for (const plan of DEFAULT_PLANS) {
+        await this.prisma.subscriptionPlan.create({ data: plan });
+      }
+      this.logger.log(`Seeded ${DEFAULT_PLANS.length} subscription plans.`);
+    } catch (err: any) {
+      this.logger.warn(`Skipping SubscriptionPlan seed: ${err?.message || err}`);
     }
-    this.logger.log(`Seeded ${DEFAULT_PLANS.length} subscription plans.`);
   }
 
   /**

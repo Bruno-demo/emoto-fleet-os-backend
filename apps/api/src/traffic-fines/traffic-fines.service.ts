@@ -89,14 +89,30 @@ export class TrafficFinesService {
 
   async listFines(
     fleetId: string,
-    filters: { riderId?: string; status?: string },
+    filters: { riderId?: string; status?: string; startDate?: string; endDate?: string },
   ) {
+    const where: any = {
+      fleetId,
+      ...(filters.riderId && { riderId: filters.riderId }),
+      ...(filters.status && { status: filters.status }),
+    };
+
+    if (filters.startDate || filters.endDate) {
+      where.finedAt = {};
+      if (filters.startDate) {
+        where.finedAt.gte = filters.startDate.includes('T')
+          ? new Date(filters.startDate)
+          : new Date(filters.startDate + 'T00:00:00.000Z');
+      }
+      if (filters.endDate) {
+        where.finedAt.lte = filters.endDate.includes('T')
+          ? new Date(filters.endDate)
+          : new Date(filters.endDate + 'T23:59:59.999Z');
+      }
+    }
+
     return this.prisma.trafficFine.findMany({
-      where: {
-        fleetId,
-        ...(filters.riderId && { riderId: filters.riderId }),
-        ...(filters.status && { status: filters.status }),
-      },
+      where,
       include: {
         rider: {
           select: {

@@ -232,6 +232,17 @@ export interface RiderPaymentRecord {
   partialReason?: string | null;
 }
 
+export interface RiderOverdueWarning {
+  isWarningActive: boolean;
+  severity: 'CRITICAL_SUSPENSION_RISK' | 'WARNING' | 'NONE';
+  daysInArrears: number;
+  timeArrears: number;
+  fineArrears: number;
+  nextDueAt: string;
+  warningMessageEn: string;
+  warningMessageRw: string;
+}
+
 export interface RiderPaymentSummary {
   isLeaseToOwn: boolean;
   leasePrincipal: number;
@@ -242,6 +253,15 @@ export interface RiderPaymentSummary {
   schedulePeriodDays?: number;
   requiredPeriodAmount?: number;
   requiredTotalAmount?: number;
+  remainingLeaseBalance?: number;
+  remainingPeriodAmount?: number;
+  timeArrears?: number;
+  fineArrears?: number;
+  daysInArrears?: number;
+  nextDueAt?: string;
+  daysUntilDue?: number;
+  isPeriodOver?: boolean;
+  overdueWarning?: RiderOverdueWarning;
   totalPaid: number;
   expectedPaid: number;
   arrears: number;

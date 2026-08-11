@@ -33,11 +33,6 @@ export class DeliveriesController {
     @Body() dto: CreateDeliveryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
-    }
     return this.deliveriesService.createDelivery(user.fleetId, dto, user);
   }
 
@@ -50,11 +45,6 @@ export class DeliveriesController {
     @Query('status') status?: DeliveryStatus,
     @Query('riderId') riderId?: string,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
-    }
     // Security check: riders can only see their own deliveries
     const effectiveRiderId = user.role === UserRole.RIDER ? user.id : riderId;
     return this.deliveriesService.listDeliveries(user.fleetId, {
@@ -71,11 +61,6 @@ export class DeliveriesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
-    }
     return this.deliveriesService.getDelivery(user.fleetId, id, user);
   }
 
@@ -88,11 +73,6 @@ export class DeliveriesController {
     @Body() dto: AssignDeliveryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
-    }
     return this.deliveriesService.assignDelivery(user.fleetId, id, dto, user);
   }
 
@@ -106,11 +86,6 @@ export class DeliveriesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
-    }
     return this.deliveriesService.autoAssignDelivery(user.fleetId, id, user);
   }
 
@@ -125,11 +100,6 @@ export class DeliveriesController {
     @Body() dto: UpdateDeliveryStatusDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery features are only available for delivery fleets',
-      );
-    }
     return this.deliveriesService.updateDeliveryStatus(
       user.fleetId,
       id,

@@ -42,12 +42,16 @@ export class TrafficFinesController {
     @CurrentUser() user: AuthenticatedUser,
     @Query('riderId') riderId?: string,
     @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     // Security check: riders can only see their own traffic fines
     const effectiveRiderId = user.role === UserRole.RIDER ? user.id : riderId;
     return this.trafficFinesService.listFines(user.fleetId, {
       riderId: effectiveRiderId,
       status,
+      startDate,
+      endDate,
     });
   }
 

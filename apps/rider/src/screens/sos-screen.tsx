@@ -162,10 +162,10 @@ export function SosScreen() {
             <Text style={styles.guideTitle}>{t.sos.whenToUse}</Text>
             <View style={styles.guideItems}>
               {[
-                { icon: '💥', text: 'Crash or collision' },
-                { icon: '🚨', text: 'Personal danger or threat' },
-                { icon: '🔒', text: 'Theft in progress' },
-                { icon: '🏥', text: 'Medical emergency' },
+                { icon: '💥', text: t.sos.guideCrash },
+                { icon: '🚨', text: t.sos.guideDanger },
+                { icon: '🔒', text: t.sos.guideTheft },
+                { icon: '🏥', text: t.sos.guideMedical },
               ].map((item) => (
                 <View key={item.text} style={styles.guideItem}>
                   <Text style={styles.guideIcon}>{item.icon}</Text>
@@ -176,28 +176,28 @@ export function SosScreen() {
           </View>
 
           {/* Optional note */}
-          <AppCard title="Optional Note" subtitle="Help dispatch understand the situation">
+          <AppCard title={t.sos.optionalNoteTitle} subtitle={t.sos.optionalNoteSubtitle}>
             <InputField
-              label="Message"
+              label={t.sos.messageLabel}
               hint={`${note.length}/500`}
               value={note}
               onChangeText={setNote}
-              placeholder="What happened? Crash, medical, unsafe stop..."
+              placeholder={t.sos.messagePlaceholder}
               multiline
               numberOfLines={3}
               maxLength={500}
               textAlignVertical="top"
             />
             {note.length > 0 ? (
-              <SecondaryButton label="Clear" onPress={() => setNote('')} />
+              <SecondaryButton label={t.sos.clearNote} onPress={() => setNote('')} />
             ) : null}
           </AppCard>
 
           {errorMessage ? (
             <ErrorState
-              title="SOS not sent"
+              title={t.sos.notSentTitle}
               description={errorMessage}
-              retryLabel="Retry SOS"
+              retryLabel={t.sos.retrySos}
               onRetry={() => setConfirmVisible(true)}
             />
           ) : null}
@@ -206,9 +206,10 @@ export function SosScreen() {
 
       <ConfirmModal
         visible={confirmVisible}
-        title="Send emergency alert?"
-        description="This will notify your dispatcher immediately and may trigger emergency contact workflows. Only continue if you need urgent help."
-        confirmLabel="Yes, send SOS"
+        title={t.sos.confirmTitle}
+        description={t.sos.confirmDesc}
+        confirmLabel={t.sos.confirmYes}
+        cancelLabel={t.common.cancel}
         confirmTone="danger"
         loading={isSubmitting}
         onCancel={() => {

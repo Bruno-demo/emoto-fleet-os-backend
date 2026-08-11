@@ -79,23 +79,40 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
     onChange(getPresetRange(preset));
   };
 
+  const formattedRange = useMemo(() => {
+    try {
+      const fDate = new Date(from);
+      const tDate = new Date(to);
+      const fStr = fDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const tStr = tDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${fStr} – ${tStr}`;
+    } catch {
+      return `${from} to ${to}`;
+    }
+  }, [from, to]);
+
   return (
-    <div className="rounded-2xl border border-line bg-surface-strong p-4">
+    <div className="rounded-2xl border border-line bg-surface-strong p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-zinc-400">
-          <Calendar size={14} />
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <Calendar size={14} />
+          </div>
+          <span className="text-xs font-mono font-bold text-ink bg-surface-muted px-2.5 py-1 rounded-lg border border-line">
+            {formattedRange}
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {PRESET_LABELS.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => handlePreset(key)}
               className={cx(
-                'rounded-xl px-3 py-2 text-xs font-bold transition-all',
+                'rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
                 (activePreset === key || (key === 'custom' && showCustom))
-                  ? 'bg-accent text-white'
+                  ? 'bg-accent text-white shadow-sm'
                   : 'border border-line bg-white/5 text-zinc-400 hover:bg-surface-hover hover:text-ink',
               )}
               style={
@@ -110,19 +127,19 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
         </div>
 
         {showCustom && (
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 sm:ml-auto">
             <input
               type="date"
               value={from}
               onChange={(e) => onChange({ from: e.target.value, to })}
-              className="h-8 rounded-lg border border-line bg-surface-strong px-2.5 text-xs text-ink outline-none transition focus:border-accent light dark:[color-scheme:dark]"
+              className="h-8 rounded-lg border border-line bg-surface-muted px-2 text-xs text-ink outline-none transition focus:border-accent light dark:[color-scheme:dark]"
             />
-            <span className="text-xs text-zinc-500">to</span>
+            <span className="text-xs text-zinc-500 font-bold">&rarr;</span>
             <input
               type="date"
               value={to}
               onChange={(e) => onChange({ from, to: e.target.value })}
-              className="h-8 rounded-lg border border-line bg-surface-strong px-2.5 text-xs text-ink outline-none transition focus:border-accent light dark:[color-scheme:dark]"
+              className="h-8 rounded-lg border border-line bg-surface-muted px-2 text-xs text-ink outline-none transition focus:border-accent light dark:[color-scheme:dark]"
             />
           </div>
         )}

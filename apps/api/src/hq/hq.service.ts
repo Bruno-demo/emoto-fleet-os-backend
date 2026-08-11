@@ -337,24 +337,19 @@ export class HqService {
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
-    if (!['DEMO', 'PREMIUM'].includes(plan)) {
-      throw new BadRequestException('Invalid plan. Must be DEMO or PREMIUM');
+    if (!['PAYG', 'DEMO', 'PREMIUM'].includes(plan)) {
+      throw new BadRequestException('Invalid plan. Must be PAYG');
     }
 
     const tier = await this.prisma.pricingTier.findUnique({
       where: { planCode: plan as FleetPlan },
     });
-    const monthlyRatePerBike =
-      tier?.monthlyRatePerBike ??
-      (plan === 'PREMIUM' ? 15000 : plan === 'INSURANCE' ? 0 : 10000);
-    const newFleetType: FleetType =
-      plan === 'PREMIUM' ? FleetType.DELIVERY : FleetType.COOP;
+    const monthlyRatePerBike = tier?.monthlyRatePerBike ?? 10000;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
-        plan: plan as FleetPlan,
-        type: newFleetType,
+        plan: (plan as FleetPlan) || FleetPlan.PAYG,
         monthlyRatePerBike,
       },
       select: {
@@ -366,18 +361,16 @@ export class HqService {
       },
     });
 
-    this.eventsGateway.emitFleetUpdated(fleetId, {
-      plan: updated.plan,
-      type: updated.type,
-    });
+    this.eventsGateway.emitFleetUpdated(fleetId, { plan: updated.plan });
 
     await this.auditService.createAuditLog({
-      fleetId,
+      fleetId: actor.fleetId,
       actorUserId: actor.id,
       actionType: AuditActionType.FLEET_PLAN_CHANGED,
-      targetType: 'FLEET',
+      targetType: 'Fleet',
       targetId: fleetId,
       metaJson: {
+        fleetId,
         oldPlan: fleet.plan,
         newPlan: plan,
       },
@@ -388,7 +381,7 @@ export class HqService {
 
   async updateFleetType(
     fleetId: string,
-    type: 'COOP' | 'DELIVERY' | 'PERSONAL',
+    type: FleetType,
     actor: AuthenticatedUser,
   ) {
     const fleet = await this.prisma.fleet.findUnique({
@@ -402,19 +395,12 @@ export class HqService {
       );
     }
 
-    const newPlan = type === 'DELIVERY' ? 'PREMIUM' : 'DEMO';
-    const tier = await this.prisma.pricingTier.findUnique({
-      where: { planCode: newPlan as FleetPlan },
-    });
-    const newRate =
-      tier?.monthlyRatePerBike ?? (type === 'DELIVERY' ? 15000 : 10000);
-
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         type: type,
-        plan: newPlan,
-        monthlyRatePerBike: newRate,
+        plan: FleetPlan.PAYG,
+        monthlyRatePerBike: 10000,
       },
       select: {
         id: true,
@@ -2517,14 +2503,14 @@ export class HqService {
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     const tier = await this.prisma.pricingTier.findUnique({
-      where: { planCode: 'PREMIUM' },
+      where: { planCode: FleetPlan.ENTERPRISE },
     });
-    const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : 10000;
+    const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : 0;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
-        plan: 'PREMIUM',
+        plan: FleetPlan.ENTERPRISE,
         upgradeRequested: false,
         upgradeRequestedAt: null,
         monthlyRatePerBike,

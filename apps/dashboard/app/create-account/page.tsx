@@ -91,45 +91,29 @@ const PLAN_DETAILS: Record<
     icon: React.ReactNode;
   }
 > = {
-  'coop-individual': { 
-    title: 'Cooperative & Individual', 
-    price: '10,000 RWF', 
-    period: '/ bike / mo', 
-    description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
+  payg: { 
+    title: 'Pay-As-You-Go', 
+    price: '350 RWF / day', 
+    period: 'per active bike', 
+    description: 'Pay per active bike on your fleet with 0 RWF setup fee.',
     setupFeePerBike: 0,
-    icon: <UsersRound size={18} />
+    icon: <Zap size={18} />
   },
-  delivery: { 
-    title: 'Delivery Fleet', 
-    price: '15,000 RWF', 
-    period: '/ bike / mo', 
-    description: 'High-volume commercial delivery fleet ops (0 RWF setup fee).',
+  insurance: {
+    title: 'Insurance & Compliance',
+    price: 'Custom Quote',
+    period: 'Contact Sales',
+    description: 'For insurers, risk compliance & FNOL evidence packs.',
     setupFeePerBike: 0,
-    icon: <Truck size={18} />
+    icon: <ShieldCheck size={18} />
   },
-  insurance: { 
-    title: 'Insurance Partner', 
-    price: 'Custom', 
-    period: '', 
-    description: 'For insurance companies & risk management partners.',
+  enterprise: {
+    title: 'Enterprise Operations',
+    price: 'Custom Quote',
+    period: 'Contact Sales',
+    description: 'Multi-fleet HQ command center, SLAs & custom IoT.',
     setupFeePerBike: 0,
     icon: <Building2 size={18} />
-  },
-  'safety-core': { 
-    title: 'Cooperative & Individual', 
-    price: '10,000 RWF', 
-    period: '/ bike / mo', 
-    description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
-    setupFeePerBike: 0,
-    icon: <UsersRound size={18} />
-  },
-  'operations-plus': { 
-    title: 'Delivery Fleet', 
-    price: '15,000 RWF', 
-    period: '/ bike / mo', 
-    description: 'High-volume commercial delivery fleet ops (0 RWF setup fee).',
-    setupFeePerBike: 0,
-    icon: <Truck size={18} />
   },
 };
 
@@ -633,7 +617,7 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
-              plan: selectedPlanSlug === 'coop-individual' || selectedPlanSlug === 'safety-core' ? 'DEMO' : selectedPlanSlug === 'insurance' ? 'INSURANCE' : 'PREMIUM',
+              plan: 'PAYG',
               fleetType: selectedPlanSlug === 'insurance' ? undefined : fleetType,
               insurerName: finalInsurerName,
               fullName: fullName.trim() || undefined,

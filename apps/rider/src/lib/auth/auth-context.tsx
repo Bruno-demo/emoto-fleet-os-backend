@@ -10,7 +10,7 @@ import {
 import { apiFetch } from '../api/client';
 import { loginResponseSchema, riderMeResponseSchema } from '../api/schemas';
 import { logAppError } from '../monitoring/error-log';
-import { clearAuthToken, readAuthToken, writeAuthToken } from './session';
+import { clearAuthToken, onUnauthorizedSession, readAuthToken, writeAuthToken } from './session';
 import type { AuthUser, RiderMeResponse } from '../types/api';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -173,6 +173,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void bootstrapSession();
+
+    const unsubscribe = onUnauthorizedSession(() => {
+      setToken(null);
+      setUser(null);
+      setRiderMe(null);
+      setStatus('unauthenticated');
+    });
+
+    return unsubscribe;
   }, [bootstrapSession]);
 
   const contextValue = useMemo(

@@ -15,7 +15,7 @@ async function seedHq() {
       data: {
         name: 'E-Moto HQ',
         type: 'COOP',
-        plan: 'PREMIUM',
+        plan: 'PAYG',
         subscriptionStatus: 'ACTIVE',
       },
     });

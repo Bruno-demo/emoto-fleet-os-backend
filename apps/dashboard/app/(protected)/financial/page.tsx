@@ -271,6 +271,7 @@ export default function FinancialsPage() {
     queryKey: ['leases'],
     queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
     enabled: canUseFinancials,
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 4000),
   });
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
   const [leaseSearch, setLeaseSearch] = useState('');
@@ -492,6 +493,7 @@ export default function FinancialsPage() {
         })}`,
       ),
     enabled: canUseFinancials,
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 4000),
   });
 
   // 3. Fetch Aggregate Summary metrics
@@ -500,6 +502,7 @@ export default function FinancialsPage() {
     queryFn: () =>
       apiFetch<FinancialSummary>(`/financials/summary?startDate=${startDate}&endDate=${endDate}`),
     enabled: canUseFinancials,
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 4000),
   });
 
   // Mutations
@@ -642,15 +645,23 @@ export default function FinancialsPage() {
         })}`,
       ),
     enabled: canUseFinancials && !!matrixStartDate && !!matrixEndDate,
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 4000),
   });
   const weekPayments = weekPaymentsQuery.data?.data ?? [];
 
   const openCollectForMatrix = (riderId: string, dateString: string) => {
     setFormRiderId(riderId);
 
-    const matched = weekPayments.find(
-      (p) => p.riderId === riderId && p.paidAt.slice(0, 10) === dateString,
-    );
+    const matched = weekPayments.find((p) => {
+      if (p.riderId !== riderId) return false;
+      const d = new Date(p.paidAt);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      const localDateStr = `${year}-${month}-${date}`;
+      const utcDateStr = p.paidAt.slice(0, 10);
+      return localDateStr === dateString || utcDateStr === dateString;
+    });
 
     if (matched) {
       setFormAmount(String(matched.amount));
@@ -677,12 +688,74 @@ export default function FinancialsPage() {
   };
 
   // Helper to check payment on a matrix day
-  const getMatrixCellStatus = (riderId: string, dateString: string) => {
-    const matched = weekPayments.find(
-      (p) => p.riderId === riderId && p.paidAt.slice(0, 10) === dateString,
+  const getMatrixCellStatus = (riderId: string, dateString: string): 'paid' | 'partial' | 'overdue' | 'unpaid' => {
+    // 1. Direct payments on this specific date
+    const sameDayPayments = weekPayments.filter((p) => {
+      if (p.riderId !== riderId) return false;
+      if (p.status !== 'PAID' && p.status !== 'PARTIAL') return false;
+      const d = new Date(p.paidAt);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      const localDateStr = `${year}-${month}-${date}`;
+      const utcDateStr = p.paidAt.slice(0, 10);
+      return localDateStr === dateString || utcDateStr === dateString;
+    });
+
+    if (sameDayPayments.length > 0) {
+      const dayTotal = sameDayPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const rider = ridersList.find((r) => r.id === riderId);
+      const dailyRate = rider?.leaseDailyRate ?? DAILY_LEASE_RATE;
+      const hasPartial = sameDayPayments.some((p) => p.status === 'PARTIAL');
+
+      if (dayTotal >= dailyRate && !hasPartial) {
+        return 'paid';
+      }
+      return 'partial';
+    }
+
+    // 2. Multi-day / Weekly / Advance Coverage Check
+    const lease = leases.find((l) => l.id === riderId || (l as any).riderId === riderId);
+    const riderObj = ridersList.find((r) => r.id === riderId);
+    const dailyRate = lease?.dailyRate ?? riderObj?.leaseDailyRate ?? DAILY_LEASE_RATE;
+
+    const riderPayments = weekPayments.filter(
+      (p) => p.riderId === riderId && (p.status === 'PAID' || p.status === 'PARTIAL'),
     );
-    if (!matched) return 'unpaid';
-    return matched.status.toLowerCase();
+
+    if (riderPayments.length > 0) {
+      const dayEnd = new Date(`${dateString}T23:59:59.999Z`).getTime();
+      const cumulativePaidUpToDay = riderPayments
+        .filter((p) => new Date(p.paidAt).getTime() <= dayEnd)
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+
+      const totalPaidToUse = Math.max(lease?.totalPaid ?? 0, cumulativePaidUpToDay);
+      const sortedPayments = [...riderPayments].sort(
+        (a, b) => new Date(a.paidAt).getTime() - new Date(b.paidAt).getTime(),
+      );
+      const firstPayment = sortedPayments[0];
+
+      if (firstPayment) {
+        const firstPaidStr = firstPayment.paidAt.slice(0, 10);
+        const startTs = new Date(`${firstPaidStr}T00:00:00.000Z`).getTime();
+        const targetTs = new Date(`${dateString}T00:00:00.000Z`).getTime();
+
+        if (targetTs >= startTs) {
+          const daysFromStart = Math.floor((targetTs - startTs) / (1000 * 60 * 60 * 24)) + 1;
+          const expectedUpToDay = daysFromStart * dailyRate;
+          const expectedPriorToDay = (daysFromStart - 1) * dailyRate;
+
+          if (totalPaidToUse >= expectedUpToDay) {
+            return 'paid';
+          }
+          if (totalPaidToUse > expectedPriorToDay) {
+            return 'partial';
+          }
+        }
+      }
+    }
+
+    return 'unpaid';
   };
 
   // Professional CSV/Excel Export helper

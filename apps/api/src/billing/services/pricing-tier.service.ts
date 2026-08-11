@@ -73,48 +73,64 @@ export class PricingTierService implements OnModuleInit {
   }
 
   static getRateForFleetType(fleetType?: string): number {
-    if (fleetType === 'DELIVERY') return 15000;
-    if (fleetType === 'INSURER') return 0;
-    return 10000; // COOP and INDIVIDUAL rate
+    return 10000; // Uniform PAYG rate across all fleet types (350 RWF/day per bike)
   }
 
   async seedDefaultTiers(): Promise<void> {
-    const defaults = [
+    const tiers = [
       {
-        name: 'Cooperative & Individual Fleet',
-        planCode: FleetPlan.DEMO,
-        monthlyRatePerBike: 10000,
+        name: 'Pay-As-You-Go',
+        planCode: FleetPlan.PAYG,
+        monthlyRatePerBike: 0,
         setupFeePerBike: 0,
         description:
-          '10,000 RWF / month per bike. Full access to live map, remote control, rider scoring, financial management & reports. No device setup fee (hardware remains eMoto company property).',
+          '350 RWF / day per active bike. Pay only for bikes active on the road each day with full telemetry, remote lock/unlock, rider scoring, and financial management.',
         sortOrder: 0,
       },
       {
-        name: 'Delivery Fleet',
-        planCode: FleetPlan.PREMIUM,
-        monthlyRatePerBike: 15000,
-        setupFeePerBike: 0,
-        description:
-          '15,000 RWF / month per bike. High-volume delivery fleet tracking, incident workflows, priority support & analytics. No device setup fee (hardware remains eMoto company property).',
-        sortOrder: 1,
-      },
-      {
-        name: 'Insurance Partner',
+        name: 'Insurance & Compliance',
         planCode: FleetPlan.INSURANCE,
         monthlyRatePerBike: 0,
         setupFeePerBike: 0,
         description:
-          'Telemetry access, crash evidence packs, claims verification & partner API.',
+          'Dedicated Insurer Portal, FNOL crash & theft evidence packs, automated risk analytics, and underwriter compliance monitoring.',
+        sortOrder: 1,
+      },
+      {
+        name: 'Enterprise Operations',
+        planCode: FleetPlan.ENTERPRISE,
+        monthlyRatePerBike: 0,
+        setupFeePerBike: 0,
+        description:
+          'Tailored multi-fleet HQ command center, custom IoT integrations, dedicated account manager, and SLA guarantees.',
         sortOrder: 2,
       },
     ];
 
-    for (const tier of defaults) {
+    for (const tier of tiers) {
       await this.prisma.pricingTier.upsert({
         where: { planCode: tier.planCode },
-        update: {}, // DO NOT OVERWRITE DATABASE CUSTOMIZATIONS ON SERVER RESTART
+        update: {
+          name: tier.name,
+          description: tier.description,
+          monthlyRatePerBike: tier.monthlyRatePerBike,
+          sortOrder: tier.sortOrder,
+        },
         create: tier,
       });
+    }
+
+    // Delete legacy pricing tiers if present
+    try {
+      await this.prisma.pricingTier.deleteMany({
+        where: {
+          planCode: {
+            in: ['DEMO' as any, 'PREMIUM' as any],
+          },
+        },
+      });
+    } catch {
+      // Ignore if enums removed from DB
     }
   }
 }

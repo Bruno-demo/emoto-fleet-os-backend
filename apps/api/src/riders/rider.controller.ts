@@ -174,7 +174,7 @@ export class RiderController {
   }
 
   @Get('payments/summary')
-  @Roles(UserRole.RIDER)
+  @Roles(UserRole.RIDER, UserRole.ADMIN, UserRole.OWNER)
   @ApiOperation({
     summary: 'Get lease-to-own balance, arrears, and daily collection payment history',
   })
@@ -183,7 +183,7 @@ export class RiderController {
   }
 
   @Post('payments/pay-now')
-  @Roles(UserRole.RIDER)
+  @Roles(UserRole.RIDER, UserRole.ADMIN, UserRole.OWNER)
   @ApiOperation({
     summary: 'Initiate a Mobile Money payment prompt for daily collection or lease-to-own',
   })
@@ -195,7 +195,7 @@ export class RiderController {
   }
 
   @Get('payments/status/:referenceId')
-  @Roles(UserRole.RIDER)
+  @Roles(UserRole.RIDER, UserRole.ADMIN, UserRole.OWNER)
   @ApiOperation({
     summary: 'Check status of a pending rider Mobile Money payment',
   })

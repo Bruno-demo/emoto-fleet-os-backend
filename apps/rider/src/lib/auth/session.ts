@@ -71,3 +71,25 @@ export async function clearAuthToken(): Promise<void> {
 
   clearWebToken();
 }
+
+export const clearAuthSession = clearAuthToken;
+
+type SessionExpiredListener = () => void;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+
+export function onUnauthorizedSession(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+export function notifyUnauthorizedSession(): void {
+  for (const listener of sessionExpiredListeners) {
+    try {
+      listener();
+    } catch {
+      // Ignore listener errors
+    }
+  }
+}

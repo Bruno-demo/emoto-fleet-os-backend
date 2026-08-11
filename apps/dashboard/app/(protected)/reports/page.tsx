@@ -26,6 +26,7 @@ interface LeaseContract {
   bikePlate: string;
   totalPrincipal: number;
   totalPaid: number;
+  periodPaid?: number;
   dailyRate: number;
   arrears: number;
   status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
@@ -108,10 +109,25 @@ export default function ReportsPage() {
   const [leaseStatusFilter, setLeaseStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DELINQUENT' | 'PAID_OFF'>('ALL');
 
   const leasesQuery = useQuery({
-    queryKey: ['leases', 'reporting'],
-    queryFn: () => apiFetch<LeaseContract[]>('/financials/leases'),
+    queryKey: ['leases', 'reporting', dateRange.from, dateRange.to],
+    queryFn: () => apiFetch<LeaseContract[]>(`/financials/leases?startDate=${dateRange.from}&endDate=${dateRange.to}`),
     enabled: canUseFinancials && activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
   });
+
+  const summaryQuery = useQuery({
+    queryKey: ['financials', 'summary', dateRange.from, dateRange.to],
+    queryFn: () => apiFetch<{
+      totalEarnedRange: number;
+      totalEarnedAllTime: number;
+      activeRidersCount: number;
+      overdueCount: number;
+      unpaidCount: number;
+      totalLeaseArrears: number;
+      dailyEarnings: Array<{ date: string; amount: number }>;
+    }>(`/financials/summary?startDate=${dateRange.from}&endDate=${dateRange.to}`),
+    enabled: canUseFinancials && activeTab === 'leases' && user?.role !== 'INSURER' && user?.fleetType !== 'DELIVERY',
+  });
+
   const leases = useMemo(() => leasesQuery.data ?? [], [leasesQuery.data]);
 
   const filteredLeases = useMemo(() => {
@@ -448,7 +464,7 @@ export default function ReportsPage() {
           )}
 
           {/* Compliance Traffic Fines */}
-          <TrafficFinesCard />
+          <TrafficFinesCard from={dateRange.from} to={dateRange.to} />
 
           {/* Risky Rankings - Side-by-Side grid */}
           <div className="grid gap-5 md:grid-cols-2">
@@ -581,7 +597,7 @@ export default function ReportsPage() {
         <div className="space-y-6">
           {/* Financials KPI Cards */}
           <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {leasesQuery.isLoading ? (
+            {leasesQuery.isLoading || summaryQuery.isLoading ? (
               <>
                 <MetricCardSkeleton />
                 <MetricCardSkeleton />
@@ -591,17 +607,17 @@ export default function ReportsPage() {
             ) : (
               <>
                 <MetricCard
-                  title={t('Active Contracts')}
-                  value={String(leaseMetrics.totalLeases)}
-                  hint={t('Total lease-to-own agreements.')}
-                  icon={<Users size={18} />}
-                  tone="info"
+                  title={t('Period Collections')}
+                  value={summaryQuery.data ? `${summaryQuery.data.totalEarnedRange.toLocaleString()} RWF` : '--'}
+                  hint={t('Revenue collected in selected range.')}
+                  icon={<Coins size={18} />}
+                  tone="success"
                 />
                 <MetricCard
-                  title={t('Asset Finance Value')}
-                  value={`${leaseMetrics.totalPrincipal.toLocaleString()} RWF`}
-                  hint={t('Sum of all financing principals.')}
-                  icon={<TrendingUp size={18} />}
+                  title={t('Active Contracts')}
+                  value={String(leaseMetrics.totalLeases)}
+                  hint={`${leaseMetrics.totalPrincipal.toLocaleString()} RWF ${t('portfolio')}`}
+                  icon={<Users size={18} />}
                   tone="info"
                 />
                 <MetricCard
@@ -609,7 +625,7 @@ export default function ReportsPage() {
                   value={`${leaseMetrics.overallEquity}%`}
                   hint={t('Average ownership equity paid.')}
                   icon={<Wallet size={18} />}
-                  tone="success"
+                  tone="info"
                 />
                 <MetricCard
                   title={t('Total Arrears & Fines')}
@@ -787,12 +803,13 @@ export default function ReportsPage() {
             </div>
 
             <div className="overflow-x-auto dashboard-scrollbar mt-2">
-              <table className="w-full min-w-[750px] border-collapse text-left text-xs">
+              <table className="w-full min-w-[850px] border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-line text-ink-faint">
                     <th className="py-2.5 font-bold">{t('Rider')}</th>
                     <th className="py-2.5 font-bold">{t('Bike details')}</th>
                     <th className="py-2.5 font-bold">{t('Ownership Equity')}</th>
+                    <th className="py-2.5 font-bold">{t('Period Paid')}</th>
                     <th className="py-2.5 font-bold">{t('Daily Rate')}</th>
                     <th className="py-2.5 font-bold">{t('Lease Arrears')}</th>
                     <th className="py-2.5 font-bold">{t('Traffic Fines')}</th>
@@ -802,13 +819,13 @@ export default function ReportsPage() {
                 <tbody>
                   {leasesQuery.isLoading ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-ink-muted">
+                      <td colSpan={8} className="py-8 text-center text-ink-muted">
                         {t('Loading leases report...')}
                       </td>
                     </tr>
                   ) : filteredLeases.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-ink-muted">
+                      <td colSpan={8} className="py-8 text-center text-ink-muted">
                         {t('No matching lease contracts found')}
                       </td>
                     </tr>
@@ -817,6 +834,7 @@ export default function ReportsPage() {
                       const pct = lease.totalPrincipal > 0 ? Math.min(100, Math.max(0, Math.round((lease.totalPaid / lease.totalPrincipal) * 100))) : 0;
                       const fines = lease.pendingFines || 0;
                       const lArrears = Math.max(0, lease.arrears - fines);
+                      const periodPaid = lease.periodPaid ?? lease.totalPaid;
                       return (
                         <tr key={lease.id} className="border-b border-line hover:bg-surface-hover transition-colors">
                           <td className="py-3 font-semibold text-ink">
@@ -849,6 +867,11 @@ export default function ReportsPage() {
                                 />
                               </div>
                             </div>
+                          </td>
+                          <td className="py-3 font-mono">
+                            <span className="px-2 py-0.5 rounded font-bold text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              {periodPaid.toLocaleString()} RWF
+                            </span>
                           </td>
                           <td className="py-3 font-mono text-ink-soft">{lease.dailyRate.toLocaleString()} RWF</td>
                           <td className="py-3">
@@ -1238,14 +1261,17 @@ interface TrafficFineRecord {
   } | null;
 }
 
-function TrafficFinesCard() {
+function TrafficFinesCard({ from, to }: { from?: string; to?: string }) {
   const { t } = useTranslation();
   const { data: currentUser } = useCurrentUser();
   const canUseReports = canUseFeature(currentUser, 'reports');
 
   const { data: fines = [], isLoading } = useQuery({
-    queryKey: ['traffic-fines'],
-    queryFn: () => apiFetch<TrafficFineRecord[]>('/traffic-fines'),
+    queryKey: ['traffic-fines', from, to],
+    queryFn: () =>
+      apiFetch<TrafficFineRecord[]>(
+        `/traffic-fines${from && to ? `?startDate=${from}&endDate=${to}` : ''}`,
+      ),
     enabled: canUseReports,
   });
 

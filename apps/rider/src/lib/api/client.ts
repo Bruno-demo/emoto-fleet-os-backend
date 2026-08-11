@@ -128,6 +128,15 @@ export async function apiFetch<T = unknown>(
     if (response.status === 413) {
       rawMessage = 'The request payload or uploaded image is too large. Maximum size allowed is 1MB. Please upload a smaller file.';
     }
+    if (response.status === 401 && shouldAttachAuth) {
+      try {
+        const { clearAuthSession, notifyUnauthorizedSession } = await import('../auth/session');
+        await clearAuthSession();
+        notifyUnauthorizedSession();
+      } catch {
+        // Ignore session clear errors
+      }
+    }
     throw new ApiError(
       response.status,
       rawMessage,

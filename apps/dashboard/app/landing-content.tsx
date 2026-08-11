@@ -25,6 +25,9 @@ import {
   Siren,
   Sparkles,
   Users2,
+  Zap,
+  Building2,
+  Crown,
   Menu,
   X,
 } from 'lucide-react';
@@ -99,48 +102,51 @@ interface PricingPlanItem {
 
 const pricingPlans: PricingPlanItem[] = [
   {
-    slug: 'coop-individual',
-    title: 'Cooperative & Individual',
-    price: '10,000 RWF',
-    period: '/ bike / month',
-    description: 'Designed for motorcycle cooperatives and individual personal fleet owners.',
+    slug: 'payg',
+    title: 'Pay-As-You-Go',
+    price: '350 RWF / day',
+    period: 'per active bike',
+    description: 'Flexible pay-per-active-bike pricing for all fleet types. Pay only for bikes active on the road each day.',
     features: [
-      'Live map + real-time alerts',
+      '350 RWF / day per active bike',
+      'Live GPS tracking & geofencing',
       'Remote bike commands (lock/unlock)',
-      'Rider scoring & safety metrics',
-      'Financial & lease tracking',
-      '0 RWF Device Setup Fee',
-      'Hardware remains eMoto company property',
+      'Rider safety scoring & behavior alerts',
+      'Delivery dispatch & route tracking',
+      'Incident & crash workflows',
+      'Financial & lease management',
+      '0 RWF Device Setup & Installation Fee',
     ],
     featured: true,
   },
   {
-    slug: 'delivery',
-    title: 'Delivery Fleet',
-    price: '15,000 RWF',
-    period: '/ bike / month',
-    description: 'Tailored for high-volume commercial delivery and courier operations.',
+    slug: 'insurance',
+    title: 'Insurance & Compliance',
+    price: 'Custom Quote',
+    period: 'Contact Sales',
+    description: 'Dedicated Insurer Portal, FNOL crash/theft evidence packs, automated risk compliance, and underwriter API.',
     features: [
-      'Everything in Cooperative Plan',
-      'Delivery dispatch & route tracking',
-      'Advanced incident & crash workflows',
-      'Trip analytics & compliance reports',
-      '0 RWF Device Setup Fee',
-      'Hardware remains eMoto company property',
+      'Everything in Pay-As-You-Go',
+      'Dedicated Insurer Portal & Partner API',
+      'Certified incident crash & theft evidence packs',
+      'Automated FNOL claims integration',
+      'Underwriting risk analytics & compliance monitoring',
+      'Priority SLA & emergency dispatch support',
     ],
   },
   {
-    slug: 'insurance',
-    title: 'Insurance Partner',
-    price: 'Custom',
-    period: '',
-    description: 'For insurance companies and risk management partners.',
+    slug: 'enterprise',
+    title: 'Enterprise Operations',
+    price: 'Custom Quote',
+    period: 'Contact Sales',
+    description: 'Tailored multi-fleet management, custom IoT integrations, dedicated account manager, and SLA guarantees.',
     features: [
-      'Access to covered fleet telemetry',
-      'Partner API credentials',
-      'Dedicated insurance support',
-      'Automated claims verification',
-      'Custom integrations',
+      'Everything in Insurance & PAYG',
+      'Multi-fleet HQ command center & role management',
+      'Custom IoT device protocol integrations',
+      'Dedicated account manager & 99.99% uptime SLA',
+      'Custom webhook endpoints & raw telemetry data exports',
+      'On-premise / private cloud deployment options',
     ],
   },
 ];
@@ -304,30 +310,21 @@ export default function LandingContent() {
   const localizedPlans = useMemo(() => {
     return pricingPlans.map((plan) => {
       const matchingTier = pricingTiers?.find((t) => 
-        (plan.slug === 'safety-core' && t.planCode === 'DEMO') ||
-        (plan.slug === 'operations-plus' && t.planCode === 'PREMIUM') ||
-        (plan.slug === 'insurance' && t.planCode === 'INSURANCE')
+        (plan.slug === 'payg' && t.planCode === 'PAYG') ||
+        (plan.slug === 'insurance' && t.planCode === 'INSURANCE') ||
+        (plan.slug === 'enterprise' && t.planCode === 'ENTERPRISE')
       );
       
       const priceStr = matchingTier 
-        ? (matchingTier.monthlyRatePerBike === 0 && plan.slug === 'insurance' ? 'Custom' : `${matchingTier.monthlyRatePerBike.toLocaleString()} RWF`)
+        ? (matchingTier.monthlyRatePerBike === 0 ? 'Custom Quote' : `${matchingTier.monthlyRatePerBike.toLocaleString()} RWF / day`)
         : plan.price;
-        
-      const setupFeeStr = matchingTier
-        ? matchingTier.setupFeePerBike.toLocaleString()
-        : '35,000';
 
       return {
         ...plan,
-        title: t(plan.slug.replace('-', '_') + '_title', plan.title), // safety_core_title etc.
+        title: t(plan.slug.replace('-', '_') + '_title', plan.title),
         price: priceStr,
         description: t(plan.slug.replace('-', '_') + '_desc', plan.description),
-        features: plan.features.map(f => {
-          if (f.includes('setup & install fee')) {
-            return t('feat_setup_fee', '+ {fee} RWF device setup & install fee').replace('{fee}', setupFeeStr);
-          }
-          return t('feat_' + f.toLowerCase().replace(/[^a-z0-9]/g, '_'), f);
-        })
+        features: plan.features.map(f => t('feat_' + f.toLowerCase().replace(/[^a-z0-9]/g, '_'), f))
       };
     });
   }, [t, pricingTiers]);
@@ -500,7 +497,7 @@ export default function LandingContent() {
             {t('land_hero_title').split('Electric Motorbike')[0]}
           </span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-400 to-purple-400">
-            {t('land_hero_title').includes('Amashanyarazi') ? "Amagare y'Amashanyarazi" : "Electric Motorbike Fleets"}
+            {t('land_hero_title').includes('Amashanyarazi') ? "Amamoto y'Amashanyarazi" : "Electric Motorbike Fleets"}
           </span>
         </h1>
 
@@ -700,64 +697,115 @@ export default function LandingContent() {
           <p className="text-base text-zinc-400">{t('land_plans_desc', 'Transparent pricing. No hidden fees. Cancel anytime.')}</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3 relative z-10 items-stretch">
-          {localizedPlans.map((plan) => (
-            <div
-              key={plan.title}
-              className={`flex flex-col rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 ${
-                plan.featured
-                  ? 'relative border-2 border-accent bg-accent/[0.05] shadow-[0_0_30px_rgba(59,130,246,0.12)] lg:scale-[1.03] z-10'
-                  : 'border border-white/[0.08] bg-white/[0.02]'
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white px-4 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider">
-                  {t('land_plans_popular', 'Most Popular')}
-                </div>
-              )}
-              <p className="text-xs font-semibold uppercase tracking-wider text-accent">{plan.title}</p>
-              <div className="mt-4 flex items-baseline gap-1">
-                {pricingTiers ? (
-                  <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-                ) : (
-                  <span className="h-10 w-28 bg-white/10 rounded-lg animate-pulse inline-block" />
-                )}
-                {plan.period && <span className="text-sm text-zinc-500">{plan.period}</span>}
-              </div>
+        <div className="grid gap-8 lg:grid-cols-3 relative z-10 items-stretch">
+          {localizedPlans.map((plan) => {
+            const isPayg = plan.slug === 'payg';
+            const isInsurance = plan.slug === 'insurance';
+            const isEnterprise = plan.slug === 'enterprise';
 
-              {plan.promoTag && (
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-400 uppercase tracking-wider w-max">
-                  {plan.promoTag}
-                </div>
-              )}
+            const cardBorderClass = isPayg
+              ? 'border-2 border-cyan-500/50 bg-slate-950/80 shadow-[0_0_40px_rgba(6,182,212,0.18)] ring-1 ring-cyan-500/30 lg:scale-[1.03] z-10'
+              : isInsurance
+              ? 'border border-blue-500/30 bg-slate-950/60 shadow-[0_0_30px_rgba(59,130,246,0.1)] hover:border-blue-400/50'
+              : 'border border-amber-500/30 bg-slate-950/60 shadow-[0_0_30px_rgba(245,158,11,0.1)] hover:border-amber-400/50';
 
-              <p className="mt-3 text-sm text-zinc-400 leading-relaxed min-h-[48px]">{plan.description}</p>
-              <div className="my-6 h-px w-full bg-white/[0.06]" />
+            const icon = isPayg ? (
+              <Zap className="text-cyan-400" size={22} />
+            ) : isInsurance ? (
+              <ShieldCheck className="text-blue-400" size={22} />
+            ) : (
+              <Building2 className="text-amber-400" size={22} />
+            );
 
-              <ul className="space-y-3 text-sm flex-1">
-                {plan.features.map((feat) => (
-                  <li key={feat} className="flex items-center gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-                      <BadgeCheck size={12} />
-                    </span>
-                    <span className="text-zinc-400">{feat}</span>
-                  </li>
-                ))}
-              </ul>
+            const badgeText = isPayg
+              ? t('land_plans_popular', 'Most Popular • Pay Per Bike')
+              : isInsurance
+              ? 'Insurer & Risk Partner'
+              : 'Multi-Fleet HQ & SLAs';
 
-              <Link
-                href={hasSession ? `/checkout?plan=${plan.slug}` : `/create-account?plan=${plan.slug}`}
-                className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all hover:opacity-90"
-                style={
-                  plan.featured
-                    ? { background: 'white', color: 'black' }
-                    : { border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgb(212,212,216)' }
-                }
+            const badgeBg = isPayg
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black'
+              : isInsurance
+              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold'
+              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold';
+
+            const checkColor = isPayg
+              ? 'bg-cyan-500/15 text-cyan-400'
+              : isInsurance
+              ? 'bg-blue-500/15 text-blue-400'
+              : 'bg-amber-500/15 text-amber-400';
+
+            const ctaStyle = isPayg
+              ? { background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)', color: '#090D16', fontWeight: 800 }
+              : isInsurance
+              ? { background: 'rgba(59, 130, 246, 0.15)', color: '#93C5FD', border: '1px solid rgba(59, 130, 246, 0.3)' }
+              : { background: 'rgba(245, 158, 11, 0.15)', color: '#FDE68A', border: '1px solid rgba(245, 158, 11, 0.3)' };
+
+            const ctaLabel = isPayg
+              ? (hasSession ? t('proceed_to_checkout', 'Proceed to Checkout') : t('land_plans_get_started', 'Get Started'))
+              : isInsurance
+              ? 'Request Insurance Quote'
+              : 'Request Enterprise Quote';
+
+            return (
+              <div
+                key={plan.title}
+                className={`flex flex-col rounded-3xl p-8 transition-all duration-300 backdrop-blur-xl relative overflow-hidden group hover:-translate-y-1 ${cardBorderClass}`}
               >
-                {hasSession ? t('proceed_to_checkout', 'Proceed to Checkout') : t('land_plans_get_started', 'Get started')} <ChevronRight size={14} />
-              </Link>
-            </div>
-          ))}
+                {/* Header Badge */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 rounded-2xl bg-white/[0.04] border border-white/10 shadow-inner">
+                      {icon}
+                    </div>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-300">
+                      {plan.title}
+                    </span>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] tracking-wider uppercase ${badgeBg}`}>
+                    {badgeText}
+                  </span>
+                </div>
+
+                {/* Price Display */}
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span className="text-3xl lg:text-4xl font-black tracking-tight text-white">{plan.price}</span>
+                  {plan.period && <span className="text-xs font-semibold text-zinc-400">{plan.period}</span>}
+                </div>
+
+                {isPayg && (
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-400 w-max">
+                    <Sparkles size={13} /> 0 RWF Device Setup Fee
+                  </div>
+                )}
+
+                <p className="mt-4 text-xs leading-relaxed text-zinc-400 min-h-[42px]">{plan.description}</p>
+                
+                <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                {/* Features List */}
+                <ul className="space-y-3 text-xs flex-1">
+                  {plan.features.map((feat) => (
+                    <li key={feat} className="flex items-start gap-3">
+                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full mt-0.5 ${checkColor}`}>
+                        <BadgeCheck size={12} />
+                      </span>
+                      <span className="text-zinc-300 font-medium leading-normal">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA Button */}
+                <Link
+                  href={hasSession ? `/checkout?plan=${plan.slug}` : `/create-account?plan=${plan.slug}`}
+                  className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-xs font-bold transition-all shadow-lg hover:brightness-110 active:scale-[0.98]"
+                  style={ctaStyle}
+                >
+                  {ctaLabel} <ChevronRight size={14} />
+                </Link>
+              </div>
+            );
+          })}
         </div>
 
         <div className="mt-12 mx-auto max-w-3xl rounded-xl border border-blue-500/30 bg-blue-500/10 p-5 text-center text-sm text-zinc-300 relative z-10 flex items-center justify-center gap-3">

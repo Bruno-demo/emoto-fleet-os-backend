@@ -16,9 +16,9 @@ export class SubscriptionService {
     subscriptionStatus: FleetSubscriptionStatus;
     upgradeRequested: boolean;
   }> {
-    if (plan !== FleetPlan.PREMIUM) {
+    if (plan !== FleetPlan.ENTERPRISE && plan !== FleetPlan.INSURANCE) {
       throw new BadRequestException(
-        'Only Delivery Fleet upgrades are supported right now',
+        'Only Enterprise and Insurance tier requests are supported right now',
       );
     }
 
@@ -69,5 +69,52 @@ export class SubscriptionService {
     return {
       monthlyRatePerBike: fleet.monthlyRatePerBike,
     };
+  }
+
+  async getFleetSettings(user: AuthenticatedUser) {
+    const fleet = await this.prismaService.fleet.findUnique({
+      where: { id: user.fleetId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        plan: true,
+        momoPhoneNumber: true,
+        monthlyRatePerBike: true,
+        emotoPaygRatePerActiveDay: true,
+        subscriptionStatus: true,
+      },
+    });
+
+    if (!fleet) {
+      throw new BadRequestException('Fleet not found');
+    }
+
+    return fleet;
+  }
+
+  async updateFleetSettings(
+    user: AuthenticatedUser,
+    dto: { momoPhoneNumber?: string },
+  ) {
+    const updateData: { momoPhoneNumber?: string } = {};
+
+    if (dto.momoPhoneNumber !== undefined) {
+      updateData.momoPhoneNumber = dto.momoPhoneNumber.trim();
+    }
+
+    const updated = await this.prismaService.fleet.update({
+      where: { id: user.fleetId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        momoPhoneNumber: true,
+        plan: true,
+        monthlyRatePerBike: true,
+      },
+    });
+
+    return updated;
   }
 }

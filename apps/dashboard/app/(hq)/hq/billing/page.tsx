@@ -541,7 +541,7 @@ export default function HqBillingPage() {
                                 "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
                                 fleet.plan === 'PREMIUM' ? 'bg-emerald-500/15 text-emerald-400' : fleet.plan === 'INSURANCE' ? 'bg-purple-500/15 text-purple-400' : 'bg-white/5 text-zinc-500'
                               )}>
-                                {fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : fleet.plan === 'INSURANCE' ? 'Insurance Partner' : 'Cooperative & Individual'}
+                                {fleet.plan === 'PAYG' || !fleet.plan ? 'Pay-As-You-Go' : fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : fleet.plan === 'INSURANCE' ? 'Insurance Partner' : 'Cooperative & Individual'}
                               </span>
                               {fleet.trialEndsAt && new Date(fleet.trialEndsAt) > new Date() && (
                                 <span className="rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">

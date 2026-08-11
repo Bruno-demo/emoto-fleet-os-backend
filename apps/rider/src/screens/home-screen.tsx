@@ -83,13 +83,14 @@ function buildCoachingTips(
   weeklyScore: RiderWeeklyScoreResponse | undefined,
   latestTrip: RiderTripSummary | null,
   recentAlerts: RiderEventSummary[],
+  t: any,
 ): CoachingTip[] {
   const tips: CoachingTip[] = [];
 
   if (recentAlerts.some((event) => event.type === 'OVERSPEED')) {
     tips.push({
-      title: 'Ease off in slow zones',
-      detail: 'Recent overspeed detected. A steadier pace protects your score.',
+      title: t.home.coachingTipSpeedTitle,
+      detail: t.home.coachingTipSpeedDetail,
       icon: '⚡',
       tone: 'warning',
     });
@@ -101,8 +102,8 @@ function buildCoachingTips(
     )
   ) {
     tips.push({
-      title: 'Smooth your braking',
-      detail: 'Leave more room ahead to brake and accelerate progressively.',
+      title: t.home.coachingTipBrakeTitle,
+      detail: t.home.coachingTipBrakeDetail,
       icon: '🎯',
       tone: 'primary',
     });
@@ -110,8 +111,8 @@ function buildCoachingTips(
 
   if ((weeklyScore?.avgScore ?? 0) >= 85) {
     tips.push({
-      title: 'Keep momentum',
-      detail: 'Strong week! One more clean ride to hold the lead.',
+      title: t.home.coachingTipMomentumTitle,
+      detail: t.home.coachingTipMomentumDetail,
       icon: '🏆',
       tone: 'success',
     });
@@ -119,15 +120,15 @@ function buildCoachingTips(
 
   if (!latestTrip) {
     tips.push({
-      title: 'Start your first ride',
-      detail: 'Your first scored ride unlocks coaching and trends.',
+      title: t.home.coachingTipFirstRideTitle,
+      detail: t.home.coachingTipFirstRideDetail,
       icon: '🚀',
       tone: 'primary',
     });
   } else if (latestTrip.distanceKm < 5) {
     tips.push({
-      title: 'Ride a bit longer',
-      detail: 'A longer smooth ride gives better data for your score.',
+      title: t.home.coachingTipLongerTitle,
+      detail: t.home.coachingTipLongerDetail,
       icon: '📏',
       tone: 'primary',
     });
@@ -135,8 +136,8 @@ function buildCoachingTips(
 
   if (tips.length < 2) {
     tips.push({
-      title: 'Pre-ride check',
-      detail: 'Quick tire, brake & battery check saves events later.',
+      title: t.home.coachingTipCheckTitle,
+      detail: t.home.coachingTipCheckDetail,
       icon: '🔧',
       tone: 'primary',
     });
@@ -254,8 +255,17 @@ export function HomeScreen() {
   const recentAlerts = latestAlertQuery.data ?? [];
   const assignmentCount = auth.riderMe?.assignments.length ?? 0;
   const scoreTone = getScoreTone(weeklyScore?.avgScore);
-  const coachingTips = buildCoachingTips(weeklyScore, latestTrip, recentAlerts);
+  const coachingTips = buildCoachingTips(weeklyScore, latestTrip, recentAlerts, t);
   const firstName = (auth.riderMe?.fullName ?? 'Rider').split(' ')[0];
+
+  const localizedScoreHeadline =
+    weeklyScore?.avgScore === undefined || weeklyScore?.avgScore === null
+      ? t.home.noScoreYet
+      : weeklyScore.avgScore >= 85
+      ? t.home.scoreStrong
+      : weeklyScore.avgScore >= 70
+      ? t.home.scoreNeedsAttention
+      : t.home.scoreHighRisk;
 
   if (
     (weeklyScoreQuery.isLoading && !weeklyScore) ||
@@ -332,11 +342,11 @@ export function HomeScreen() {
             <Text style={styles.greetingName}>{t.home.greeting}, {firstName}</Text>
             <Text style={styles.greetingSubtitle}>
               {weeklyScore?.tripCount
-                ? `${weeklyScore.tripCount} rides ${t.common.thisWeek.toLowerCase()}`
-                : 'Stay smooth, ride safe'}
+                ? t.home.ridesCountThisWeek.replace('{count}', String(weeklyScore.tripCount))
+                : t.home.staySmoothRideSafe}
             </Text>
           </View>
-          <Badge label={scoreTone.label} tone={scoreTone.badgeTone} />
+          <Badge label={localizedScoreHeadline} tone={scoreTone.badgeTone} />
         </View>
       </View>
 
@@ -346,9 +356,9 @@ export function HomeScreen() {
           <ScoreRing score={weeklyScore?.avgScore ?? null} size={130} />
           <View style={styles.scoreSummary}>
             <Text style={styles.scoreCardTitle}>{t.home.safetyScore}</Text>
-            <Text style={styles.scoreHeadline}>{scoreTone.label}</Text>
+            <Text style={styles.scoreHeadline}>{localizedScoreHeadline}</Text>
             <Text style={styles.scoreBody}>
-              {weeklyScore?.tripCount ?? 0} trips scored {t.common.thisWeek.toLowerCase()}
+              {t.home.tripsScoredThisWeek.replace('{count}', String(weeklyScore?.tripCount ?? 0))}
             </Text>
             <View style={styles.bestWorstRow}>
               <View style={[styles.miniStat, { borderColor: theme.colors.successBorder, backgroundColor: theme.colors.successSoft }]}>

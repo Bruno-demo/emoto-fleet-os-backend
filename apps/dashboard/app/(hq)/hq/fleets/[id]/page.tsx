@@ -647,10 +647,10 @@ export default function FleetDetailPage() {
             <div>
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Plan</p>
               <p className="mt-2 text-xl font-bold text-white">
-                {fleet.plan === 'PREMIUM'
+                {fleet.plan === 'PAYG' || !fleet.plan
+                  ? 'Pay-As-You-Go'
+                  : fleet.plan === 'PREMIUM'
                   ? 'Delivery Fleet'
-                  : fleet.plan === 'DEMO'
-                  ? 'Cooperative & Individual'
                   : fleet.plan === 'INSURANCE'
                   ? 'Insurance Partner'
                   : fleet.plan}

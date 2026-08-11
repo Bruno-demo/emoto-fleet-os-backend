@@ -86,17 +86,6 @@ export class BillingController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListBillingCyclesDto,
   ) {
-    if (user.fleetType !== FleetType.COOP) {
-      return {
-        data: [],
-        meta: {
-          total: 0,
-          page: query.page ?? 1,
-          limit: query.limit ?? 50,
-          totalPages: 0,
-        },
-      };
-    }
     query.fleetId = user.fleetId;
     return await this.billingCycleService.listCycles(query);
   }
@@ -109,11 +98,6 @@ export class BillingController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException(
-        'Billing cycles are only available for cooperative fleets',
-      );
-    }
     const cycle = await this.billingCycleService.getCycle(id);
     if (cycle.fleetId !== user.fleetId) {
       throw new ForbiddenException(
@@ -353,12 +337,16 @@ export class BillingController {
   @Get('my-subscription')
   @ApiOperation({ summary: 'Get current subscription details' })
   async getMySubscription(@CurrentUser() user: AuthenticatedUser) {
-    const subscription =
-      await this.subscriptionPlanService.getFleetSubscription(user.fleetId);
-    if (!subscription) {
+    try {
+      const subscription =
+        await this.subscriptionPlanService.getFleetSubscription(user.fleetId);
+      if (!subscription) {
+        return { subscription: null, message: 'No active subscription' };
+      }
+      return { subscription };
+    } catch {
       return { subscription: null, message: 'No active subscription' };
     }
-    return { subscription };
   }
 
   @Post('my-cycles/:id/pay-now')
@@ -416,25 +404,37 @@ export class BillingController {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    const [transactions, total] = await Promise.all([
-      this.prisma.momoTransaction.findMany({
-        where: { fleetId: user.fleetId },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limitNum,
-      }),
-      this.prisma.momoTransaction.count({ where: { fleetId: user.fleetId } }),
-    ]);
+    try {
+      const [transactions, total] = await Promise.all([
+        this.prisma.momoTransaction.findMany({
+          where: { fleetId: user.fleetId },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+        }),
+        this.prisma.momoTransaction.count({ where: { fleetId: user.fleetId } }),
+      ]);
 
-    return {
-      data: transactions,
-      meta: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum),
-      },
-    };
+      return {
+        data: transactions,
+        meta: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+      };
+    } catch {
+      return {
+        data: [],
+        meta: {
+          page: pageNum,
+          limit: limitNum,
+          total: 0,
+          pages: 0,
+        },
+      };
+    }
   }
 
   // ── HQ MoMo Admin Endpoints ──────────────────────────────────────

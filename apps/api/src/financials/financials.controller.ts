@@ -35,11 +35,6 @@ export class FinancialsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: RecordPaymentDto,
   ) {
-    if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException(
-        'Financial management features are only available for cooperative fleets',
-      );
-    }
     return this.financialsService.recordPayment(user, dto);
   }
 
@@ -49,11 +44,6 @@ export class FinancialsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListPaymentsDto,
   ) {
-    if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException(
-        'Financial management features are only available for cooperative fleets',
-      );
-    }
     return this.financialsService.listPayments(user, query);
   }
 
@@ -67,11 +57,6 @@ export class FinancialsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException(
-        'Financial management features are only available for cooperative fleets',
-      );
-    }
     return this.financialsService.getSummary(user, startDate, endDate);
   }
 
@@ -79,13 +64,12 @@ export class FinancialsController {
   @ApiOperation({
     summary: 'Get all active lease-to-own accounts',
   })
-  async getLeases(@CurrentUser() user: AuthenticatedUser) {
-    if (user.fleetType !== FleetType.COOP) {
-      throw new ForbiddenException(
-        'Financial management features are only available for cooperative fleets',
-      );
-    }
-    return this.financialsService.getLeases(user);
+  async getLeases(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.financialsService.getLeases(user, startDate, endDate);
   }
 
   @Get('delivery/summary')
@@ -93,22 +77,12 @@ export class FinancialsController {
     summary: 'Get summary of delivery payouts and pending commissions',
   })
   async getDeliverySummary(@CurrentUser() user: AuthenticatedUser) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery financials are only available for delivery fleets',
-      );
-    }
     return this.financialsService.getDeliveryFinancialSummary(user);
   }
 
   @Get('delivery/payouts')
   @ApiOperation({ summary: 'Get all delivery payout and commission records' })
   async getDeliveryPayouts(@CurrentUser() user: AuthenticatedUser) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery financials are only available for delivery fleets',
-      );
-    }
     return this.financialsService.getDeliveryPayouts(user);
   }
 
@@ -118,11 +92,6 @@ export class FinancialsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: RecordDeliveryPayoutDto,
   ) {
-    if (user.fleetType !== FleetType.DELIVERY) {
-      throw new ForbiddenException(
-        'Delivery financials are only available for delivery fleets',
-      );
-    }
     return this.financialsService.recordDeliveryPayout(user, dto);
   }
 

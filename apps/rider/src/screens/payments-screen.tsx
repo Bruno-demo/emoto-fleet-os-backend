@@ -40,6 +40,19 @@ export function PaymentsScreen() {
   const summaryQuery = useQuery({
     queryKey: ['rider-payment-summary'],
     queryFn: () => apiFetch<RiderPaymentSummary>('/rider/payments/summary'),
+    enabled: auth.status === 'authenticated' && !!auth.token,
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    refetchInterval: (query) => {
+      if (query.state.status === 'error') {
+        return false;
+      }
+      return 5000;
+    },
   });
 
   const payMutation = useMutation({
@@ -67,8 +80,11 @@ export function PaymentsScreen() {
     queryKey: ['rider-payment-status', activeRefId],
     queryFn: () =>
       apiFetch<MomoPaymentResponse>(`/rider/payments/status/${activeRefId}`),
-    enabled: !!activeRefId,
+    enabled: !!activeRefId && auth.status === 'authenticated' && !!auth.token,
     refetchInterval: (query) => {
+      if (query.state.status === 'error') {
+        return false;
+      }
       const data = query.state.data;
       if (data && (data.status === 'SUCCESSFUL' || data.status === 'FAILED')) {
         return false;
@@ -149,6 +165,38 @@ export function PaymentsScreen() {
         <ListSkeleton rows={2} />
       ) : (
         <>
+          {/* Overdue Warning & Remote Lock Risk Banner */}
+          {(summary?.arrears || 0) > 0 && (
+            <View style={{ marginBottom: theme.spacing.sm }}>
+              <AppCard>
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.cardSubtitle, { color: theme.colors.danger, fontWeight: '700' }]}>
+                    ⚠️ {t.payments.lockWarningTitle}
+                  </Text>
+                  <Badge label="LOCK RISK" tone="danger" />
+                </View>
+                <Text style={{ fontSize: 13, color: theme.colors.text, marginTop: 4, lineHeight: 18 }}>
+                  {summary?.overdueWarning?.warningMessageRw ||
+                    `Uri mu kirarane cy'iminsi ${summary?.daysInArrears || 1} (${formatRwf(summary?.arrears || 0)}). Wishyure ubu kugira ngo velo yawe itazafungwa kure.`}
+                </Text>
+                <View style={styles.statsGrid}>
+                  <View style={[styles.statBox, styles.statBoxDanger]}>
+                    <Text style={styles.statBoxLabel}>{t.payments.timePassedArrears}</Text>
+                    <Text style={[styles.statBoxValue, styles.textDanger]}>
+                      {formatRwf(summary?.timeArrears || summary?.arrears || 0)}
+                    </Text>
+                  </View>
+                  <View style={[styles.statBox, styles.statBoxDanger]}>
+                    <Text style={styles.statBoxLabel}>{t.payments.overdueDays}</Text>
+                    <Text style={[styles.statBoxValue, styles.textDanger]}>
+                      {summary?.daysInArrears || 0} days
+                    </Text>
+                  </View>
+                </View>
+              </AppCard>
+            </View>
+          )}
+
           {/* Main Financial Overview Card */}
           <AppCard>
             <View style={styles.cardHeader}>
@@ -168,6 +216,35 @@ export function PaymentsScreen() {
                 label={summary?.status?.replace('_', ' ') || 'UP TO DATE'}
                 tone={statusTone}
               />
+            </View>
+
+            {/* Admin Schedule & Due Date Row */}
+            <View
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                borderRadius: theme.radius.card,
+                padding: theme.spacing.sm,
+                marginVertical: theme.spacing.xs,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.primary }}>
+                🗓️ {scheduleBadgeLabel} &middot;{' '}
+                {summary?.paymentSchedule === 'WEEKLY'
+                  ? t.payments.weekOver.replace('{days}', String(Math.max(0, summary?.daysUntilDue ?? 0)))
+                  : summary?.isPeriodOver
+                  ? t.payments.periodExpired
+                  : t.payments.daysRemaining.replace('{days}', String(Math.max(0, summary?.daysUntilDue ?? 0)))}
+              </Text>
+              {summary?.nextDueAt && (
+                <Text style={{ fontSize: 11, color: theme.colors.textMuted, marginTop: 2 }}>
+                  {t.payments.nextDueDate}:{' '}
+                  {new Date(summary.nextDueAt).toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+              )}
             </View>
 
             {summary?.isLeaseToOwn && (
@@ -205,7 +282,7 @@ export function PaymentsScreen() {
                     {t.payments.paid}: {formatRwf(summary?.totalPaid || 0)}
                   </Text>
                   <Text style={styles.subText}>
-                    {t.payments.total}: {formatRwf(summary?.leasePrincipal || 2500000)}
+                    {t.payments.remainingOwnership}: {formatRwf(summary?.remainingLeaseBalance || Math.max(0, (summary?.leasePrincipal || 2500000) - (summary?.totalPaid || 0)))}
                   </Text>
                 </View>
               </View>
@@ -313,15 +390,17 @@ export function PaymentsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Mobile Money Collection</Text>
+            <Text style={styles.modalTitle}>{t.payments.momoTitle}</Text>
             <Text style={styles.modalSubtitle}>
-              Prompt will be sent directly to your phone. Schedule: {scheduleBadgeLabel} — Required contribution: {formatRwf(requiredPeriodAmount)}.
+              {t.payments.momoSubtitle
+                .replace('{schedule}', scheduleBadgeLabel)
+                .replace('{amount}', formatRwf(requiredPeriodAmount))}
             </Text>
 
             {!activeRefId ? (
               <>
                 {/* Preset amount selector */}
-                <Text style={styles.inputLabel}>Select Amount (RWF)</Text>
+                <Text style={styles.inputLabel}>{t.payments.selectAmount}</Text>
                 <View style={styles.presetsRow}>
                   {Array.from(new Set([
                     requiredPeriodAmount,
@@ -376,8 +455,8 @@ export function PaymentsScreen() {
                 >
                   <Text style={styles.partialToggleText}>
                     {isPartial || parseInt(amountInput, 10) < requiredPeriodAmount
-                      ? '☑ Paying Partial / Less than Required Period Amount'
-                      : '☐ Paying Partial / Less than Required Period Amount'}
+                      ? `☑ ${t.payments.payingPartialLabel}`
+                      : `☐ ${t.payments.payingPartialLabel}`}
                   </Text>
                 </Pressable>
 
@@ -396,7 +475,7 @@ export function PaymentsScreen() {
                   </>
                 )}
 
-                <Text style={styles.inputLabel}>MoMo Phone Number</Text>
+                <Text style={styles.inputLabel}>{t.payments.momoPhoneLabel}</Text>
                 <TextInput
                   style={styles.textInput}
                   value={phoneInput}
@@ -410,11 +489,11 @@ export function PaymentsScreen() {
 
                 <View style={styles.modalActions}>
                   <View style={styles.buttonHalf}>
-                    <SecondaryButton label="Cancel" onPress={handleCloseModal} />
+                    <SecondaryButton label={t.common.cancel} onPress={handleCloseModal} />
                   </View>
                   <View style={styles.buttonHalf}>
                     <PrimaryButton
-                      label={payMutation.isPending ? 'Sending...' : 'Pay Now'}
+                      label={payMutation.isPending ? t.common.loading : t.payments.payNow}
                       onPress={handlePayPress}
                       disabled={payMutation.isPending}
                     />
@@ -428,14 +507,13 @@ export function PaymentsScreen() {
                   <>
                     <Text style={styles.statusIcon}>✅</Text>
                     <Text style={styles.statusSuccessTitle}>
-                      Payment Received!
+                      {t.payments.paymentReceivedTitle}
                     </Text>
                     <Text style={styles.statusDesc}>
-                      {formatRwf(statusData.amount)} has been recorded
-                      automatically to your fleet profile.
+                      {t.payments.paymentRecordedDesc.replace('{amount}', formatRwf(statusData.amount))}
                     </Text>
                     <View style={styles.fullWidthButton}>
-                      <PrimaryButton label="Done" onPress={handleCloseModal} />
+                      <PrimaryButton label={t.common.done} onPress={handleCloseModal} />
                     </View>
                   </>
                 ) : statusData?.status === 'FAILED' ? (

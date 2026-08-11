@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -105,6 +106,7 @@ import { RiderPayCollectionDto } from './dto/rider-pay-collection.dto';
 
 @Injectable()
 export class RidersService {
+  private readonly logger = new Logger(RidersService.name);
   private readonly tripScoreMinDistanceKm: number;
   private readonly tripPenaltyMultiplier: number;
   private readonly tripScoreWeights: TripScoreWeights;
@@ -1950,7 +1952,7 @@ export class RidersService {
     const leaseDailyRate = profile?.leaseDailyRate ?? 15000;
 
     const allPaidPayments = await this.prismaService.riderPayment.findMany({
-      where: { riderId: user.id, status: 'PAID' },
+      where: { riderId: user.id, status: { in: ['PAID', 'PARTIAL'] } },
     });
     const totalPaid = allPaidPayments.reduce(
       (sum, p) => sum + p.amount.toNumber(),
@@ -1995,6 +1997,55 @@ export class RidersService {
     const requiredPeriodAmount = assignedRate * schedulePeriodDays;
     const requiredTotalAmount = requiredPeriodAmount + arrears;
 
+    const timeArrears = Math.max(0, expectedPaid - totalPaid);
+    const fineArrears = pendingFines;
+    const daysInArrears = assignedRate > 0 ? Math.ceil(timeArrears / assignedRate) : 0;
+    const remainingLeaseBalance = isLeaseToOwn ? Math.max(0, leasePrincipal - totalPaid) : 0;
+    const paidPeriodProgress = totalPaid % requiredPeriodAmount;
+    const remainingPeriodAmount = Math.max(0, requiredPeriodAmount - paidPeriodProgress);
+
+    let nextDueAt: Date;
+    let daysUntilDue = 0;
+    let isPeriodOver = false;
+
+    if (activeAssignment) {
+      const assignedAt = activeAssignment.assignedAt;
+      const daysPaidFor = assignedRate > 0 ? Math.floor(totalPaid / assignedRate) : 0;
+      nextDueAt = new Date(assignedAt.getTime() + (daysPaidFor + 1) * 24 * 60 * 60 * 1000);
+      daysUntilDue = Math.ceil((nextDueAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      isPeriodOver = daysUntilDue <= 0 || arrears > 0;
+    } else {
+      nextDueAt = new Date();
+      daysUntilDue = 0;
+      isPeriodOver = arrears > 0;
+    }
+
+    const overdueWarning = {
+      isWarningActive: arrears > 0 || isPeriodOver,
+      severity:
+        arrears > assignedRate * 3
+          ? 'CRITICAL_SUSPENSION_RISK'
+          : arrears > 0
+            ? 'WARNING'
+            : 'NONE',
+      daysInArrears,
+      timeArrears,
+      fineArrears,
+      nextDueAt: nextDueAt.toISOString(),
+      warningMessageEn:
+        arrears > 0
+          ? `Overdue Arrears: ${arrears.toLocaleString()} RWF (${daysInArrears} day(s) behind schedule). Settle your contribution immediately to avoid remote bike lock.`
+          : isPeriodOver
+            ? `Your payment period has expired. Complete your next contribution to stay up to date.`
+            : `Your payments are up to date. Next contribution due on ${nextDueAt.toLocaleDateString()}.`,
+      warningMessageRw:
+        arrears > 0
+          ? `Ikirarane cy'amafaranga: Uri mu kirarane cy'iminsi ${daysInArrears} (${arrears.toLocaleString()} RWF). Wishyure ubu kugira ngo velo yawe itazafungwa kure.`
+          : isPeriodOver
+            ? `Igihe cyawe cyo kwishyura cyarangiye. Kora ubwishyu ubu ngubu.`
+            : `Ubwishyu bwawe buranogeye. Ubukurikiyeho ni ku ya ${nextDueAt.toLocaleDateString()}.`,
+    };
+
     return {
       isLeaseToOwn,
       leasePrincipal,
@@ -2005,6 +2056,15 @@ export class RidersService {
       schedulePeriodDays,
       requiredPeriodAmount,
       requiredTotalAmount,
+      remainingLeaseBalance,
+      remainingPeriodAmount,
+      timeArrears,
+      fineArrears,
+      daysInArrears,
+      nextDueAt: nextDueAt.toISOString(),
+      daysUntilDue,
+      isPeriodOver,
+      overdueWarning,
       totalPaid,
       expectedPaid,
       arrears,
@@ -2057,11 +2117,11 @@ export class RidersService {
     }
 
     const isPartial = dto.isPartial || amount < requiredPeriodAmount;
-    if (isPartial && !dto.partialReason?.trim()) {
-      throw new BadRequestException(
-        `You are paying ${amount.toLocaleString()} RWF, which is less than your required ${schedulePeriodDays}-day contribution (${requiredPeriodAmount.toLocaleString()} RWF). Please provide a reason for the partial payment.`,
-      );
-    }
+    const partialReason =
+      dto.partialReason?.trim() ||
+      (isPartial
+        ? `Partial contribution (${amount.toLocaleString()} / ${requiredPeriodAmount.toLocaleString()} RWF)`
+        : undefined);
 
     return this.momoGatewayService.requestRiderCollectionToPay(
       user.fleetId,
@@ -2069,12 +2129,12 @@ export class RidersService {
       amount,
       phone,
       isPartial,
-      isPartial ? dto.partialReason?.trim() : undefined,
+      partialReason,
     );
   }
 
   async getRiderPaymentStatus(user: AuthenticatedUser, referenceId: string) {
-    const transaction = await this.prismaService.momoTransaction.findFirst({
+    let transaction = await this.prismaService.momoTransaction.findFirst({
       where: {
         referenceId,
         riderId: user.id,
@@ -2085,15 +2145,44 @@ export class RidersService {
       throw new NotFoundException('Payment transaction not found');
     }
 
+    if (transaction.status === 'PENDING') {
+      try {
+        const result = await this.momoGatewayService.checkTransactionStatus(
+          referenceId,
+        );
+        if (result?.status === 'SUCCESSFUL') {
+          const finTxId = result.financialTransactionId || `MOMO-${Date.now()}`;
+          await this.momoGatewayService.processSuccessfulPayment(
+            transaction,
+            finTxId,
+          );
+          transaction = await this.prismaService.momoTransaction.findFirst({
+            where: { referenceId, riderId: user.id },
+          });
+        } else if (result?.status === 'FAILED') {
+          await this.momoGatewayService.processFailedPayment(
+            transaction,
+            result.reason || 'FAILED',
+          );
+          transaction = await this.prismaService.momoTransaction.findFirst({
+            where: { referenceId, riderId: user.id },
+          });
+        }
+      } catch (err) {
+        // Log & proceed with existing stored status
+        this.logger.warn(`Failed live check for status of tx ${referenceId}: ${err}`);
+      }
+    }
+
     return {
-      referenceId: transaction.referenceId,
-      externalId: transaction.externalId,
-      amount: transaction.amount,
-      status: transaction.status,
-      payerPhone: transaction.payerPhone,
-      financialTransactionId: transaction.financialTransactionId,
-      failureReason: transaction.failureReason,
-      createdAt: transaction.createdAt,
+      referenceId: transaction?.referenceId ?? referenceId,
+      externalId: transaction?.externalId,
+      amount: transaction?.amount,
+      status: transaction?.status ?? 'PENDING',
+      payerPhone: transaction?.payerPhone,
+      financialTransactionId: transaction?.financialTransactionId,
+      failureReason: transaction?.failureReason,
+      createdAt: transaction?.createdAt,
     };
   }
 }

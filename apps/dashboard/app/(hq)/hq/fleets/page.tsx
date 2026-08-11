@@ -52,7 +52,7 @@ export default function HqFleetsPage() {
     if (!query) return true;
 
     const tokens = query.split(/\s+/).filter(Boolean);
-    const planText = f.plan === 'PREMIUM' ? 'delivery fleet' : f.plan === 'DEMO' ? 'cooperative individual' : f.plan;
+    const planText = f.plan === 'PAYG' ? 'pay as you go' : f.plan === 'INSURANCE' ? 'insurance' : f.plan === 'ENTERPRISE' ? 'enterprise' : f.plan;
 
     return tokens.every((token) => {
       return [
@@ -216,7 +216,7 @@ export default function HqFleetsPage() {
                     <td className="px-8 py-6">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">
                         <div className="h-1 w-1 rounded-full bg-accent" />
-                        {fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : fleet.plan === 'DEMO' ? 'Cooperative & Individual' : fleet.plan}
+                        {fleet.plan === 'PAYG' || !fleet.plan ? 'Pay-As-You-Go' : fleet.plan}
                       </span>
                     </td>
                     <td className="px-8 py-6">

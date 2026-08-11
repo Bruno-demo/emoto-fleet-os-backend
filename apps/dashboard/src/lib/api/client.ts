@@ -158,14 +158,34 @@ export async function apiFetch<T = unknown>(
     clearTimeout(timeoutId);
     if (error instanceof ApiError) throw error;
     
+    // Retry up to 2 times on transient network drops or server restarts
+    const retryCount = (init as any)._retryCount ?? 0;
+    const isNetworkErr = error instanceof Error && (
+      error.name === 'TypeError' || 
+      error.message.includes('fetch') || 
+      error.message.includes('NetworkError') ||
+      error.message.includes('Failed to fetch')
+    );
+
+    if (isNetworkErr && retryCount < 2) {
+      const backoffMs = (retryCount + 1) * 400;
+      console.warn(`[apiFetch] Transient network drop on ${init.method || 'GET'} ${path} (attempt ${retryCount + 1}). Retrying in ${backoffMs}ms...`);
+      await new Promise((res) => setTimeout(res, backoffMs));
+      return apiFetch(path, { ...init, _retryCount: retryCount + 1 } as any, options);
+    }
+
     const isTimeout = error instanceof Error && error.name === 'AbortError';
     const message = isTimeout 
       ? 'Request timed out. Please check your internet connection.' 
       : 'Network connection failed. Please check your internet connection.';
     
+    const errorLogDetails = error instanceof Error 
+      ? { name: error.name, message: error.message, stack: error.stack }
+      : String(error);
+
     console.error(`API Fetch Error: ${message}`, {
       url: resolveApiUrl(path),
-      error,
+      error: errorLogDetails,
     });
       
     throw new ApiError(0, message, resolveApiUrl(path), error);

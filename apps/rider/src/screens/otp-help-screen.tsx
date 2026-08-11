@@ -4,6 +4,7 @@ import { AuthShell } from '../components/auth-shell';
 import { AppCard } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { PrimaryButton, SecondaryButton } from '../components/ui/button';
+import { useLanguage } from '../lib/i18n/language-context';
 import type { RiderAuthStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
 
@@ -11,24 +12,25 @@ type OtpHelpScreenProps = NativeStackScreenProps<RiderAuthStackParamList, 'OtpHe
 
 // Explains the current sign-in mode so riders do not wait for an OTP that will never arrive.
 export function OtpHelpScreen({ navigation }: OtpHelpScreenProps) {
+  const { t } = useLanguage();
   return (
     <AuthShell
-      eyebrow="OTP Help"
-      title="This rider app signs in with phone and password"
-      description="SMS OTP sign-in is not enabled in this deployment, so riders should use the password flow and fleet-assisted recovery."
+      eyebrow={t.auth.otpHelpEyebrow}
+      title={t.auth.otpHelpScreenTitle}
+      description={t.auth.otpHelpScreenDescription}
     >
       <AppCard
-        title="Current sign-in mode"
-        subtitle="Use the same rider phone number and password that your fleet admin issued."
-        rightSlot={<Badge label="Password flow" tone="primary" />}
+        title={t.auth.currentSignInModeCardTitle}
+        subtitle={t.auth.currentSignInModeCardSub}
+        rightSlot={<Badge label={t.auth.passwordFlowBadge} tone="primary" />}
       >
         <View style={styles.stepList}>
-          <Text style={styles.stepText}>If your phone changed, ask your fleet admin to update the rider account.</Text>
-          <Text style={styles.stepText}>If your password is missing, use the recovery flow to request a temporary password.</Text>
-          <Text style={styles.stepText}>If login still fails, return to the login screen and confirm the full phone number format.</Text>
+          <Text style={styles.stepText}>{t.auth.otpRule1}</Text>
+          <Text style={styles.stepText}>{t.auth.otpRule2}</Text>
+          <Text style={styles.stepText}>{t.auth.otpRule3}</Text>
         </View>
-        <PrimaryButton label="Back to login" onPress={() => navigation.navigate('Login')} />
-        <SecondaryButton label="Recovery options" onPress={() => navigation.navigate('ForgotAccess')} />
+        <PrimaryButton label={t.auth.backToLoginButton} onPress={() => navigation.navigate('Login')} />
+        <SecondaryButton label={t.auth.recoveryOptionsButton} onPress={() => navigation.navigate('ForgotAccess')} />
       </AppCard>
     </AuthShell>
   );

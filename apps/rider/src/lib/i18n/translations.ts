@@ -27,6 +27,7 @@ export interface Translations {
     duration: string;
     used: string;
     signOut: string;
+    done: string;
   };
   // Navigation tabs
   tabs: {
@@ -76,6 +77,64 @@ export interface Translations {
     resetTitle: string;
     newPasswordLabel: string;
     resetButton: string;
+    inviteCodeLabel: string;
+    inviteCodePlaceholder: string;
+    fullNamePlaceholder: string;
+    phoneLabelFormat: string;
+    phonePlaceholder: string;
+    emailPlaceholder: string;
+    nationalIdLabelOptional: string;
+    nationalIdPlaceholder: string;
+    licenseLabelOptional: string;
+    licensePlaceholder: string;
+    uploadDocTitle: string;
+    passportPhotoTitle: string;
+    passportPhotoSub: string;
+    nationalIdPhotoTitle: string;
+    nationalIdPhotoSub: string;
+    licensePhotoTitle: string;
+    licensePhotoSub: string;
+    choosePhotoBtn: string;
+    passwordHint: string;
+    confirmPasswordLabel: string;
+    confirmPasswordPlaceholder: string;
+    registering: string;
+    alreadyHaveAccount: string;
+    signInCredentialsSub: string;
+    brandEyebrow: string;
+    loginSubHeader: string;
+    secureBadge: string;
+    needHelpTitle: string;
+    forgotAccessTitle: string;
+    forgotAccessSub: string;
+    otpHelpTitle: string;
+    otpHelpSub: string;
+    registerInviteTitle: string;
+    registerInviteSub: string;
+    recoveryEyebrow: string;
+    recoveryTitle: string;
+    recoveryDescription: string;
+    checkPhoneCardTitle: string;
+    checkPhoneCardSub: string;
+    identifierFieldLabel: string;
+    identifierFieldPlaceholder: string;
+    continueButton: string;
+    backToLoginButton: string;
+    whatHappensNextTitle: string;
+    whatHappensNextSub: string;
+    step1Text: string;
+    step2Text: string;
+    step3Text: string;
+    otpHelpEyebrow: string;
+    otpHelpScreenTitle: string;
+    otpHelpScreenDescription: string;
+    currentSignInModeCardTitle: string;
+    currentSignInModeCardSub: string;
+    passwordFlowBadge: string;
+    otpRule1: string;
+    otpRule2: string;
+    otpRule3: string;
+    recoveryOptionsButton: string;
   };
   // Home Screen
   home: {
@@ -110,6 +169,27 @@ export interface Translations {
     bikesCount: string;
     primaryBike: string;
     alertsCount: string;
+    staySmoothRideSafe: string;
+    ridesCountThisWeek: string;
+    tripsScoredThisWeek: string;
+    scoreLabel: string;
+    noData: string;
+    scoreStrong: string;
+    scoreNeedsAttention: string;
+    scoreHighRisk: string;
+    noScoreYet: string;
+    coachingTipSpeedTitle: string;
+    coachingTipSpeedDetail: string;
+    coachingTipBrakeTitle: string;
+    coachingTipBrakeDetail: string;
+    coachingTipMomentumTitle: string;
+    coachingTipMomentumDetail: string;
+    coachingTipFirstRideTitle: string;
+    coachingTipFirstRideDetail: string;
+    coachingTipLongerTitle: string;
+    coachingTipLongerDetail: string;
+    coachingTipCheckTitle: string;
+    coachingTipCheckDetail: string;
   };
   // Profile Screen
   profile: {
@@ -209,6 +289,23 @@ export interface Translations {
     partialReasonRequired: string;
     partialReasonPlaceholder: string;
     partialReasonError: string;
+    remainingOwnership: string;
+    momoTitle: string;
+    momoSubtitle: string;
+    selectAmount: string;
+    payingPartialLabel: string;
+    momoPhoneLabel: string;
+    paymentReceivedTitle: string;
+    paymentRecordedDesc: string;
+    remainingPeriodBalance: string;
+    timePassedArrears: string;
+    fineArrears: string;
+    overdueDays: string;
+    nextDueDate: string;
+    daysRemaining: string;
+    weekOver: string;
+    periodExpired: string;
+    lockWarningTitle: string;
   };
   // Deliveries Screen
   deliveries: {
@@ -247,6 +344,20 @@ export interface Translations {
     sendAnother: string;
     tapToAlert: string;
     whenToUse: string;
+    confirmTitle: string;
+    confirmDesc: string;
+    confirmYes: string;
+    guideCrash: string;
+    guideDanger: string;
+    guideTheft: string;
+    guideMedical: string;
+    optionalNoteTitle: string;
+    optionalNoteSubtitle: string;
+    messageLabel: string;
+    messagePlaceholder: string;
+    clearNote: string;
+    notSentTitle: string;
+    retrySos: string;
   };
   nearby: {
     title: string;
@@ -292,6 +403,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       duration: 'duration',
       used: 'used',
       signOut: 'Sign out',
+      done: 'Done',
     },
     tabs: {
       home: 'Home',
@@ -338,6 +450,64 @@ export const translations: Record<SupportedLanguage, Translations> = {
       resetTitle: 'Set New Password',
       newPasswordLabel: 'New Password',
       resetButton: 'Save New Password',
+      inviteCodeLabel: 'Invitation code *',
+      inviteCodePlaceholder: 'e.g. invite_abcdef123456',
+      fullNamePlaceholder: 'e.g. Aisha Niyonzima',
+      phoneLabelFormat: 'Phone number (10 Digits) *',
+      phonePlaceholder: 'e.g. 0788123456',
+      emailPlaceholder: 'rider@fleet.co',
+      nationalIdLabelOptional: 'National ID / Identity Number (Optional)',
+      nationalIdPlaceholder: 'e.g. 1199880011223344',
+      licenseLabelOptional: "Driver's License Number (Optional)",
+      licensePlaceholder: 'e.g. RND-987654',
+      uploadDocTitle: 'Upload Rider Verification Documents',
+      passportPhotoTitle: 'Passport Photo',
+      passportPhotoSub: 'Headshot photo for rider identification',
+      nationalIdPhotoTitle: 'National ID Card',
+      nationalIdPhotoSub: 'Front photo of your National ID or Passport',
+      licensePhotoTitle: "Driver's License",
+      licensePhotoSub: 'Photo of your active motorcycle driving license',
+      choosePhotoBtn: '📷 Choose',
+      passwordHint: 'Minimum 8 characters',
+      confirmPasswordLabel: 'Confirm password *',
+      confirmPasswordPlaceholder: 'Re-enter password',
+      registering: 'Creating rider account...',
+      alreadyHaveAccount: 'Already have an account?',
+      signInCredentialsSub: 'Go back to sign in with your credentials',
+      brandEyebrow: 'eMoto Fleet',
+      loginSubHeader: 'Sign in with your phone and password to access your dashboard, trips, and coaching.',
+      secureBadge: 'Secure',
+      needHelpTitle: 'Need help?',
+      forgotAccessTitle: 'Forgot access',
+      forgotAccessSub: 'Reset your password or recover your account',
+      otpHelpTitle: 'OTP help',
+      otpHelpSub: 'Questions about password-based sign-in',
+      registerInviteTitle: 'Register with invite code',
+      registerInviteSub: 'Got an invite from your fleet admin? Create your account',
+      recoveryEyebrow: 'Recovery',
+      recoveryTitle: 'Recover your rider access',
+      recoveryDescription: 'We will guide you to the safest next step without exposing technical details.',
+      checkPhoneCardTitle: 'Check your rider phone',
+      checkPhoneCardSub: 'Start with the phone number registered by your fleet admin.',
+      identifierFieldLabel: 'Rider phone number or Email',
+      identifierFieldPlaceholder: 'e.g. +250788123456 or rider@example.com',
+      continueButton: 'Continue',
+      backToLoginButton: 'Back to login',
+      whatHappensNextTitle: 'What happens next',
+      whatHappensNextSub: 'Password recovery is now self-service for your account.',
+      step1Text: '1. Confirm the phone number your fleet admin registered.',
+      step2Text: '2. Enter the 6-character reset token sent to your device.',
+      step3Text: '3. Choose a new secure password to access your rider profile.',
+      otpHelpEyebrow: 'OTP Help',
+      otpHelpScreenTitle: 'This rider app signs in with phone and password',
+      otpHelpScreenDescription: 'SMS OTP sign-in is not enabled in this deployment, so riders should use the password flow and fleet-assisted recovery.',
+      currentSignInModeCardTitle: 'Current sign-in mode',
+      currentSignInModeCardSub: 'Use the same rider phone number and password that your fleet admin issued.',
+      passwordFlowBadge: 'Password flow',
+      otpRule1: 'If your phone changed, ask your fleet admin to update the rider account.',
+      otpRule2: 'If your password is missing, use the recovery flow to request a temporary password.',
+      otpRule3: 'If login still fails, return to the login screen and confirm the full phone number format.',
+      recoveryOptionsButton: 'Recovery options',
     },
     home: {
       greeting: 'Hello',
@@ -371,6 +541,27 @@ export const translations: Record<SupportedLanguage, Translations> = {
       bikesCount: 'Bikes',
       primaryBike: 'Primary',
       alertsCount: 'Alerts',
+      staySmoothRideSafe: 'Stay smooth, ride safe',
+      ridesCountThisWeek: '{count} rides this week',
+      tripsScoredThisWeek: '{count} trips scored this week',
+      scoreLabel: 'SCORE',
+      noData: 'No data',
+      scoreStrong: 'Strong week',
+      scoreNeedsAttention: 'Needs attention',
+      scoreHighRisk: 'High risk',
+      noScoreYet: 'No score yet',
+      coachingTipSpeedTitle: 'Ease off in slow zones',
+      coachingTipSpeedDetail: 'Recent overspeed detected. A steadier pace protects your score.',
+      coachingTipBrakeTitle: 'Smooth your braking',
+      coachingTipBrakeDetail: 'Leave more room ahead to brake and accelerate progressively.',
+      coachingTipMomentumTitle: 'Keep momentum',
+      coachingTipMomentumDetail: 'Strong week! One more clean ride to hold the lead.',
+      coachingTipFirstRideTitle: 'Start your first ride',
+      coachingTipFirstRideDetail: 'Your first scored ride unlocks coaching and trends.',
+      coachingTipLongerTitle: 'Ride a bit longer',
+      coachingTipLongerDetail: 'A longer smooth ride gives better data for your score.',
+      coachingTipCheckTitle: 'Pre-ride check',
+      coachingTipCheckDetail: 'Quick tire, brake & battery check saves events later.',
     },
     profile: {
       title: 'Profile & Settings',
@@ -467,6 +658,23 @@ export const translations: Record<SupportedLanguage, Translations> = {
       partialReasonRequired: 'Reason for Partial Payment (Required by Fleet Admin)',
       partialReasonPlaceholder: 'e.g., Bike undergoing maintenance / half-day trip',
       partialReasonError: 'Please provide a reason why you are paying less than the required period contribution.',
+      remainingOwnership: 'Remaining Balance to Own Bike',
+      momoTitle: 'Mobile Money Collection',
+      momoSubtitle: 'Prompt will be sent directly to your phone. Schedule: {schedule} — Required contribution: {amount}.',
+      selectAmount: 'Select Amount (RWF)',
+      payingPartialLabel: 'Paying Partial / Less than Required Period Amount',
+      momoPhoneLabel: 'MoMo Phone Number',
+      paymentReceivedTitle: 'Payment Received!',
+      paymentRecordedDesc: '{amount} has been recorded automatically to your fleet profile.',
+      remainingPeriodBalance: 'Remaining Amount for Current Period',
+      timePassedArrears: 'Time-Passed Overdue Arrears',
+      fineArrears: 'Pending Traffic Fine Arrears',
+      overdueDays: 'Days Behind Schedule',
+      nextDueDate: 'Next Scheduled Due Date',
+      daysRemaining: '{days} day(s) remaining',
+      weekOver: 'Current week period ends in {days} day(s)',
+      periodExpired: 'Payment Period Expired',
+      lockWarningTitle: 'IMMEDIATE LOCK RISK & OVERDUE WARNING',
     },
     deliveries: {
       title: 'Active Deliveries',
@@ -503,6 +711,20 @@ export const translations: Record<SupportedLanguage, Translations> = {
       sendAnother: 'Send another SOS',
       tapToAlert: 'Tap to alert dispatch immediately',
       whenToUse: 'When to use SOS',
+      confirmTitle: 'Send emergency alert?',
+      confirmDesc: 'This will notify your dispatcher immediately and may trigger emergency contact workflows. Only continue if you need urgent help.',
+      confirmYes: 'Yes, send SOS',
+      guideCrash: 'Crash or collision',
+      guideDanger: 'Personal danger or threat',
+      guideTheft: 'Theft in progress',
+      guideMedical: 'Medical emergency',
+      optionalNoteTitle: 'Optional Note',
+      optionalNoteSubtitle: 'Help dispatch understand the situation',
+      messageLabel: 'Message',
+      messagePlaceholder: 'What happened? Crash, medical, unsafe stop...',
+      clearNote: 'Clear',
+      notSentTitle: 'SOS not sent',
+      retrySos: 'Retry SOS',
     },
     nearby: {
       title: 'Nearby Services',
@@ -522,13 +744,13 @@ export const translations: Record<SupportedLanguage, Translations> = {
   },
   rw: {
     common: {
-      loading: 'Kwikorera...',
+      loading: 'Gukurura amakuru...',
       updating: 'Kuvugurura...',
       error: 'Hari ikosa ryabaye',
       retry: 'Ongera ugerageze',
       close: 'Funga',
       save: 'Bika',
-      cancel: 'Bika',
+      cancel: 'Kureka',
       confirm: 'Emeza',
       back: 'Subira inyuma',
       none: 'Nta cyo',
@@ -536,7 +758,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       inactive: 'Ntikora',
       online: 'Kuri murandasi',
       offline: 'Nta murandasi',
-      copied: '✓ Byagutse',
+      copied: '✓ Byakoporowe',
       copy: '📋 Koporora',
       total: 'Byose',
       today: 'Uyu munsi',
@@ -544,59 +766,118 @@ export const translations: Record<SupportedLanguage, Translations> = {
       viewAll: 'Reba Byose',
       submit: 'Ohereza',
       duration: 'Igihe',
-      used: 'Yagutswe',
+      used: 'Yakoreshejwe',
       signOut: 'Sohoka',
+      done: 'Yego',
     },
     tabs: {
-      home: 'Kaza',
+      home: 'Ahabanza',
       trips: 'Ingendo',
       deliveries: 'Ibipaki',
       payments: 'Kwishyura',
       sos: 'Ubutabazi',
-      nearby: 'Aho uri',
+      nearby: 'Ibiri Hafi',
       profile: 'Umwirondoro',
     },
     statusBanners: {
       offlineTitle: 'Nta murandasi uboneka',
-      offlineSub: 'Genhura umurandasi wawe kugira ngo ukorane n’isibo.',
-      pendingTitle: 'Ugutegereza kurangira',
-      pendingSub: 'Ubuyobozi bwawe buri gukora kuri moto yawe.',
+      offlineSub: 'Genzura murandasi yawe no kwongera guhuza n’isibo.',
+      pendingTitle: 'Konti yawe iracyatunganywa',
+      pendingSub: 'Ubuyobozi burimo gutunganya amakuru ya moto yawe.',
       pendingCta: 'Vugana n’ubuyobozi',
     },
     auth: {
       welcomeTitle: 'Murakaza neza',
-      welcomeSub: 'Injira urebereho ingendo n’amakuru yawe.',
-      identifierLabel: 'Imiyoboro ya Imeyili cyane telekome',
-      identifierPlaceholder: 'andika imeyili cyangwa nimero...',
+      welcomeSub: 'Injira urebereho ingendo n’amakuru ya moto yawe.',
+      identifierLabel: 'Telefoni cyangwa Imeyili',
+      identifierPlaceholder: 'Andika telefone cyangwa imeyili...',
       passwordLabel: 'Ijambo ry’ibanga',
-      passwordPlaceholder: 'andika ijambo ry’ibanga...',
+      passwordPlaceholder: 'Andika ijambo ry’ibanga...',
       loginButton: 'Injira',
       loggingIn: 'Kwinjira...',
       registerLink: 'Ntubwo ufite konti? Iyandikishe',
       forgotPasswordLink: 'Wibagiwe ijambo ry’ibanga?',
-      otpTitle: 'Shyiramo kode y’ubwishingizi',
+      otpTitle: 'Shyiramo kode y’umutekano',
       otpSub: 'Twakwoherereje kode y’imibare 6 muri imeyili/telefone.',
       otpLabel: 'Kode ya OTP',
       verifyOtp: 'Emeza & Injira',
       resendOtp: 'Ongera ubasabe kode',
-      registerTitle: 'Wiyandikishe nk’umutwari',
+      registerTitle: 'Wiyandikishe nk’umutwara moto',
       fullNameLabel: 'Izina ryose',
       phoneLabel: 'Nimero ya telefone',
       emailLabel: 'Imeyili (Niba uyifite)',
-      fleetCodeLabel: 'Kodike y’ikigo',
+      fleetCodeLabel: 'Kode y’ikigo (Fleet Code)',
       registerButton: 'Rangiza kwiyandikisha',
       hasAccountLink: 'Ufite konti tayari? Injira',
       forgotTitle: 'Guhindura ijambo ry’ibanga',
       forgotSub: 'Shyiramo telefone cyangwa imeyili uboneraho amabwiriza.',
       sendResetLink: 'Ohereza kode',
-      resetTitle: 'Shyiraho ijambo gushya',
-      newPasswordLabel: 'Ijambo ry’ibanga gushya',
+      resetTitle: 'Shyiraho ijambo ry’ibanga rishya',
+      newPasswordLabel: 'Ijambo ry’ibanga rishya',
       resetButton: 'Bika ijambo ry’ibanga',
+      inviteCodeLabel: 'Kode y’ubutumire *',
+      inviteCodePlaceholder: 'urug. invite_abcdef123456',
+      fullNamePlaceholder: 'urug. Aisha Niyonzima',
+      phoneLabelFormat: 'Nimero ya telefone (Imibare 10) *',
+      phonePlaceholder: 'urug. 0788123456',
+      emailPlaceholder: 'umutwari@isibo.rw',
+      nationalIdLabelOptional: 'Inomero y’Indangamuntu (Niba uyifite)',
+      nationalIdPlaceholder: 'urug. 1199880011223344',
+      licenseLabelOptional: 'Inomero ya Ruhushya rwo gutwara (Niba uyifite)',
+      licensePlaceholder: 'urug. RND-987654',
+      uploadDocTitle: 'Ohereza inyandiko z’umutwara moto',
+      passportPhotoTitle: 'Ifoto ya Pasiporo / Umwirondoro',
+      passportPhotoSub: 'Ifoto ngufi y’isura yo kukuranga',
+      nationalIdPhotoTitle: 'Indangamuntu',
+      nationalIdPhotoSub: 'Ifoto y’imbere y’Indangamuntu cyangwa Pasiporo',
+      licensePhotoTitle: 'Ruhushya rwo gutwara moto',
+      licensePhotoSub: 'Ifoto ya ruhushya rwo gutwara moto rukora',
+      choosePhotoBtn: '📷 Hitamo',
+      passwordHint: 'Nibura imibare cyangwa inyuguti 8',
+      confirmPasswordLabel: 'Emeza ijambo ry’ibanga *',
+      confirmPasswordPlaceholder: 'Ongera winjize ijambo ry’ibanga',
+      registering: 'Buri kurema konti y’umutwara moto...',
+      alreadyHaveAccount: 'Ufite konti tayari?',
+      signInCredentialsSub: 'Subira inyuma winjire na amakuru yawe',
+      brandEyebrow: 'eMoto Fleet',
+      loginSubHeader: 'Injira ukoresheje telefone n’ijambo ry’ibanga ubashe kureba amakuru, ingendo n’inyigisho.',
+      secureBadge: 'Bitekanye',
+      needHelpTitle: 'Ukeneye ubufasha?',
+      forgotAccessTitle: 'Wibagiwe ijambo ry’ibanga',
+      forgotAccessSub: 'Hindura ijambo ry’ibanga cyangwa ushireho rishya',
+      otpHelpTitle: 'Ubufasha bwa OTP',
+      otpHelpSub: 'Ibibazo ku kwinjirana n’ijambo ry’ibanga',
+      registerInviteTitle: 'Wiyandikishe ukoresheje kode y’ubutumire',
+      registerInviteSub: 'Wahawe kode n’ubuyobozi bw’ikigo? Rema konti yawe',
+      recoveryEyebrow: 'Gusubirana Konti',
+      recoveryTitle: 'Gusubirana uburyo bwo kwinjira',
+      recoveryDescription: 'Tukuganisha ku ntambwe irushijeho gutekana yo gusubirana konti yawe.',
+      checkPhoneCardTitle: 'Genzura telefone yawe y’umutwara moto',
+      checkPhoneCardSub: 'Tanganiraho nimero ya telefone yandikishijwe n’ubuyobozi bw’ikigo.',
+      identifierFieldLabel: 'Telefone cyangwa Imeyili y’umutwara moto',
+      identifierFieldPlaceholder: 'urug. 0788123456 cyangwa umutwari@isibo.rw',
+      continueButton: 'Komeza',
+      backToLoginButton: 'Subira kwinjira',
+      whatHappensNextTitle: 'Igikurikiraho ni iki',
+      whatHappensNextSub: 'Guhindura ijambo ry’ibanga rwakozwe mu buryo bwihuse kuri konti yawe.',
+      step1Text: '1. Emeza nimero ya telefone yanditswe n’ubuyobozi bw’ikigo.',
+      step2Text: '2. Shyiramo kode y’imibare 6 yo guhindura yoherejwe kuri telefone yawe.',
+      step3Text: '3. Hitamo ijambo ry’ibanga rishya ryatekanye ubashe kwinjira muri konti yawe.',
+      otpHelpEyebrow: 'Ubufasha bwa OTP',
+      otpHelpScreenTitle: 'Iyi konti y’umutwara moto iwinjirana na telefone n’ijambo ry’ibanga',
+      otpHelpScreenDescription: 'Kwinjira ukoresheje OTP ya SMS ntabwo bikora hano, abatwara moto bakoresha ijambo ry’ibanga n’ubufasha bw’ubuyobozi.',
+      currentSignInModeCardTitle: 'Uburyo bwo kwinjira buri gukora',
+      currentSignInModeCardSub: 'Koresha nimero ya telefone n’ijambo ry’ibanga wahawe n’ubuyobozi bw’ikigo.',
+      passwordFlowBadge: 'Inzira y’ijambo ry’ibanga',
+      otpRule1: 'Niba telefone yawe yarahindutse, saba ubuyobozi bw’ikigo kuvugurura konti yawe.',
+      otpRule2: 'Niba wibagiwe ijambo ry’ibanga, koresha inzira yo gusubirana konti ubashe kubona rishya.',
+      otpRule3: 'Niba kwinjira bikomeje kwanga, subira ku rupapuro rwo kwinjira ugenzure format ya telefone yawe.',
+      recoveryOptionsButton: 'Uburyo bwo gusubirana konti',
     },
     home: {
       greeting: 'Muraho',
       safetyScore: 'Amanota y’Umutekano',
-      scoreSubtitle: 'Akurikije ukuntu utwara muri iki cyumweru',
+      scoreSubtitle: 'Akurikije uko watwaye moto muri iki cyumweru',
       assignedBike: 'Moto yawe',
       noBike: 'Nta moto yagenwe',
       quickActions: 'Ibyagufasha kwihuta',
@@ -605,7 +886,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       actionPay: 'Kwishyura moto',
       actionTrips: 'Ingendo zanjye',
       recentActivity: 'Ingendo zaherutse',
-      noRecentTrips: 'Nta ngendo ziremerwa mu mfashanyigisho',
+      noRecentTrips: 'Nta ngendo ziheruka zakozwe.',
       avgWeeklyScore: 'Amanota yo hagati',
       totalKmThisWeek: 'Ibirometero',
       tripsCount: 'Ingendo',
@@ -618,18 +899,39 @@ export const translations: Record<SupportedLanguage, Translations> = {
       trackOnLiveMap: 'Kureba ku Ikarita',
       lastTrip: 'Urugendo rwaherutse',
       coaching: 'Inyigisho n’Inama',
-      coachingSubtitle: 'Inama zo kukubungabunga mu muhanda',
+      coachingSubtitle: 'Inama zo kuguha umutekano mu muhanda',
       recentAlerts: 'Iburira ryaherutse',
       allClear: 'Nta kibazo',
       allClearDesc: 'Nta burira buhari. Utwara neza mu muhanda.',
       bikesCount: 'Moto',
       primaryBike: 'Nyamukuru',
       alertsCount: 'Iburira',
+      staySmoothRideSafe: 'Twara neza, ugende amahoro',
+      ridesCountThisWeek: 'Ingendo {count} muri iki cyumweru',
+      tripsScoredThisWeek: '{count} ingendo zatsinzwe muri iki cyumweru',
+      scoreLabel: 'AMANOTA',
+      noData: 'Nta makuru',
+      scoreStrong: 'Icyumweru cyiza',
+      scoreNeedsAttention: 'Witondere umuvuduko',
+      scoreHighRisk: 'Ibyago biri hejuru',
+      noScoreYet: 'Nta manota aragera',
+      coachingTipSpeedTitle: 'Gabhanya umuvuduko mu magendo',
+      coachingTipSpeedDetail: 'Haragaragaye umuvuduko mwinshi. Genda buhoro kuzuza amanota meza.',
+      coachingTipBrakeTitle: 'Gufata feri neza buhoro',
+      coachingTipBrakeDetail: 'Siga umwanya Uhagije imbere yo gufata feri no kwongera umuvuduko.',
+      coachingTipMomentumTitle: 'Komeza umuvuduko mwiza',
+      coachingTipMomentumDetail: 'Icyumweru cyiza! Utwaye neza rimwe arusha abandi.',
+      coachingTipFirstRideTitle: 'Tangira urugendo rwawe rwa mbere',
+      coachingTipFirstRideDetail: 'Urugendo rwawe rwa mbere ruzaguhuza n’inyigisho n’amanota.',
+      coachingTipLongerTitle: 'Twara intera ndende gato',
+      coachingTipLongerDetail: 'Urugendo rwiza rurebure rutanga amakuru arushijeho ku manota yawe.',
+      coachingTipCheckTitle: 'Gusuzuma moto mbele yo gutwara',
+      coachingTipCheckDetail: 'Gusuzuma amapine, feri na batiri rugikubita bikurinda amakosa.',
     },
     profile: {
       title: 'Umwirondoro & Amakuru',
       languageSection: 'Ururimi / Language',
-      languageEnglish: '🇬🇧 Ichongereza',
+      languageEnglish: '🇬🇧 Bwongereza (English)',
       languageKinyarwanda: '🇷🇼 Ikinyarwanda',
       accountSection: 'Amakuru ya Konti',
       fullName: 'Izina ryose',
@@ -650,20 +952,20 @@ export const translations: Record<SupportedLanguage, Translations> = {
       showDetails: 'Reba birambuye ▼',
       hideDetails: 'Hisha amakuru ▲',
       diagnosticsDesc: 'Niba utagira intambwe kuri moto cyangwa murandasi, abafasha bashobora kugusaba iyi kode.',
-      riderUserId: 'KODE Y’UMUTWARI',
-      operatingFleetId: 'KODE Y’IKIGO',
+      riderUserId: 'KODE Y’UMUTWARI WA MOTO',
+      operatingFleetId: 'KODE Y’IKIGO (FLEET)',
       signOut: 'Sohoka muri konti',
       toggleActiveOnline: '🟢 Ndakora & Ndi kuri murandasi',
       toggleOffline: '⚫ Nta murandasi',
     },
     trips: {
-      title: 'Urutonde lwa Ingendo',
+      title: 'Urutonde rw’Ingendo',
       tripDetailTitle: 'Amakuru y’Urugendo',
       filterAll: 'Ingendo zose',
       filterCompleted: 'Zarangiye',
       filterOngoing: 'Izirimo zikora',
       distance: 'Ibirometero',
-      duration: 'Ighe byatwaye',
+      duration: 'Igihe byatwaye',
       score: 'Amanota',
       startTime: 'Yatangiye',
       endTime: 'Yarangiye',
@@ -685,8 +987,8 @@ export const translations: Record<SupportedLanguage, Translations> = {
       harshTotal: 'Ibyaha byose',
       critical: 'Ibyaha bikabije',
       totalPenalty: 'Ibihano byose',
-      harshRiding: 'Intwara nabi',
-      scoredDistance: 'Ibirometero byagutswe',
+      harshRiding: 'Utwara nabi',
+      scoredDistance: 'Ibirometero byapimwe',
       start: 'Yatangiye',
       end: 'Yarangiye',
       inProgress: 'Iracyakora',
@@ -706,11 +1008,11 @@ export const translations: Record<SupportedLanguage, Translations> = {
       payNow: 'Ishyura Ayagenwe',
       statusPaid: 'BYISHYUWE',
       statusUnpaid: 'NTIBYISHYUWE',
-      statusPartial: 'BYISHYUWE MBEYA',
+      statusPartial: 'BYISHYUWE IGICE',
       leaseToOwnPlan: 'Kwishyura Ugafata Moto',
-      dailyRental: 'Ukwezi kw’Umunsi',
+      dailyRental: 'Ubwishyu bw’Umunsi (Rental)',
       perDay: 'ku munsi',
-      leasePrincipalPaid: 'Ayatsinzwe mu nshingano',
+      leasePrincipalPaid: 'Aramaze kwishyurwa ku moto',
       paid: 'Yishyuwe',
       total: 'Byose',
       periodSchedule: 'Gahunda yo Kwishyura',
@@ -721,6 +1023,23 @@ export const translations: Record<SupportedLanguage, Translations> = {
       partialReasonRequired: 'Impamvu yo kwishyura igice (Isabwa na Admin)',
       partialReasonPlaceholder: 'urug. Moto yari mu garage / ikibazo cy’ubukanishi',
       partialReasonError: 'Nyamuneka tanga impamvu yatumye wishyura amafaranga atageze ku asabwa.',
+      remainingOwnership: 'Ayasigaye kwishyura ngo Moto ibe iyawe',
+      momoTitle: 'Kwishyura na Mobile Money',
+      momoSubtitle: 'Ubutumwa buza kwoherezwa kuri telefone yawe. Gahunda: {schedule} — Umusanzu usabwa: {amount}.',
+      selectAmount: 'Hitamo amafaranga (RWF)',
+      payingPartialLabel: 'Kwishyura igice / Munsi y’amafaranga asabwa ku gihe',
+      momoPhoneLabel: 'Nimero ya telefone ya MoMo',
+      paymentReceivedTitle: 'Ubwishyu bwakiriwe!',
+      paymentRecordedDesc: '{amount} yishyuwe kandi yareshjwe kuri konti yawe mu kigo.',
+      remainingPeriodBalance: 'Ayasigaye mu gihe cy’ubwishyu buri kugeza',
+      timePassedArrears: 'Ikirarane cy’iminsi yarenze',
+      fineArrears: 'Amadeni y’amande y’umuhanda',
+      overdueDays: 'Iminsi yarenze ku nshingano',
+      nextDueDate: 'Igihe cy’ubwishyu bukurikiyeho',
+      daysRemaining: 'Hasigaye iminsi {days}',
+      weekOver: 'Igihe cy’icyumweru kizarangira mu minsi {days}',
+      periodExpired: 'Igihe cyo Kwishyura Cyarangiye',
+      lockWarningTitle: 'IBURIRA BIKABIJE: MOTO ISHOBORA GUFUNGWA KURE',
     },
     deliveries: {
       title: 'Ibipaki byo gutwara',
@@ -728,7 +1047,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       statusPending: 'Birategerejwe',
       statusInProgress: 'Biri mu nzira',
       statusCompleted: 'Byashyikirijwe',
-      statusCancelled: 'Byagutswe',
+      statusCancelled: 'Byahagaritswe',
       pickupAddress: 'Aho gufatira',
       dropoffAddress: 'Aho gushyira',
       customerName: 'Izina ry’umukiriya',
@@ -736,7 +1055,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       startDelivery: 'Tangira Urugendo',
       completeDelivery: 'Rangiza Gutwara',
       noDeliveries: 'Nta gipaki ufite ubu.',
-      assignedOrders: 'Ibipaki watanzwe',
+      assignedOrders: 'Ibipaki wahawe',
       pickup: 'Aho gufatira',
       dropoff: 'Aho gushyikiriza',
       customer: 'Umukiriya',
@@ -757,6 +1076,20 @@ export const translations: Record<SupportedLanguage, Translations> = {
       sendAnother: 'Ongera uburire',
       tapToAlert: 'Kanda uburire abayobozi',
       whenToUse: 'Igihe ukoresha ubutabazi',
+      confirmTitle: 'Ohereza ubutabazi bwihuse?',
+      confirmDesc: 'Iki gikorwa kirahita kimenyesha abagenzuzi n’abafasha mu buryo bwihuse. Komeza gusa niba ukeneye ubufasha bwihuse.',
+      confirmYes: 'Yego, ohereza SOS',
+      guideCrash: 'Impanuka cyangwa kugongana',
+      guideDanger: 'Akaga cyangwa kwangizwa',
+      guideTheft: 'Kwibwa kuri moto',
+      guideMedical: 'Ubufasha bw’ubuzima bwihutirwa',
+      optionalNoteTitle: 'Ibisobanuro by’inyongera (Bihitamo)',
+      optionalNoteSubtitle: 'Fasha umugenzi gusobanukirwa uko bimeze',
+      messageLabel: 'Ubutumwa',
+      messagePlaceholder: 'Icyabaye? Impanuka, ubuzima, guhagarara nabi...',
+      clearNote: 'Siba',
+      notSentTitle: 'SOS ntiyashoboye koherezwa',
+      retrySos: 'Ongera ugerageze kohereza SOS',
     },
     nearby: {
       title: 'Ibyerekezo hafi yawe',
@@ -770,7 +1103,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       callStation: 'Hamagara stasiyo',
       locationSection: 'Aho Uri ku Mapu',
       getLocation: 'Koresha Aho Uri Ubu',
-      refreshLocation: 'Heza Aho Uri Ubu',
+      refreshLocation: 'Kuvugurura Aho Uri',
       gettingLocation: 'Buri gushaka aho uri...',
     },
   },

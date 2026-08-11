@@ -113,15 +113,15 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       style={styles.container}
     >
       <AuthShell
-        eyebrow="eMoto Fleet"
-        title="Welcome back, rider."
-        description="Sign in with your phone and password to access your dashboard, trips, and coaching."
+        eyebrow={t.auth.brandEyebrow}
+        title={t.auth.welcomeTitle}
+        description={t.auth.loginSubHeader}
       >
         {/* Login form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeader}>
             <Text style={styles.formTitle}>{t.auth.welcomeTitle}</Text>
-            <Badge label="Secure" tone="primary" />
+            <Badge label={t.auth.secureBadge} tone="primary" />
           </View>
  
           <InputField
@@ -158,15 +158,15 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
  
         {/* Help links */}
         <View style={styles.helpCard}>
-          <Text style={styles.helpTitle}>Need help?</Text>
+          <Text style={styles.helpTitle}>{t.auth.needHelpTitle}</Text>
           <Pressable
             onPress={() => navigation.navigate('ForgotAccess')}
             style={({ pressed }) => [styles.helpLink, pressed ? styles.helpLinkPressed : null]}
           >
             <Text style={styles.helpIcon}>🔑</Text>
             <View style={styles.helpLinkText}>
-              <Text style={styles.helpLinkTitle}>Forgot access</Text>
-              <Text style={styles.helpLinkSub}>Reset your password or recover your account</Text>
+              <Text style={styles.helpLinkTitle}>{t.auth.forgotAccessTitle}</Text>
+              <Text style={styles.helpLinkSub}>{t.auth.forgotAccessSub}</Text>
             </View>
             <Text style={styles.helpChevron}>›</Text>
           </Pressable>
@@ -176,8 +176,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           >
             <Text style={styles.helpIcon}>💬</Text>
             <View style={styles.helpLinkText}>
-              <Text style={styles.helpLinkTitle}>OTP help</Text>
-              <Text style={styles.helpLinkSub}>Questions about password-based sign-in</Text>
+              <Text style={styles.helpLinkTitle}>{t.auth.otpHelpTitle}</Text>
+              <Text style={styles.helpLinkSub}>{t.auth.otpHelpSub}</Text>
             </View>
             <Text style={styles.helpChevron}>›</Text>
           </Pressable>
@@ -187,8 +187,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           >
             <Text style={styles.helpIcon}>📋</Text>
             <View style={styles.helpLinkText}>
-              <Text style={styles.helpLinkTitle}>Register with invite code</Text>
-              <Text style={styles.helpLinkSub}>Got an invite from your fleet admin? Create your account</Text>
+              <Text style={styles.helpLinkTitle}>{t.auth.registerInviteTitle}</Text>
+              <Text style={styles.helpLinkSub}>{t.auth.registerInviteSub}</Text>
             </View>
             <Text style={styles.helpChevron}>›</Text>
           </Pressable>

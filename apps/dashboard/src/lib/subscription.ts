@@ -69,45 +69,17 @@ const PREMIUM_ONLY_LABELS: Partial<Record<DashboardFeature, string>> = {
 export function getSubscriptionEntitlements(
   user: SessionUser | null | undefined,
 ): SubscriptionEntitlements {
-  const plan = user?.fleetPlan ?? 'DEMO';
   const status = user?.subscriptionStatus ?? 'ACTIVE';
   const isActive = status === 'ACTIVE';
-
-  if (plan === 'INSURANCE') {
-    return {
-      tier: 'insurance',
-      planLabel: 'Insurance Partner Plan',
-      statusLabel: formatSubscriptionStatus(status),
-      isActive,
-      isPremium: true,
-      allowedFeatures: new Set([
-        'overview',
-        'live',
-        'incidents',
-        'events',
-        'bikes',
-        'settings',
-        'reports',
-        'evidence',
-      ]),
-    };
-  }
-
-  const isPremium = (plan === 'PREMIUM' || plan === 'DEMO') && isActive;
-  const tier: SubscriptionTier = isPremium ? 'premium' : 'core';
+  const tier: SubscriptionTier = isActive ? 'premium' : 'core';
   const allowedFeatures = !isActive ? INACTIVE_FEATURES : PREMIUM_FEATURES;
-
-  const planLabel =
-    user?.fleetType === 'DELIVERY' || plan === 'PREMIUM'
-      ? 'Delivery Fleet Plan'
-      : 'Cooperative & Individual Plan';
 
   return {
     tier,
-    planLabel,
+    planLabel: 'Pay-As-You-Go Plan',
     statusLabel: formatSubscriptionStatus(status),
     isActive,
-    isPremium,
+    isPremium: true,
     allowedFeatures: new Set(allowedFeatures),
   };
 }

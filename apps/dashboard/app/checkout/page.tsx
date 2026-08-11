@@ -45,64 +45,43 @@ const PLAN_DETAILS: Record<
   string,
   { title: string; price: string; period: string; features: string[] }
 > = {
-  'coop-individual': {
-    title: 'Cooperative & Individual',
-    price: '10,000 RWF',
-    period: '/ bike / mo',
+  payg: {
+    title: 'Pay-As-You-Go',
+    price: '350 RWF / day',
+    period: 'per active bike',
     features: [
+      '350 RWF / day per active bike',
       'Live map + real-time alerts',
       'Remote bike commands (lock/unlock)',
       'Rider scoring & safety metrics',
-      'Financial & lease tracking',
-      '0 RWF Device Setup Fee',
-      'Hardware remains eMoto company property',
-    ],
-  },
-  delivery: {
-    title: 'Delivery Fleet',
-    price: '15,000 RWF',
-    period: '/ bike / mo',
-    features: [
-      'Everything in Cooperative Plan',
       'Delivery dispatch & route tracking',
-      'Advanced incident & crash workflows',
-      'Trip analytics & compliance reports',
+      'Incident & crash workflows',
+      'Financial & lease management',
       '0 RWF Device Setup Fee',
-      'Hardware remains eMoto company property',
     ],
   },
   insurance: {
-    title: 'Insurance Partner',
-    price: 'Custom',
-    period: '',
+    title: 'Insurance & Compliance',
+    price: 'Custom Quote',
+    period: 'Contact Sales',
     features: [
-      'Access to covered fleet telemetry',
-      'Partner API credentials',
-      'Dedicated insurance support',
-      'Automated claims verification',
-      'Custom integrations',
+      'Dedicated Insurer Portal & Partner API',
+      'Certified crash & theft evidence packs',
+      'Automated FNOL claims integration',
+      'Underwriting risk analytics & compliance',
+      'Priority SLA & emergency dispatch support',
     ],
   },
-  'safety-core': {
-    title: 'Cooperative & Individual',
-    price: '10,000 RWF',
-    period: '/ bike / mo',
+  enterprise: {
+    title: 'Enterprise Operations',
+    price: 'Custom Quote',
+    period: 'Contact Sales',
     features: [
-      'Live map + real-time alerts',
-      'Remote bike commands',
-      '0 RWF Device Setup Fee',
-      'Hardware remains eMoto company property',
-    ],
-  },
-  'operations-plus': {
-    title: 'Delivery Fleet',
-    price: '15,000 RWF',
-    period: '/ bike / mo',
-    features: [
-      'Full command center',
-      'Delivery dispatch & analytics',
-      '0 RWF Device Setup Fee',
-      'Hardware remains eMoto company property',
+      'Multi-fleet HQ command center & role management',
+      'Custom IoT device protocol integrations',
+      'Dedicated account manager & 99.99% uptime SLA',
+      'Custom webhook endpoints & raw telemetry exports',
+      'On-premise / private cloud deployment options',
     ],
   },
 };
@@ -119,13 +98,14 @@ function CheckoutContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
-  const planSlug = searchParams.get('plan');
-  const plan = planSlug ? PLAN_DETAILS[planSlug] : PLAN_DETAILS['coop-individual'];
+  const rawPlanSlug = (searchParams.get('plan') ?? 'payg').toLowerCase();
+  const planSlug = rawPlanSlug === 'insurance' ? 'insurance' : rawPlanSlug === 'enterprise' ? 'enterprise' : 'payg';
+  const plan = PLAN_DETAILS[planSlug] || PLAN_DETAILS['payg'];
+  
   const [confirmed, setConfirmed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [countdown, setCountdown] = useState(6);
   const [error, setError] = useState<string | null>(null);
-  const isDelivery = planSlug === 'delivery' || planSlug === 'operations-plus';
 
   // Dynamic pricing & promo codes
   const [promoCode, setPromoCode] = useState('');
@@ -138,23 +118,15 @@ function CheckoutContent() {
     queryFn: () => apiFetch<PricingTier[]>('/billing/pricing'),
   });
 
-  const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
-  const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
+  const displayPrice = plan.price;
 
-  const displayPrice = isDelivery
-    ? (premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF` : '15,000 RWF')
-    : (demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF` : '10,000 RWF');
-
-  const activeTier = isDelivery ? premiumTier : demoTier;
   const { data: bikesData } = useQuery({
     queryKey: ['bikes', 'list', { page: 1, pageSize: 1 }],
     queryFn: () => apiFetch<{ total: number }>('/bikes?page=1&pageSize=1'),
   });
   const bikeCount = bikesData?.total ?? 0;
 
-  const displayFeatures = plan?.features
-    .filter(f => !f.includes('setup & install fee'))
-    .map(f => f) ?? [];
+  const displayFeatures = plan?.features ?? [];
 
   useEffect(() => {
     if (!showSuccess) return;
@@ -170,7 +142,9 @@ function CheckoutContent() {
     return () => clearTimeout(timer);
   }, [showSuccess, countdown, router]);
 
-  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'pay-on-request'>('momo');
+  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'pay-on-request'>(
+    planSlug === 'payg' ? 'momo' : 'pay-on-request'
+  );
   const [momoPhoneNumber, setMomoPhoneNumber] = useState('');
 
   const checkoutMutation = useMutation({
@@ -180,7 +154,7 @@ function CheckoutContent() {
         {
           method: 'POST',
           body: JSON.stringify({
-            plan: 'PREMIUM',
+            plan: planSlug === 'insurance' ? 'INSURANCE' : planSlug === 'enterprise' ? 'ENTERPRISE' : 'PAYG',
             momoPhoneNumber: paymentMethod === 'momo' && momoPhoneNumber.trim() ? momoPhoneNumber.trim() : undefined,
           }),
         },
@@ -208,9 +182,7 @@ function CheckoutContent() {
 
     try {
       setIsValidatingPromo(true);
-      const originalAmount = isDelivery
-        ? (premiumTier?.monthlyRatePerBike ?? 15000)
-        : (demoTier?.monthlyRatePerBike ?? 10000);
+      const originalAmount = planSlug === 'payg' ? 350 : 0;
       const res = await apiFetch<{ discount: PromoDiscount }>('/billing/validate-discount', {
         method: 'POST',
         body: JSON.stringify({
@@ -377,7 +349,7 @@ function CheckoutContent() {
             {/* Calculation Card */}
             <div className="rounded-2xl border border-white/[0.06] bg-[var(--background-subtle)] p-6 space-y-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
-                Estimated Monthly Charge
+                {planSlug === 'payg' ? 'Estimated Monthly Charge (Active Usage)' : 'Plan Agreement & Quote Terms'}
               </p>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
@@ -386,19 +358,35 @@ function CheckoutContent() {
                     {bikeCount} {bikeCount === 1 ? 'bike' : 'bikes'}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-ink-soft">Monthly rate per bike</span>
-                  <span className="font-bold text-ink">
-                    {(activeTier?.monthlyRatePerBike ?? 10000).toLocaleString()} RWF
-                  </span>
-                </div>
-                <div className="h-px w-full bg-line/50 my-1" />
-                <div className="flex justify-between items-baseline">
-                  <span className="text-sm font-bold text-ink">Total Monthly Payment</span>
-                  <span className="text-xl font-extrabold text-accent">
-                    {(bikeCount * (activeTier?.monthlyRatePerBike ?? 10000)).toLocaleString()} RWF
-                  </span>
-                </div>
+                {planSlug === 'payg' ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-ink-soft">Daily rate per active bike</span>
+                      <span className="font-bold text-ink">350 RWF / day</span>
+                    </div>
+                    <div className="h-px w-full bg-line/50 my-1" />
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm font-bold text-ink">Est. 30-Day Active Payment</span>
+                      <span className="text-xl font-extrabold text-accent">
+                        {(bikeCount * 350 * 30).toLocaleString()} RWF
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-ink-soft">Pricing Model</span>
+                      <span className="font-bold text-ink">Custom Quote / Contact Sales</span>
+                    </div>
+                    <div className="h-px w-full bg-line/50 my-1" />
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm font-bold text-ink">Billing Status</span>
+                      <span className="text-lg font-extrabold text-blue-400">
+                        Admin Approval / Invoice
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -278,17 +278,19 @@ export class FinancialsService {
         : new Date(endDate + 'T23:59:59.999Z')
       : new Date();
 
-    // Sum of all payments in fleet
+    // Sum of all payments in fleet (PAID or PARTIAL)
     const allPayments = await this.prisma.riderPayment.findMany({
       where: {
         fleetId: user.fleetId,
+        status: { in: ['PAID', 'PARTIAL'] },
       },
     });
 
-    // Filter payments in range
+    // Filter payments in range (PAID or PARTIAL)
     const rangePayments = await this.prisma.riderPayment.findMany({
       where: {
         fleetId: user.fleetId,
+        status: { in: ['PAID', 'PARTIAL'] },
         paidAt: {
           gte: start,
           lte: end,
@@ -424,7 +426,22 @@ export class FinancialsService {
     };
   }
 
-  async getLeases(user: AuthenticatedUser): Promise<LeaseSummary[]> {
+  async getLeases(
+    user: AuthenticatedUser,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<LeaseSummary[]> {
+    const start = startDate
+      ? startDate.includes('T')
+        ? new Date(startDate)
+        : new Date(startDate + 'T00:00:00.000Z')
+      : null;
+    const end = endDate
+      ? endDate.includes('T')
+        ? new Date(endDate)
+        : new Date(endDate + 'T23:59:59.999Z')
+      : null;
+
     const riders = await this.prisma.user.findMany({
       where: {
         fleetId: user.fleetId,
@@ -459,7 +476,7 @@ export class FinancialsService {
         },
         payments: {
           where: {
-            status: 'PAID',
+            status: { in: ['PAID', 'PARTIAL'] },
           },
         },
       },
@@ -473,6 +490,16 @@ export class FinancialsService {
         (sum, p) => sum + p.amount.toNumber(),
         0,
       );
+
+      const periodPaid = rider.payments
+        .filter((p) => {
+          if (!start && !end) return true;
+          const pDate = new Date(p.paidAt);
+          if (start && pDate < start) return false;
+          if (end && pDate > end) return false;
+          return true;
+        })
+        .reduce((sum, p) => sum + p.amount.toNumber(), 0);
 
       const activeAssignment = rider.bikeAssignments[0];
       let arrears = 0;
@@ -521,6 +548,7 @@ export class FinancialsService {
         bikePlate,
         totalPrincipal,
         totalPaid,
+        periodPaid,
         dailyRate,
         arrears,
         status,

@@ -10,12 +10,16 @@ import {
   Lock,
   Moon,
   Shield,
+  ShieldCheck,
   Siren,
   Sun,
   User,
   UserPlus,
   Users,
   ChevronDown,
+  ChevronRight,
+  Zap,
+  Sparkles,
   X,
   Banknote,
   Trash,
@@ -93,13 +97,7 @@ export default function SettingsPage() {
     queryFn: () => apiFetch<PricingTier[]>('/billing/pricing'),
   });
 
-  const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
-  const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
-
-  const coreMonthlyRate = demoTier?.monthlyRatePerBike ?? 10000;
-  const coreSetupFee = demoTier?.setupFeePerBike ?? 0;
-  const premiumMonthlyRate = premiumTier?.monthlyRatePerBike ?? 15000;
-  const premiumSetupFee = premiumTier?.setupFeePerBike ?? 0;
+  const coreSetupFee = 0;
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const initialTab = (tabParam && ['profile', 'fleet', 'team', 'security', 'notifications', 'apiCredentials'].includes(tabParam))
@@ -120,6 +118,46 @@ export default function SettingsPage() {
   const [showContactSales, setShowContactSales] = useState(false);
   const [salesFormSubmitted, setSalesFormSubmitted] = useState(false);
   const [salesSending, setSalesSending] = useState(false);
+
+  // Fleet MoMo Receiving Phone Settings
+  const fleetSettingsQuery = useQuery({
+    queryKey: ['fleet-settings'],
+    queryFn: () => apiFetch<{ id: string; name: string; momoPhoneNumber?: string | null; emotoPaygRatePerActiveDay?: number | null }>('/subscription/fleet-settings'),
+    enabled: !!user,
+  });
+
+  const paygDailyRate = fleetSettingsQuery.data?.emotoPaygRatePerActiveDay ?? 350;
+  const coreMonthlyRate = paygDailyRate; // kept for backward compat references
+
+  const [receivingPhoneInput, setReceivingPhoneInput] = useState('');
+  const [savingReceivingPhone, setSavingReceivingPhone] = useState(false);
+  const [receivingPhoneSuccess, setReceivingPhoneSuccess] = useState<string | null>(null);
+  const [receivingPhoneError, setReceivingPhoneError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fleetSettingsQuery.data?.momoPhoneNumber) {
+      setReceivingPhoneInput(fleetSettingsQuery.data.momoPhoneNumber);
+    }
+  }, [fleetSettingsQuery.data?.momoPhoneNumber]);
+
+  const handleSaveReceivingPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingReceivingPhone(true);
+    setReceivingPhoneSuccess(null);
+    setReceivingPhoneError(null);
+    try {
+      await apiFetch('/subscription/fleet-settings', {
+        method: 'PUT',
+        body: JSON.stringify({ momoPhoneNumber: receivingPhoneInput }),
+      });
+      await fleetSettingsQuery.refetch();
+      setReceivingPhoneSuccess(t('Mobile Money receiving account updated successfully!'));
+    } catch (err: unknown) {
+      setReceivingPhoneError(err instanceof Error ? err.message : t('Failed to update Mobile Money receiving account'));
+    } finally {
+      setSavingReceivingPhone(false);
+    }
+  };
 
   // API Credentials states
   const partnerKeysQuery = useQuery({
@@ -434,18 +472,65 @@ export default function SettingsPage() {
             </div>
           </DashboardCard>
 
+          {/* MoMo Collection Receiving Target Card */}
+          <DashboardCard
+            eyebrow={t("Collection Target")}
+            title={t("Mobile Money Receiving Account")}
+            description={t("Set the MTN MoMo phone number where all rider lease payments and daily collections are received.")}
+          >
+            <form onSubmit={handleSaveReceivingPhone} className="space-y-4 max-w-lg">
+              {receivingPhoneSuccess && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-medium flex items-center gap-2">
+                  <CheckCircle2 size={16} />
+                  <span>{receivingPhoneSuccess}</span>
+                </div>
+              )}
+              {receivingPhoneError && (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 font-medium flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>{receivingPhoneError}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink-muted flex items-center justify-between">
+                  <span>{t("Fleet Receiving Phone Number")}</span>
+                  <span className="text-[10px] text-ink-faint">{t("e.g. 0788123456")}</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={receivingPhoneInput}
+                    onChange={(e) => setReceivingPhoneInput(e.target.value)}
+                    placeholder="078XXXXXXX"
+                    className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all font-mono"
+                  />
+                  <CreditCard size={18} className="absolute right-3.5 top-3.5 text-ink-faint" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingReceivingPhone}
+                className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-all shadow-sm"
+              >
+                <Check size={16} />
+                <span>{savingReceivingPhone ? t("Saving...") : t("Save Receiving Account")}</span>
+              </button>
+            </form>
+          </DashboardCard>
+
           <DashboardCard
             id="billing"
             eyebrow={t("Billing")}
-            title={t("Billing & Subscription Summary")}
-            description={t("Operational billing overview based on your active fleet size and plan.")}
+            title={t("Pay-As-You-Go Billing Overview")}
+            description={t("You are only charged on days your bikes are actively used (validated trips > 0.5 km). Idle days are free.")}
           >
             {(() => {
-              const rate = user?.fleetType === 'DELIVERY' ? (user?.monthlyRatePerBike ?? 15000) : 10000;
               const isInsurance = user?.fleetPlan === 'INSURANCE';
               return (
                 <>
-                  <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+                  <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
                     {/* Stat 1: Fleet Size */}
                     <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
@@ -458,66 +543,83 @@ export default function SettingsPage() {
                       <p className="text-xs text-ink-faint leading-relaxed">
                         {isInsurance
                           ? t('Bikes covered under your insurance policy.')
-                          : t('Subscriptions are calculated per bike dynamically.')}
+                          : t('Billing is calculated per active bike-day.')}
                       </p>
                     </div>
 
-                    {/* Stat 2: Active Plan Cost */}
+                    {/* Stat 2: Daily Rate */}
                     <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Monthly Rate')}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t('Daily Active Rate')}</p>
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-extrabold text-ink">
-                          {rate.toLocaleString()} RWF
+                          {paygDailyRate.toLocaleString()} RWF
                         </span>
-                        <span className="text-xs text-ink-muted">{t('/ bike / mo')}</span>
+                        <span className="text-xs text-ink-muted">{t('/ bike / active day')}</span>
                       </div>
                       <p className="text-xs text-ink-faint leading-relaxed">
-                        {t('Plan:')} <span className="font-bold text-accent">{t(entitlements.planLabel)}</span>
+                        {t('Plan:')} <span className="font-bold text-accent">{t('Pay-As-You-Go')}</span>
                       </p>
                     </div>
 
-                    {/* Stat 3: Total Money To Pay */}
-                    <div className="rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 space-y-2 col-span-full md:col-span-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">{t('Total Monthly Cost')}</p>
+                    {/* Stat 3: Billing Mode */}
+                    <div className="rounded-2xl border border-success-ink/20 bg-success-soft/5 p-5 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-success-ink">{t('Billing Mode')}</p>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-extrabold text-accent">
-                          {(rate * totalBikes).toLocaleString()} RWF
-                        </span>
-                        <span className="text-xs text-ink-muted">{t('/ month')}</span>
+                        <span className="text-lg font-extrabold text-success-ink">{t('PAYG Trip-Validated')}</span>
                       </div>
                       <p className="text-xs text-ink-faint leading-relaxed">
-                        {t('Auto-calculated subscription dues.')}
+                        {t('Only days with trips > 0.5 km are charged.')}
+                      </p>
+                    </div>
+
+                    {/* Stat 4: Setup Fee */}
+                    <div className="rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-accent">{t('Device Setup Fee')}</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-extrabold text-emerald-400">0 RWF</span>
+                      </div>
+                      <p className="text-xs text-ink-faint leading-relaxed">
+                        {t('GPS devices remain eMoto company property.')}
                       </p>
                     </div>
                   </div>
 
-                  {/* Installation Setup Fee & Hardware Policy Info */}
-                  {!isInsurance && (
-                    <div className="mt-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  {/* How PAYG Works info */}
+                  <div className="mt-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5 space-y-3">
+                    <p className="text-sm font-bold text-ink flex items-center gap-2">
+                      <Banknote size={16} className="text-accent" />
+                      {t('How Pay-As-You-Go Works')}
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-3">
                       <div className="space-y-1">
-                        <p className="text-sm font-bold text-ink flex items-center gap-2">
-                          <Banknote size={16} className="text-accent" />
-                          {t('Device Setup & Hardware Policy')}
-                        </p>
-                        <p className="text-xs text-ink-muted leading-relaxed">
-                          {t('Device Setup Fee:')} <strong className="text-emerald-400">0 RWF</strong>. {t('GPS hardware devices are not client property — they remain the exclusive company property of eMoto Fleet OS and are provided for fleet management.')}
+                        <p className="text-xs font-bold text-ink">{t('1. Trip Validation')}</p>
+                        <p className="text-[11px] text-ink-muted leading-relaxed">
+                          {t('Each bike is monitored daily. A day counts as "active" only when the bike records validated trips totaling > 0.5 km.')}
                         </p>
                       </div>
-                      <div className="text-left sm:text-right">
-                        <p className="text-xs text-ink-muted">{t('Setup Dues')}</p>
-                        <p className="text-lg font-extrabold text-emerald-400">0 RWF</p>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-ink">{t('2. Daily Charge')}</p>
+                        <p className="text-[11px] text-ink-muted leading-relaxed">
+                          {t('Active bike-days are charged at')} <strong className="text-accent">{paygDailyRate.toLocaleString()} RWF</strong> {t('per bike. Idle or maintenance days are completely exempt.')}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-ink">{t('3. Monthly Invoice')}</p>
+                        <p className="text-[11px] text-ink-muted leading-relaxed">
+                          {t('At the end of each billing cycle, your total is calculated as: Active Bike-Days × Rate. Pay via MoMo or invoice.')}
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Pending Alert if subscription is pending */}
                   {user?.subscriptionStatus === 'PENDING_UPGRADE' && (
                     <div className="mt-6 rounded-2xl border border-warning-ink/20 bg-warning-soft/20 p-5 flex gap-4 items-start animate-pulse">
                       <AlertTriangle className="text-warning-ink shrink-0 mt-0.5" size={20} />
                       <div className="space-y-1">
-                        <p className="text-sm font-bold text-warning-ink">{t('Plan Upgrade Pending Approval')}</p>
+                        <p className="text-sm font-bold text-warning-ink">{t('Plan Configuration Pending')}</p>
                         <p className="text-xs text-ink-soft leading-relaxed">
-                          {t('You have requested to upgrade to')} <strong className="font-semibold text-warning-ink">{t('Delivery Fleet Plan')}</strong>. {t('Your monthly rate will remain')} <strong className="font-semibold text-ink">{coreMonthlyRate.toLocaleString()} RWF</strong> {t('until your payment setup is confirmed and approved by the HQ admin.')}
+                          {t('Your fleet setup is pending approval from the HQ admin. Your PAYG rate is')} <strong className="font-semibold text-ink">{paygDailyRate.toLocaleString()} RWF / {t('active day')}</strong>.
                         </p>
                       </div>
                     </div>
@@ -689,25 +791,25 @@ export default function SettingsPage() {
             </div>
           </DashboardCard>
 
-          {/* MoMo Automated Subscriptions Card */}
+          {/* MoMo Auto-Pay Setup Card */}
           <DashboardCard
             eyebrow={t("MTN Mobile Money")}
-            title={t("Automated Subscription Plans")}
-            description={t("Choose a subscription plan duration to unlock discounts and set up automated MoMo auto-pay.")}
+            title={t("MoMo Auto-Pay Setup")}
+            description={t("Configure automatic MoMo payment prompts for your PAYG invoices. You will receive a USSD push 2 days before each invoice due date.")}
           >
             <div className="space-y-6">
-              {/* Active Subscription Status Banner */}
+              {/* Active Auto-Pay Status */}
               {currentSubscription?.subscription ? (
                 <div className="rounded-2xl border border-success-ink/20 bg-success-soft/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-success-ink uppercase tracking-wider flex items-center gap-2">
                       <CheckCircle2 size={16} />
-                      {t("Active Subscription Plan:")} {currentSubscription.subscription.plan.label} ({currentSubscription.subscription.plan.discountPercent}% {t("Discount")})
+                      {t("MoMo Auto-Pay Active")}
                     </p>
                     <p className="text-xs text-ink-muted leading-relaxed">
-                      {t("Auto-Renew:")} <strong className="text-ink">{currentSubscription.subscription.autoRenew ? t("Enabled") : t("Disabled (Expires Soon)")}</strong>
+                      {t("Auto-Renew:")} <strong className="text-ink">{currentSubscription.subscription.autoRenew ? t("Enabled") : t("Disabled")}</strong>
                       {' • '}
-                      {t("Renews/Expires on:")} <span className="font-medium text-ink">{new Date(currentSubscription.subscription.endDate).toLocaleDateString()}</span>
+                      {t("Next invoice:")} <span className="font-medium text-ink">{new Date(currentSubscription.subscription.endDate).toLocaleDateString()}</span>
                     </p>
                     {currentSubscription.subscription.momoPhoneNumber && (
                       <p className="text-xs text-ink-muted">
@@ -719,86 +821,56 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={async () => {
-                        if (!confirm(t("Are you sure you want to cancel auto-renewal? Your subscription will expire at the end of the current term."))) return;
+                        if (!confirm(t("Are you sure you want to disable auto-pay? You will need to pay invoices manually."))) return;
                         try {
                           await apiFetch('/billing/subscription/cancel', { method: 'PUT' });
                           refetchSub();
                           queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
                         } catch (err: unknown) {
-                          alert(err instanceof Error ? err.message : t("Failed to cancel subscription"));
+                          alert(err instanceof Error ? err.message : t("Failed to disable auto-pay"));
                         }
                       }}
                       className="rounded-xl border border-error-ink/30 bg-error-soft/10 px-3.5 py-2 text-xs font-bold text-error-ink hover:bg-error-soft/20 transition cursor-pointer"
                     >
-                      {t("Cancel Auto-Renew")}
+                      {t("Disable Auto-Pay")}
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-line bg-surface-muted p-4 text-xs text-ink-muted">
-                  {t("No active long-term plan subscription. Subscribe below to save up to 20% on monthly rates.")}
+                  {t("No auto-pay configured. Set up MoMo auto-pay below to automatically pay PAYG invoices.")}
                 </div>
               )}
 
-              {/* Plan Selection Cards */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                {[
-                  { duration: 'MONTHLY', months: 1, label: t('Monthly'), discount: 0 },
-                  { duration: 'QUARTERLY', months: 3, label: t('3 Months'), discount: 5 },
-                  { duration: 'SEMI_ANNUAL', months: 6, label: t('6 Months'), discount: 10 },
-                  { duration: 'ANNUAL', months: 12, label: t('1 Year'), discount: 15 },
-                  { duration: 'BIENNIAL', months: 24, label: t('2 Years'), discount: 20 },
-                ].map((plan) => {
-                  const rate = user?.fleetType === 'DELIVERY' ? (user?.monthlyRatePerBike ?? 15000) : 10000;
-                  const discountedRate = Math.round(rate * (1 - plan.discount / 100));
-                  const isSelected = selectedPlanDuration === plan.duration;
-
-                  return (
-                    <div
-                      key={plan.duration}
-                      onClick={() => setSelectedPlanDuration(plan.duration)}
-                      className={cx(
-                        'rounded-2xl border p-4 space-y-3 cursor-pointer transition-all duration-200 relative flex flex-col justify-between',
-                        isSelected
-                          ? 'border-accent bg-accent/[0.04] ring-2 ring-accent'
-                          : 'border-line bg-surface-muted hover:border-ink-muted'
-                      )}
-                    >
-                      {plan.discount > 0 && (
-                        <span className="absolute -top-2.5 right-3 bg-accent text-white font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
-                          {t("Save {percent}%").replace('{percent}', String(plan.discount))}
-                        </span>
-                      )}
-                      <div className="space-y-1">
-                        <p className="text-xs font-extrabold text-ink">{plan.label}</p>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-extrabold text-ink">{discountedRate.toLocaleString()}</span>
-                          <span className="text-[10px] text-ink-muted">RWF/bike/mo</span>
-                        </div>
-                        {plan.discount > 0 && (
-                          <p className="text-[10px] text-ink-faint line-through">
-                            {rate.toLocaleString()} RWF
-                          </p>
-                        )}
-                      </div>
-                      <div className="pt-2 border-t border-line/50 text-[10px] text-ink-muted">
-                        {plan.months > 1 ? t("{months} months term").replace('{months}', String(plan.months)) : t("Billed monthly")}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* PAYG Billing Summary */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Billing Model")}</p>
+                  <p className="text-sm font-extrabold text-accent">{t("Pay-As-You-Go")}</p>
+                  <p className="text-[10px] text-ink-faint">{t("No fixed monthly fees")}</p>
+                </div>
+                <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Active Day Rate")}</p>
+                  <p className="text-sm font-extrabold text-ink">{paygDailyRate.toLocaleString()} RWF <span className="text-[10px] text-ink-muted font-normal">/ bike / day</span></p>
+                  <p className="text-[10px] text-ink-faint">{t("Only charged when bike has trips > 0.5 km")}</p>
+                </div>
+                <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Payment Method")}</p>
+                  <p className="text-sm font-extrabold text-ink">{t("MTN MoMo")}</p>
+                  <p className="text-[10px] text-ink-faint">{t("Automatic USSD push prompt")}</p>
+                </div>
               </div>
 
-              {/* MoMo Phone Input & Subscribe Action */}
+              {/* MoMo Phone Input & Enable Auto-Pay */}
               <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-ink flex items-center gap-2">
                       <CreditCard size={16} className="text-accent" />
-                      {t("MTN Mobile Money Payment Setup")}
+                      {t("MTN Mobile Money Auto-Pay")}
                     </p>
                     <p className="text-xs text-ink-muted leading-relaxed">
-                      {t("Enter your MTN Rwanda MoMo number. Automatic payment prompts will be sent 2 days before invoice due dates.")}
+                      {t("Enter your MTN Rwanda MoMo number. A payment prompt will be sent automatically 2 days before each PAYG invoice due date.")}
                     </p>
                   </div>
                 </div>
@@ -822,26 +894,26 @@ export default function SettingsPage() {
                         await apiFetch('/billing/subscribe', {
                           method: 'POST',
                           body: JSON.stringify({
-                            planDuration: selectedPlanDuration,
+                            planDuration: 'MONTHLY',
                             momoPhoneNumber: momoPhoneInput,
                           }),
                         });
                         setSubscribeSuccess(
-                          t("Subscribed successfully to {plan} plan with MoMo auto-pay on {phone}!").replace(
-                            '{plan}', selectedPlanDuration
-                          ).replace('{phone}', momoPhoneInput)
+                          t("MoMo auto-pay enabled on {phone}! You will receive payment prompts before each PAYG invoice.").replace(
+                            '{phone}', momoPhoneInput
+                          )
                         );
                         refetchSub();
                         queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
                       } catch (err: unknown) {
-                        setSubscribeError(err instanceof Error ? err.message : t("Failed to subscribe"));
+                        setSubscribeError(err instanceof Error ? err.message : t("Failed to enable auto-pay"));
                       } finally {
                         setSubscribing(false);
                       }
                     }}
                     className="rounded-xl border border-accent bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent/90 transition cursor-pointer disabled:opacity-50"
                   >
-                    {subscribing ? t("Saving...") : t("Save & Subscribe")}
+                    {subscribing ? t("Saving...") : t("Enable Auto-Pay")}
                   </button>
                 </div>
 
@@ -950,193 +1022,161 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : (
-               <div className="grid gap-6 md:grid-cols-3">
-                 {/* Cooperative & Individual Card */}
-                 <div
-                   className={cx(
-                     'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
-                     user?.fleetType !== 'DELIVERY'
-                       ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
-                       : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
-                   )}
-                 >
-                   {user?.fleetType !== 'DELIVERY' && (
-                     <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-                       {t("Active Plan")}
-                     </div>
-                   )}
-                   <div>
-                     <div className="flex items-center gap-2">
-                       <CheckCircle2 size={16} className={user?.fleetType !== 'DELIVERY' ? "text-accent" : "text-ink-muted"} />
-                       <p className="text-sm font-bold text-ink">{t("Cooperative & Individual")}</p>
-                     </div>
-                     <div className="mt-4 flex flex-col items-start gap-1">
-                       <div className="flex items-baseline gap-1">
-                         <span className="text-2xl font-extrabold text-ink">10,000 RWF</span>
-                         <span className="text-xs text-ink-muted">{t("/ bike / month")}</span>
-                       </div>
-                       <span className="text-[10px] font-bold text-emerald-400">{t("0 RWF Device Setup Fee")}</span>
-                     </div>
-                     <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       {t("Designed for motorcycle cooperatives and individual personal fleet owners. Full command center access.")}
-                     </p>
-                     
-                     <div className="h-px w-full bg-line my-4" />
-                     
-                     <ul className="space-y-2.5 text-xs text-ink-soft">
-                       {[
-                         'Live Map & Real-time Alerts',
-                         'Remote Bike Commands (Lock/Unlock)',
-                         'Rider Scoring & Safety Metrics',
-                         'Financial & Lease Tracking',
-                         '0 RWF Device Setup Fee',
-                         'Hardware remains eMoto company property'
-                       ].map((f) => (
-                         <li key={f} className="flex items-start gap-2">
-                           <CheckCircle2 size={12} className="text-success-ink shrink-0 mt-0.5" />
-                           <span>{t(f)}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                   
-                   <div className="mt-6">
-                     {user?.fleetType !== 'DELIVERY' ? (
-                       <button
-                         type="button"
-                         disabled
-                         className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
-                       >
-                         {t("Active Plan")}
-                       </button>
-                     ) : (
-                       <Link
-                         href="/checkout?plan=coop-individual"
-                         className="block w-full text-center rounded-xl border border-line bg-surface-muted text-ink-muted hover:text-white py-2 text-xs font-semibold"
-                       >
-                         {t("Select Plan")}
-                       </Link>
-                     )}
-                   </div>
-                 </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Pay-As-You-Go Active Plan Card */}
+                <div className="rounded-[24px] border-2 border-cyan-500/40 bg-gradient-to-b from-cyan-500/10 via-surface to-surface p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ring-1 ring-cyan-500/30 shadow-2xl group hover:-translate-y-1">
+                  <div className="absolute top-0 right-0 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-bl-2xl shadow-md">
+                    {t("Active Plan")}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+                        <Zap size={18} />
+                      </div>
+                      <p className="text-base font-extrabold text-ink">{t("Pay-As-You-Go")}</p>
+                    </div>
+                    <div className="mt-4 flex flex-col items-start gap-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-ink">350 RWF</span>
+                        <span className="text-xs font-semibold text-ink-muted">{t("/ day per active bike")}</span>
+                      </div>
+                      <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                        <Sparkles size={11} /> {t("0 RWF Setup Fee")}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+                      {t("Flexible per-active-bike pricing for all fleet types. Full command center, live map, remote control, and analytics included.")}
+                    </p>
+                    
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-line to-transparent my-5" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft font-medium">
+                      {[
+                        '350 RWF/day per active bike',
+                        'Live Map & Real-time Alerts',
+                        'Remote Bike Commands (Lock/Unlock)',
+                        'Rider Scoring & Safety Metrics',
+                        'Delivery Dispatch & Route Tracking',
+                        'Financial & Lease Management',
+                        '0 RWF Device Setup Fee'
+                      ].map((f) => (
+                        <li key={f} className="flex items-start gap-2.5">
+                          <span className="p-0.5 rounded-full bg-cyan-500/15 text-cyan-400 shrink-0 mt-0.5">
+                            <CheckCircle2 size={12} />
+                          </span>
+                          <span>{t(f)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full text-center rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 py-3 text-xs font-extrabold shadow-inner"
+                    >
+                      {t("Active Fleet Plan")}
+                    </button>
+                  </div>
+                </div>
 
-                 {/* Delivery Fleet Card */}
-                 <div
-                   className={cx(
-                     'rounded-[20px] border p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden',
-                     user?.fleetType === 'DELIVERY'
-                       ? 'border-success-ink/20 bg-success-soft/10 ring-1 ring-success-ink/25 shadow-lg shadow-success-soft/5'
-                       : 'border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong'
-                   )}
-                 >
-                   {user?.fleetType === 'DELIVERY' && (
-                     <div className="absolute top-0 right-0 bg-success-ink text-white font-bold text-[9px] uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-                       {t("Active Plan")}
-                     </div>
-                   )}
-                   <div>
-                     <div className="flex items-center gap-2">
-                       <CheckCircle2 size={16} className={user?.fleetType === 'DELIVERY' ? "text-accent" : "text-ink-muted"} />
-                       <p className="text-sm font-bold text-ink">{t("Delivery Fleet")}</p>
-                     </div>
-                     <div className="mt-4 flex flex-col items-start gap-1">
-                       <div className="flex items-baseline gap-1">
-                         <span className="text-2xl font-extrabold text-ink">15,000 RWF</span>
-                         <span className="text-xs text-ink-muted">{t("/ bike / month")}</span>
-                       </div>
-                       <span className="text-[10px] font-bold text-emerald-400">{t("0 RWF Device Setup Fee")}</span>
-                     </div>
-                     <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       {t("Tailored for high-volume commercial delivery and courier operations. Advanced tracking and priority support.")}
-                     </p>
-                     
-                     <div className="h-px w-full bg-line my-4" />
-                     
-                     <ul className="space-y-2.5 text-xs text-ink-soft">
-                       <li className="flex items-start gap-2 text-accent font-semibold">
-                         <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
-                         <span>{t("Everything in Cooperative Plan")}</span>
-                       </li>
-                       {[
-                         'Delivery Dispatch & Route Tracking',
-                         'Advanced Incident & Crash Workflows',
-                         'Trip Analytics & Compliance Reports',
-                         'Priority 24/7 Operator Support',
-                         '0 RWF Device Setup Fee',
-                         'Hardware remains eMoto company property'
-                       ].map((f) => (
-                         <li key={f} className="flex items-start gap-2">
-                           <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
-                           <span>{t(f)}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                   
-                   <div className="mt-6">
-                     {user?.fleetType === 'DELIVERY' ? (
-                       <button
-                         type="button"
-                         disabled
-                         className="w-full text-center rounded-xl bg-success-soft text-success-ink border border-success-ink/20 py-2 text-xs font-bold"
-                       >
-                         {t("Active Plan")}
-                       </button>
-                     ) : (
-                       <Link
-                         href="/checkout?plan=delivery"
-                         className="block w-full text-center rounded-xl bg-accent hover:bg-accent-strong text-white py-2 text-xs font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-[1.02]"
-                       >
-                         {t("Upgrade to Delivery Plan")}
-                       </Link>
-                     )}
-                   </div>
-                 </div>
+                {/* Insurance & Compliance Card */}
+                <div className="rounded-[24px] border border-blue-500/30 bg-gradient-to-b from-blue-500/5 via-surface to-surface p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:border-blue-400/50">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <p className="text-base font-extrabold text-ink">{t("Insurance & Compliance")}</p>
+                    </div>
+                    <div className="mt-4 flex flex-col items-start gap-1">
+                      <span className="text-3xl font-black text-ink">{t("Custom Quote")}</span>
+                      <span className="text-xs font-semibold text-ink-muted">{t("Contact Sales for Insurer Tier")}</span>
+                    </div>
+                    <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+                      {t("Dedicated Insurer Portal, FNOL crash/theft evidence packs, risk compliance, and underwriter API integration.")}
+                    </p>
+                    
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-line to-transparent my-5" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft font-medium">
+                      {[
+                        'Everything in Pay-As-You-Go',
+                        'Dedicated Insurer Portal & API',
+                        'Certified Incident Evidence Packs',
+                        'Automated FNOL Claims Integration',
+                        'Underwriting Risk Analytics',
+                        'Priority SLA Support'
+                      ].map((f) => (
+                        <li key={f} className="flex items-start gap-2.5">
+                          <span className="p-0.5 rounded-full bg-blue-500/15 text-blue-400 shrink-0 mt-0.5">
+                            <CheckCircle2 size={12} />
+                          </span>
+                          <span>{t(f)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-                 {/* Insurance Partner Card */}
-                 <div className="rounded-[20px] border border-line bg-surface-muted/50 hover:bg-surface-muted hover:border-line-strong p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
-                   <div>
-                     <div className="flex items-center gap-2">
-                       <Shield size={16} className="text-accent" />
-                       <p className="text-sm font-bold text-ink">{t("Insurance Partner")}</p>
-                     </div>
-                     <div className="mt-4 flex items-baseline gap-1">
-                       <span className="text-2xl font-extrabold text-ink">{t("Custom")}</span>
-                       <span className="text-xs text-ink-muted">{t("Partner Telemetry")}</span>
-                     </div>
-                     <p className="mt-2 text-xs text-ink-muted leading-relaxed">
-                       {t("Dedicated portal for insurance companies and risk management partners with partner API credentials.")}
-                     </p>
-                     
-                     <div className="h-px w-full bg-line my-4" />
-                     
-                     <ul className="space-y-2.5 text-xs text-ink-soft">
-                       {[
-                         'Insured Fleet Telemetry Access',
-                         'Partner API Credentials',
-                         'Automated Claims Verification',
-                         'Dedicated Risk Analytics',
-                         'Custom System Integrations'
-                       ].map((f) => (
-                         <li key={f} className="flex items-start gap-2">
-                           <CheckCircle2 size={12} className="text-accent shrink-0 mt-0.5" />
-                           <span>{t(f)}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                   
-                   <div className="mt-6">
-                     <button
-                       type="button"
-                       onClick={() => setShowContactSales(true)}
-                       className="block w-full text-center rounded-xl border border-line bg-surface-muted hover:bg-surface-hover text-ink py-2 text-xs font-semibold transition-all"
-                     >
-                       {t("Contact Partner Team")}
-                     </button>
-                   </div>
-                 </div>
-               </div>
+                  <div className="mt-6">
+                    <Link
+                      href="/checkout?plan=insurance"
+                      className="flex items-center justify-center gap-2 w-full text-center rounded-2xl border border-blue-500/30 bg-blue-500/15 py-3 text-xs font-extrabold text-blue-300 hover:bg-blue-500/25 transition-all shadow-md active:scale-[0.98]"
+                    >
+                      {t("Request Insurance Quote")} <ChevronRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Enterprise Tier Card */}
+                <div className="rounded-[24px] border border-amber-500/30 bg-gradient-to-b from-amber-500/5 via-surface to-surface p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:border-amber-400/50">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        <Building2 size={18} />
+                      </div>
+                      <p className="text-base font-extrabold text-ink">{t("Enterprise Operations")}</p>
+                    </div>
+                    <div className="mt-4 flex flex-col items-start gap-1">
+                      <span className="text-3xl font-black text-ink">{t("Custom Quote")}</span>
+                      <span className="text-xs font-semibold text-ink-muted">{t("Contact Sales for Enterprise Tier")}</span>
+                    </div>
+                    <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+                      {t("Multi-fleet HQ command center, custom IoT integrations, dedicated account manager, and SLA guarantees.")}
+                    </p>
+                    
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-line to-transparent my-5" />
+                    
+                    <ul className="space-y-2.5 text-xs text-ink-soft font-medium">
+                      {[
+                        'Everything in Insurance & PAYG',
+                        'Multi-fleet HQ Command Center',
+                        'Custom IoT Protocol Integrations',
+                        'Dedicated Account Manager',
+                        '99.99% Uptime Guarantee SLA',
+                        'Raw Telemetry Data Exports'
+                      ].map((f) => (
+                        <li key={f} className="flex items-start gap-2.5">
+                          <span className="p-0.5 rounded-full bg-amber-500/15 text-amber-400 shrink-0 mt-0.5">
+                            <CheckCircle2 size={12} />
+                          </span>
+                          <span>{t(f)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-6">
+                    <Link
+                      href="/checkout?plan=enterprise"
+                      className="flex items-center justify-center gap-2 w-full text-center rounded-2xl border border-amber-500/30 bg-amber-500/15 py-3 text-xs font-extrabold text-amber-300 hover:bg-amber-500/25 transition-all shadow-md active:scale-[0.98]"
+                    >
+                      {t("Request Enterprise Quote")} <ChevronRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
             )}
           </DashboardCard>
         </div>

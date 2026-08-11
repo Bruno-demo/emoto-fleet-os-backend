@@ -18,7 +18,7 @@ export interface SessionUser {
   id: string;
   fleetId: string;
   fleetName?: string | null;
-  fleetPlan?: 'DEMO' | 'PREMIUM' | 'INSURANCE';
+  fleetPlan?: 'PAYG' | 'INSURANCE' | 'ENTERPRISE';
   fleetType?: 'COOP' | 'DELIVERY' | 'PERSONAL';
   subscriptionStatus?: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_UPGRADE';
   upgradeRequested?: boolean;

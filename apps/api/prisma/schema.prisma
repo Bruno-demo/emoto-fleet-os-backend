@@ -14,9 +14,9 @@ enum FleetType {
 }
 
 enum FleetPlan {
-  DEMO
-  PREMIUM
+  PAYG
   INSURANCE
+  ENTERPRISE
 }
 
 enum FleetSubscriptionStatus {
@@ -269,7 +269,7 @@ model Fleet {
   id                String               @id @default(uuid()) @db.Uuid
   name              String
   type              FleetType
-  plan              FleetPlan            @default(DEMO)
+  plan              FleetPlan            @default(PAYG)
   insurerName       String?
   subscriptionStatus FleetSubscriptionStatus @default(ACTIVE)
   installationPaid  Boolean                 @default(false)

@@ -270,33 +270,33 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {/* Invitation Code from Fleet Admin */}
           <InputField
-            label="Invitation code *"
+            label={t.auth.inviteCodeLabel}
             value={inviteCode}
             onChangeText={setInviteCode}
             error={inviteCodeError}
-            placeholder="e.g. invite_abcdef123456"
+            placeholder={t.auth.inviteCodePlaceholder}
             autoCapitalize="none"
             autoComplete="off"
           />
 
           {/* Full Name */}
           <InputField
-            label="Full name *"
+            label={t.auth.fullNameLabel + ' *'}
             value={fullName}
             onChangeText={setFullName}
             error={fullNameError}
-            placeholder="e.g. Aisha Niyonzima"
+            placeholder={t.auth.fullNamePlaceholder}
             autoCapitalize="words"
             autoComplete="name"
           />
 
           {/* 10-Digit Phone Number */}
           <InputField
-            label="Phone number (10 Digits) *"
+            label={t.auth.phoneLabelFormat}
             value={phoneNumber}
             onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, '').slice(0, 10))}
             error={phoneError}
-            placeholder="e.g. 0788123456"
+            placeholder={t.auth.phonePlaceholder}
             keyboardType="phone-pad"
             autoCapitalize="none"
             autoComplete="tel"
@@ -304,7 +304,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {/* Email Address */}
           <InputField
-            label="Email address *"
+            label={t.auth.emailLabel}
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -315,7 +315,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
               setOtpError(null);
             }}
             hint={isEmailVerified ? '✓ Verified' : undefined}
-            placeholder="rider@fleet.co"
+            placeholder={t.auth.emailPlaceholder}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -324,7 +324,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
           {/* Send OTP button for email verification */}
           {email.trim().length > 0 && !isEmailVerified && !isOtpSent && (
             <PrimaryButton
-              label={isSendingOtp ? 'Sending code...' : 'Verify email'}
+              label={isSendingOtp ? t.common.loading : t.auth.sendResetLink}
               loading={isSendingOtp}
               onPress={() => { void handleSendOtp(); }}
             />
@@ -334,7 +334,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
           {isOtpSent && !isEmailVerified && (
             <View style={styles.otpCard}>
               <View style={styles.otpHeader}>
-                <Text style={styles.otpTitle}>Email Verification</Text>
+                <Text style={styles.otpTitle}>{t.auth.otpTitle}</Text>
                 {devOtp ? (
                   <View style={styles.devOtpBadge}>
                     <Text style={styles.devOtpText}>Dev OTP: {devOtp}</Text>
@@ -342,19 +342,19 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 ) : null}
               </View>
               <Text style={styles.otpDescription}>
-                We sent a 6-digit code to {email}. Enter it below.
+                {t.auth.otpSub}
               </Text>
               <InputField
-                label="Verification code"
+                label={t.auth.otpLabel}
                 value={otpCode}
                 onChangeText={(text) => setOtpCode(text.replace(/\D/g, ''))}
-                placeholder="Enter 6-digit code"
+                placeholder="000000"
                 keyboardType="number-pad"
                 autoComplete="one-time-code"
               />
               {otpError ? <InlineNotice description={otpError} /> : null}
               <PrimaryButton
-                label={isVerifyingOtp ? 'Verifying...' : 'Verify code'}
+                label={isVerifyingOtp ? t.common.updating : t.auth.verifyOtp}
                 loading={isVerifyingOtp}
                 disabled={otpCode.length !== 6}
                 onPress={() => { void handleVerifyOtp(); }}
@@ -365,7 +365,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 style={styles.resendRow}
               >
                 <Text style={styles.resendText}>
-                  {isSendingOtp ? 'Sending...' : "Didn't receive it? Resend code"}
+                  {isSendingOtp ? t.common.loading : t.auth.resendOtp}
                 </Text>
               </Pressable>
             </View>
@@ -373,33 +373,33 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {/* National ID / Passport Number */}
           <InputField
-            label="National ID / Identity Number (Optional)"
+            label={t.auth.nationalIdLabelOptional}
             value={identityNumber}
             onChangeText={setIdentityNumber}
-            placeholder="e.g. 1199880011223344"
+            placeholder={t.auth.nationalIdPlaceholder}
             autoCapitalize="none"
             autoComplete="off"
           />
 
           {/* Driver's License Number */}
           <InputField
-            label="Driver's License Number (Optional)"
+            label={t.auth.licenseLabelOptional}
             value={licenceNumber}
             onChangeText={setLicenceNumber}
-            placeholder="e.g. RND-987654"
+            placeholder={t.auth.licensePlaceholder}
             autoCapitalize="none"
             autoComplete="off"
           />
 
           {/* Document Uploads Section */}
           <View style={styles.uploadSection}>
-            <Text style={styles.uploadSectionTitle}>Upload Rider Verification Documents</Text>
+            <Text style={styles.uploadSectionTitle}>{t.auth.uploadDocTitle}</Text>
 
             {/* Passport Photo Upload */}
             <View style={styles.uploadRow}>
               <View style={styles.uploadInfo}>
-                <Text style={styles.uploadLabel}>Passport Photo</Text>
-                <Text style={styles.uploadSub}>Headshot photo for rider identification</Text>
+                <Text style={styles.uploadLabel}>{t.auth.passportPhotoTitle}</Text>
+                <Text style={styles.uploadSub}>{t.auth.passportPhotoSub}</Text>
               </View>
               {passportPhoto ? (
                 <View style={styles.previewWrap}>
@@ -410,7 +410,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 </View>
               ) : (
                 <SecondaryButton
-                  label="📷 Choose"
+                  label={t.auth.choosePhotoBtn}
                   onPress={() => { void pickImage(setPassportPhoto); }}
                 />
               )}
@@ -419,8 +419,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             {/* National ID Photo Upload */}
             <View style={styles.uploadRow}>
               <View style={styles.uploadInfo}>
-                <Text style={styles.uploadLabel}>National ID Card</Text>
-                <Text style={styles.uploadSub}>Front photo of your National ID or Passport</Text>
+                <Text style={styles.uploadLabel}>{t.auth.nationalIdPhotoTitle}</Text>
+                <Text style={styles.uploadSub}>{t.auth.nationalIdPhotoSub}</Text>
               </View>
               {identityCardPhoto ? (
                 <View style={styles.previewWrap}>
@@ -431,7 +431,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 </View>
               ) : (
                 <SecondaryButton
-                  label="📷 Choose"
+                  label={t.auth.choosePhotoBtn}
                   onPress={() => { void pickImage(setIdentityCardPhoto); }}
                 />
               )}
@@ -440,8 +440,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             {/* Driver's License Photo Upload */}
             <View style={styles.uploadRow}>
               <View style={styles.uploadInfo}>
-                <Text style={styles.uploadLabel}>Driver's License</Text>
-                <Text style={styles.uploadSub}>Photo of your active motorcycle driving license</Text>
+                <Text style={styles.uploadLabel}>{t.auth.licensePhotoTitle}</Text>
+                <Text style={styles.uploadSub}>{t.auth.licensePhotoSub}</Text>
               </View>
               {licencePhoto ? (
                 <View style={styles.previewWrap}>
@@ -452,7 +452,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 </View>
               ) : (
                 <SecondaryButton
-                  label="📷 Choose"
+                  label={t.auth.choosePhotoBtn}
                   onPress={() => { void pickImage(setLicencePhoto); }}
                 />
               )}
@@ -461,11 +461,11 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {/* Password */}
           <InputField
-            label="Password *"
+            label={t.auth.passwordLabel + ' *'}
             value={password}
             onChangeText={setPassword}
             error={passwordError}
-            placeholder="Minimum 8 characters"
+            placeholder={t.auth.passwordHint}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="new-password"
@@ -473,18 +473,18 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
           {/* Confirm Password */}
           <InputField
-            label="Confirm password *"
+            label={t.auth.confirmPasswordLabel}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             error={confirmPasswordError}
-            placeholder="Re-enter password"
+            placeholder={t.auth.confirmPasswordPlaceholder}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="new-password"
           />
 
           <PrimaryButton
-            label={isSubmitting ? 'Creating rider account...' : 'Create rider account'}
+            label={isSubmitting ? t.auth.registering : t.auth.registerButton}
             loading={isSubmitting}
             onPress={() => { void handleRegister(); }}
           />
@@ -498,8 +498,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
           >
             <Text style={styles.helpIcon}>🔑</Text>
             <View style={styles.helpLinkText}>
-              <Text style={styles.helpLinkTitle}>Already have an account?</Text>
-              <Text style={styles.helpLinkSub}>Go back to sign in with your credentials</Text>
+              <Text style={styles.helpLinkTitle}>{t.auth.alreadyHaveAccount}</Text>
+              <Text style={styles.helpLinkSub}>{t.auth.signInCredentialsSub}</Text>
             </View>
             <Text style={styles.helpChevron}>›</Text>
           </Pressable>

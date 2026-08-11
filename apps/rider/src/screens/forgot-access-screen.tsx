@@ -5,6 +5,7 @@ import { AuthShell } from '../components/auth-shell';
 import { AppCard } from '../components/ui/card';
 import { InputField } from '../components/ui/input-field';
 import { PrimaryButton, SecondaryButton } from '../components/ui/button';
+import { useLanguage } from '../lib/i18n/language-context';
 import type { RiderAuthStackParamList } from '../navigation/navigation.types';
 import { theme } from '../theme/tokens';
 import { ApiError, apiFetch } from '../lib/api/client';
@@ -16,6 +17,7 @@ type ForgotAccessScreenProps = NativeStackScreenProps<
 
 // Collects the rider phone number before showing the recovery guidance screen.
 export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
+  const { t } = useLanguage();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,41 +75,41 @@ export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
 
   return (
     <AuthShell
-      eyebrow="Recovery"
-      title="Recover your rider access"
-      description="We will guide you to the safest next step without exposing technical details."
+      eyebrow={t.auth.recoveryEyebrow}
+      title={t.auth.recoveryTitle}
+      description={t.auth.recoveryDescription}
     >
       <AppCard
-        title="Check your rider phone"
-        subtitle="Start with the phone number registered by your fleet admin."
+        title={t.auth.checkPhoneCardTitle}
+        subtitle={t.auth.checkPhoneCardSub}
       >
         <InputField
-          label="Rider phone number or Email"
+          label={t.auth.identifierFieldLabel}
           value={phoneNumber}
           onChangeText={setPhoneNumber}
           error={phoneError}
-          placeholder="e.g. +250788123456 or rider@example.com"
+          placeholder={t.auth.identifierFieldPlaceholder}
           keyboardType="email-address"
           editable={!isSubmitting}
         />
         <PrimaryButton
-          label="Continue"
+          label={t.auth.continueButton}
           onPress={continueToReset}
           loading={isSubmitting}
           disabled={isSubmitting}
         />
         <SecondaryButton
-          label="Back to login"
+          label={t.auth.backToLoginButton}
           onPress={() => navigation.goBack()}
           disabled={isSubmitting}
         />
       </AppCard>
 
-      <AppCard title="What happens next" subtitle="Password recovery is now self-service for your account.">
+      <AppCard title={t.auth.whatHappensNextTitle} subtitle={t.auth.whatHappensNextSub}>
         <View style={styles.stepList}>
-          <Text style={styles.stepText}>1. Confirm the phone number your fleet admin registered.</Text>
-          <Text style={styles.stepText}>2. Enter the 6-character reset token sent to your device.</Text>
-          <Text style={styles.stepText}>3. Choose a new secure password to access your rider profile.</Text>
+          <Text style={styles.stepText}>{t.auth.step1Text}</Text>
+          <Text style={styles.stepText}>{t.auth.step2Text}</Text>
+          <Text style={styles.stepText}>{t.auth.step3Text}</Text>
         </View>
       </AppCard>
     </AuthShell>
