@@ -715,7 +715,7 @@ export default function FinancialsPage() {
     }
 
     // 2. Multi-day / Weekly / Advance Coverage Check
-    const lease = leases.find((l) => l.id === riderId || (l as Record<string, unknown>).riderId === riderId);
+    const lease = leases.find((l) => l.id === riderId || (l as unknown as { riderId?: string }).riderId === riderId);
     const riderObj = ridersList.find((r) => r.id === riderId);
     const dailyRate = lease?.dailyRate ?? riderObj?.leaseDailyRate ?? DAILY_LEASE_RATE;
 
