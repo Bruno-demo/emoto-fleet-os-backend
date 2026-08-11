@@ -77,6 +77,14 @@ export class PricingTierService implements OnModuleInit {
   }
 
   async seedDefaultTiers(): Promise<void> {
+    try {
+      await this.prisma.$executeRawUnsafe(`ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';`);
+      await this.prisma.$executeRawUnsafe(`ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'INSURANCE';`);
+      await this.prisma.$executeRawUnsafe(`ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'ENTERPRISE';`);
+    } catch {
+      // Ignore if non-superuser or already present
+    }
+
     const tiers = [
       {
         name: 'Pay-As-You-Go',
@@ -108,16 +116,20 @@ export class PricingTierService implements OnModuleInit {
     ];
 
     for (const tier of tiers) {
-      await this.prisma.pricingTier.upsert({
-        where: { planCode: tier.planCode },
-        update: {
-          name: tier.name,
-          description: tier.description,
-          monthlyRatePerBike: tier.monthlyRatePerBike,
-          sortOrder: tier.sortOrder,
-        },
-        create: tier,
-      });
+      try {
+        await this.prisma.pricingTier.upsert({
+          where: { planCode: tier.planCode },
+          update: {
+            name: tier.name,
+            description: tier.description,
+            monthlyRatePerBike: tier.monthlyRatePerBike,
+            sortOrder: tier.sortOrder,
+          },
+          create: tier,
+        });
+      } catch (error) {
+        console.warn(`[PricingTierService] Could not seed tier ${tier.planCode}:`, error);
+      }
     }
 
     // Delete legacy pricing tiers if present

@@ -3,6 +3,49 @@ set -eu
 
 run_migrations() {
   if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+    echo "Syncing database enum ownership and values..."
+    psql "${DATABASE_URL}" <<'SQL' || true
+      DO $$
+      DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (
+          SELECT t.typname
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE n.nspname = 'public' AND t.typtype = 'e'
+        ) LOOP
+          BEGIN
+            EXECUTE 'ALTER TYPE public.' || quote_ident(r.typname) || ' OWNER TO ' || quote_ident(CURRENT_USER);
+          EXCEPTION WHEN OTHERS THEN
+            NULL;
+          END;
+        END LOOP;
+      END $$;
+
+      DO $$
+      BEGIN
+        ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';
+        ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'INSURANCE';
+        ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'ENTERPRISE';
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END $$;
+
+      DO $$
+      BEGIN
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_REQUESTED';
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_RECEIVED';
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_FAILED';
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'MOMO_PAYMENT_RETRIED';
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'SUBSCRIPTION_CREATED';
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'SUBSCRIPTION_CANCELLED';
+        ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS 'SUBSCRIPTION_RENEWED';
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END $$;
+SQL
+
     echo "Running Prisma schema sync..."
     ./apps/api/node_modules/.bin/prisma db push --schema apps/api/prisma/schema.prisma --accept-data-loss || true
   fi
