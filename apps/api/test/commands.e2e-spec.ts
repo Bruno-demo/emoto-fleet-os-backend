@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 import {
   encryptDeviceSecret,
   hashDeviceSecret,
@@ -28,6 +29,7 @@ describe('Device Commands API (e2e)', () => {
 
   // Seeds deterministic admin + bike + device data for command endpoint assertions.
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
     const fleet = await prisma.fleet.create({

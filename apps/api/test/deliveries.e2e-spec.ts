@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 
 describe('Deliveries API (e2e)', () => {
   let app: INestApplication;
@@ -28,6 +29,7 @@ describe('Deliveries API (e2e)', () => {
   const password = 'Password123!';
 
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const passwordHash = await bcrypt.hash(password, 10);
 
     const fleet = await prisma.fleet.create({

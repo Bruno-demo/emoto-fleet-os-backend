@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 import { PartnerService } from '../src/partner/partner.service';
 
 describe('Partner OAuth and Insurer API (e2e)', () => {
@@ -21,6 +22,7 @@ describe('Partner OAuth and Insurer API (e2e)', () => {
 
   // Seeds partner and fleet fixtures for partner-token and fleet-isolation assertions.
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const allowedFleet = await prisma.fleet.create({
       data: {
         name: `Partner Allowed Fleet ${runId.slice(0, 6)}`,

@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 import { EventsService } from '../src/events/events.service';
 import { DevicesService } from '../src/devices/devices.service';
 
@@ -31,6 +32,7 @@ describe('Incidents and Notification Outbox (e2e)', () => {
 
   // Seeds deterministic fleet data required for crash incident workflow tests.
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
     const fleet = await prisma.fleet.create({

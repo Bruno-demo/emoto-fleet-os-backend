@@ -8,6 +8,7 @@ import { AddressInfo } from 'net';
 import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 import { CommandsService } from '../src/commands/commands.service';
 import { EventsService } from '../src/events/events.service';
 
@@ -32,6 +33,7 @@ describe('Realtime WebSocket Gateway (e2e)', () => {
 
   // Seeds deterministic fleet data required for websocket auth and event delivery.
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 
     const fleet: Fleet = await prisma.fleet.create({

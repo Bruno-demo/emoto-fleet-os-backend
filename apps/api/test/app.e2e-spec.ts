@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 
 describe('Auth, RBAC, and Provisioning (e2e)', () => {
   jest.setTimeout(90000);
@@ -30,6 +31,7 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
 
   // Seeds deterministic auth and fleet data required for login/RBAC assertions.
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const adminPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
     const dispatcherPasswordHash = await bcrypt.hash('ChangeMe123!', 10);
 

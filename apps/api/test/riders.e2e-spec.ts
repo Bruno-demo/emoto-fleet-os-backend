@@ -15,6 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { ensureTestSchemaSync } from './e2e-helpers';
 
 describe('Rider APIs (e2e)', () => {
   let app: INestApplication;
@@ -35,6 +36,7 @@ describe('Rider APIs (e2e)', () => {
 
   // Seeds one fleet with two riders, bike assignment, trips, and emergency contacts.
   const seedFixtures = async (): Promise<void> => {
+    await ensureTestSchemaSync(prisma);
     const riderPasswordHash = await bcrypt.hash(riderPassword, 10);
     const otherRiderPasswordHash = await bcrypt.hash('OtherRider123!', 10);
 
