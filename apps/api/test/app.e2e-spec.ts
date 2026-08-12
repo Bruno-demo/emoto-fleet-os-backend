@@ -841,7 +841,8 @@ describe('Auth, RBAC, and Provisioning (e2e)', () => {
         })
         .expect(201);
 
-      const user = regRes.body as { id: string; fleetId: string };
+      const regBody = regRes.body as { accessToken?: string; user?: { id: string; fleetId: string }; id?: string; fleetId?: string };
+      const user = regBody.user ?? regBody;
       expect(user.id).toBeDefined();
 
       // 4. Verify RiderProfile was created
