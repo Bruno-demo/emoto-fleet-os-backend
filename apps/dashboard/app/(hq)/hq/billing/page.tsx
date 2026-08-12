@@ -138,7 +138,7 @@ export default function HqBillingPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'ledger' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'PREMIUM' | 'CORE' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'ENTERPRISE' | 'PAYG' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
 
   // Modals / Drawer Form States
@@ -341,10 +341,10 @@ export default function HqBillingPage() {
           return fleet.plan !== 'INSURANCE' && !fleet.installationPaid;
         case 'PAID_SETUP':
           return fleet.plan !== 'INSURANCE' && fleet.installationPaid;
-        case 'PREMIUM':
-          return fleet.plan === 'PREMIUM';
-        case 'CORE':
-          return fleet.plan === 'DEMO';
+        case 'ENTERPRISE':
+          return fleet.plan === 'ENTERPRISE';
+        case 'PAYG':
+          return fleet.plan === 'PAYG';
         case 'INSURANCE':
           return fleet.plan === 'INSURANCE';
         case 'SUB_ACTIVE':

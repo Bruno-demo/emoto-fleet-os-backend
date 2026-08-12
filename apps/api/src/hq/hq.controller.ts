@@ -74,7 +74,7 @@ export class HqController {
   @ApiOperation({ summary: 'Change fleet plan' })
   updateFleetPlan(
     @Param('id') id: string,
-    @Body() body: { plan: 'DEMO' | 'PREMIUM' },
+    @Body() body: { plan: 'PAYG' | 'INSURANCE' | 'ENTERPRISE' },
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.hqService.updateFleetPlan(id, body.plan, user);

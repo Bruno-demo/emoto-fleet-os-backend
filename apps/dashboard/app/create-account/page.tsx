@@ -217,24 +217,29 @@ function CreateAccountInner() {
             period: '/ bike / mo',
             description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
             setupFeePerBike: coreTier.setupFeePerBike,
+        const paygTier = tiers.find(t => t.planCode === 'PAYG');
+        if (paygTier) {
+          const planData = {
+            title: 'Cooperative & Individual',
+            price: '350 RWF',
+            period: '/ bike / active day',
+            description: 'Cooperative & individual fleet tracking (350 RWF/day, 0 RWF setup fee).',
+            setupFeePerBike: 0,
             icon: <UsersRound size={18} />
           };
           updatedPlans['coop-individual'] = planData;
           updatedPlans['safety-core'] = planData;
-        }
-        
-        const premiumTier = tiers.find(t => t.planCode === 'PREMIUM');
-        if (premiumTier) {
-          const planData = {
-            title: 'Delivery Fleet',
-            price: `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            period: '/ bike / mo',
-            description: 'High-volume commercial delivery fleet ops (0 RWF setup fee).',
-            setupFeePerBike: premiumTier.setupFeePerBike,
+
+          const deliveryPlanData = {
+            title: 'Commercial Delivery',
+            price: '500 RWF',
+            period: '/ bike / active day',
+            description: 'High-volume commercial delivery fleet ops (500 RWF/day, 0 RWF setup fee).',
+            setupFeePerBike: 0,
             icon: <Truck size={18} />
           };
-          updatedPlans['delivery'] = planData;
-          updatedPlans['operations-plus'] = planData;
+          updatedPlans['delivery'] = deliveryPlanData;
+          updatedPlans['operations-plus'] = deliveryPlanData;
         }
  
         const insuranceTier = tiers.find(t => t.planCode === 'INSURANCE');

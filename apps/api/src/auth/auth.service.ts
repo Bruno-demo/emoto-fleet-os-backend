@@ -592,9 +592,10 @@ export class AuthService {
         async (tx) => {
           const requestedType = dto.fleetType ?? 'COOP';
           const isInsurance = dto.plan === 'INSURANCE';
-          const syncedPlan = 'PAYG';
+          const syncedPlan = dto.plan ?? 'PAYG';
           const syncedType = requestedType;
-          const monthlyRatePerBike = 10000;
+          const dailyRate = syncedType === 'DELIVERY' ? 500 : 350;
+          const monthlyRatePerBike = dailyRate * 30;
 
           let fleetDiscountConnect = undefined;
 
@@ -629,6 +630,7 @@ export class AuthService {
               insurerName: isInsurance ? dto.insurerName : null,
               subscriptionStatus: 'ACTIVE',
               monthlyRatePerBike,
+              emotoPaygRatePerActiveDay: dailyRate,
               billingStartedAt: new Date(),
               bikeRange: dto.bikeRange ? String(dto.bikeRange) : null,
               fleetDiscounts: fleetDiscountConnect

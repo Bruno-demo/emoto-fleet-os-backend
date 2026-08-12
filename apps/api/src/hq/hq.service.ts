@@ -337,8 +337,8 @@ export class HqService {
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
-    if (!['PAYG', 'DEMO', 'PREMIUM'].includes(plan)) {
-      throw new BadRequestException('Invalid plan. Must be PAYG');
+    if (!['PAYG', 'INSURANCE', 'ENTERPRISE'].includes(plan)) {
+      throw new BadRequestException('Invalid plan. Must be PAYG, INSURANCE, or ENTERPRISE');
     }
 
     const tier = await this.prisma.pricingTier.findUnique({
@@ -2526,7 +2526,7 @@ export class HqService {
       targetId: fleetId,
       metaJson: {
         approvedUpgrade: true,
-        plan: 'PREMIUM',
+        plan: 'ENTERPRISE',
       },
     });
 
