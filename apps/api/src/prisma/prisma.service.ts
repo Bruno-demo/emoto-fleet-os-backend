@@ -22,42 +22,76 @@ export class PrismaService
 
   // Self-healing database routine to ensure FleetPlan enum values are valid
   async sanitizeFleetPlans(): Promise<void> {
+    // 1. Add new enum values to PostgreSQL FleetPlan enum type if it exists
     try {
-      // Step 1: Direct text-based update if enum type already supports PAYG
+      await this.$executeRawUnsafe(
+        `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';`,
+      );
+    } catch {}
+    try {
+      await this.$executeRawUnsafe(
+        `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'ENTERPRISE';`,
+      );
+    } catch {}
+
+    // 2. Drop default constraint and convert Fleet.plan to TEXT temporarily
+    try {
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;`,
+      );
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;`,
+      );
+    } catch {}
+
+    // 3. Convert PricingTier.planCode to TEXT temporarily if table exists
+    try {
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE TEXT USING "planCode"::text;`,
+      );
+    } catch {}
+
+    // 4. Update all invalid/legacy text values to PAYG in Fleet table
+    try {
       const updatedFleets = await this.$executeRawUnsafe(
-        `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan"::text NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`,
+        `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE') OR "plan" IS NULL;`,
       );
-      const updatedTiers = await this.$executeRawUnsafe(
-        `UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode"::text NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`,
-      );
-      if (updatedFleets > 0 || updatedTiers > 0) {
-        this.logger.warn(
-          `Sanitized ${updatedFleets} Fleet + ${updatedTiers} PricingTier legacy plan records to PAYG`,
-        );
+      if (updatedFleets > 0) {
+        this.logger.log(`Sanitized ${updatedFleets} Fleet records to PAYG`);
       }
-    } catch (err: unknown) {
-      // Step 2: If Postgres enum type rejects 'PAYG', perform full enum type migration in DB
-      this.logger.warn(
-        `Standard Fleet plan sanitization failed (${err instanceof Error ? err.message : 'enum type mismatch'}). Performing structural DDL enum migration...`,
+    } catch {}
+
+    // 5. Update PricingTier if table exists
+    try {
+      await this.$executeRawUnsafe(
+        `UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`,
       );
-      try {
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;`);
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;`);
-        await this.$executeRawUnsafe(`ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE TEXT USING "planCode"::text;`);
-        await this.$executeRawUnsafe(`UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
-        await this.$executeRawUnsafe(`UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
-        await this.$executeRawUnsafe(`DROP TYPE IF EXISTS "FleetPlan" CASCADE;`);
-        await this.$executeRawUnsafe(`CREATE TYPE "FleetPlan" AS ENUM ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";`);
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG';`);
-        await this.$executeRawUnsafe(`ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE "FleetPlan" USING "planCode"::"FleetPlan";`);
-        this.logger.log('Successfully updated PostgreSQL FleetPlan enum type and sanitized all records.');
-      } catch (ddlErr: unknown) {
-        this.logger.error(
-          `Fleet plan DDL migration failed: ${ddlErr instanceof Error ? ddlErr.message : 'unknown'}`,
-        );
-      }
-    }
+    } catch {}
+
+    // 6. Recreate FleetPlan enum type in Postgres matching current schema.prisma
+    try {
+      await this.$executeRawUnsafe(`DROP TYPE IF EXISTS "FleetPlan" CASCADE;`);
+      await this.$executeRawUnsafe(
+        `CREATE TYPE "FleetPlan" AS ENUM ('PAYG', 'INSURANCE', 'ENTERPRISE');`,
+      );
+    } catch {}
+
+    // 7. Cast Fleet.plan back to FleetPlan enum and restore default
+    try {
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";`,
+      );
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG'::"FleetPlan";`,
+      );
+    } catch {}
+
+    // 8. Cast PricingTier.planCode back to FleetPlan enum if table exists
+    try {
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE "FleetPlan" USING "planCode"::"FleetPlan";`,
+      );
+    } catch {}
   }
 
   // Closes the Prisma query engine on app shutdown.

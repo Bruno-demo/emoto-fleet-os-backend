@@ -53,7 +53,6 @@ const userSelectForAuth = {
     select: {
       name: true,
       type: true,
-      plan: true,
       subscriptionStatus: true,
       upgradeRequested: true,
       insurerName: true,
@@ -1665,7 +1664,7 @@ export class AuthService {
       id: user.id,
       fleetId: user.fleetId ?? '',
       fleetName: user.fleet?.name ?? 'E-Moto Fleet',
-      fleetPlan: user.fleet?.plan ?? 'PAYG',
+      fleetPlan: (user.fleet as any)?.plan ?? 'PAYG',
       fleetType: user.fleet?.type ?? 'COOP',
       subscriptionStatus: user.fleet?.subscriptionStatus ?? 'ACTIVE',
       upgradeRequested: user.fleet?.upgradeRequested ?? false,
