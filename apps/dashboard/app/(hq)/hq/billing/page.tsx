@@ -44,6 +44,7 @@ const billingFleetSchema = z.array(
     monthlyRatePerBike: z.number().nullable().optional(),
     trialStartedAt: z.string().nullable().optional(),
     trialEndsAt: z.string().nullable().optional(),
+    emotoPaygRatePerActiveDay: z.number().nullable().optional(),
     _count: z.object({
       users: z.number(),
       bikes: z.number(),
@@ -517,7 +518,7 @@ export default function HqBillingPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
                   const setupAmount = 0;
-                  const dailyRate = (fleet as any).emotoPaygRatePerActiveDay ?? 350;
+                  const dailyRate = fleet.emotoPaygRatePerActiveDay ?? 350;
                   const monthlyRate = fleet.monthlyRatePerBike ?? (dailyRate * 30);
                   const estimatedMonthly = fleet._count.bikes * monthlyRate;
                   const hasUpgrade = fleet.upgradeRequested;
