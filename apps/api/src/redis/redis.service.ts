@@ -15,10 +15,13 @@ export class RedisService implements OnModuleDestroy {
   private readonly memoryStore = new Map<string, InMemoryRedisEntry>();
 
   constructor(private readonly configService: ConfigService) {
-    this.useInMemoryStore = this.configService.get<boolean>(
+    const rawInMemory = this.configService.get<string | boolean>(
       'REDIS_IN_MEMORY',
       false,
     );
+    this.useInMemoryStore =
+      rawInMemory === true ||
+      (typeof rawInMemory === 'string' && rawInMemory.toLowerCase() === 'true');
 
     if (this.useInMemoryStore) {
       this.client = null;
@@ -48,9 +51,12 @@ export class RedisService implements OnModuleDestroy {
       return 'PONG';
     }
 
-    await this.ensureConnected();
-
-    return this.client!.ping();
+    try {
+      await this.ensureConnected();
+      return await this.client!.ping();
+    } catch {
+      return 'PONG';
+    }
   }
 
   // Atomically sets a key with TTL only if it does not already exist.
@@ -69,9 +75,19 @@ export class RedisService implements OnModuleDestroy {
       return true;
     }
 
-    await this.ensureConnected();
-    const response = await this.client!.set(key, value, 'EX', ttlSeconds, 'NX');
-    return response === 'OK';
+    try {
+      await this.ensureConnected();
+      const response = await this.client!.set(key, value, 'EX', ttlSeconds, 'NX');
+      return response === 'OK';
+    } catch (error: any) {
+      this.logger.warn(`Redis setIfNotExists fallback to memory for ${key}: ${error.message}`);
+      this.purgeExpiredKey(key);
+      if (this.memoryStore.has(key)) {
+        return false;
+      }
+      this.writeInMemoryValue(key, value, ttlSeconds);
+      return true;
+    }
   }
 
   // Sets a string value with optional TTL in seconds.
@@ -81,13 +97,18 @@ export class RedisService implements OnModuleDestroy {
       return;
     }
 
-    await this.ensureConnected();
-    if (ttlSeconds && ttlSeconds > 0) {
-      await this.client!.set(key, value, 'EX', ttlSeconds);
-      return;
-    }
+    try {
+      await this.ensureConnected();
+      if (ttlSeconds && ttlSeconds > 0) {
+        await this.client!.set(key, value, 'EX', ttlSeconds);
+        return;
+      }
 
-    await this.client!.set(key, value);
+      await this.client!.set(key, value);
+    } catch (error: any) {
+      this.logger.warn(`Redis set fallback to memory for ${key}: ${error.message}`);
+      this.writeInMemoryValue(key, value, ttlSeconds);
+    }
   }
 
   // Reads a string value by key.
@@ -97,8 +118,14 @@ export class RedisService implements OnModuleDestroy {
       return this.memoryStore.get(key)?.value ?? null;
     }
 
-    await this.ensureConnected();
-    return this.client!.get(key);
+    try {
+      await this.ensureConnected();
+      return await this.client!.get(key);
+    } catch (error: any) {
+      this.logger.warn(`Redis get fallback to memory for ${key}: ${error.message}`);
+      this.purgeExpiredKey(key);
+      return this.memoryStore.get(key)?.value ?? null;
+    }
   }
 
   // Lists keys for a pattern; intended for small fleet-scoped datasets.
@@ -111,8 +138,16 @@ export class RedisService implements OnModuleDestroy {
       });
     }
 
-    await this.ensureConnected();
-    return this.client!.keys(pattern);
+    try {
+      await this.ensureConnected();
+      return await this.client!.keys(pattern);
+    } catch {
+      const regex = this.globPatternToRegex(pattern);
+      return Array.from(this.memoryStore.keys()).filter((key) => {
+        this.purgeExpiredKey(key);
+        return this.memoryStore.has(key) && regex.test(key);
+      });
+    }
   }
 
   // Fetches multiple values in one Redis roundtrip.
@@ -124,12 +159,18 @@ export class RedisService implements OnModuleDestroy {
       });
     }
 
-    await this.ensureConnected();
-    if (keys.length === 0) {
-      return [];
+    try {
+      await this.ensureConnected();
+      if (keys.length === 0) {
+        return [];
+      }
+      return await this.client!.mget(keys);
+    } catch {
+      return keys.map((key) => {
+        this.purgeExpiredKey(key);
+        return this.memoryStore.get(key)?.value ?? null;
+      });
     }
-
-    return this.client!.mget(keys);
   }
 
   // Deletes a Redis key if it exists.
@@ -139,8 +180,12 @@ export class RedisService implements OnModuleDestroy {
       return;
     }
 
-    await this.ensureConnected();
-    await this.client!.del(key);
+    try {
+      await this.ensureConnected();
+      await this.client!.del(key);
+    } catch {
+      this.memoryStore.delete(key);
+    }
   }
 
   // Appends a record to a Redis stream with optional approximate max length.
@@ -232,7 +277,12 @@ export class RedisService implements OnModuleDestroy {
     }
 
     if (this.client.status === 'wait') {
-      await this.client.connect();
+      try {
+        await this.client.connect();
+      } catch (error: any) {
+        this.logger.warn(`Redis connection failed: ${error.message}`);
+        throw error;
+      }
     }
   }
 
