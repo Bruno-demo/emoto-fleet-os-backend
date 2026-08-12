@@ -17,6 +17,18 @@ export class PrismaService
   async onModuleInit(): Promise<void> {
     await this.$connect();
 
+    if (process.env.RESET_DB === 'true' || process.env.WIPE_DATABASE === 'true') {
+      this.logger.warn('RESET_DB environment variable is set to true! Performing nuclear database reset...');
+      try {
+        await this.$executeRawUnsafe(`DROP SCHEMA public CASCADE;`);
+        await this.$executeRawUnsafe(`CREATE SCHEMA public;`);
+        await this.$executeRawUnsafe(`GRANT ALL ON SCHEMA public TO public;`);
+        this.logger.log('Database public schema reset completed successfully.');
+      } catch (err) {
+        this.logger.error('Failed to reset database schema:', err);
+      }
+    }
+
     await this.sanitizeFleetPlans();
   }
 

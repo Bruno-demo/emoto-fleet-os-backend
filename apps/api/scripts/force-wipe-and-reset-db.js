@@ -1,47 +1,26 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function forceWipeAndReset() {
-  console.log('⚡ Starting Emergency Force Wipe & Schema Clean...');
+async function nuclearSchemaReset() {
+  console.log('☢️ Starting Nuclear Database Reset (Wiping all data and legacy enums)...');
   try {
-    // 1. Force update any invalid enum text values using raw SQL first
-    console.log('1. Sanitizing raw SQL enum columns...');
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE TEXT USING "planCode"::text;`);
-      await prisma.$executeRawUnsafe(`UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
-      await prisma.$executeRawUnsafe(`UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
-      await prisma.$executeRawUnsafe(`DROP TYPE IF EXISTS "FleetPlan" CASCADE;`);
-      await prisma.$executeRawUnsafe(`CREATE TYPE "FleetPlan" AS ENUM ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG';`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE "FleetPlan" USING "planCode"::"FleetPlan";`);
-      console.log('✅ SQL enum sanitization completed.');
-    } catch (e) {
-      console.log('⚠️ Enum sanitization notice:', e.message);
-    }
+    // 1. Drop public schema with CASCADE to remove all legacy tables, types, and enums
+    console.log('1. Dropping public schema...');
+    await prisma.$executeRawUnsafe(`DROP SCHEMA public CASCADE;`);
+    
+    // 2. Recreate blank public schema
+    console.log('2. Recreating blank public schema...');
+    await prisma.$executeRawUnsafe(`CREATE SCHEMA public;`);
+    await prisma.$executeRawUnsafe(`GRANT ALL ON SCHEMA public TO public;`);
+    await prisma.$executeRawUnsafe(`GRANT ALL ON SCHEMA public TO current_user;`);
 
-    // 2. Fetch all public tables and TRUNCATE with CASCADE
-    console.log('2. Truncating all public database tables...');
-    const tables = await prisma.$queryRaw`
-      SELECT tablename FROM pg_tables WHERE schemaname='public';
-    `;
-
-    for (const { tablename } of tables) {
-      if (tablename !== '_prisma_migrations') {
-        await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tablename}" CASCADE;`);
-        console.log(`   - Truncated table: ${tablename}`);
-      }
-    }
-
-    console.log('✅ ALL DATABASE DATA WIPED CLEANLY!');
-    console.log('💡 Database structure is now clean.');
+    console.log('✅ PUBLIC SCHEMA DROPPED & RECREATED CLEANLY!');
+    console.log('💡 Now run `npm run db:push -w apps/api` or `npm run db:deploy -w apps/api` to apply fresh schema.');
   } catch (err) {
-    console.error('❌ Force wipe failed:', err);
+    console.error('❌ Schema reset failed:', err);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-forceWipeAndReset();
+nuclearSchemaReset();
