@@ -188,9 +188,7 @@ export default function OverviewPage() {
                 <h2 className="text-base font-bold text-ink">
                   {t('Welcome to eMoto Fleet OS!')}
                 </h2>
-                <Badge variant="info" className="text-[11px]">
-                  {completedCount} / 4 {t('Completed')}
-                </Badge>
+                <Badge tone="info" size="sm" label={`${completedCount} / 4 ${t('Completed')}`} />
               </div>
               <p className="text-xs text-ink-muted">
                 {t('Complete these quick setup steps to get your fleet fully operational on the road.')}
