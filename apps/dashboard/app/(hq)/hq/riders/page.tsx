@@ -78,7 +78,7 @@ export default function HqRidersPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setAccumulatedRiders([]);
   }, [search, filterFleetId, filterStatus]);
 
@@ -155,7 +155,7 @@ export default function HqRidersPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setAccumulatedRiders(data.data);
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         setAccumulatedRiders((prev) => {
           const existingIds = new Set(prev.map((r) => r.id));
           const newRiders = (data.data ?? []).filter((r) => !existingIds.has(r.id));

@@ -27,7 +27,6 @@ import {
   Users2,
   Zap,
   Building2,
-  Crown,
   Menu,
   X,
 } from 'lucide-react';
@@ -284,8 +283,6 @@ export default function LandingContent() {
     loadPricing();
   }, []);
 
-  // Dynamic Pricing Rates & Plan Mapping
-  const paygTier = pricingTiers?.find(t => t.planCode === 'PAYG');
 
   const localizedFaqItems = useMemo(() => {
     return faqs.map((faq) => ({
@@ -794,7 +791,6 @@ export default function LandingContent() {
           {localizedPlans.map((plan) => {
             const isPayg = plan.slug === 'payg';
             const isInsurance = plan.slug === 'insurance';
-            const isEnterprise = plan.slug === 'enterprise';
 
             const cardBorderClass = isPayg
               ? 'border-2 border-cyan-500/50 bg-slate-950/80 shadow-[0_0_40px_rgba(6,182,212,0.18)] ring-1 ring-cyan-500/30 lg:scale-[1.03] z-10'

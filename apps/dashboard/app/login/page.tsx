@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import {
   buildLoginPayload,
@@ -50,8 +50,14 @@ export default function LoginPage() {
   const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
-  const [isRiderBlocked, setIsRiderBlocked] = useState(false);
+  const [isExpired] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('expired') === 'true';
+  });
+  const [isRiderBlocked] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('error') === 'rider';
+  });
   const loginPresentation = getLoginPresentation();
 
   // OTP login flow state
@@ -63,18 +69,6 @@ export default function LoginPage() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('expired') === 'true') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsExpired(true);
-    }
-    if (params.get('error') === 'rider') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsRiderBlocked(true);
-    }
-  }, []);
 
   const nextPath = useMemo(() => {
     if (typeof window === 'undefined') {

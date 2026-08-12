@@ -2,7 +2,6 @@
 
 import {
   BadgeCheck,
-  Bike,
   Building2,
   ShieldCheck,
   UserPlus,
@@ -14,21 +13,14 @@ import {
   Phone,
   Lock,
   Zap,
-  X,
   Navigation2,
   Activity,
   Banknote,
   Truck,
-  Send,
-  CheckCircle,
-  MessageSquare,
-  Briefcase,
-  Hash,
 } from 'lucide-react';
-import { compressImage } from '@/lib/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -199,10 +191,10 @@ function CreateAccountInner() {
   const planSlugFromUrl = searchParams.get('plan');
   const flow = searchParams.get('flow');
   const tokenFromUrl = searchParams.get('token');
-  const [selectedPlanSlug, setSelectedPlanSlug] = useState<string | null>(planSlugFromUrl);
+  const [selectedPlanSlug] = useState<string | null>(planSlugFromUrl);
   
   const [plans, setPlans] = useState(PLAN_DETAILS);
-  const [isPricingLoaded, setIsPricingLoaded] = useState(false);
+  const [, setIsPricingLoaded] = useState(false);
   const selectedPlan = selectedPlanSlug ? plans[selectedPlanSlug] : null;
 
   useEffect(() => {
@@ -268,14 +260,7 @@ function CreateAccountInner() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [licenceNumber, setLicenceNumber] = useState('');
-  const [identityNumber, setIdentityNumber] = useState('');
-  const [passportPhoto, setPassportPhoto] = useState('');
-  const [licencePhoto, setLicencePhoto] = useState('');
-  const [identityCardPhoto, setIdentityCardPhoto] = useState('');
-  const [isCompresingPassport, setIsCompresingPassport] = useState(false);
-  const [isCompresingLicence, setIsCompresingLicence] = useState(false);
-  const [isCompresingIdCard, setIsCompresingIdCard] = useState(false);
+
   const [role, setRole] = useState<UserRole>('ADMIN');
   const [fleetName, setFleetName] = useState('');
   const [fleetType, setFleetType] = useState<'COOP' | 'DELIVERY' | 'PERSONAL'>('COOP');
@@ -319,71 +304,6 @@ function CreateAccountInner() {
   const [appliedDiscount, setAppliedDiscount] = useState<PromoDiscount | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
-
-  // Quote request modal state
-  const [showQuoteModal, setShowQuoteModal] = useState(false);
-  const [quoteType, setQuoteType] = useState<'enterprise' | 'insurance'>('enterprise');
-  const [quoteName, setQuoteName] = useState('');
-  const [quoteEmail, setQuoteEmail] = useState('');
-  const [quotePhone, setQuotePhone] = useState('');
-  const [quoteCompany, setQuoteCompany] = useState('');
-  const [quoteFleetSize, setQuoteFleetSize] = useState('');
-  const [quoteMessage, setQuoteMessage] = useState('');
-  const [quoteSubmitting, setQuoteSubmitting] = useState(false);
-  const [quoteSuccess, setQuoteSuccess] = useState(false);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
-
-  const openQuoteModal = useCallback((type: 'enterprise' | 'insurance') => {
-    setQuoteType(type);
-    setQuoteName('');
-    setQuoteEmail('');
-    setQuotePhone('');
-    setQuoteCompany('');
-    setQuoteFleetSize('');
-    setQuoteMessage('');
-    setQuoteError(null);
-    setQuoteSuccess(false);
-    setShowQuoteModal(true);
-  }, []);
-
-  const handleQuoteSubmit = useCallback(async () => {
-    if (!quoteName.trim() || !quoteEmail.trim()) {
-      setQuoteError('Please provide your name and email address.');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(quoteEmail.trim())) {
-      setQuoteError('Please enter a valid email address.');
-      return;
-    }
-    setQuoteSubmitting(true);
-    setQuoteError(null);
-    try {
-      const category = quoteType === 'enterprise' ? 'Enterprise Quote Request' : 'Insurance Partner Quote Request';
-      const messageParts = [
-        `Plan: ${quoteType === 'enterprise' ? 'Enterprise Operations (100+ bikes)' : 'Insurance & Compliance Partner'}`,
-        quoteCompany.trim() ? `Company: ${quoteCompany.trim()}` : null,
-        quotePhone.trim() ? `Phone: ${quotePhone.trim()}` : null,
-        quoteFleetSize.trim() ? `Fleet Size: ${quoteFleetSize.trim()} bikes` : null,
-        '',
-        quoteMessage.trim() || 'No additional message provided.',
-      ].filter(Boolean).join('\n');
-
-      await apiFetch('/auth/contact', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: quoteName.trim(),
-          email: quoteEmail.trim(),
-          category,
-          message: messageParts,
-        }),
-      }, { auth: false });
-      setQuoteSuccess(true);
-    } catch {
-      setQuoteError('Failed to submit your request. Please try again or email us directly at bruno@emotofleet.com.');
-    } finally {
-      setQuoteSubmitting(false);
-    }
-  }, [quoteName, quoteEmail, quotePhone, quoteCompany, quoteFleetSize, quoteMessage, quoteType]);
 
   const handleValidatePromo = async () => {
     if (!promoCode) return;
@@ -741,11 +661,6 @@ function CreateAccountInner() {
       setBikeRange('11-50');
       setTermsAccepted(false);
       setRole('DISPATCHER');
-      setLicenceNumber('');
-      setIdentityNumber('');
-      setPassportPhoto('');
-      setLicencePhoto('');
-      setIdentityCardPhoto('');
     } catch (requestError: unknown) {
       if (requestError instanceof ApiError) {
         setError(requestError.message);
@@ -1345,7 +1260,6 @@ function handleSocialLogin(
 
 // Computes validation errors for the sign-up form based on touch state.
 function getRegisterFieldErrors({
-  inviteToken,
   fullName,
   email,
   phone,
@@ -1353,10 +1267,7 @@ function getRegisterFieldErrors({
   confirmPassword,
   termsAccepted,
   touched,
-  isPublicMode,
-  signupType,
 }: {
-  inviteToken: string;
   fullName: string;
   email: string;
   phone: string;
@@ -1372,8 +1283,6 @@ function getRegisterFieldErrors({
     confirmPassword: boolean;
     terms: boolean;
   };
-  isPublicMode: boolean;
-  signupType: SignupType;
 }): FieldErrors {
   const errors: FieldErrors = {};
 

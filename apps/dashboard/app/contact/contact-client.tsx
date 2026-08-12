@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
@@ -17,37 +17,28 @@ import { useTranslation } from '@/components/i18n/LanguageProvider';
 export default function ContactClient() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
-  const initialCategory = searchParams.get('category');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [category, setCategory] = useState(
-    initialCategory === 'enterprise'
-      ? 'enterprise'
-      : initialCategory === 'insurance' || initialCategory === 'insurer'
-      ? 'insurer'
-      : 'general'
-  );
-  const [message, setMessage] = useState(
-    initialCategory === 'enterprise'
-      ? 'I would like to request a custom quote for an Enterprise Operations fleet (100+ bikes). Please contact me with volume pricing, dedicated SLA options, and IoT integration details.'
-      : initialCategory === 'insurance' || initialCategory === 'insurer'
-      ? 'I would like to request an Insurance Partner quote for telematics, risk compliance, and FNOL evidence packs.'
-      : ''
-  );
+  const [category, setCategory] = useState(() => {
+    const initial = searchParams.get('category');
+    if (initial === 'enterprise') return 'enterprise';
+    if (initial === 'insurance' || initial === 'insurer') return 'insurer';
+    return 'general';
+  });
+  const [message, setMessage] = useState(() => {
+    const initial = searchParams.get('category');
+    if (initial === 'enterprise') {
+      return 'I would like to request a custom quote for an Enterprise Operations fleet (100+ bikes). Please contact me with volume pricing, dedicated SLA options, and IoT integration details.';
+    }
+    if (initial === 'insurance' || initial === 'insurer') {
+      return 'I would like to request an Insurance Partner quote for telematics, risk compliance, and FNOL evidence packs.';
+    }
+    return '';
+  });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (initialCategory === 'enterprise') {
-      setCategory('enterprise');
-      setMessage((prev) => prev || 'I would like to request a custom quote for an Enterprise Operations fleet (100+ bikes). Please contact me with volume pricing, dedicated SLA options, and IoT integration details.');
-    } else if (initialCategory === 'insurance' || initialCategory === 'insurer') {
-      setCategory('insurer');
-      setMessage((prev) => prev || 'I would like to request an Insurance Partner quote for telematics, risk compliance, and FNOL evidence packs.');
-    }
-  }, [initialCategory]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
