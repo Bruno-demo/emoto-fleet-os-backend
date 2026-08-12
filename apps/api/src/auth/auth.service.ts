@@ -105,6 +105,11 @@ export class AuthService {
     }
     if (dto.phone) {
       whereClauses.push({ phone: dto.phone });
+      if (dto.phone.startsWith('+250')) {
+        whereClauses.push({ phone: dto.phone.replace(/^\+250/, '0') });
+      } else if (dto.phone.startsWith('07')) {
+        whereClauses.push({ phone: '+250' + dto.phone.slice(1) });
+      }
     }
 
     const user = await this.prismaService.user.findFirst({
@@ -139,13 +144,14 @@ export class AuthService {
       process.env.BYPASS_OTP === 'true' ||
       user.role === UserRole.RIDER;
     if (!isTestEnv) {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const userIdentifier = user.email ?? user.phone ?? user.id;
-      const otpKey = `email_otp:login:${userIdentifier}`;
-      await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
+      try {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const userIdentifier = user.email ?? user.phone ?? user.id;
+        const otpKey = `email_otp:login:${userIdentifier}`;
+        await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
 
-      const border = '='.repeat(40);
-      this.logger.log(`
+        const border = '='.repeat(40);
+        this.logger.log(`
 \x1b[33m${border}\x1b[0m
 \x1b[32m  [OTP Verification] for LOGIN\x1b[0m
 \x1b[36m  User:  ${userIdentifier}\x1b[0m
@@ -153,35 +159,42 @@ export class AuthService {
 \x1b[33m${border}\x1b[0m
 `);
 
-      if (user.email) {
-        this.mailService
-          .sendOtpEmail(user.email, otp, 'login')
-          .catch((error: unknown) => {
-            this.logger.error(
-              `Failed to send login OTP email to ${user.email}: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`,
-            );
-          });
+        if (user.email) {
+          this.mailService
+            .sendOtpEmail(user.email, otp, 'login')
+            .catch((error: unknown) => {
+              this.logger.error(
+                `Failed to send login OTP email to ${user.email}: ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`,
+              );
+            });
+        }
+
+        const tempToken = `temp_login_session_${randomBytes(24).toString('hex')}`;
+        const tempKey = `temp_login_data:${tempToken}`;
+        await this.redisService.set(
+          tempKey,
+          JSON.stringify({
+            userId: user.id,
+            rememberMe: dto.rememberMe ?? false,
+          }),
+          300, // 5 minutes TTL
+        );
+
+        return {
+          requireOtp: true,
+          email: userIdentifier,
+          tempToken,
+          otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+        };
+      } catch (error: unknown) {
+        this.logger.warn(
+          `OTP generation failed or Redis offline, proceeding with direct auth: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
       }
-
-      const tempToken = `temp_login_session_${randomBytes(24).toString('hex')}`;
-      const tempKey = `temp_login_data:${tempToken}`;
-      await this.redisService.set(
-        tempKey,
-        JSON.stringify({
-          userId: user.id,
-          rememberMe: dto.rememberMe ?? false,
-        }),
-        300, // 5 minutes TTL
-      );
-
-      return {
-        requireOtp: true,
-        email: userIdentifier,
-        tempToken,
-        otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
-      };
     }
 
     const authenticatedUser = this.toAuthenticatedUser(user);
@@ -205,14 +218,25 @@ export class AuthService {
 
   // Checks Redis for too many failed attempts and blocks login if locked out.
   private async assertNotLockedOut(identifier: string): Promise<void> {
-    const key = `login_attempts:${identifier}`;
-    const raw = await this.redisService.get(key);
-    if (!raw) return;
+    try {
+      const key = `login_attempts:${identifier}`;
+      const raw = await this.redisService.get(key);
+      if (!raw) return;
 
-    const attempts = Number(raw);
-    if (attempts >= LOGIN_MAX_ATTEMPTS) {
-      throw new UnauthorizedException(
-        'Account temporarily locked due to too many failed login attempts. Try again in 15 minutes.',
+      const attempts = Number(raw);
+      if (attempts >= LOGIN_MAX_ATTEMPTS) {
+        throw new UnauthorizedException(
+          'Account temporarily locked due to too many failed login attempts. Try again in 15 minutes.',
+        );
+      }
+    } catch (error: unknown) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.warn(
+        `Failed to query login lockout state in Redis: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       );
     }
   }
@@ -223,53 +247,69 @@ export class AuthService {
     userId?: string,
     fleetId?: string,
   ): Promise<void> {
-    const key = `login_attempts:${identifier}`;
-    const raw = await this.redisService.get(key);
-    const currentAttempts = raw ? Number(raw) : 0;
-    const newAttempts = currentAttempts + 1;
+    try {
+      const key = `login_attempts:${identifier}`;
+      const raw = await this.redisService.get(key);
+      const currentAttempts = raw ? Number(raw) : 0;
+      const newAttempts = currentAttempts + 1;
 
-    await this.redisService.set(
-      key,
-      String(newAttempts),
-      LOGIN_LOCKOUT_SECONDS,
-    );
-
-    if (fleetId) {
-      this.auditService
-        .createAuditLog({
-          fleetId,
-          actorUserId: userId,
-          actionType: AuditActionType.LOGIN_FAILED,
-          targetType: 'User',
-          targetId: userId,
-          metaJson: { identifier, attempt: newAttempts },
-        })
-        .catch(() => {});
-    }
-
-    if (newAttempts >= LOGIN_MAX_ATTEMPTS) {
-      this.logger.warn(
-        `Account locked: ${identifier} after ${newAttempts} failed attempts`,
+      await this.redisService.set(
+        key,
+        String(newAttempts),
+        LOGIN_LOCKOUT_SECONDS,
       );
+
       if (fleetId) {
         this.auditService
           .createAuditLog({
             fleetId,
             actorUserId: userId,
-            actionType: AuditActionType.ACCOUNT_LOCKED,
+            actionType: AuditActionType.LOGIN_FAILED,
             targetType: 'User',
             targetId: userId,
-            metaJson: { identifier, lockoutSeconds: LOGIN_LOCKOUT_SECONDS },
+            metaJson: { identifier, attempt: newAttempts },
           })
           .catch(() => {});
       }
+
+      if (newAttempts >= LOGIN_MAX_ATTEMPTS) {
+        this.logger.warn(
+          `Account locked: ${identifier} after ${newAttempts} failed attempts`,
+        );
+        if (fleetId) {
+          this.auditService
+            .createAuditLog({
+              fleetId,
+              actorUserId: userId,
+              actionType: AuditActionType.ACCOUNT_LOCKED,
+              targetType: 'User',
+              targetId: userId,
+              metaJson: { identifier, lockoutSeconds: LOGIN_LOCKOUT_SECONDS },
+            })
+            .catch(() => {});
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Failed to record failed login in Redis: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
     }
   }
 
   // Clears failed login attempts after a successful login.
   private async clearFailedAttempts(identifier: string): Promise<void> {
-    const key = `login_attempts:${identifier}`;
-    await this.redisService.del(key);
+    try {
+      const key = `login_attempts:${identifier}`;
+      await this.redisService.del(key);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Failed to clear login attempts in Redis: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    }
   }
 
   // Registers a new user inside the caller's fleet when self-registration is enabled.

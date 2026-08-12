@@ -19,12 +19,22 @@ import { AppModule } from './app.module';
 // Resolves browser origins allowed to call the API for local dashboard and rider apps.
 function resolveCorsOrigins(configService: ConfigService): string[] {
   const configuredOrigins = configService.get<string>('CORS_ORIGINS');
-  if (configuredOrigins) {
-    return configuredOrigins
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter((origin) => origin.length > 0);
-  }
+  const userOrigins = configuredOrigins
+    ? configuredOrigins
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0)
+    : [];
+
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'https://gateway.emotofleet.com',
+    'https://dashboard.emotofleet.com',
+    'https://emotofleet.com',
+    'https://www.emotofleet.com',
+  ];
 
   const dashboardOrigins = Array.from(
     { length: 10 },
@@ -35,7 +45,9 @@ function resolveCorsOrigins(configService: ConfigService): string[] {
     (_, index) => `http://localhost:${8081 + index}`,
   );
 
-  return [...dashboardOrigins, ...riderOrigins, 'http://localhost:19006'];
+  return Array.from(
+    new Set([...userOrigins, ...defaultOrigins, ...dashboardOrigins, ...riderOrigins, 'http://localhost:19006']),
+  );
 }
 
 import {
@@ -90,11 +102,11 @@ async function bootstrap(): Promise<void> {
       origin: string | undefined,
       callback: (error: Error | null, allow?: boolean) => void,
     ) => {
-      if (!origin || allowedCorsOrigins.includes(origin)) {
+      if (!origin || allowedCorsOrigins.includes(origin) || allowedCorsOrigins.includes('*')) {
         callback(null, true);
         return;
       }
-      callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+      callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
