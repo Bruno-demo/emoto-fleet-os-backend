@@ -112,12 +112,14 @@ export class AuthService {
       }
     }
 
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        OR: whereClauses,
-      },
-      select: userSelectForAuth,
-    });
+    const user = await this.executeAuthUserQuery(() =>
+      this.prismaService.user.findFirst({
+        where: {
+          OR: whereClauses,
+        },
+        select: userSelectForAuth,
+      }),
+    );
 
     if (
       !user ||
@@ -1492,10 +1494,12 @@ export class AuthService {
   // Loads a user identity projection or throws unauthorized when missing.
   private async loadUserOrThrow(userId: string): Promise<AuthenticatedUser> {
     try {
-      const user = await this.prismaService.user.findUnique({
-        where: { id: userId },
-        select: userSelectForAuth,
-      });
+      const user = await this.executeAuthUserQuery(() =>
+        this.prismaService.user.findUnique({
+          where: { id: userId },
+          select: userSelectForAuth,
+        }),
+      );
 
       if (!user) {
         throw new UnauthorizedException('User session not found');
@@ -1605,10 +1609,12 @@ export class AuthService {
       rememberMe: boolean;
     };
 
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      select: userSelectForAuth,
-    });
+    const user = await this.executeAuthUserQuery(() =>
+      this.prismaService.user.findUnique({
+        where: { id: userId },
+        select: userSelectForAuth,
+      }),
+    );
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -1673,6 +1679,25 @@ export class AuthService {
       notifSosAlerts: user.notifSosAlerts ?? true,
       notifCrashEvents: user.notifCrashEvents ?? true,
     };
+  }
+
+  // Safely executes database queries that fetch user profiles with relation fields (like Fleet.plan).
+  // If an un-sanitized DB row or stale Postgres enum value triggers a Prisma validation error (e.g., "Value 'PREMIUM' not found in enum 'FleetPlan'"),
+  // this wrapper automatically invokes PrismaService.sanitizeFleetPlans() and retries the query seamlessly.
+  private async executeAuthUserQuery<T>(queryFn: () => Promise<T>): Promise<T> {
+    try {
+      return await queryFn();
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (errMsg.includes('FleetPlan') || errMsg.includes("enum 'FleetPlan'")) {
+        this.logger.warn(
+          `Interpreted legacy FleetPlan enum exception: "${errMsg}". Auto-repairing database records...`,
+        );
+        await this.prismaService.sanitizeFleetPlans();
+        return await queryFn();
+      }
+      throw err;
+    }
   }
 
   // Sends an email notification to bruno@emotofleet.com when a contact form is submitted.

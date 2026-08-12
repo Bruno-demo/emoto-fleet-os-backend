@@ -17,26 +17,48 @@ export class PrismaService
   async onModuleInit(): Promise<void> {
     await this.$connect();
 
-    // Immediately sanitize legacy FleetPlan enum values (DEMO, PREMIUM) that were removed
-    // from the Prisma schema. This MUST run before any Prisma query attempts to deserialize
-    // Fleet rows, otherwise findFirst/findMany will throw:
-    //   "Value 'DEMO' not found in enum 'FleetPlan'"
+    await this.sanitizeFleetPlans();
+  }
+
+  // Self-healing database routine to ensure FleetPlan enum values are valid
+  async sanitizeFleetPlans(): Promise<void> {
     try {
+      // Step 1: Direct text-based update if enum type already supports PAYG
       const updatedFleets = await this.$executeRawUnsafe(
-        `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan"::text IN ('DEMO', 'PREMIUM');`,
+        `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan"::text NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`,
       );
       const updatedTiers = await this.$executeRawUnsafe(
-        `UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode"::text IN ('DEMO', 'PREMIUM');`,
+        `UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode"::text NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`,
       );
       if (updatedFleets > 0 || updatedTiers > 0) {
         this.logger.warn(
-          `Sanitized ${updatedFleets} Fleet + ${updatedTiers} PricingTier legacy plan records (DEMO/PREMIUM → PAYG)`,
+          `Sanitized ${updatedFleets} Fleet + ${updatedTiers} PricingTier legacy plan records to PAYG`,
         );
       }
     } catch (err: unknown) {
-      this.logger.debug(
-        `Fleet plan sanitization skipped: ${err instanceof Error ? err.message : 'unknown'}`,
+      // Step 2: If Postgres enum type rejects 'PAYG', perform full enum type migration in DB
+      this.logger.warn(
+        `Standard Fleet plan sanitization failed (${err instanceof Error ? err.message : 'enum type mismatch'}). Performing structural DDL enum migration...`,
       );
+      try {
+        await this.$executeRawUnsafe(`
+          ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;
+          ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;
+          ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE TEXT USING "planCode"::text;
+          UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');
+          UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');
+          DROP TYPE IF EXISTS "FleetPlan" CASCADE;
+          CREATE TYPE "FleetPlan" AS ENUM ('PAYG', 'INSURANCE', 'ENTERPRISE');
+          ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";
+          ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG';
+          ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE "FleetPlan" USING "planCode"::"FleetPlan";
+        `);
+        this.logger.log('Successfully updated PostgreSQL FleetPlan enum type and sanitized records.');
+      } catch (ddlErr: unknown) {
+        this.logger.error(
+          `Fleet plan DDL migration failed: ${ddlErr instanceof Error ? ddlErr.message : 'unknown'}`,
+        );
+      }
     }
   }
 
