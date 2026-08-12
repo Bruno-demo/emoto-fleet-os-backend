@@ -11,8 +11,10 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function RiderAppPage() {
+  const { t } = useTranslation();
   const expoLanUrl = 'exp://192.168.1.118:8082';
 
   return (
@@ -22,13 +24,13 @@ export default function RiderAppPage() {
         {/* Hero Section */}
         <section className="text-center space-y-4 max-w-2xl mx-auto">
           <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/15 px-4 py-1.5 text-xs font-extrabold text-accent">
-            <Sparkles size={14} /> Official React Native App
+            <Sparkles size={14} /> {t('info_rider_app_badge', 'Motari Mobile App')}
           </span>
           <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
-            The Native Mobile App For Moto Riders 🇷🇼
+            {t('info_rider_app_title', 'eMoto Motari Companion App')} 🇷🇼
           </h1>
           <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
-            Built with React Native &amp; Expo for iOS and Android. Zero manual data entry for fleet managers—riders scan National IDs, unlock motorcycles via Bluetooth BLE, and pay daily leases via MTN MoMo.
+            {t('info_rider_app_subtitle', 'Empowering Rwandan motorcycle riders with real-time safety scores, lease payment tracking, battery swap station maps, and instant emergency alerts.')}
           </p>
         </section>
 

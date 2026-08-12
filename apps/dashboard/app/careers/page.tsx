@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Briefcase,
@@ -6,23 +7,11 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Careers | Join the Future of Electric Mobility',
-  description: "Join our Kigali tech lab in Kiyovu to build the software engine for East Africa's clean energy transition. View open roles for IoT engineers, React Native developers, and fleet coordinators.",
-  keywords: [
-    'e-moto careers',
-    'Kigali developer jobs',
-    'IoT engineer vacancies Rwanda',
-    'React Native jobs Kigali',
-    'mobility tech careers',
-  ],
-  alternates: {
-    canonical: '/careers',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function CareersPage() {
+  const { t } = useTranslation();
+
   const jobs = [
     {
       title: 'Senior IoT & Telemetry Engineer',
@@ -55,14 +44,14 @@ export default function CareersPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <Sparkles size={12} className="text-accent" />
-          Join the Future of Mobility
+          {t('info_careers_badge', 'We Are Hiring')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-3xl mx-auto leading-tight mt-4">
-          Accelerate Clean Transit Systems
+          {t('info_careers_title', 'Shape the Future of E-Mobility in Africa')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl mx-auto text-base text-zinc-400">
-          Help us build the software engine behind East Africa&apos;s transition to safe, carbon-neutral, and smart electric motorcycle fleets.
+          {t('info_careers_subtitle', "Join our engineering, operations, and data science teams building Africa's premier electric motorcycle telemetry OS.")}
         </p>
       </section>
 

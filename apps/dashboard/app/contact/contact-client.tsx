@@ -11,8 +11,10 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function ContactClient() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [category, setCategory] = useState('general');
@@ -48,14 +50,14 @@ export default function ContactClient() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <HelpCircle size={12} className="text-accent" />
-          Get in Touch
+          {t('info_contact_badge', '24/7 Operator Support')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-2xl mt-4">
-          Contact Our Operations Team
+          {t('info_contact_title', 'Get in Touch with Our Fleet Team')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl text-base text-zinc-400">
-          Ready to scale your fleet or integrate safe-driver telemetry micro-insurance? Leave us a message and our support desk will contact you.
+          {t('info_contact_subtitle', 'Have questions about onboarding your fleet, partner insurance integrations, or customized enterprise deployments? We are here to help.')}
         </p>
       </section>
 

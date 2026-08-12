@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   FileText,
@@ -6,43 +7,31 @@ import {
   EyeOff,
   Scale,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Privacy Policy | Telemetry Data Safety',
-  description: 'Understand how we protect rider privacy: cryptographic data minimization, off-shift telemetry shutdown, scoped partner APIs, and rider right-to-deletion.',
-  keywords: [
-    'e-moto privacy policy',
-    'GPS data minimization',
-    'rider location privacy',
-    'telemetry data storage laws',
-    'Kigali data safety compliance',
-  ],
-  alternates: {
-    canonical: '/privacy',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function PrivacyPage() {
+  const { t } = useTranslation();
+
   const sections = [
     {
       icon: <Lock size={16} className="text-accent" />,
-      title: '1. Telemetry Capture Boundaries',
-      content: 'E-Moto systems record precise coordinate streams (GPS), current speed vectors, battery state of charge, operating temperatures, and three-axis accelerometer metrics. Telemetry channels activate exclusively when a rider is checked into an active shift, preventing tracking during private hours.',
+      title: t('info_privacy_sec1_title', '1. Telemetry Capture Boundaries'),
+      content: t('info_privacy_sec1_desc', 'E-Moto systems record precise coordinate streams (GPS), current speed vectors, battery state of charge, operating temperatures, and three-axis accelerometer metrics. Telemetry channels activate exclusively when a rider is checked into an active shift, preventing tracking during private hours.'),
     },
     {
       icon: <EyeOff size={16} className="text-rose-400" />,
-      title: '2. Cryptographic Minimization',
-      content: 'Insurance audit partners receive safety scores and dispatch logs that are cryptographically filtered. Actual household addresses, frequent resting coordinates, and sensitive rider identifiers are removed to protect the privacy of Kigali taxi operators.',
+      title: t('info_privacy_sec2_title', '2. Cryptographic Minimization'),
+      content: t('info_privacy_sec2_desc', 'Insurance audit partners receive safety scores and dispatch logs that are cryptographically filtered. Actual household addresses, frequent resting coordinates, and sensitive rider identifiers are removed to protect the privacy of Kigali taxi operators.'),
     },
     {
       icon: <Scale size={16} className="text-emerald-400" />,
-      title: '3. Data Sharing & Third-Parties',
-      content: 'We do not sell telemetry logs. Data is exposed exclusively to verified partner insurance carriers and municipal regulators via scoped, HMAC-signed REST/MQTT interfaces, ensuring data-sharing matches municipal licensing mandates.',
+      title: t('info_privacy_sec3_title', '3. Data Sharing & Third-Parties'),
+      content: t('info_privacy_sec3_desc', 'We do not sell telemetry logs. Data is exposed exclusively to verified partner insurance carriers and municipal regulators via scoped, HMAC-signed REST/MQTT interfaces, ensuring data-sharing matches municipal licensing mandates.'),
     },
     {
       icon: <FileText size={16} className="text-purple-400" />,
-      title: '4. Right to Deletion',
-      content: 'Fleet operators and individual riders can request telemetry purging under local data protection laws. Upon approved request, detailed route coordinates older than 90 days are deleted or generalized, preserving only aggregate safety scores.',
+      title: t('info_privacy_sec4_title', '4. Right to Deletion'),
+      content: t('info_privacy_sec4_desc', 'Fleet operators and individual riders can request telemetry purging under local data protection laws. Upon approved request, detailed route coordinates older than 90 days are deleted or generalized, preserving only aggregate safety scores.'),
     },
   ];
 
@@ -54,14 +43,14 @@ export default function PrivacyPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <FileText size={12} className="text-accent" />
-          Transparency &amp; Legal Framework
+          {t('info_privacy_badge', 'Transparency & Legal Framework')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-2xl mt-4">
-          Privacy Policy
+          {t('info_privacy_title', 'Privacy Policy & Telemetry Data Safety')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl text-base text-zinc-400">
-          Last updated: May 26, 2026. This policy describes how we collect, minimize, and secure real-time telemetry datasets across the E-Moto Fleet OS platform.
+          {t('info_privacy_subtitle', 'Understand how we protect rider privacy: cryptographic data minimization, off-shift telemetry shutdown, scoped partner APIs, and rider right-to-deletion.')}
         </p>
       </section>
 

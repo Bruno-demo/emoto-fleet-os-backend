@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   ShieldCheck,
@@ -8,33 +9,21 @@ import {
   Terminal,
   Activity,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Security Architecture & IoT Hardening | eMoto Fleet OS',
-  description: 'How we enforce signed telemetry streams, TLS 1.3 cipher suites, isolated TimescaleDB schemas, role-based commands, and immutable system audit ledgers.',
-  keywords: [
-    'IoT security architecture',
-    'signed MQTT packets',
-    'TimescaleDB isolation schema',
-    'OTA relay commands logs',
-    'cybersecurity Kigali e-mobility',
-  ],
-  alternates: {
-    canonical: '/security',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function SecurityPage() {
+  const { t } = useTranslation();
+
   const standards = [
     {
       icon: <Lock size={18} className="text-accent" />,
-      title: 'Signed Telemetry Streams',
-      desc: 'All coordinates, speed packets, and incident diagnostics arriving from SinoTrack ST-901 or MQTT brokers undergo cryptographic verification before stream processors ingest them.',
+      title: t('info_security_sec1_title', 'Encrypted Telemetry Tunnels'),
+      desc: t('info_security_sec1_desc', 'All MQTT telemetry payloads and WebSocket map updates are encrypted via TLS 1.3 in transit and stored with AES-256 encryption at rest.'),
     },
     {
       icon: <Key size={18} className="text-emerald-400" />,
-      title: 'MFA & Remote Action Overrides',
-      desc: 'Operators initiating critical actions (like digital locks or device secret rotation) are verified through strict role-based access tokens (RBAC) and two-step operators checks.',
+      title: t('info_security_sec2_title', 'Role-Based Access Control (RBAC)'),
+      desc: t('info_security_sec2_desc', 'Strict role isolation ensures Fleet Admins, Dispatchers, Riders, and Insurers only access data authorized for their exact operational domain.'),
     },
     {
       icon: <Server size={18} className="text-purple-400" />,
@@ -56,14 +45,14 @@ export default function SecurityPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <ShieldCheck size={12} className="text-accent" />
-          System Hardening &amp; Compliance
+          {t('info_security_badge', 'Enterprise Security')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-2xl mt-4">
-          Enterprise Security Architecture
+          {t('info_security_title', 'Platform Infrastructure & Security Overview')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl text-base text-zinc-400">
-          How we enforce rigorous encryption standards, secure telemetry parsers, isolate data streams, and build audited IoT platforms.
+          {t('info_security_subtitle', 'Discover our enterprise encryption standards, TLS telemetry tunnels, automated crash evidence isolation, and role-based access controls.')}
         </p>
       </section>
 
@@ -98,10 +87,9 @@ export default function SecurityPage() {
 {`{
   "iss": "emoto-auth-server",
   "sub": "operator-kigali-04",
-  "action": "ota_command_dispatch",
-  "deviceId": "sinotrack-901-kigali-0024",
-  "command": "RELAY_DISABLE", // Engine Cutoff
-  "exp": 1779893982
+  "role": "FLEET_ADMIN",
+  "action": "TELEMETRY_LOCK",
+  "exp": 1786486800
 }`}
             </pre>
           </div>

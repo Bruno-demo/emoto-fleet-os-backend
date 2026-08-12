@@ -6,7 +6,11 @@ import { Command, ArrowRight, Menu, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 
+import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+
 export function InfoPageLayout({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Check if user is logged in to toggle Dashboard button in navbar
@@ -20,27 +24,27 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
 
   const footerLinks = {
     Product: [
-      { label: 'Features', href: '/#features' },
-      { label: 'Pricing', href: '/#pricing' },
-      { label: 'Live Map', href: '/live' },
-      { label: 'Partner API', href: '/#features' },
+      { label: t('nav_features', 'Features'), href: '/#features' },
+      { label: t('nav_pricing', 'Pricing'), href: '/#pricing' },
+      { label: t('nav_live_map', 'Live Map'), href: '/live' },
+      { label: t('nav_partner_api', 'Partner API'), href: '/#features' },
     ],
     Platform: [
-      { label: 'Rider App', href: '/rider-app' },
-      { label: 'Fleet Dashboard', href: '/login' },
-      { label: 'Documentation', href: '/docs' },
-      { label: 'Compliance', href: '/compliance' },
+      { label: t('nav_rider_app', 'Rider App'), href: '/rider-app' },
+      { label: t('nav_fleet_dashboard', 'Fleet Dashboard'), href: '/login' },
+      { label: t('nav_documentation', 'Documentation'), href: '/docs' },
+      { label: t('nav_compliance', 'Compliance'), href: '/compliance' },
     ],
     Company: [
-      { label: 'About', href: '/about' },
-      { label: 'Blog', href: '/blog' },
-      { label: 'Contact', href: '/contact' },
-      { label: 'Careers', href: '/careers' },
+      { label: t('nav_about', 'About'), href: '/about' },
+      { label: t('nav_blog', 'Blog'), href: '/blog' },
+      { label: t('nav_contact', 'Contact'), href: '/contact' },
+      { label: t('nav_careers', 'Careers'), href: '/careers' },
     ],
     Legal: [
-      { label: 'Privacy Policy', href: '/privacy' },
-      { label: 'Terms of Service', href: '/terms' },
-      { label: 'Security', href: '/security' },
+      { label: t('footer_link_privacy_policy', 'Privacy Policy'), href: '/privacy' },
+      { label: t('footer_link_terms_of_service', 'Terms of Service'), href: '/terms' },
+      { label: t('footer_link_security', 'Security'), href: '/security' },
     ],
   };
 
@@ -62,22 +66,23 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
           </Link>
 
           <div className="hidden items-center gap-8 text-[13px] font-medium md:flex" style={{color:'rgb(161,161,170)'}}>
-            <Link href="/#features" className="transition hover:text-white">Features</Link>
-            <Link href="/#showcase" className="transition hover:text-white">Platform</Link>
-            <Link href="/#pricing" className="transition hover:text-white">Pricing</Link>
-            <Link href="/#faq" className="transition hover:text-white">FAQ</Link>
+            <Link href="/#features" className="transition hover:text-white">{t('nav_features', 'Features')}</Link>
+            <Link href="/#showcase" className="transition hover:text-white">{t('nav_platform', 'Platform')}</Link>
+            <Link href="/#pricing" className="transition hover:text-white">{t('nav_pricing', 'Pricing')}</Link>
+            <Link href="/#faq" className="transition hover:text-white">{t('nav_faq', 'FAQ')}</Link>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
+            <LanguageSwitcher />
             {hasSession ? (
               <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
-                Dashboard <ArrowRight size={14} />
+                {t('dashboard', 'Dashboard')} <ArrowRight size={14} />
               </Link>
             ) : (
               <>
-                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium transition hover:text-white" style={{color:'rgb(161,161,170)'}}>Sign in</Link>
+                <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium transition hover:text-white" style={{color:'rgb(161,161,170)'}}>{t('sign_in', 'Sign in')}</Link>
                 <Link href="/create-account" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
-                  Get started <ArrowRight size={14} />
+                  {t('get_started', 'Get started')} <ArrowRight size={14} />
                 </Link>
               </>
             )}
@@ -97,13 +102,16 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
         {mobileMenuOpen && (
           <div className="border-t border-white/[0.06] bg-[#09090b] px-6 py-6 md:hidden space-y-6 animate-in slide-in-from-top-4 duration-200">
             <div className="flex flex-col gap-4 text-sm font-medium" style={{color:'rgb(161,161,170)'}}>
-              <Link href="/#features" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Features</Link>
-              <Link href="/#showcase" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Platform</Link>
-              <Link href="/#pricing" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">Pricing</Link>
-              <Link href="/#faq" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">FAQ</Link>
+              <Link href="/#features" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('nav_features', 'Features')}</Link>
+              <Link href="/#showcase" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('nav_platform', 'Platform')}</Link>
+              <Link href="/#pricing" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('nav_pricing', 'Pricing')}</Link>
+              <Link href="/#faq" onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{t('nav_faq', 'FAQ')}</Link>
             </div>
 
             <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.06]">
+              <div className="pb-2">
+                <LanguageSwitcher />
+              </div>
               {hasSession ? (
                 <Link
                   href="/overview"
@@ -111,7 +119,7 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
                   className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
                   style={{background:'white', color:'black'}}
                 >
-                  Dashboard <ArrowRight size={14} />
+                  {t('dashboard', 'Dashboard')} <ArrowRight size={14} />
                 </Link>
               ) : (
                 <>
@@ -121,7 +129,7 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
                     className="flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition hover:text-white border border-white/[0.08]"
                     style={{color:'rgb(161,161,170)'}}
                   >
-                    Sign in
+                    {t('sign_in', 'Sign in')}
                   </Link>
                   <Link
                     href="/create-account"
@@ -129,7 +137,7 @@ export function InfoPageLayout({ children }: { children: ReactNode }) {
                     className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
                     style={{background:'white', color:'black'}}
                   >
-                    Get started <ArrowRight size={14} />
+                    {t('get_started', 'Get started')} <ArrowRight size={14} />
                   </Link>
                 </>
               )}

@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Calendar,
@@ -7,23 +8,11 @@ import {
   Newspaper,
   Tag,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'E-Moto Fleet Journal | Tech & Safety Insights',
-  description: 'Explore deep-dives into IoT telemetry, battery swap station protocols, driver coaching strategies, and carbon credit certifications from our engineering and ops teams in Kigali.',
-  keywords: [
-    'e-moto blog',
-    'MQTT telemetry Kigali',
-    'GPS tracker calibration',
-    'rider coaching safety scorecard',
-    'decarbonizing Kigali',
-  ],
-  alternates: {
-    canonical: '/blog',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function BlogPage() {
+  const { t } = useTranslation();
+
   const posts = [
     {
       title: 'Decarbonizing Kigali: Grid Capacity & Electric Motos',
@@ -59,14 +48,14 @@ export default function BlogPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <Newspaper size={12} className="text-accent" />
-          Strategic &amp; Technical Insights
+          {t('info_blog_badge', 'Articles & Whitepapers')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-3xl mx-auto leading-tight mt-4">
-          The E-Moto Fleet Journal
+          {t('info_blog_title', 'Latest E-Mobility Insights & Fleet Engineering')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl mx-auto text-base text-zinc-400">
-          Explore technical insights, fleet safety guides, and operational updates from our engineering and logistics research teams in Kigali.
+          {t('info_blog_subtitle', 'Read our technical whitepapers, rider safety benchmarks, battery telemetry guides, and Kigali mobility case studies.')}
         </p>
       </section>
 

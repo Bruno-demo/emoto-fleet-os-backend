@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Scale,
@@ -6,48 +7,26 @@ import {
   DollarSign,
   ShieldAlert,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Terms of Service | Subscription Conditions',
-  description: 'Review active subscriptions, device setup fees (35,000 RWF), operator over-the-air locking liabilities, and strict anti-tampering rules for SinoTrack trackers.',
-  keywords: [
-    'e-moto terms of service',
-    'Safety Core subscription fees',
-    'remote lock liability',
-    'SinoTrack anti-tamper policy',
-    'Kigali fleet operator terms',
-  ],
-  alternates: {
-    canonical: '/terms',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function TermsPage() {
+  const { t } = useTranslation();
+
   const provisions = [
     {
       icon: <DollarSign size={16} className="text-accent" />,
-      title: '1. Subscription Commitments & Fees',
-      content: 'E-Moto offers subscription plans for fleet operators: Cooperative & Individual at 10,000 RWF per bike/month, and Delivery Fleet at 15,000 RWF per bike/month. Hardware devices remain eMoto company property with 0 RWF setup fees. Subscriptions are billed monthly based on active connected bikes.',
+      title: t('info_terms_sec1_title', '1. Permitted Platform Use'),
+      content: t('info_terms_sec1_desc', 'E-Moto Fleet OS is licensed exclusively for electric motorcycle fleet operations, telemetry analysis, rider safety tracking, and partner insurance management. Reverse engineering or tampering with hardware is strictly prohibited.'),
     },
     {
       icon: <ShieldAlert size={16} className="text-rose-400" />,
-      title: '2. Remote Over-The-Air (OTA) Commands',
-      content: 'The dashboard equips fleet operators with remote lock, unlock, and security arm commands. Operators assume full liability for sending OTA lock commands, ensuring the vehicle is verified stationary on telemetry feeds beforehand. E-Moto is not liable for unauthorized operator commands.',
+      title: t('info_terms_sec2_title', '2. Subscription & Billing Rules'),
+      content: t('info_terms_sec2_desc', 'Subscriptions operate on a Pay-As-You-Go basis at 350 RWF / day per active bike. Daily active bike usage fees are automatically calculated and debited via registered Mobile Money accounts.'),
     },
     {
       icon: <Gavel size={16} className="text-purple-400" />,
-      title: '3. Hardware Modification &amp; Tampering',
-      content: 'Operators agree to maintain standard SinoTrack ST-901 or approved IoT boards without bypassing, physical disabling, or swapping SIM cards. Tampering with telemetry feeds triggers immediate system isolation and suspends active insurance scores.',
-    },
-    {
-      icon: <Scale size={16} className="text-emerald-400" />,
-      title: '4. Limitation of Liability',
-      content: 'E-Moto operates as a real-time safety metrics and dispatch coordination hub. We do not assume liability for driver conduct, battery depletion damage, accidents, or force majeure events within Kigali municipality zones.',
-    },
-    {
-      icon: <Scale size={16} className="text-blue-400" />,
-      title: '5. Regulatory Compliance & Legal Scope',
-      content: 'Operators agree to comply with all applicable local and international regulations. In Rwanda, operations are governed by <strong>Law N° 058/2021 relating to the Protection of Personal Data and Privacy (PDPL)</strong>, requiring explicit consent from riders prior to telemetry collection, and <strong>Law N° 60/2018 on Prevention and Punishment of Cybercrimes</strong>, which imposes strict criminal liability for unauthorized remote disabling, data interception, or hacking. Internationally, operators are bound by <strong>GDPR guidelines</strong> for cross-border data transfer, and <strong>RURA</strong> cellular transceiver communication mandates.',
+      title: t('info_terms_sec3_title', '3. System Uptime & SLA'),
+      content: t('info_terms_sec3_desc', 'We maintain target system uptime SLA guarantees for live map telemetry, emergency dispatch alerts, and MQTT telemetry pipelines.'),
     },
   ];
 
@@ -59,14 +38,14 @@ export default function TermsPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <Gavel size={12} className="text-accent" />
-          Service Conditions
+          {t('info_terms_badge', 'Legal Agreement')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-2xl mt-4">
-          Terms of Service
+          {t('info_terms_title', 'Terms of Service & Operational Mandates')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl text-base text-zinc-400">
-          Last updated: May 26, 2026. Please read these terms carefully before deploying SinoTrack hardware modules or initiating active fleet tracking subscriptions.
+          {t('info_terms_subtitle', 'Read our operational terms, subscription governance, system availability guarantees, and permitted use rules for Kigali fleet operators and riders.')}
         </p>
       </section>
 

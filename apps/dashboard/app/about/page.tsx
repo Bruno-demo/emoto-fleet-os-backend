@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   Globe,
@@ -8,38 +9,26 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'About Us | eMoto Fleet OS',
-  description: "Learn about the mission, vision, and team behind eMoto Fleet OS. We are decarbonizing East Africa's transit with hardware-agnostic telemetry and automated safety command systems in Kigali, Rwanda.",
-  keywords: [
-    'e-moto safety',
-    'Kigali clean energy',
-    'electric motorcycle mission',
-    'eMoto team Rwanda',
-    'mobility infrastructure Kigali',
-  ],
-  alternates: {
-    canonical: '/about',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function AboutPage() {
+  const { t } = useTranslation();
+
   const values = [
     {
       icon: <Shield size={18} className="text-accent" />,
-      title: 'Safety First Approach',
-      desc: 'Reducing accidents by using active, sub-second telemetry sensors and smart algorithms rather than just reacting to them afterwards.',
+      title: t('info_about_sec1_title', 'Safety First Approach'),
+      desc: t('info_about_sec1_desc', 'Reducing accidents by using active, sub-second telemetry sensors and smart algorithms rather than just reacting to them afterwards.'),
     },
     {
       icon: <Zap size={18} className="text-amber-400" />,
-      title: 'High Performance Telemetry',
-      desc: 'Hardware-agnostic platform supporting MQTT and cellular streams for optimal GPS stability across various device vendors.',
+      title: t('info_about_sec2_title', 'High Performance Telemetry'),
+      desc: t('info_about_sec2_desc', 'Hardware-agnostic platform supporting MQTT and cellular streams for optimal GPS stability across various device vendors.'),
     },
     {
       icon: <Trees size={18} className="text-emerald-400" />,
-      title: 'Decarbonizing Local Cities',
-      desc: 'Providing robust infrastructure to accelerate the transition to electric two-wheelers in East Africa, lowering regional carbon metrics.',
+      title: t('info_about_sec3_title', 'Decarbonizing Local Cities'),
+      desc: t('info_about_sec3_desc', 'Providing robust infrastructure to accelerate the transition to electric two-wheelers in East Africa, lowering regional carbon metrics.'),
     },
   ];
 
@@ -58,17 +47,14 @@ export default function AboutPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <Globe size={12} className="text-accent" />
-          Our Mission &amp; Vision
+          {t('info_about_badge', 'Our Mission')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-6xl font-extrabold tracking-tight text-white max-w-3xl mx-auto leading-tight mt-4">
-          Safe, Clean, and Smart{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-emerald-400">
-            Urban Mobility
-          </span>
+          {t('info_about_title', 'Building the Future of Clean Urban Transit')}
         </h1>
         <p className="relative z-10 mt-6 max-w-2xl mx-auto text-base md:text-lg leading-relaxed text-zinc-400">
-          E-Moto Fleet OS was built to address critical fleet safety, real-time command, and battery utilization challenges for electric motorcycle operations across East Africa.
+          {t('info_about_subtitle', "Decarbonizing East Africa's transit with hardware-agnostic telemetry and automated safety command systems in Kigali, Rwanda.")}
         </p>
       </section>
 

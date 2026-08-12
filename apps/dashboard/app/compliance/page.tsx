@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   ShieldCheck,
@@ -7,43 +8,31 @@ import {
   Activity,
   HeartHandshake,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Regulatory Compliance & Legal Standards | eMoto Fleet OS',
-  description: 'Review our municipal safety bounds, hospital zone speed limits, insurer-scoped telemetry audits, and GDPR-aligned data protection frameworks in Kigali, Rwanda.',
-  keywords: [
-    'e-moto compliance',
-    'Kigali geofence speed limits',
-    'GDPR telemetry data protection',
-    'insurance audits motorcycle',
-    'municipal mobility policy',
-  ],
-  alternates: {
-    canonical: '/compliance',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function CompliancePage() {
+  const { t } = useTranslation();
+
   const sections = [
     {
       icon: <MapPin size={20} className="text-accent" />,
-      title: 'Geofenced Safety Bounds',
-      desc: 'Automatic alert escalation rules within Kigali municipality boundaries. Telemetry streams instantly verify if bikes enter restricted environmental zones or commercial routes.',
+      title: t('info_compliance_sec1_title', 'Geofenced Safety Bounds'),
+      desc: t('info_compliance_sec1_desc', 'Automatic alert escalation rules within Kigali municipality boundaries. Telemetry streams instantly verify if bikes enter restricted environmental zones or commercial routes.'),
     },
     {
       icon: <Activity size={20} className="text-rose-400" />,
-      title: 'Hospital Zone Speed Limits',
-      desc: 'Enforcing localized speed limitations (max 30 km/h) across critical hospital sectors, schools, and pedestrian zones to ensure community safety.',
+      title: t('info_compliance_sec2_title', 'Hospital Zone Speed Limits'),
+      desc: t('info_compliance_sec2_desc', 'Enforcing localized speed limitations (max 30 km/h) across critical hospital sectors, schools, and pedestrian zones to ensure community safety.'),
     },
     {
       icon: <HeartHandshake size={20} className="text-emerald-400" />,
-      title: 'Insurer-Scoped Telemetry Audits',
-      desc: 'Granular data filtering algorithms ensure that insurer nodes only read necessary trip-safety scores, protecting rider identities and keeping records isolated.',
+      title: t('info_compliance_sec3_title', 'Insurer-Scoped Telemetry Audits'),
+      desc: t('info_compliance_sec3_desc', 'Granular data filtering algorithms ensure that insurer nodes only read necessary trip-safety scores, protecting rider identities and keeping records isolated.'),
     },
     {
       icon: <Scale size={20} className="text-purple-400" />,
-      title: 'E-Mobility Carbon Certifications',
-      desc: 'Accurately convert your zero-emission electric miles into audit-ready Carbon Credit claims verified by local environment regulations.',
+      title: t('info_compliance_sec4_title', 'E-Mobility Carbon Certifications'),
+      desc: t('info_compliance_sec4_desc', 'Accurately convert your zero-emission electric miles into audit-ready Carbon Credit claims verified by local environment regulations.'),
     },
   ];
 
@@ -55,14 +44,14 @@ export default function CompliancePage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <Scale size={12} className="text-accent" />
-          Regulatory Compliance Standards
+          {t('info_compliance_badge', 'Regulatory Compliance Standards')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-3xl mx-auto leading-tight mt-4">
-          Municipal Safety &amp; Legal Compliance
+          {t('info_compliance_title', 'Municipal Safety & Legal Compliance')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl mx-auto text-base text-zinc-400 leading-relaxed">
-          Operational framework details for E-Moto Fleet OS in compliance with regional regulations, municipal speed restrictions, and strict data isolation laws.
+          {t('info_compliance_subtitle', 'Operational framework details for E-Moto Fleet OS in compliance with regional regulations, municipal speed restrictions, and strict data isolation laws.')}
         </p>
       </section>
 
@@ -91,9 +80,9 @@ export default function CompliancePage() {
               <ShieldCheck size={12} />
               GDPR &amp; Local Act Compliant
             </span>
-            <h2 className="text-xl font-bold text-white">Advanced Data Protection Audits</h2>
+            <h2 className="text-xl font-bold text-white">{t('info_compliance_callout_title', 'Advanced Data Protection Audits')}</h2>
             <p className="text-xs md:text-sm leading-relaxed text-zinc-400">
-              All E-Moto telemetry channels are protected by rigorous encryption standards matching GDPR definitions and local ICT guidelines. GPS mapping logs undergo cryptographic data minimization, ensuring insurance telemetry claims contain absolute proof of travel scores without leaking exact resident addresses or tracking personal activities outside shifts.
+              {t('info_compliance_callout_desc', 'All E-Moto telemetry channels are protected by rigorous encryption standards matching GDPR definitions and local ICT guidelines. GPS mapping logs undergo cryptographic data minimization, ensuring insurance telemetry claims contain absolute proof of travel scores without leaking exact resident addresses or tracking personal activities outside shifts.')}
             </p>
           </div>
         </div>

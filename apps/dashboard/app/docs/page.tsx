@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { InfoPageLayout } from '@/components/layout/info-page-layout';
 import {
   BookOpen,
@@ -23,23 +24,11 @@ import {
   Globe,
   AlertOctagon,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Documentation & Developer API Reference | eMoto Fleet OS',
-  description: 'Read our comprehensive developer manuals: SinoTrack ST-901 SMS programming, MQTT TLS ingest specs, OAuth2 client auth, REST endpoints, and daily collections ledger guide.',
-  keywords: [
-    'SinoTrack ST-901 SMS configuration',
-    'MQTT broker broker.emotofleet.com',
-    'eMoto API reference',
-    'TLS 1.3 telemetry cipher suites',
-    'lease billing ledger API',
-  ],
-  alternates: {
-    canonical: '/docs',
-  },
-};
+import { useTranslation } from '@/components/i18n/LanguageProvider';
 
 export default function DocsPage() {
+  const { t } = useTranslation();
+
   const categories = [
     {
       icon: <Layers size={18} className="text-accent" />,
@@ -49,7 +38,7 @@ export default function DocsPage() {
     {
       icon: <Coins size={18} className="text-emerald-400" />,
       title: 'Pricing & Subscriptions',
-      desc: 'Compare Cooperative & Individual and Delivery Fleet plans, with 0 RWF hardware setup fees.',
+      desc: 'Compare Pay-As-You-Go 350 RWF/day plans, with 0 RWF hardware setup fees.',
     },
     {
       icon: <Key size={18} className="text-amber-400" />,
@@ -81,14 +70,14 @@ export default function DocsPage() {
         
         <span className="relative z-10 mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[11px] font-medium text-zinc-400">
           <BookOpen size={12} className="text-accent" />
-          Technical &amp; Operations Center
+          {t('info_docs_badge', 'Technical Documentation')}
         </span>
 
         <h1 className="relative z-10 font-display text-4xl md:text-5xl font-extrabold tracking-tight text-white max-w-2xl mt-4">
-          Documentation &amp; User Manual
+          {t('info_docs_title', 'Developer Documentation & Telemetry API')}
         </h1>
         <p className="relative z-10 mt-4 max-w-2xl text-base text-zinc-400">
-          Complete guide to configure hardware trackers, command active vehicle relays, handle daily collections, and query developer APIs.
+          {t('info_docs_subtitle', 'Comprehensive REST endpoints, MQTT message schemas, webhook events, and SDK guides for fleet partner integrations.')}
         </p>
       </section>
 
