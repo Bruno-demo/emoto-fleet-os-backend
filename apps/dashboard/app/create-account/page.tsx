@@ -209,14 +209,6 @@ function CreateAccountInner() {
         const tiers = (await res.json()) as PricingTier[];
         const updatedPlans = { ...PLAN_DETAILS };
         
-        const coreTier = tiers.find(t => t.planCode === 'DEMO');
-        if (coreTier) {
-          const planData = {
-            title: 'Cooperative & Individual',
-            price: `${coreTier.monthlyRatePerBike.toLocaleString()} RWF`,
-            period: '/ bike / mo',
-            description: 'Cooperative & individual fleet tracking (0 RWF setup fee).',
-            setupFeePerBike: coreTier.setupFeePerBike,
         const paygTier = tiers.find(t => t.planCode === 'PAYG');
         if (paygTier) {
           const planData = {
