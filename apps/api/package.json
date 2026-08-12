@@ -13,6 +13,7 @@
     "db:reset": "echo \"ERROR: db:reset is disabled on this project to prevent database wipe.\" && exit 1",
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:push": "prisma db push --accept-data-loss",
+    "db:wipe": "dotenv -e ../../.env -- node scripts/force-wipe-and-reset-db.js",
     "db:resolve": "dotenv -e ../../.env -- prisma migrate resolve",
     "db:seed": "echo \"ERROR: db:seed is disabled on this project to prevent unauthorized seeding.\" && exit 1",
     "smoke:fleet-isolation": "dotenv -e ../../.env -- ts-node scripts/smoke-fleet-isolation.ts",
