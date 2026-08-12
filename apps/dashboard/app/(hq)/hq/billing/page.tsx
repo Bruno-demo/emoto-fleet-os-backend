@@ -322,7 +322,7 @@ export default function HqBillingPage() {
   const outstandingSetupCount = fleets?.filter(f => f.plan !== 'INSURANCE' && !f.installationPaid).length ?? 0;
   const setupPaidCount = fleets?.filter(f => f.plan !== 'INSURANCE' && f.installationPaid).length ?? 0;
   const pendingUpgradeCount = fleets?.filter(f => f.upgradeRequested).length ?? 0;
-  const premiumCount = fleets?.filter(f => f.plan === 'PREMIUM').length ?? 0;
+  const paygCount = fleets?.filter(f => f.plan === 'PAYG').length ?? 0;
   const trialCount = fleets?.filter(f => f.trialEndsAt && new Date(f.trialEndsAt) > new Date()).length ?? 0;
 
   // Filters
@@ -460,8 +460,8 @@ export default function HqBillingPage() {
                   <TrendingUp size={22} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Premium Fleets</p>
-                  <p className="text-2xl font-extrabold text-white mt-1">{premiumCount}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">PAYG Fleets</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">{paygCount}</p>
                 </div>
               </div>
             </div>
@@ -548,7 +548,7 @@ export default function HqBillingPage() {
                                   : 'bg-emerald-500/15 text-emerald-400'
                               )}>
                                 {fleet.plan === 'ENTERPRISE'
-                                  ? 'Enterprise (100+)'
+                                  ? 'Enterprise'
                                   : fleet.plan === 'INSURANCE'
                                   ? 'Insurance Partner'
                                   : 'Pay-As-You-Go'}
@@ -1126,13 +1126,13 @@ export default function HqBillingPage() {
                 <span className="text-xs font-semibold text-zinc-400">Service Plan</span>
                 <span className={cx(
                   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border",
-                  activeFleetDetails.plan === 'PREMIUM' 
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' 
+                  activeFleetDetails.plan === 'ENTERPRISE' 
+                    ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' 
                     : activeFleetDetails.plan === 'INSURANCE'
-                    ? 'border-purple-500/30 bg-purple-500/10 text-purple-400'
-                    : 'border-line bg-white/5 text-zinc-500'
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                 )}>
-                  {activeFleetDetails.plan === 'PREMIUM' ? 'Delivery Fleet' : activeFleetDetails.plan === 'INSURANCE' ? 'Insurance Partner' : 'Cooperative & Individual'}
+                  {activeFleetDetails.plan === 'ENTERPRISE' ? 'Enterprise Operations' : activeFleetDetails.plan === 'INSURANCE' ? 'Insurance Partner' : 'Pay-As-You-Go'}
                 </span>
               </div>
               
@@ -1216,7 +1216,7 @@ export default function HqBillingPage() {
               <div className="flex gap-2">
                 <input
                   type="number"
-                  defaultValue={activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'PREMIUM' ? 15000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 10000)}
+                  defaultValue={activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'ENTERPRISE' ? 15000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 10500)}
                   key={activeFleetDetails.id}
                   id={`rate-input-${activeFleetDetails.id}`}
                   placeholder="Rate in RWF..."
@@ -1250,7 +1250,7 @@ export default function HqBillingPage() {
                     disabled={approveUpgradeMutation.isPending}
                     className="w-full py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl"
                   >
-                    Approve Premium Upgrade
+                    Approve Enterprise Upgrade
                   </button>
                 )}
 
@@ -1375,9 +1375,9 @@ interface PricingTierCardProps {
 }
 
 const PREDEFINED_DESCRIPTIONS = [
-  "350 RWF / active day per bike (10,500 RWF / month). Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.",
-  "500 RWF / active day per bike (15,000 RWF / month). High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.",
-  "Telemetry access, crash evidence packs, claims verification & partner API.",
+  "350 RWF / day per active bike. Pay only for bikes active on the road each day with full telemetry, remote lock/unlock, rider scoring, and financial management.",
+  "Dedicated Insurer Portal, FNOL crash & theft evidence packs, automated risk analytics, and underwriter compliance monitoring.",
+  "Tailored multi-fleet HQ command center, custom IoT integrations, dedicated account manager, and SLA guarantees.",
 ];
 
 function PricingTierCard({ tier }: PricingTierCardProps) {
@@ -1443,9 +1443,9 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
             }}
             className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
           >
-            <option value="350 RWF / active day per bike (10,500 RWF / month). Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.">Cooperative & Individual description (350 RWF/day)</option>
-            <option value="500 RWF / active day per bike (15,000 RWF / month). High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.">Delivery Fleet description (500 RWF/day)</option>
-            <option value="Telemetry access, crash evidence packs, claims verification & partner API.">Insurance description</option>
+            <option value="350 RWF / day per active bike. Pay only for bikes active on the road each day with full telemetry, remote lock/unlock, rider scoring, and financial management.">Pay-As-You-Go description (350 RWF/day)</option>
+            <option value="Dedicated Insurer Portal, FNOL crash & theft evidence packs, automated risk analytics, and underwriter compliance monitoring.">Insurance description</option>
+            <option value="Tailored multi-fleet HQ command center, custom IoT integrations, dedicated account manager, and SLA guarantees.">Enterprise description</option>
             <option value="Other">Other (custom description)</option>
           </select>
         </div>
