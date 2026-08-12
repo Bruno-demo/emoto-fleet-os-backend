@@ -16,9 +16,6 @@ import {
   Prisma,
   UserRole,
   UserStatus,
-  type FleetPlan,
-  type FleetSubscriptionStatus,
-  type FleetType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
