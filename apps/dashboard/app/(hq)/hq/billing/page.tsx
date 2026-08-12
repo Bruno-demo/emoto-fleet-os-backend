@@ -517,8 +517,9 @@ export default function HqBillingPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
                   const setupAmount = 0;
-                  const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'ENTERPRISE' ? 15000 : fleet.plan === 'INSURANCE' ? 0 : 10500);
-                  const monthlyAmount = fleet._count.bikes * rate;
+                  const dailyRate = (fleet as any).emotoPaygRatePerActiveDay ?? 350;
+                  const monthlyRate = fleet.monthlyRatePerBike ?? (dailyRate * 30);
+                  const estimatedMonthly = fleet._count.bikes * monthlyRate;
                   const hasUpgrade = fleet.upgradeRequested;
 
                   return (
@@ -539,9 +540,17 @@ export default function HqBillingPage() {
                             <div className="mt-1 flex items-center gap-2">
                               <span className={cx(
                                 "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-                                fleet.plan === 'PREMIUM' ? 'bg-emerald-500/15 text-emerald-400' : fleet.plan === 'INSURANCE' ? 'bg-purple-500/15 text-purple-400' : 'bg-white/5 text-zinc-500'
+                                fleet.plan === 'ENTERPRISE'
+                                  ? 'bg-purple-500/15 text-purple-400'
+                                  : fleet.plan === 'INSURANCE'
+                                  ? 'bg-amber-500/15 text-amber-400'
+                                  : 'bg-emerald-500/15 text-emerald-400'
                               )}>
-                                {fleet.plan === 'PAYG' || !fleet.plan ? 'Pay-As-You-Go' : fleet.plan === 'PREMIUM' ? 'Delivery Fleet' : fleet.plan === 'INSURANCE' ? 'Insurance Partner' : 'Cooperative & Individual'}
+                                {fleet.plan === 'ENTERPRISE'
+                                  ? 'Enterprise (100+)'
+                                  : fleet.plan === 'INSURANCE'
+                                  ? 'Insurance Partner'
+                                  : 'Pay-As-You-Go'}
                               </span>
                               {fleet.trialEndsAt && new Date(fleet.trialEndsAt) > new Date() && (
                                 <span className="rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
@@ -570,12 +579,22 @@ export default function HqBillingPage() {
 
                       <div className="grid gap-2 mb-3 grid-cols-2">
                         <div className="rounded-xl border border-line bg-background/50 p-2.5">
-                          <p className="text-[9px] font-bold text-zinc-500 uppercase">Setup Fee</p>
-                          <p className="text-xs font-extrabold text-white mt-1">{(setupAmount).toLocaleString()} RWF</p>
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase">Rate Model</p>
+                          <p className="text-xs font-extrabold text-white mt-1">
+                            {fleet.plan === 'INSURANCE'
+                              ? 'Custom Quote'
+                              : fleet.plan === 'ENTERPRISE'
+                              ? 'Volume Discount'
+                              : `${dailyRate} RWF / active day`}
+                          </p>
                         </div>
                         <div className="rounded-xl border border-line bg-background/50 p-2.5">
-                          <p className="text-[9px] font-bold text-zinc-500 uppercase">Subscription</p>
-                          <p className="text-xs font-extrabold text-white mt-1">{(monthlyAmount).toLocaleString()} RWF/mo</p>
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase">Est. Monthly</p>
+                          <p className="text-xs font-extrabold text-white mt-1">
+                            {fleet.plan === 'INSURANCE'
+                              ? 'Contact Sales'
+                              : `${(estimatedMonthly).toLocaleString()} RWF`}
+                          </p>
                         </div>
                       </div>
 
@@ -1355,8 +1374,8 @@ interface PricingTierCardProps {
 }
 
 const PREDEFINED_DESCRIPTIONS = [
-  "10,000 RWF / month per bike. Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.",
-  "15,000 RWF / month per bike. High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.",
+  "350 RWF / active day per bike (10,500 RWF / month). Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.",
+  "500 RWF / active day per bike (15,000 RWF / month). High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.",
   "Telemetry access, crash evidence packs, claims verification & partner API.",
 ];
 
@@ -1423,8 +1442,8 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
             }}
             className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
           >
-            <option value="10,000 RWF / month per bike. Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.">Cooperative & Individual description</option>
-            <option value="15,000 RWF / month per bike. High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.">Delivery Fleet description</option>
+            <option value="350 RWF / active day per bike (10,500 RWF / month). Full access to live map, remote control, rider scoring, financial management & reports. 0 RWF Device Setup Fee.">Cooperative & Individual description (350 RWF/day)</option>
+            <option value="500 RWF / active day per bike (15,000 RWF / month). High-volume delivery fleet tracking, incident workflows, priority support & analytics. 0 RWF Device Setup Fee.">Delivery Fleet description (500 RWF/day)</option>
             <option value="Telemetry access, crash evidence packs, claims verification & partner API.">Insurance description</option>
             <option value="Other">Other (custom description)</option>
           </select>
