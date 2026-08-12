@@ -649,10 +649,10 @@ export default function FleetDetailPage() {
               <p className="mt-2 text-xl font-bold text-white">
                 {fleet.plan === 'PAYG' || !fleet.plan
                   ? 'Pay-As-You-Go'
-                  : fleet.plan === 'PREMIUM'
-                  ? 'Delivery Fleet'
                   : fleet.plan === 'INSURANCE'
                   ? 'Insurance Partner'
+                  : fleet.plan === 'ENTERPRISE'
+                  ? 'Enterprise'
                   : fleet.plan}
               </p>
               <p className="mt-1 text-xs text-zinc-600">
@@ -743,32 +743,45 @@ export default function FleetDetailPage() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
               Service Plan
             </p>
-            <div className="grid grid-cols-2 gap-1 p-1 bg-background/50 border border-line rounded-xl">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-background/50 border border-line rounded-xl">
               <button
                 type="button"
-                title="Cooperative & Individual Plan (10,000 RWF/mo)"
-                onClick={() => planMutation.mutate('DEMO')}
-                disabled={planMutation.isPending || fleet.plan === 'DEMO'}
+                title="Pay-As-You-Go"
+                onClick={() => planMutation.mutate('PAYG')}
+                disabled={planMutation.isPending || fleet.plan === 'PAYG'}
                 className={`rounded-lg px-1.5 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
-                  fleet.plan === 'DEMO'
+                  fleet.plan === 'PAYG'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                Coop/Indiv (10k)
+                PAYG
               </button>
               <button
                 type="button"
-                title="Delivery Fleet Plan (15,000 RWF/mo)"
-                onClick={() => planMutation.mutate('PREMIUM')}
-                disabled={planMutation.isPending || fleet.plan === 'PREMIUM'}
+                title="Insurance Partner"
+                onClick={() => planMutation.mutate('INSURANCE')}
+                disabled={planMutation.isPending || fleet.plan === 'INSURANCE'}
                 className={`rounded-lg px-1.5 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
-                  fleet.plan === 'PREMIUM'
+                  fleet.plan === 'INSURANCE'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                Delivery (15k)
+                Insurance
+              </button>
+              <button
+                type="button"
+                title="Enterprise Operations"
+                onClick={() => planMutation.mutate('ENTERPRISE')}
+                disabled={planMutation.isPending || fleet.plan === 'ENTERPRISE'}
+                className={`rounded-lg px-1.5 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
+                  fleet.plan === 'ENTERPRISE'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Enterprise
               </button>
             </div>
           </div>

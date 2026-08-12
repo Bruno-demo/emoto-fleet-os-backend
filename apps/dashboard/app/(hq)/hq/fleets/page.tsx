@@ -121,8 +121,9 @@ export default function HqFleetsPage() {
               className="h-10 w-full rounded-xl border border-line bg-surface-strong px-3 text-sm text-white focus:border-accent focus:outline-none cursor-pointer"
             >
               <option value="">All Service Plans</option>
-              <option value="PREMIUM">Delivery Fleet (15,000 RWF)</option>
-              <option value="DEMO">Cooperative & Individual (10,000 RWF)</option>
+              <option value="PAYG">Pay-As-You-Go</option>
+              <option value="INSURANCE">Insurance Partner</option>
+              <option value="ENTERPRISE">Enterprise</option>
             </select>
           </div>
           
