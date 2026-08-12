@@ -363,28 +363,37 @@ export class IncidentsService {
     const where: Prisma.IncidentWhereInput = {};
 
     if (user.fleetPlan === 'INSURANCE') {
+      if (!user.insurerName) {
+        return { open: 0, acknowledged: 0, resolved: 0, falseAlarm: 0 };
+      }
       where.bike = {
         insurerName: user.insurerName,
       };
-    } else {
+    } else if (user.fleetId) {
       where.fleetId = user.fleetId;
+    } else {
+      return { open: 0, acknowledged: 0, resolved: 0, falseAlarm: 0 };
     }
 
-    const [open, acknowledged, resolved, falseAlarm] = await Promise.all([
-      this.prismaService.incident.count({
-        where: { ...where, status: IncidentStatus.OPEN },
-      }),
-      this.prismaService.incident.count({
-        where: { ...where, status: IncidentStatus.ACKNOWLEDGED },
-      }),
-      this.prismaService.incident.count({
-        where: { ...where, status: IncidentStatus.RESOLVED },
-      }),
-      this.prismaService.incident.count({
-        where: { ...where, status: IncidentStatus.FALSE_ALARM },
-      }),
-    ]);
-    return { open, acknowledged, resolved, falseAlarm };
+    try {
+      const [open, acknowledged, resolved, falseAlarm] = await Promise.all([
+        this.prismaService.incident.count({
+          where: { ...where, status: IncidentStatus.OPEN },
+        }),
+        this.prismaService.incident.count({
+          where: { ...where, status: IncidentStatus.ACKNOWLEDGED },
+        }),
+        this.prismaService.incident.count({
+          where: { ...where, status: IncidentStatus.RESOLVED },
+        }),
+        this.prismaService.incident.count({
+          where: { ...where, status: IncidentStatus.FALSE_ALARM },
+        }),
+      ]);
+      return { open, acknowledged, resolved, falseAlarm };
+    } catch {
+      return { open: 0, acknowledged: 0, resolved: 0, falseAlarm: 0 };
+    }
   }
 
   // Loads one incident record while enforcing fleet-level access restrictions.

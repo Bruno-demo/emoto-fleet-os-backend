@@ -1447,16 +1447,28 @@ export class AuthService {
 
   // Loads a user identity projection or throws unauthorized when missing.
   private async loadUserOrThrow(userId: string): Promise<AuthenticatedUser> {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      select: userSelectForAuth,
-    });
+    try {
+      const user = await this.prismaService.user.findUnique({
+        where: { id: userId },
+        select: userSelectForAuth,
+      });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+      if (!user) {
+        throw new UnauthorizedException('User session not found');
+      }
+
+      return this.toAuthenticatedUser(user);
+    } catch (err: unknown) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
+      this.logger.warn(
+        `Failed to load authentication profile for user ${userId}: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
+      );
+      throw new UnauthorizedException('Session expired or user profile unavailable');
     }
-
-    return this.toAuthenticatedUser(user);
   }
 
   // Generates and stores a one-time OTP for email verification.
@@ -1599,21 +1611,22 @@ export class AuthService {
   private toAuthenticatedUser(user: AuthUserRecord): AuthenticatedUser {
     return {
       id: user.id,
-      fleetId: user.fleetId,
-      fleetName: user.fleet.name,
-      fleetPlan: user.fleet.plan,
-      fleetType: user.fleet.type,
-      subscriptionStatus: user.fleet.subscriptionStatus,
-      upgradeRequested: user.fleet.upgradeRequested,
+      fleetId: user.fleetId ?? '',
+      fleetName: user.fleet?.name ?? 'E-Moto Fleet',
+      fleetPlan: user.fleet?.plan ?? ('PAYG' as FleetPlan),
+      fleetType: user.fleet?.type ?? ('COOP' as FleetType),
+      subscriptionStatus:
+        user.fleet?.subscriptionStatus ?? ('ACTIVE' as FleetSubscriptionStatus),
+      upgradeRequested: user.fleet?.upgradeRequested ?? false,
       role: user.role,
       email: user.email,
       phone: user.phone,
       status: user.status,
-      insurerName: user.fleet.insurerName,
-      monthlyRatePerBike: user.fleet.monthlyRatePerBike,
-      notifOpenIncidents: user.notifOpenIncidents,
-      notifSosAlerts: user.notifSosAlerts,
-      notifCrashEvents: user.notifCrashEvents,
+      insurerName: user.fleet?.insurerName ?? null,
+      monthlyRatePerBike: user.fleet?.monthlyRatePerBike ?? 10500,
+      notifOpenIncidents: user.notifOpenIncidents ?? true,
+      notifSosAlerts: user.notifSosAlerts ?? true,
+      notifCrashEvents: user.notifCrashEvents ?? true,
     };
   }
 

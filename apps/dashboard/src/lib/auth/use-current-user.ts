@@ -10,7 +10,7 @@ export function useCurrentUser() {
 
   return useQuery({
     queryKey: ['auth', 'me'],
-    queryFn: () => apiFetch<SessionUser>('/me', {}, { schema: meResponseSchema, auth: false }),
+    queryFn: () => apiFetch<SessionUser>('/me', {}, { schema: meResponseSchema }),
     enabled: hasWindow,
     retry: false,
   });
