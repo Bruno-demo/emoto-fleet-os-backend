@@ -385,7 +385,6 @@ function CreateAccountInner() {
   const inlineErrors = useMemo(
     () =>
       getRegisterFieldErrors({
-        inviteToken,
         fullName,
         email,
         phone,
@@ -393,11 +392,8 @@ function CreateAccountInner() {
         confirmPassword,
         termsAccepted,
         touched,
-        isPublicMode,
-        signupType,
       }),
     [
-      inviteToken,
       fullName,
       email,
       phone,
@@ -405,8 +401,6 @@ function CreateAccountInner() {
       confirmPassword,
       termsAccepted,
       touched,
-      isPublicMode,
-      signupType,
     ],
   );
   const mergedErrors: FieldErrors = useMemo(() => {
