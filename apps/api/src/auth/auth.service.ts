@@ -13,12 +13,12 @@ import { JwtService } from '@nestjs/jwt';
 
 import {
   AuditActionType,
-  FleetPlan,
-  FleetSubscriptionStatus,
-  FleetType,
   Prisma,
   UserRole,
   UserStatus,
+  type FleetPlan,
+  type FleetSubscriptionStatus,
+  type FleetType,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -1473,7 +1473,9 @@ export class AuthService {
           err instanceof Error ? err.message : 'Unknown error'
         }`,
       );
-      throw new UnauthorizedException('Session expired or user profile unavailable');
+      throw new UnauthorizedException(
+        'Session expired or user profile unavailable',
+      );
     }
   }
 
@@ -1619,10 +1621,9 @@ export class AuthService {
       id: user.id,
       fleetId: user.fleetId ?? '',
       fleetName: user.fleet?.name ?? 'E-Moto Fleet',
-      fleetPlan: user.fleet?.plan ?? ('PAYG' as FleetPlan),
-      fleetType: user.fleet?.type ?? ('COOP' as FleetType),
-      subscriptionStatus:
-        user.fleet?.subscriptionStatus ?? ('ACTIVE' as FleetSubscriptionStatus),
+      fleetPlan: user.fleet?.plan ?? 'PAYG',
+      fleetType: user.fleet?.type ?? 'COOP',
+      subscriptionStatus: user.fleet?.subscriptionStatus ?? 'ACTIVE',
       upgradeRequested: user.fleet?.upgradeRequested ?? false,
       role: user.role,
       email: user.email,

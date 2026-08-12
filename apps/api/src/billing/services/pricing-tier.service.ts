@@ -78,9 +78,15 @@ export class PricingTierService implements OnModuleInit {
 
   async seedDefaultTiers(): Promise<void> {
     try {
-      await this.prisma.$executeRawUnsafe(`ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';`);
-      await this.prisma.$executeRawUnsafe(`ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'INSURANCE';`);
-      await this.prisma.$executeRawUnsafe(`ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'ENTERPRISE';`);
+      await this.prisma.$executeRawUnsafe(
+        `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';`,
+      );
+      await this.prisma.$executeRawUnsafe(
+        `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'INSURANCE';`,
+      );
+      await this.prisma.$executeRawUnsafe(
+        `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'ENTERPRISE';`,
+      );
     } catch {
       // Ignore if non-superuser or already present
     }
@@ -128,7 +134,10 @@ export class PricingTierService implements OnModuleInit {
           create: tier,
         });
       } catch (error) {
-        console.warn(`[PricingTierService] Could not seed tier ${tier.planCode}:`, error);
+        console.warn(
+          `[PricingTierService] Could not seed tier ${tier.planCode}:`,
+          error,
+        );
       }
     }
 

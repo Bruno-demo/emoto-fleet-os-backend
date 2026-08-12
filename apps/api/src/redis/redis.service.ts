@@ -77,10 +77,18 @@ export class RedisService implements OnModuleDestroy {
 
     try {
       await this.ensureConnected();
-      const response = await this.client!.set(key, value, 'EX', ttlSeconds, 'NX');
+      const response = await this.client!.set(
+        key,
+        value,
+        'EX',
+        ttlSeconds,
+        'NX',
+      );
       return response === 'OK';
     } catch (error: any) {
-      this.logger.warn(`Redis setIfNotExists fallback to memory for ${key}: ${error.message}`);
+      this.logger.warn(
+        `Redis setIfNotExists fallback to memory for ${key}: ${error.message}`,
+      );
       this.purgeExpiredKey(key);
       if (this.memoryStore.has(key)) {
         return false;
@@ -106,7 +114,9 @@ export class RedisService implements OnModuleDestroy {
 
       await this.client!.set(key, value);
     } catch (error: any) {
-      this.logger.warn(`Redis set fallback to memory for ${key}: ${error.message}`);
+      this.logger.warn(
+        `Redis set fallback to memory for ${key}: ${error.message}`,
+      );
       this.writeInMemoryValue(key, value, ttlSeconds);
     }
   }
@@ -122,7 +132,9 @@ export class RedisService implements OnModuleDestroy {
       await this.ensureConnected();
       return await this.client!.get(key);
     } catch (error: any) {
-      this.logger.warn(`Redis get fallback to memory for ${key}: ${error.message}`);
+      this.logger.warn(
+        `Redis get fallback to memory for ${key}: ${error.message}`,
+      );
       this.purgeExpiredKey(key);
       return this.memoryStore.get(key)?.value ?? null;
     }

@@ -338,7 +338,9 @@ export class HqService {
     if (!fleet) throw new NotFoundException('Fleet not found');
 
     if (!['PAYG', 'INSURANCE', 'ENTERPRISE'].includes(plan)) {
-      throw new BadRequestException('Invalid plan. Must be PAYG, INSURANCE, or ENTERPRISE');
+      throw new BadRequestException(
+        'Invalid plan. Must be PAYG, INSURANCE, or ENTERPRISE',
+      );
     }
 
     const tier = await this.prisma.pricingTier.findUnique({

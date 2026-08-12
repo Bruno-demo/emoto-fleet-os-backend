@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -15,7 +20,9 @@ export class PrismaService
         `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan"::text IN ('DEMO', 'PREMIUM');`,
       );
       if (updatedCount > 0) {
-        this.logger.log(`Sanitized ${updatedCount} legacy fleet plan records to PAYG`);
+        this.logger.log(
+          `Sanitized ${updatedCount} legacy fleet plan records to PAYG`,
+        );
       }
     } catch (err: unknown) {
       this.logger.debug(
