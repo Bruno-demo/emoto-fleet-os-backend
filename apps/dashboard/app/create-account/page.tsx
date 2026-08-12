@@ -1044,9 +1044,9 @@ function CreateAccountInner() {
                       </label>
                       <div className="grid grid-cols-3 gap-2">
                         {([
-                          { value: 'COOP' as const, icon: <UsersRound size={18} />, label: 'Cooperative', rate: '10,000 RWF/mo' },
-                          { value: 'DELIVERY' as const, icon: <Truck size={18} />, label: 'Delivery Fleet', rate: '15,000 RWF/mo' },
-                          { value: 'PERSONAL' as const, icon: <User size={18} />, label: 'Individual', rate: '10,000 RWF/mo' },
+                          { value: 'COOP' as const, icon: <UsersRound size={18} />, label: 'Cooperative', rate: '350 RWF/active day' },
+                          { value: 'DELIVERY' as const, icon: <Truck size={18} />, label: 'Delivery Fleet', rate: '500 RWF/active day' },
+                          { value: 'PERSONAL' as const, icon: <User size={18} />, label: 'Individual', rate: '350 RWF/active day' },
                         ]).map((ft) => {
                           const isSelected = fleetType === ft.value;
                           return (
