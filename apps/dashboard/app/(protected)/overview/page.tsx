@@ -10,15 +10,20 @@ import {
   ArrowUpRight,
   Bike,
   Calendar,
+  CheckCircle2,
+  Circle,
   Clock,
+  CreditCard,
   Gauge,
+  Lock,
   Settings,
   ShieldAlert,
   Siren,
+  Sparkles,
   TrendingUp,
   Users,
+  X,
   Zap,
-  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { canUseFeature } from '@/lib/subscription';
@@ -76,10 +81,87 @@ export default function OverviewPage() {
     queryFn: () => apiFetch<PaginatedResponse<{ id: string }>>('/bikes?page=1&pageSize=1'),
   });
 
+  const ridersQuery = useQuery({
+    queryKey: ['riders', 'overview-count'],
+    queryFn: () => apiFetch<PaginatedResponse<{ id: string }>>('/riders?page=1&pageSize=1'),
+    enabled: !!user && user.role !== 'INSURER',
+  });
+
+  const devicesQuery = useQuery({
+    queryKey: ['devices', 'overview-count'],
+    queryFn: () => apiFetch<PaginatedResponse<{ id: string }>>('/devices?page=1&pageSize=1'),
+    enabled: !!user && user.role !== 'INSURER',
+  });
+
+  const fleetSettingsQuery = useQuery({
+    queryKey: ['fleet-settings', 'overview-check'],
+    queryFn: () => apiFetch<{ momoPhoneNumber?: string | null }>('/subscription/fleet-settings'),
+    enabled: !!user && user.role !== 'INSURER',
+  });
+
   const report = weeklyReportQuery.data;
   const openIncidents = incidentsQuery.data?.total ?? 0;
   const totalBikes = bikesQuery.data?.total ?? 0;
+  const totalRiders = ridersQuery.data?.total ?? 0;
+  const totalDevices = devicesQuery.data?.total ?? 0;
+  const momoConfigured = Boolean(fleetSettingsQuery.data?.momoPhoneNumber);
   const recentIncidents = recentIncidentsQuery.data?.data ?? [];
+
+  const [isOnboardingDismissed, setIsOnboardingDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('emoto_onboarding_dismissed') === 'true';
+    }
+    return false;
+  });
+
+  const handleDismissOnboarding = () => {
+    setIsOnboardingDismissed(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('emoto_onboarding_dismissed', 'true');
+    }
+  };
+
+  const onboardingSteps = [
+    {
+      id: 'bikes',
+      title: t('Register Your First Moto'),
+      desc: t('Add your motorcycles to track telemetry, location, and status.'),
+      href: '/bikes',
+      icon: <Bike size={18} className="text-accent" />,
+      isCompleted: totalBikes > 0,
+      actionText: t('Add Moto'),
+    },
+    {
+      id: 'riders',
+      title: t('Onboard Your First Motari'),
+      desc: t('Register riders to manage assignments, daily leases, and safety scores.'),
+      href: '/riders',
+      icon: <Users size={18} className="text-accent" />,
+      isCompleted: totalRiders > 0,
+      actionText: t('Onboard Motari'),
+    },
+    {
+      id: 'devices',
+      title: t('Pair GPS Tracker / Device'),
+      desc: t('Provision IoT hardware trackers to enable remote lock/unlock & live map.'),
+      href: '/devices',
+      icon: <Zap size={18} className="text-accent" />,
+      isCompleted: totalDevices > 0,
+      actionText: t('Pair Device'),
+    },
+    {
+      id: 'momo',
+      title: t('Configure MoMo Receiving Account'),
+      desc: t('Set up your Mobile Money phone number to receive automated daily rider payments.'),
+      href: '/settings',
+      icon: <CreditCard size={18} className="text-accent" />,
+      isCompleted: momoConfigured,
+      actionText: t('Set Up MoMo'),
+    },
+  ];
+
+  const completedCount = onboardingSteps.filter((s) => s.isCompleted).length;
+  const progressPercent = Math.round((completedCount / onboardingSteps.length) * 100);
 
   const totalEvents = report
     ? Object.values(report.eventCounts).reduce((s, v) => s + v, 0)
@@ -93,6 +175,103 @@ export default function OverviewPage() {
         to={dateRange.to}
         onChange={setDateRange}
       />
+
+      {/* First-Run Onboarding Checklist Widget */}
+      {!isOnboardingDismissed && user?.role !== 'INSURER' && completedCount < 4 && (
+        <section className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-surface via-surface to-accent/5 p-6 shadow-sm transition-all">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                  <Sparkles size={16} />
+                </span>
+                <h2 className="text-base font-bold text-ink">
+                  {t('Welcome to eMoto Fleet OS!')}
+                </h2>
+                <Badge variant="info" className="text-[11px]">
+                  {completedCount} / 4 {t('Completed')}
+                </Badge>
+              </div>
+              <p className="text-xs text-ink-muted">
+                {t('Complete these quick setup steps to get your fleet fully operational on the road.')}
+              </p>
+            </div>
+            <button
+              onClick={handleDismissOnboarding}
+              className="self-start text-xs text-ink-faint hover:text-ink transition-colors flex items-center gap-1 sm:self-auto"
+              title={t('Dismiss checklist')}
+            >
+              <span>{t('Dismiss')}</span>
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-hover">
+            <div
+              className="h-full bg-accent transition-all duration-500 rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Steps Grid */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {onboardingSteps.map((step, idx) => (
+              <div
+                key={step.id}
+                className={cx(
+                  'flex flex-col justify-between rounded-xl border p-4 transition-all',
+                  step.isCompleted
+                    ? 'border-emerald-500/20 bg-emerald-500/5'
+                    : 'border-line bg-surface hover:border-accent/40'
+                )}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+                        {step.icon}
+                      </span>
+                      <span className="text-xs font-bold text-ink-muted">
+                        0{idx + 1}
+                      </span>
+                    </div>
+                    {step.isCompleted ? (
+                      <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 size={14} />
+                        {t('Done')}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs font-medium text-ink-faint">
+                        <Circle size={14} />
+                        {t('Pending')}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">
+                      {step.title}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-ink-muted line-clamp-2">
+                      {step.desc}
+                    </p>
+                  </div>
+                </div>
+
+                {!step.isCompleted && (
+                  <Link
+                    href={step.href}
+                    className="mt-4 flex items-center justify-between rounded-lg bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all group"
+                  >
+                    <span>{step.actionText}</span>
+                    <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* KPI row */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
