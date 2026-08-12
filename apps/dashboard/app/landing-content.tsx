@@ -84,7 +84,7 @@ const faqs = [
   { q: 'Can I integrate Fleet OS with my existing systems?', a: 'Yes. Fleet OS provides a comprehensive REST API and webhook system for integration with insurance platforms, regulatory systems, and third-party analytics tools. Partner API tokens provide scoped data access.' },
   { q: 'How does pricing work?', a: 'Pricing is 350 RWF / day per active bike on our Pay-As-You-Go plan, so you only pay for bikes active on the road each day. Insurance and Enterprise plans offer custom underwriting portals, dedicated telemetry access, and SLA guarantees. There are 0 RWF device setup or installation fees.' },
   { q: 'Is Fleet OS open source?', a: 'Fleet OS is a commercial platform with enterprise-grade security and support. We offer a demo environment for evaluation and can provide custom trials for qualified fleet operators.' },
-  { q: 'What kind of support do you offer?', a: 'Cooperative and Individual plans include standard support. Delivery fleets receive priority support with faster response times. Insurance plans include dedicated support, custom SLA, and onboarding assistance.' },
+  { q: 'What kind of support do you offer?', a: 'Pay-As-You-Go plans include standard operator support. Insurance and Enterprise plans receive priority 24/7 support, dedicated SLA guarantees, and an assigned account manager.' },
   { q: 'How do I request a feature or report a bug?', a: 'You can reach our team through the dashboard support channel, email, or through your dedicated account manager on Insurance plans. We actively incorporate operator feedback into our roadmap.' },
   { q: 'Is there a limit on the number of bikes?', a: 'No. Fleet OS scales from small fleets of 10 bikes to enterprise operations with thousands. Our infrastructure auto-scales to handle any fleet size with consistent real-time performance.' },
 ];
@@ -285,27 +285,14 @@ export default function LandingContent() {
   }, []);
 
   // Dynamic Pricing Rates & Plan Mapping
-  const demoTier = pricingTiers?.find(t => t.planCode === 'DEMO');
-  const premiumTier = pricingTiers?.find(t => t.planCode === 'PREMIUM');
-  const coreRateStr = demoTier ? `${demoTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '5,000 RWF/bike/month';
-  const premiumRateStr = premiumTier ? `${premiumTier.monthlyRatePerBike.toLocaleString()} RWF/bike/month` : '10,000 RWF/bike/month';
+  const paygTier = pricingTiers?.find(t => t.planCode === 'PAYG');
 
   const localizedFaqItems = useMemo(() => {
-    return faqs.map((faq) => {
-      if (faq.q === 'How does pricing work?') {
-        return {
-          q: t('faq_pricing_q', faq.q),
-          a: t('faq_pricing_a', faq.a)
-            .replace('{core}', coreRateStr)
-            .replace('{premium}', premiumRateStr)
-        };
-      }
-      return {
-        q: t('faq_q_' + faq.q.toLowerCase().replace(/[^a-z0-9]/g, '_'), faq.q),
-        a: t('faq_a_' + faq.q.toLowerCase().replace(/[^a-z0-9]/g, '_'), faq.a),
-      };
-    });
-  }, [t, coreRateStr, premiumRateStr]);
+    return faqs.map((faq) => ({
+      q: t('faq_q_' + faq.q.toLowerCase().replace(/[^a-z0-9]/g, '_'), faq.q),
+      a: t('faq_a_' + faq.q.toLowerCase().replace(/[^a-z0-9]/g, '_'), faq.a),
+    }));
+  }, [t]);
 
   const localizedPlans = useMemo(() => {
     return pricingPlans.map((plan) => {
