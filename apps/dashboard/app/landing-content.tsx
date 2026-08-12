@@ -591,33 +591,139 @@ export default function LandingContent() {
         </div>
 
         {/* Tab content */}
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
-          {localizedShowcaseTabs.map((tab) => (
-            <div
-              key={tab.id}
-              className={`transition-opacity duration-300 ${activeTab === tab.id ? 'block' : 'hidden'}`}
-            >
-              <div className="p-8 md:p-12">
-                <p className="text-base leading-relaxed text-zinc-400 max-w-3xl">{tab.desc}</p>
-              </div>
-              {/* Showcase image area */}
-              <div className="relative h-[350px] md:h-[450px] bg-gradient-to-b from-white/[0.02] to-transparent border-t border-white/[0.06]">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-4 text-zinc-600">
-                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-8">
-                      {tab.id === 'live-map' && <LocateFixed size={48} className="text-accent/60" />}
-                      {tab.id === 'incidents' && <Siren size={48} className="text-accent/60" />}
-                      {tab.id === 'riders' && <Users2 size={48} className="text-accent/60" />}
-                      {tab.id === 'devices' && <Cpu size={48} className="text-accent/60" />}
-                      {tab.id === 'analytics' && <Activity size={48} className="text-accent/60" />}
-                      {tab.id === 'commands' && <Signal size={48} className="text-accent/60" />}
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 md:p-8 backdrop-blur-xl transition-all duration-300">
+          {localizedShowcaseTabs.map((tab) => {
+            if (activeTab !== tab.id) return null;
+
+            return (
+              <div
+                key={tab.id}
+                className="grid gap-8 lg:grid-cols-12 items-center animate-in fade-in duration-300"
+              >
+                {/* Left Col: Info & Description */}
+                <div className="lg:col-span-6 space-y-4 text-left">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
+                    {tab.id === 'live-map' && <LocateFixed size={14} />}
+                    {tab.id === 'incidents' && <Siren size={14} />}
+                    {tab.id === 'riders' && <Users2 size={14} />}
+                    {tab.id === 'devices' && <Cpu size={14} />}
+                    {tab.id === 'analytics' && <Activity size={14} />}
+                    {tab.id === 'commands' && <Signal size={14} />}
+                    <span>{tab.label}</span>
+                  </div>
+
+                  <h3 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
+                    {tab.label} {t('showcase_command_center', 'Command Center')}
+                  </h3>
+
+                  <p className="text-sm leading-relaxed text-zinc-400">
+                    {tab.desc}
+                  </p>
+
+                  <div className="pt-2">
+                    <Link
+                      href={hasSession ? '/overview' : '/login'}
+                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-slate-950 hover:bg-accent/90 transition-all shadow-md shadow-accent/20"
+                    >
+                      <span>{t('explore_feature', 'Explore Feature')}</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Right Col: Rich Sleek Preview Card */}
+                <div className="lg:col-span-6">
+                  <div className="relative rounded-2xl border border-white/10 bg-slate-950/80 p-5 shadow-2xl overflow-hidden text-left">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 text-xs font-mono text-zinc-400">
+                      <span className="flex items-center gap-2 font-bold text-white">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                        {tab.label} Telemetry Node
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-semibold uppercase">LIVE STREAM</span>
                     </div>
-                    <span className="text-sm font-medium text-zinc-500">{t('showcase_dash_title', '{label} Dashboard').replace('{label}', tab.label)}</span>
+
+                    {tab.id === 'live-map' && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Active Map Feed</span>
+                          <span className="font-bold text-emerald-400">1,284 Bikes Online</span>
+                        </div>
+                        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 text-xs font-mono space-y-1 text-zinc-300">
+                          <p className="text-accent">Lat: -1.9441 • Lng: 30.0619 (Kigali Sector)</p>
+                          <p className="text-zinc-500">Speed: 42 km/h • Battery: 94% • Mode: ECO</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {tab.id === 'incidents' && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Emergency Dispatcher</span>
+                          <span className="font-bold text-rose-400">0 Open Critical Crashes</span>
+                        </div>
+                        <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs space-y-1">
+                          <p className="font-bold text-rose-300">Automated Crash Detection & Dispatch</p>
+                          <p className="text-zinc-400">Avg Emergency Dispatch Response: &lt; 2.4 min</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {tab.id === 'riders' && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Rider Safety Scorecard</span>
+                          <span className="font-bold text-accent">Avg Score: 94/100</span>
+                        </div>
+                        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 text-xs space-y-1">
+                          <p className="font-bold text-white">Jean Damascene • Motari ID #4092</p>
+                          <p className="text-zinc-400">Zero violations in last 30 days • Certified</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {tab.id === 'devices' && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Hardware & Tracker Status</span>
+                          <span className="font-bold text-emerald-400">MQTT Broker Connected</span>
+                        </div>
+                        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 text-xs font-mono space-y-1 text-zinc-300">
+                          <p className="text-accent">SinoTrack ST-901 • Firmware v3.4.1</p>
+                          <p className="text-zinc-500">Signal: 4G LTE • Encryption: TLS 1.3</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {tab.id === 'analytics' && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Fleet Operations Performance</span>
+                          <span className="font-bold text-emerald-400">99.9% Uptime</span>
+                        </div>
+                        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 text-xs space-y-1">
+                          <p className="font-bold text-white">Weekly Trips Analyzed: 14,280+</p>
+                          <p className="text-zinc-400">CO2 Emissions Saved: 450+ Tons</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {tab.id === 'commands' && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">OTA Remote Commands</span>
+                          <span className="font-bold text-accent">Audited & Signed</span>
+                        </div>
+                        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 text-xs font-mono space-y-1 text-zinc-300">
+                          <p className="text-accent">Command: OVERRIDE_ENGINE_LOCK</p>
+                          <p className="text-zinc-500">Status: ACKNOWLEDGED (14ms response)</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
