@@ -1088,7 +1088,7 @@ function CreateAccountInner() {
 
                       <div className="mt-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-2.5 text-[11px] text-ink-muted flex items-center gap-2">
                         <ShieldCheck size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                        <span><strong className="text-ink">Hardware Policy:</strong> 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.</span>
+                        <span>{t('hardware_policy_notice', 'Hardware Policy: 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.')}</span>
                       </div>
                     </div>
 

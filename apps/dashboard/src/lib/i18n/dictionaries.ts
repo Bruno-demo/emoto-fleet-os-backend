@@ -772,6 +772,9 @@ export const translations = {
     sign_in: "Sign in",
     get_started: "Get started",
     dashboard: "Dashboard",
+    hardware_policy_title: "Hardware Policy",
+    hardware_policy_banner: "Hardware Policy: GPS Hardware devices are not client property — they remain the exclusive company property of eMoto Fleet OS and are provided for fleet management. 0 RWF Device Setup Fee.",
+    hardware_policy_notice: "Hardware Policy: 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.",
 
     // Info pages content keys
     info_compliance_title: "Municipal Safety & Legal Compliance",
@@ -2188,6 +2191,9 @@ export const translations = {
     sign_in: "Injira",
     get_started: "Tangira ubu",
     dashboard: "Dashboard",
+    hardware_policy_title: "Politiki y'Ibikoresho",
+    hardware_policy_banner: "Politiki y'Ibikoresho: Ibikoresho bya GPS ntabwo ari umutungo w'umukiriya — biguma ari umutungo wihariye wa eMoto Fleet OS kandi ubuhabwa ku bw'ubuyobozi bwa fleet. Nta kiguzi cya 0 RWF cy'ishyirwaho ry'ibikoresho.",
+    hardware_policy_notice: "Politiki y'Ibikoresho: Ikiguzi cya 0 RWF cy'ishyirwaho ry'ibikoresho. Ibikoresho bya GPS biguma ari umutungo wa eMoto Fleet OS.",
 
     // Info pages content keys
     info_compliance_title: "Umutekano w'Umujyi n'Kubahiriza Amategeko",

@@ -798,7 +798,7 @@ export default function LandingContent() {
         <div className="mt-12 mx-auto max-w-3xl rounded-xl border border-blue-500/30 bg-blue-500/10 p-5 text-center text-sm text-zinc-300 relative z-10 flex items-center justify-center gap-3">
           <ShieldCheck className="shrink-0 text-blue-400" size={20} />
           <span>
-            <strong>Hardware Policy:</strong> GPS Hardware devices are not client property — they remain the exclusive company property of <strong>eMoto Fleet OS</strong> and are provided for fleet management. <strong>0 RWF Device Setup Fee.</strong>
+            {t('hardware_policy_banner', 'Hardware Policy: GPS Hardware devices are not client property — they remain the exclusive company property of eMoto Fleet OS and are provided for fleet management. 0 RWF Device Setup Fee.')}
           </span>
         </div>
       </section>
