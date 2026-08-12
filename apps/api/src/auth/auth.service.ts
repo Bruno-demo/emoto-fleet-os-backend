@@ -11,9 +11,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
-import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { FleetPlan } from '@prisma/client';
+import {
+  AuditActionType,
+  FleetPlan,
+  FleetSubscriptionStatus,
+  FleetType,
+  Prisma,
+  UserRole,
+  UserStatus,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
