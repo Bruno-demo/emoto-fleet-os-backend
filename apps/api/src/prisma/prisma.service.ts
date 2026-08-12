@@ -41,19 +41,17 @@ export class PrismaService
         `Standard Fleet plan sanitization failed (${err instanceof Error ? err.message : 'enum type mismatch'}). Performing structural DDL enum migration...`,
       );
       try {
-        await this.$executeRawUnsafe(`
-          ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;
-          ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;
-          ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE TEXT USING "planCode"::text;
-          UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');
-          UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');
-          DROP TYPE IF EXISTS "FleetPlan" CASCADE;
-          CREATE TYPE "FleetPlan" AS ENUM ('PAYG', 'INSURANCE', 'ENTERPRISE');
-          ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";
-          ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG';
-          ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE "FleetPlan" USING "planCode"::"FleetPlan";
-        `);
-        this.logger.log('Successfully updated PostgreSQL FleetPlan enum type and sanitized records.');
+        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;`);
+        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;`);
+        await this.$executeRawUnsafe(`ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE TEXT USING "planCode"::text;`);
+        await this.$executeRawUnsafe(`UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
+        await this.$executeRawUnsafe(`UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
+        await this.$executeRawUnsafe(`DROP TYPE IF EXISTS "FleetPlan" CASCADE;`);
+        await this.$executeRawUnsafe(`CREATE TYPE "FleetPlan" AS ENUM ('PAYG', 'INSURANCE', 'ENTERPRISE');`);
+        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";`);
+        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG';`);
+        await this.$executeRawUnsafe(`ALTER TABLE "PricingTier" ALTER COLUMN "planCode" TYPE "FleetPlan" USING "planCode"::"FleetPlan";`);
+        this.logger.log('Successfully updated PostgreSQL FleetPlan enum type and sanitized all records.');
       } catch (ddlErr: unknown) {
         this.logger.error(
           `Fleet plan DDL migration failed: ${ddlErr instanceof Error ? ddlErr.message : 'unknown'}`,

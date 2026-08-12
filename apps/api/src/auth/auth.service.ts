@@ -1689,7 +1689,11 @@ export class AuthService {
       return await queryFn();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes('FleetPlan') || errMsg.includes("enum 'FleetPlan'")) {
+      if (
+        errMsg.includes('FleetPlan') ||
+        errMsg.includes('DEMO') ||
+        errMsg.includes('PREMIUM')
+      ) {
         this.logger.warn(
           `Interpreted legacy FleetPlan enum exception: "${errMsg}". Auto-repairing database records...`,
         );
