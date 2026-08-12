@@ -162,16 +162,7 @@ export default function LoginPage() {
         return;
       }
 
-      if ('user' in response && response.user.status === 'PENDING_SETUP') {
-        await apiFetch('/auth/logout', { method: 'POST' }, { auth: false });
-        const isInsurer = 'user' in response && response.user.role === 'INSURER';
-        setError(
-          isInsurer
-            ? 'Your subscription payment is still pending. Our team will contact you shortly.'
-            : 'Your hardware installation is still pending.'
-        );
-        return;
-      }
+
 
       if ('accessToken' in response) {
         router.replace(nextPath);

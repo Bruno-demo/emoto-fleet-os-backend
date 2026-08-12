@@ -646,9 +646,9 @@ function CreateAccountInner() {
       // Redirect based on flow
       if (isDemo) {
         if (selectedPlanSlug && selectedPlan) {
-          setTimeout(() => router.push(`/login?next=${encodeURIComponent(`/checkout?plan=${selectedPlanSlug}`)}`), 1500);
+          setTimeout(() => router.push(`/checkout?plan=${selectedPlanSlug}`), 1500);
         } else {
-          setTimeout(() => router.push('/login?next=/live'), 1500);
+          setTimeout(() => router.push('/live'), 1500);
         }
       } else if (isPublicMode) {
         const selectedRangeLabel = BIKE_RANGE_OPTIONS.find(o => o.value === bikeRange)?.label ?? bikeRange;

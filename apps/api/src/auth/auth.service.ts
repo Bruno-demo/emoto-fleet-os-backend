@@ -11,12 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
-import {
-  AuditActionType,
-  Prisma,
-  UserRole,
-  UserStatus,
-} from '@prisma/client';
+import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
@@ -557,7 +552,11 @@ export class AuthService {
   }
 
   // Creates a new fleet and registers the caller as its ADMIN owner.
-  async registerFleet(dto: RegisterFleetDto): Promise<AuthenticatedUser> {
+  async registerFleet(dto: RegisterFleetDto): Promise<{
+    accessToken: string;
+    tokenType: 'Bearer';
+    user: AuthenticatedUser;
+  }> {
     const registerEnabled = this.configService.get<boolean>(
       'AUTH_REGISTER_ENABLED',
       true,
@@ -737,7 +736,8 @@ export class AuthService {
         await this.redisService.del(`email_verified:${normalizedEmail}`);
       }
 
-      return this.toAuthenticatedUser(result);
+      const authenticatedUser = this.toAuthenticatedUser(result);
+      return this.buildAuthResponse(authenticatedUser, false);
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -1371,9 +1371,10 @@ export class AuthService {
       role: user.role,
     };
 
-    const defaultExpiresIn = this.configService.getOrThrow<string>(
+    const defaultExpiresIn = (this.configService.get<string>(
       'JWT_EXPIRES_IN',
-    ) as StringValue;
+      '7d',
+    ) ?? '7d') as StringValue;
     const rememberExpiresIn = this.configService.get<string>(
       'AUTH_REMEMBER_ME_EXPIRES_IN',
     ) as StringValue | undefined;

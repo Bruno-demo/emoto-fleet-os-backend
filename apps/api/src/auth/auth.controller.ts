@@ -254,8 +254,15 @@ export class AuthController {
   })
   async registerFleet(
     @Body() dto: RegisterFleetDto,
-  ): Promise<AuthenticatedUser> {
-    return this.authService.registerFleet(dto);
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{
+    accessToken: string;
+    tokenType: 'Bearer';
+    user: AuthenticatedUser;
+  }> {
+    const result = await this.authService.registerFleet(dto);
+    this.setAuthCookie(response, result.accessToken, false);
+    return result;
   }
 
   @Post('register-public')
