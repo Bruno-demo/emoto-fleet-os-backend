@@ -19,11 +19,16 @@ import {
   Activity,
   Banknote,
   Truck,
+  Send,
+  CheckCircle,
+  MessageSquare,
+  Briefcase,
+  Hash,
 } from 'lucide-react';
 import { compressImage } from '@/lib/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -314,6 +319,71 @@ function CreateAccountInner() {
   const [appliedDiscount, setAppliedDiscount] = useState<PromoDiscount | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+
+  // Quote request modal state
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [quoteType, setQuoteType] = useState<'enterprise' | 'insurance'>('enterprise');
+  const [quoteName, setQuoteName] = useState('');
+  const [quoteEmail, setQuoteEmail] = useState('');
+  const [quotePhone, setQuotePhone] = useState('');
+  const [quoteCompany, setQuoteCompany] = useState('');
+  const [quoteFleetSize, setQuoteFleetSize] = useState('');
+  const [quoteMessage, setQuoteMessage] = useState('');
+  const [quoteSubmitting, setQuoteSubmitting] = useState(false);
+  const [quoteSuccess, setQuoteSuccess] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  const openQuoteModal = useCallback((type: 'enterprise' | 'insurance') => {
+    setQuoteType(type);
+    setQuoteName('');
+    setQuoteEmail('');
+    setQuotePhone('');
+    setQuoteCompany('');
+    setQuoteFleetSize('');
+    setQuoteMessage('');
+    setQuoteError(null);
+    setQuoteSuccess(false);
+    setShowQuoteModal(true);
+  }, []);
+
+  const handleQuoteSubmit = useCallback(async () => {
+    if (!quoteName.trim() || !quoteEmail.trim()) {
+      setQuoteError('Please provide your name and email address.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(quoteEmail.trim())) {
+      setQuoteError('Please enter a valid email address.');
+      return;
+    }
+    setQuoteSubmitting(true);
+    setQuoteError(null);
+    try {
+      const category = quoteType === 'enterprise' ? 'Enterprise Quote Request' : 'Insurance Partner Quote Request';
+      const messageParts = [
+        `Plan: ${quoteType === 'enterprise' ? 'Enterprise Operations (100+ bikes)' : 'Insurance & Compliance Partner'}`,
+        quoteCompany.trim() ? `Company: ${quoteCompany.trim()}` : null,
+        quotePhone.trim() ? `Phone: ${quotePhone.trim()}` : null,
+        quoteFleetSize.trim() ? `Fleet Size: ${quoteFleetSize.trim()} bikes` : null,
+        '',
+        quoteMessage.trim() || 'No additional message provided.',
+      ].filter(Boolean).join('\n');
+
+      await apiFetch('/auth/contact', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: quoteName.trim(),
+          email: quoteEmail.trim(),
+          category,
+          message: messageParts,
+        }),
+      }, { auth: false });
+      setQuoteSuccess(true);
+    } catch {
+      setQuoteError('Failed to submit your request. Please try again or email us directly at bruno@emotofleet.com.');
+    } finally {
+      setQuoteSubmitting(false);
+    }
+  }, [quoteName, quoteEmail, quotePhone, quoteCompany, quoteFleetSize, quoteMessage, quoteType]);
 
   const handleValidatePromo = async () => {
     if (!promoCode) return;
@@ -1087,6 +1157,32 @@ function CreateAccountInner() {
                         <ShieldCheck size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
                         <span>{t('hardware_policy_notice', 'Hardware Policy: 0 RWF Device Setup Fee. GPS hardware devices remain company property of eMoto Fleet OS.')}</span>
                       </div>
+
+                      {/* Enterprise & Insurance Quote Buttons */}
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openQuoteModal('enterprise')}
+                          className="group relative flex flex-col items-center gap-2 rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] px-3 py-3.5 text-center transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/[0.1] hover:shadow-lg hover:shadow-violet-500/10 active:scale-[0.97]"
+                        >
+                          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400 transition group-hover:bg-violet-500/25">
+                            <Building2 size={16} />
+                          </span>
+                          <span className="text-[11px] font-bold text-ink leading-tight">Enterprise</span>
+                          <span className="text-[9px] font-semibold text-violet-400">100+ bikes · Custom Quote</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openQuoteModal('insurance')}
+                          className="group relative flex flex-col items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] px-3 py-3.5 text-center transition-all duration-200 hover:border-amber-500/40 hover:bg-amber-500/[0.1] hover:shadow-lg hover:shadow-amber-500/10 active:scale-[0.97]"
+                        >
+                          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 transition group-hover:bg-amber-500/25">
+                            <ShieldCheck size={16} />
+                          </span>
+                          <span className="text-[11px] font-bold text-ink leading-tight">Insurance Partner</span>
+                          <span className="text-[9px] font-semibold text-amber-400">Risk & FNOL · Custom Quote</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Promo Code Input */}
@@ -1248,6 +1344,245 @@ function CreateAccountInner() {
           />
         </div>
       ) : null}
+
+      {/* ── Quote Request Modal ── */}
+      {showQuoteModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => !quoteSubmitting && setShowQuoteModal(false)}
+          />
+
+          {/* Modal */}
+          <div className="relative w-full max-w-lg rounded-3xl border border-white/[0.08] bg-[#0d0f14]/95 shadow-2xl shadow-black/40 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => !quoteSubmitting && setShowQuoteModal(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-400 transition hover:bg-white/[0.12] hover:text-white"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+
+            {quoteSuccess ? (
+              /* ─── Success State ─── */
+              <div className="flex flex-col items-center gap-5 p-10 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/30">
+                  <CheckCircle size={32} className="text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Quote Request Submitted</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400 max-w-xs mx-auto">
+                    Thank you! Our team will review your request and get back to you within 24 hours at the email address provided.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQuoteModal(false)}
+                  className="mt-2 rounded-2xl bg-white/[0.08] px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.14] active:scale-[0.97]"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              /* ─── Form State ─── */
+              <div className="p-6 sm:p-8">
+                {/* Header */}
+                <div className="flex items-start gap-4 mb-6">
+                  <div className={cx(
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1',
+                    quoteType === 'enterprise'
+                      ? 'bg-violet-500/15 ring-violet-500/30 text-violet-400'
+                      : 'bg-amber-500/15 ring-amber-500/30 text-amber-400',
+                  )}>
+                    {quoteType === 'enterprise' ? <Building2 size={22} /> : <ShieldCheck size={22} />}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+                      {quoteType === 'enterprise' ? 'Enterprise Operations' : 'Insurance & Compliance'}
+                    </p>
+                    <h3 className="mt-0.5 text-lg font-bold text-white">Request a Custom Quote</h3>
+                    <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+                      {quoteType === 'enterprise'
+                        ? 'For fleets with 100+ bikes. Get volume pricing, a dedicated SLA, and custom IoT integrations.'
+                        : 'For insurance companies & risk management partners. Get custom telematics pricing and FNOL evidence packs.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Error notice */}
+                {quoteError && (
+                  <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-3.5 py-2.5 text-xs text-red-400 font-medium animate-in fade-in slide-in-from-top-2 duration-200">
+                    {quoteError}
+                  </div>
+                )}
+
+                {/* Form fields */}
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                        Full Name <span className="text-red-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          type="text"
+                          value={quoteName}
+                          onChange={(e) => setQuoteName(e.target.value)}
+                          placeholder="Jean Damascene"
+                          className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition"
+                          disabled={quoteSubmitting}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                        Email <span className="text-red-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <AtSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          type="email"
+                          value={quoteEmail}
+                          onChange={(e) => setQuoteEmail(e.target.value)}
+                          placeholder="you@company.rw"
+                          className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition"
+                          disabled={quoteSubmitting}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                        Phone
+                      </label>
+                      <div className="relative">
+                        <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          type="text"
+                          value={quotePhone}
+                          onChange={(e) => setQuotePhone(e.target.value)}
+                          placeholder="07..."
+                          className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition"
+                          disabled={quoteSubmitting}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                        {quoteType === 'insurance' ? 'Insurance Company' : 'Company Name'}
+                      </label>
+                      <div className="relative">
+                        <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          type="text"
+                          value={quoteCompany}
+                          onChange={(e) => setQuoteCompany(e.target.value)}
+                          placeholder={quoteType === 'insurance' ? 'e.g. Sanlam Insurance' : 'e.g. Kigali Express Ltd'}
+                          className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition"
+                          disabled={quoteSubmitting}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                      {quoteType === 'insurance' ? 'Number of Insured Bikes' : 'Fleet Size (bikes)'}
+                    </label>
+                    <div className="relative">
+                      <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                      <input
+                        type="text"
+                        value={quoteFleetSize}
+                        onChange={(e) => setQuoteFleetSize(e.target.value)}
+                        placeholder={quoteType === 'enterprise' ? 'e.g. 250' : 'e.g. 500'}
+                        className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition"
+                        disabled={quoteSubmitting}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                      Additional Details
+                    </label>
+                    <div className="relative">
+                      <MessageSquare size={14} className="absolute left-3 top-3 text-zinc-500" />
+                      <textarea
+                        value={quoteMessage}
+                        onChange={(e) => setQuoteMessage(e.target.value)}
+                        placeholder={quoteType === 'enterprise'
+                          ? 'Tell us about your fleet operations, SLA needs, custom IoT requirements...'
+                          : 'Tell us about your coverage needs, FNOL requirements, telematics integrations...'}
+                        rows={3}
+                        className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-zinc-600 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition resize-none"
+                        disabled={quoteSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Features highlights */}
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {(quoteType === 'enterprise'
+                    ? [
+                        { icon: <Building2 size={13} />, text: 'Multi-fleet HQ command' },
+                        { icon: <ShieldCheck size={13} />, text: 'Dedicated SLA' },
+                        { icon: <Activity size={13} />, text: 'Custom IoT integrations' },
+                        { icon: <Banknote size={13} />, text: 'Volume discount pricing' },
+                      ]
+                    : [
+                        { icon: <ShieldCheck size={13} />, text: 'FNOL evidence packs' },
+                        { icon: <Activity size={13} />, text: 'Telematics API access' },
+                        { icon: <Navigation2 size={13} />, text: 'Risk compliance tools' },
+                        { icon: <Banknote size={13} />, text: 'Custom partner pricing' },
+                      ]
+                  ).map((feat, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-2.5 py-1.5">
+                      <span className="text-zinc-500">{feat.icon}</span>
+                      <span className="text-[11px] text-zinc-400">{feat.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Submit button */}
+                <button
+                  type="button"
+                  onClick={() => void handleQuoteSubmit()}
+                  disabled={quoteSubmitting || !quoteName.trim() || !quoteEmail.trim()}
+                  className={cx(
+                    'mt-5 flex w-full items-center justify-center gap-2.5 rounded-2xl py-3 text-sm font-bold transition-all duration-200 active:scale-[0.97]',
+                    quoteType === 'enterprise'
+                      ? 'bg-gradient-to-r from-violet-600 to-violet-500 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 disabled:from-violet-600/50 disabled:to-violet-500/50'
+                      : 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 disabled:from-amber-600/50 disabled:to-amber-500/50',
+                    'disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none',
+                  )}
+                >
+                  {quoteSubmitting ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <Send size={15} />
+                  )}
+                  {quoteSubmitting ? 'Submitting...' : 'Submit Quote Request'}
+                </button>
+
+                <p className="mt-3 text-center text-[11px] text-zinc-500 leading-relaxed">
+                  Or email us directly at{' '}
+                  <a href="mailto:bruno@emotofleet.com" className="font-semibold text-zinc-400 hover:text-white transition">
+                    bruno@emotofleet.com
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AuthShell>
   );
 }
