@@ -13,15 +13,24 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
-  // Automatically cleans up any legacy database records on startup before queries run.
+  // Connects to the database and sanitizes any legacy enum values before the app starts handling requests.
   async onModuleInit(): Promise<void> {
+    await this.$connect();
+
+    // Immediately sanitize legacy FleetPlan enum values (DEMO, PREMIUM) that were removed
+    // from the Prisma schema. This MUST run before any Prisma query attempts to deserialize
+    // Fleet rows, otherwise findFirst/findMany will throw:
+    //   "Value 'DEMO' not found in enum 'FleetPlan'"
     try {
-      const updatedCount = await this.$executeRawUnsafe(
+      const updatedFleets = await this.$executeRawUnsafe(
         `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan"::text IN ('DEMO', 'PREMIUM');`,
       );
-      if (updatedCount > 0) {
-        this.logger.log(
-          `Sanitized ${updatedCount} legacy fleet plan records to PAYG`,
+      const updatedTiers = await this.$executeRawUnsafe(
+        `UPDATE "PricingTier" SET "planCode" = 'PAYG' WHERE "planCode"::text IN ('DEMO', 'PREMIUM');`,
+      );
+      if (updatedFleets > 0 || updatedTiers > 0) {
+        this.logger.warn(
+          `Sanitized ${updatedFleets} Fleet + ${updatedTiers} PricingTier legacy plan records (DEMO/PREMIUM → PAYG)`,
         );
       }
     } catch (err: unknown) {
