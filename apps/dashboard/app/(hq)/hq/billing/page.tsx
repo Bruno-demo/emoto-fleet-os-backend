@@ -485,7 +485,7 @@ export default function HqBillingPage() {
           >
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-2 pb-4 mb-4 border-b border-line">
-              {(['ALL', 'PENDING_UPGRADE', 'UNPAID_SETUP', 'PAID_SETUP', 'PREMIUM', 'CORE', 'INSURANCE', 'SUB_ACTIVE', 'SUB_UNPAID'] as const).map((type) => (
+              {(['ALL', 'PENDING_UPGRADE', 'UNPAID_SETUP', 'PAID_SETUP', 'ENTERPRISE', 'PAYG', 'INSURANCE', 'SUB_ACTIVE', 'SUB_UNPAID'] as const).map((type) => (
                 <button
                   key={type}
                   onClick={() => setFilterType(type)}
@@ -517,7 +517,7 @@ export default function HqBillingPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
                   const setupAmount = 0;
-                  const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'PREMIUM' ? 15000 : fleet.plan === 'INSURANCE' ? 0 : 10000);
+                  const rate = fleet.monthlyRatePerBike ?? (fleet.plan === 'ENTERPRISE' ? 15000 : fleet.plan === 'INSURANCE' ? 0 : 10500);
                   const monthlyAmount = fleet._count.bikes * rate;
                   const hasUpgrade = fleet.upgradeRequested;
 
