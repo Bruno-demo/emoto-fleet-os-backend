@@ -89,6 +89,12 @@ export class BillingPaymentService {
           data: { subscriptionStatus: FleetSubscriptionStatus.ACTIVE },
         });
       }
+
+      try {
+        await this.billingCycleService.generateCycleForFleet(cycle.fleetId, true);
+      } catch {
+        // Next weekly period has not arrived yet or is already active
+      }
     }
 
     await this.auditService.createAuditLog({

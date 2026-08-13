@@ -1220,10 +1220,10 @@ export default function HqBillingPage() {
               {activeFleetDetails.plan === 'PAYG' && (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-[11px] text-emerald-400 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
-                    <Sparkles size={13} /> Calculated via Active Days ({getFleetDailyRate(activeFleetDetails.type, activeFleetDetails.emotoPaygRatePerActiveDay)} RWF/active day - {activeFleetDetails.type || 'COOP'})
+                    <Sparkles size={13} /> Weekly Active-Days Billing ({getFleetDailyRate(activeFleetDetails.type, activeFleetDetails.emotoPaygRatePerActiveDay)} RWF/active day - {activeFleetDetails.type || 'COOP'})
                   </div>
                   <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    Billing is automatically computed from actual bike GPS movement recorded during the 30-day cycle ({activeFleetDetails.type === 'DELIVERY' ? '500 RWF for Delivery' : '350 RWF for Coop/Individual'}). Parked/idle days are 0 RWF.
+                    Weekly billing is automatically computed from actual bike GPS movement recorded during the 7-day cycle ({activeFleetDetails.type === 'DELIVERY' ? '500 RWF for Delivery' : '350 RWF for Coop/Individual'}). Parked/idle days are 0 RWF.
                   </p>
                 </div>
               )}
@@ -1497,10 +1497,10 @@ export default function HqBillingPage() {
                 {/* Notice Banner */}
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-1">
                   <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                    <Sparkles size={16} /> Calculated via Active Days ({cycleBreakdownData.cycle.ratePerBike} RWF/active day)
+                    <Sparkles size={16} /> Weekly Active-Days Billing ({cycleBreakdownData.cycle.ratePerBike} RWF/active day)
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Billing is calculated strictly from actual bike GPS movement recorded during the 30-day cycle. Parked/idle days are 0 RWF.
+                    Weekly billing is calculated strictly from actual bike GPS movement recorded during the 7-day cycle. Parked/idle days are 0 RWF.
                   </p>
                 </div>
 

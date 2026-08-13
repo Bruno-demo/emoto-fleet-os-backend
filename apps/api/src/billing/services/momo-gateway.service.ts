@@ -13,6 +13,8 @@ import {
 } from '@prisma/client';
 import { MailService } from '../../mail/mail.service';
 
+import { BillingCycleService } from './billing-cycle.service';
+
 @Injectable()
 export class MomoGatewayService {
   private readonly logger = new Logger(MomoGatewayService.name);
@@ -25,6 +27,7 @@ export class MomoGatewayService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly mailService: MailService,
+    private readonly billingCycleService: BillingCycleService,
   ) {}
 
   async getAccessToken(): Promise<string> {
@@ -461,6 +464,12 @@ export class MomoGatewayService {
                     subscriptionStatus: FleetSubscriptionStatus.ACTIVE,
                   },
                 });
+              }
+
+              try {
+                await this.billingCycleService.generateCycleForFleet(transaction.fleetId, true);
+              } catch {
+                // Next weekly period has not arrived yet or is already active
               }
             }
           }
