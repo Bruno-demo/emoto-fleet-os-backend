@@ -544,7 +544,7 @@ export default function HqBillingPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
                   const setupAmount = 0;
-                  const dailyRate = fleet.emotoPaygRatePerActiveDay ?? 350;
+                  const dailyRate = fleet.emotoPaygRatePerActiveDay ?? (fleet.type === 'DELIVERY' ? 500 : 350);
                   const monthlyRate = fleet.monthlyRatePerBike ?? (dailyRate * 30);
                   const estimatedMonthly = fleet._count.bikes * monthlyRate;
                   const hasUpgrade = fleet.upgradeRequested;
@@ -564,7 +564,7 @@ export default function HqBillingPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-white truncate group-hover:text-accent transition-colors">{fleet.name}</p>
-                            <div className="mt-1 flex items-center gap-2">
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <span className={cx(
                                 "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
                                 fleet.plan === 'ENTERPRISE'
@@ -578,6 +578,9 @@ export default function HqBillingPage() {
                                   : fleet.plan === 'INSURANCE'
                                   ? 'Insurance Partner'
                                   : 'Pay-As-You-Go'}
+                              </span>
+                              <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-white/5 text-zinc-400 border border-line">
+                                {fleet.type === 'DELIVERY' ? 'Delivery (500 RWF/d)' : 'Coop/Indiv (350 RWF/d)'}
                               </span>
                               {fleet.trialEndsAt && new Date(fleet.trialEndsAt) > new Date() && (
                                 <span className="rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
@@ -1576,6 +1579,24 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
       <p className="text-xs text-zinc-400 min-h-[40px]">{tier.description}</p>
       
       <div className="h-px bg-line w-full" />
+      
+      {tier.planCode === 'PAYG' && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-2 text-xs text-emerald-400">
+          <div className="flex items-center gap-1.5 font-bold">
+            <Sparkles size={13} /> Active Daily Sub-Tier Rates
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="bg-background/60 p-2 rounded-xl border border-line">
+              <p className="text-zinc-400 font-bold">Coop & Individual</p>
+              <p className="text-white font-extrabold text-sm mt-0.5">350 RWF <span className="text-[10px] text-zinc-400 font-normal">/ active day</span></p>
+            </div>
+            <div className="bg-background/60 p-2 rounded-xl border border-line">
+              <p className="text-zinc-400 font-bold">Delivery & Logistics</p>
+              <p className="text-white font-extrabold text-sm mt-0.5">500 RWF <span className="text-[10px] text-zinc-400 font-normal">/ active day</span></p>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="space-y-3">
         <div>
