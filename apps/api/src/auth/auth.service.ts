@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuditActionType, Prisma, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import type { StringValue } from 'ms';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -67,7 +69,7 @@ type AuthUserRecord = Prisma.UserGetPayload<{
 }>;
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -78,6 +80,18 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly mailService: MailService,
   ) {}
+
+  async onModuleInit() {
+    try {
+      await this.prismaService.$executeRawUnsafe(`
+        ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "maxUses" INTEGER DEFAULT 1;
+        ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "usedCount" INTEGER DEFAULT 0;
+      `);
+      this.logger.log('RegistrationInvite database columns auto-verified.');
+    } catch (err: any) {
+      this.logger.warn(`Auto-migration for RegistrationInvite columns: ${err?.message}`);
+    }
+  }
 
   // Authenticates with email/password or phone/password and returns an access token.
   async login(dto: LoginDto): Promise<
@@ -868,9 +882,13 @@ export class AuthService {
       });
     } catch (dbError: any) {
       this.logger.warn(
-        `Primary registrationInvite.create failed, trying legacy fallback: ${dbError?.message}`,
+        `Primary registrationInvite.create failed (${dbError?.message}), executing DB column patch...`,
       );
       try {
+        await this.prismaService.$executeRawUnsafe(`
+          ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "maxUses" INTEGER DEFAULT 1;
+          ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "usedCount" INTEGER DEFAULT 0;
+        `);
         createdInvite = await this.prismaService.registrationInvite.create({
           data: {
             fleetId: actor.fleetId,
@@ -878,6 +896,7 @@ export class AuthService {
             email: normalizedEmail,
             phone,
             tokenHash,
+            maxUses: maxUsesVal,
             expiresAt,
           },
           select: {
@@ -886,17 +905,44 @@ export class AuthService {
             role: true,
             email: true,
             phone: true,
+            maxUses: true,
+            usedCount: true,
             expiresAt: true,
           },
         });
-      } catch (fallbackError: any) {
-        this.logger.error(
-          `registrationInvite.create fallback failed: ${fallbackError?.message}`,
-          fallbackError?.stack,
+      } catch (patchErr: any) {
+        this.logger.warn(
+          `Post-patch registrationInvite.create failed (${patchErr?.message}), executing direct raw SQL insert fallback...`,
         );
-        throw new InternalServerErrorException(
-          fallbackError?.message || 'Failed to create invite code',
-        );
+        try {
+          const inviteId = uuidv4();
+          await this.prismaService.$executeRawUnsafe(
+            `INSERT INTO "RegistrationInvite" ("id", "fleetId", "role", "email", "phone", "tokenHash", "expiresAt", "status") VALUES ($1::uuid, $2::uuid, $3::"UserRole", $4, $5, $6, $7::timestamptz, 'ACTIVE')`,
+            inviteId,
+            actor.fleetId,
+            role,
+            normalizedEmail,
+            phone,
+            tokenHash,
+            expiresAt.toISOString(),
+          );
+          createdInvite = {
+            id: inviteId,
+            fleetId: actor.fleetId,
+            role,
+            email: normalizedEmail,
+            phone,
+            expiresAt,
+          };
+        } catch (rawSqlErr: any) {
+          this.logger.error(
+            `Direct raw SQL invite creation failed: ${rawSqlErr?.message}`,
+            rawSqlErr?.stack,
+          );
+          throw new InternalServerErrorException(
+            rawSqlErr?.message || 'Failed to generate invite code',
+          );
+        }
       }
     }
 
