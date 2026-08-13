@@ -30,6 +30,15 @@ import { Drawer } from '@/components/ui/drawer';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { cx, formatEnumLabel } from '@/lib/ui';
 
+// ── Helper Utilities ─────────────────────────────────────────────
+
+const getFleetDailyRate = (type?: string | null, emotoPaygRatePerActiveDay?: number | null) => {
+  if (type === 'DELIVERY') {
+    return (!emotoPaygRatePerActiveDay || emotoPaygRatePerActiveDay === 350) ? 500 : emotoPaygRatePerActiveDay;
+  }
+  return emotoPaygRatePerActiveDay ?? 350;
+};
+
 // ── Zod Schemas ──────────────────────────────────────────────────
 
 const billingFleetSchema = z.array(
@@ -1211,7 +1220,7 @@ export default function HqBillingPage() {
               {activeFleetDetails.plan === 'PAYG' && (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-[11px] text-emerald-400 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
-                    <Sparkles size={13} /> Calculated via Active Days ({activeFleetDetails.emotoPaygRatePerActiveDay ?? (activeFleetDetails.type === 'DELIVERY' ? 500 : 350)} RWF/active day - {activeFleetDetails.type || 'COOP'})
+                    <Sparkles size={13} /> Calculated via Active Days ({getFleetDailyRate(activeFleetDetails.type, activeFleetDetails.emotoPaygRatePerActiveDay)} RWF/active day - {activeFleetDetails.type || 'COOP'})
                   </div>
                   <p className="text-[10px] text-zinc-400 leading-relaxed">
                     Billing is automatically computed from actual bike GPS movement recorded during the 30-day cycle ({activeFleetDetails.type === 'DELIVERY' ? '500 RWF for Delivery' : '350 RWF for Coop/Individual'}). Parked/idle days are 0 RWF.
@@ -1298,7 +1307,7 @@ export default function HqBillingPage() {
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Edit Active Daily Rate Per Bike (RWF)</p>
                 <span className="text-[10px] text-emerald-400 font-bold">
-                  {activeFleetDetails.type === 'DELIVERY' ? '500 RWF/day (Delivery)' : '350 RWF/day (Coop/Individual)'}
+                  {getFleetDailyRate(activeFleetDetails.type, activeFleetDetails.emotoPaygRatePerActiveDay)} RWF/day ({activeFleetDetails.type === 'DELIVERY' ? 'Delivery' : 'Coop/Individual'})
                 </span>
               </div>
               <p className="text-[10px] text-zinc-400">
@@ -1307,10 +1316,10 @@ export default function HqBillingPage() {
               <div className="flex gap-2">
                 <input
                   type="number"
-                  defaultValue={activeFleetDetails.emotoPaygRatePerActiveDay ?? (activeFleetDetails.type === 'DELIVERY' ? 500 : 350)}
+                  defaultValue={getFleetDailyRate(activeFleetDetails.type, activeFleetDetails.emotoPaygRatePerActiveDay)}
                   key={activeFleetDetails.id}
                   id={`rate-input-${activeFleetDetails.id}`}
-                  placeholder={`Daily rate e.g. ${activeFleetDetails.type === 'DELIVERY' ? '500' : '350'} RWF...`}
+                  placeholder={`Daily rate e.g. ${getFleetDailyRate(activeFleetDetails.type, activeFleetDetails.emotoPaygRatePerActiveDay)} RWF...`}
                   className="h-9 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
                 />
                 <button

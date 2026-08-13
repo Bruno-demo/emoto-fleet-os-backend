@@ -57,8 +57,10 @@ export class PaygAuditService {
       throw new NotFoundException('Fleet not found');
     }
 
-    const fallbackRate = fleet.type === 'DELIVERY' ? 500 : 350;
-    const paygRate = fleet.emotoPaygRatePerActiveDay ?? fallbackRate;
+    const paygRate =
+      fleet.type === 'DELIVERY' && (!fleet.emotoPaygRatePerActiveDay || fleet.emotoPaygRatePerActiveDay === 350)
+        ? 500
+        : (fleet.emotoPaygRatePerActiveDay ?? 350);
     const now = new Date();
 
     const start = startDate
