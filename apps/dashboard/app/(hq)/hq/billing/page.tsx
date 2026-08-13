@@ -19,7 +19,9 @@ import {
   Plus,
   Info,
   RefreshCw,
-  Edit2
+  Edit2,
+  FileText,
+  Printer
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
@@ -145,6 +147,29 @@ export default function HqBillingPage() {
   // Modals / Drawer Form States
   const [showCreateDiscount, setShowCreateDiscount] = useState(false);
   const [showRecordPayment, setShowRecordPayment] = useState<BillingCycle | null>(null);
+  const [breakdownCycleId, setBreakdownCycleId] = useState<string | null>(null);
+
+  const { data: cycleBreakdownData, isLoading: breakdownLoading } = useQuery({
+    queryKey: ['hq', 'cycle-breakdown', breakdownCycleId],
+    queryFn: () => apiFetch<{
+      cycle: BillingCycle;
+      audit: {
+        totalActiveBikeDays: number;
+        totalExemptBikeDays: number;
+        totalPaygSubtotalRwf: number;
+        perBikeSummary: Array<{
+          bikeId: string;
+          bikeLabel: string;
+          bikePlate: string | null;
+          activeDays: number;
+          paygChargesRwf: number;
+          totalDistanceKm: number;
+        }>;
+      };
+      notes: string;
+    }>(`/billing/cycles/${breakdownCycleId}/breakdown`),
+    enabled: !!breakdownCycleId,
+  });
 
   // Queries
   const { data: fleets, isLoading: fleetsLoading } = useQuery({
@@ -1168,39 +1193,60 @@ export default function HqBillingPage() {
                 </button>
               </div>
 
+              {activeFleetDetails.plan === 'PAYG' && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-[11px] text-emerald-400 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Sparkles size={13} /> Calculated via Active Days (350 RWF/active day)
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    Billing is automatically computed from actual bike GPS movement recorded during the 30-day cycle. Parked/idle days are 0 RWF.
+                  </p>
+                </div>
+              )}
+
               {cyclesLoading ? (
                 <p className="text-xs text-zinc-550">Loading invoices...</p>
               ) : fleetCycles?.data.length === 0 ? (
                 <p className="text-xs text-zinc-550">No invoices have been generated for this fleet.</p>
               ) : (
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                   {fleetCycles?.data.map((cycle) => (
-                    <div key={cycle.id} className="rounded-xl border border-line bg-background/50 p-3 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-bold text-white">Invoice #{cycle.cycleNumber}</p>
-                          <span className={cx(
-                            "text-[9px] font-bold px-1.5 py-0.2 rounded-full",
-                            cycle.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' : cycle.status === 'OVERDUE' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'
-                          )}>
-                            {cycle.status}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">
-                          {new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right flex items-center gap-3">
+                    <div key={cycle.id} className="rounded-xl border border-line bg-background/50 p-3 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
                         <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-white">Invoice #{cycle.cycleNumber}</p>
+                            <span className={cx(
+                              "text-[9px] font-bold px-1.5 py-0.2 rounded-full",
+                              cycle.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' : cycle.status === 'OVERDUE' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'
+                            )}>
+                              {cycle.status}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">
+                            {new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
                           <p className="font-bold text-white">{cycle.totalDue.toLocaleString()} RWF</p>
                           {cycle.totalPaid > 0 && <p className="text-[9px] text-emerald-400 font-semibold">Paid: {cycle.totalPaid.toLocaleString()}</p>}
                         </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-line/40">
+                        <button
+                          onClick={() => setBreakdownCycleId(cycle.id)}
+                          className="bg-white/10 hover:bg-white/20 px-2 py-1 rounded font-bold text-[10px] text-white flex items-center gap-1 cursor-pointer transition-all"
+                          title="View active-days breakdown & PDF statement"
+                        >
+                          <FileText size={10} /> Active-Days PDF Statement
+                        </button>
                         {cycle.status !== 'PAID' && cycle.status !== 'VOID' && (cycle.totalDue - cycle.totalPaid) > 0 && (
                           <button
                             onClick={() => setShowRecordPayment(cycle)}
-                            className="bg-accent px-2 py-1 rounded font-bold text-[10px] text-white"
+                            className="bg-accent px-2 py-1 rounded font-bold text-[10px] text-white cursor-pointer"
                           >
-                            Pay
+                            Pay Invoice
                           </button>
                         )}
                       </div>
@@ -1257,9 +1303,12 @@ export default function HqBillingPage() {
                 {activeFleetDetails.plan !== 'INSURANCE' && (
                   <button
                     onClick={() => toggleInstallationPaidMutation.mutate(activeFleetDetails.id)}
-                    className="w-full py-2.5 bg-white/5 border border-line text-zinc-400 hover:text-white font-bold text-xs rounded-xl"
+                    className="w-full py-2.5 bg-white/5 border border-line text-zinc-400 hover:text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2"
                   >
-                    {activeFleetDetails.installationPaid ? 'Mark Setup Fee Unpaid' : 'Mark Setup Fee Paid'}
+                    <Check size={14} className={activeFleetDetails.installationPaid ? "text-emerald-400" : "text-zinc-500"} />
+                    {activeFleetDetails.installationPaid
+                      ? 'Setup Fee Paid (0 RWF Free Setup)'
+                      : 'Mark Setup Fee Paid (0 RWF Hardware Setup)'}
                   </button>
                 )}
 
@@ -1356,6 +1405,113 @@ export default function HqBillingPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* INVOICE PDF & ACTIVE-DAYS BREAKDOWN MODAL */}
+      {breakdownCycleId && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md grid place-items-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-surface-strong border border-line rounded-3xl p-6 space-y-6 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-line pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center text-white">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Invoice Active-Days Breakdown Statement</h3>
+                  <p className="text-xs text-zinc-400">e-Moto Fleet OS · Official Payment & Usage Statement</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 rounded-xl border border-line bg-white/10 text-xs font-bold text-white hover:bg-white/20 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer size={13} /> Print / Save PDF
+                </button>
+                <button onClick={() => setBreakdownCycleId(null)} className="p-1.5 text-zinc-400 hover:text-white cursor-pointer">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {breakdownLoading ? (
+              <p className="text-xs text-zinc-400 py-8 text-center">Loading active-day invoice breakdown...</p>
+            ) : cycleBreakdownData ? (
+              <div className="space-y-5 text-xs">
+                {/* Notice Banner */}
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-1">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <Sparkles size={16} /> Calculated via Active Days (350 RWF/active day)
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Billing is calculated strictly from actual bike GPS movement recorded during the 30-day cycle. Parked/idle days are 0 RWF.
+                  </p>
+                </div>
+
+                {/* Summary Metrics */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-line bg-background p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Billing Period</p>
+                    <p className="font-extrabold text-white mt-1">
+                      {new Date(cycleBreakdownData.cycle.periodStart).toLocaleDateString()} - {new Date(cycleBreakdownData.cycle.periodEnd).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-line bg-background p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Active Bike-Days</p>
+                    <p className="font-extrabold text-emerald-400 text-base mt-1">
+                      {cycleBreakdownData.audit.totalActiveBikeDays} days
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-line bg-background p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Invoice Due</p>
+                    <p className="font-extrabold text-white text-base mt-1">
+                      {cycleBreakdownData.cycle.totalDue.toLocaleString()} RWF
+                    </p>
+                  </div>
+                </div>
+
+                {/* Per-Bike Breakdown Table */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Per-Bike Active Days Audit Table</p>
+                  <div className="overflow-x-auto rounded-xl border border-line">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-white/5 text-zinc-400 font-bold border-b border-line">
+                          <th className="py-2.5 px-3">Bike Label</th>
+                          <th className="py-2.5 px-3">Plate</th>
+                          <th className="py-2.5 px-3">Active Days</th>
+                          <th className="py-2.5 px-3">Distance (km)</th>
+                          <th className="py-2.5 px-3 text-right">Subtotal (350 RWF/day)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line text-zinc-300">
+                        {cycleBreakdownData.audit.perBikeSummary.map((bike) => (
+                          <tr key={bike.bikeId} className="hover:bg-white/[0.02]">
+                            <td className="py-2 px-3 font-bold text-white">{bike.bikeLabel}</td>
+                            <td className="py-2 px-3 text-zinc-400">{bike.bikePlate || 'Unregistered'}</td>
+                            <td className="py-2 px-3">
+                              <span className="font-bold text-emerald-400">{bike.activeDays} days</span>
+                            </td>
+                            <td className="py-2 px-3 text-zinc-400">{bike.totalDistanceKm.toFixed(1)} km</td>
+                            <td className="py-2 px-3 text-right font-bold text-white">
+                              {bike.paygChargesRwf.toLocaleString()} RWF
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {cycleBreakdownData.notes && (
+                  <p className="text-[11px] text-zinc-400 italic border-t border-line/50 pt-2">
+                    Statement Note: {cycleBreakdownData.notes}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       )}

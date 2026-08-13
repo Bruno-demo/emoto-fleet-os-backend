@@ -181,8 +181,13 @@ export class BillingCycleService {
     const bikeCount = fleet.bikes.length;
     let subtotal = 0;
     let effectiveRatePerBike = ratePerBike;
+    let cycleNotes = '';
 
-    if (fleet.billingMode === FleetBillingMode.PAYG_TRIP_VALIDATED) {
+    const isPayg =
+      fleet.plan === 'PAYG' ||
+      fleet.billingMode === FleetBillingMode.PAYG_TRIP_VALIDATED;
+
+    if (isPayg) {
       const audit = await this.paygAuditService.getPaygAuditForFleet(
         fleetId,
         periodStart.toISOString(),
@@ -190,8 +195,10 @@ export class BillingCycleService {
       );
       subtotal = audit.totalPaygSubtotalRwf;
       effectiveRatePerBike = fleet.emotoPaygRatePerActiveDay ?? 350;
+      cycleNotes = `Calculated via Active Days (350 RWF/active day) — ${audit.totalActiveBikeDays} active bike-day(s) recorded across ${bikeCount} bike(s).`;
     } else {
       subtotal = bikeCount * ratePerBike;
+      cycleNotes = `Standard rate per bike (${ratePerBike.toLocaleString()} RWF / month).`;
     }
 
     // Check if fleet has an active subscription plan for discount
@@ -230,6 +237,7 @@ export class BillingCycleService {
         totalPaid: 0,
         status: isTrial ? BillingCycleStatus.PAID : BillingCycleStatus.PENDING,
         isTrial,
+        notes: cycleNotes,
       },
     });
 
@@ -282,5 +290,20 @@ export class BillingCycleService {
       where: { id },
       data: { notes },
     });
+  }
+
+  async getCycleBreakdown(id: string) {
+    const cycle = await this.getCycle(id);
+    const audit = await this.paygAuditService.getPaygAuditForFleet(
+      cycle.fleetId,
+      cycle.periodStart.toISOString(),
+      cycle.periodEnd.toISOString(),
+    );
+
+    return {
+      cycle,
+      audit,
+      notes: cycle.notes || `Calculated via Active Days (350 RWF/active day)`,
+    };
   }
 }

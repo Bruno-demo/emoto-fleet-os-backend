@@ -238,6 +238,13 @@ export class BillingController {
     return await this.billingCycleService.getCycle(id);
   }
 
+  @Get('cycles/:id/breakdown')
+  @UseGuards(HqGuard)
+  @ApiOperation({ summary: 'HQ: Get full active-days breakdown for a billing cycle' })
+  async getCycleBreakdown(@Param('id') id: string) {
+    return await this.billingCycleService.getCycleBreakdown(id);
+  }
+
   @Post('cycles/:id/payments')
   @UseGuards(HqGuard)
   @ApiOperation({ summary: 'HQ: Record payment against a billing cycle' })
