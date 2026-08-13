@@ -103,16 +103,17 @@ export class HqController {
   @Put('fleets/:id/billing-rate')
   @ApiOperation({
     summary:
-      'Update custom monthly payment rate per bike for a fleet (HQ admin)',
+      'Update custom active daily rate per bike for a fleet (HQ admin)',
   })
   updateFleetBillingRate(
     @Param('id') id: string,
-    @Body() body: { monthlyRatePerBike: number },
+    @Body() body: { monthlyRatePerBike?: number; emotoPaygRatePerActiveDay?: number; rate?: number },
     @CurrentUser() user: AuthenticatedUser,
   ) {
+    const rateVal = body.emotoPaygRatePerActiveDay ?? body.monthlyRatePerBike ?? body.rate ?? 350;
     return this.hqService.updateFleetBillingRate(
       id,
-      body.monthlyRatePerBike,
+      rateVal,
       user,
     );
   }

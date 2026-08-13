@@ -2537,7 +2537,7 @@ export class HqService {
 
   async updateFleetBillingRate(
     fleetId: string,
-    monthlyRatePerBike: number,
+    rateInput: number,
     actor: AuthenticatedUser,
   ) {
     const fleet = await this.prisma.fleet.findUnique({
@@ -2545,14 +2545,20 @@ export class HqService {
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
 
-    if (typeof monthlyRatePerBike !== 'number' || monthlyRatePerBike < 0) {
-      throw new BadRequestException('Invalid monthly rate per bike');
+    if (typeof rateInput !== 'number' || rateInput < 0) {
+      throw new BadRequestException('Invalid rate per bike');
     }
+
+    const ratePerActiveDay = rateInput <= 1000 ? rateInput : Math.round(rateInput / 30);
+    const monthlyRate = rateInput > 1000 ? rateInput : rateInput * 30;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
-      data: { monthlyRatePerBike: Math.round(monthlyRatePerBike) },
-      select: { id: true, name: true, monthlyRatePerBike: true },
+      data: {
+        emotoPaygRatePerActiveDay: Math.round(ratePerActiveDay),
+        monthlyRatePerBike: Math.round(monthlyRate),
+      },
+      select: { id: true, name: true, monthlyRatePerBike: true, emotoPaygRatePerActiveDay: true },
     });
 
     await this.auditService.createAuditLog({
@@ -2562,8 +2568,10 @@ export class HqService {
       targetType: 'FLEET',
       targetId: fleetId,
       metaJson: {
-        oldRate: fleet.monthlyRatePerBike,
-        newRate: monthlyRatePerBike,
+        oldDailyRate: fleet.emotoPaygRatePerActiveDay,
+        newDailyRate: updated.emotoPaygRatePerActiveDay,
+        oldMonthlyRate: fleet.monthlyRatePerBike,
+        newMonthlyRate: updated.monthlyRatePerBike,
       },
     });
 

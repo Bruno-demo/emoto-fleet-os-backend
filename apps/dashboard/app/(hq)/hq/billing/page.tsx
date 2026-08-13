@@ -1256,16 +1256,22 @@ export default function HqBillingPage() {
               )}
             </div>
 
-            {/* Edit Monthly Rate Per Bike */}
+            {/* Edit Active Daily Rate Per Bike */}
             <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Edit Monthly Rate Per Bike (RWF)</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Edit Active Daily Rate Per Bike (RWF)</p>
+                <span className="text-[10px] text-emerald-400 font-bold">350 RWF/active day default</span>
+              </div>
+              <p className="text-[10px] text-zinc-400">
+                Active daily collection rate charged per bike on days with GPS movement. Parked/idle days are 0 RWF.
+              </p>
               <div className="flex gap-2">
                 <input
                   type="number"
-                  defaultValue={activeFleetDetails.monthlyRatePerBike ?? (activeFleetDetails.plan === 'ENTERPRISE' ? 15000 : activeFleetDetails.plan === 'INSURANCE' ? 0 : 10500)}
+                  defaultValue={activeFleetDetails.emotoPaygRatePerActiveDay ?? 350}
                   key={activeFleetDetails.id}
                   id={`rate-input-${activeFleetDetails.id}`}
-                  placeholder="Rate in RWF..."
+                  placeholder="Daily rate e.g. 350 RWF..."
                   className="h-9 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
                 />
                 <button
@@ -1281,7 +1287,7 @@ export default function HqBillingPage() {
                   disabled={updateBillingRateMutation.isPending}
                   className="shrink-0 h-9 px-4 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer"
                 >
-                  Save
+                  Save Active Rate
                 </button>
               </div>
             </div>
