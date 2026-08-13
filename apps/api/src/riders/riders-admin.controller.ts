@@ -191,13 +191,22 @@ export class RidersAdminController {
 
   @Patch('riders/:id/status')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
-  @ApiOperation({ summary: 'Update rider status (active, suspended, etc.)' })
+  @ApiOperation({ summary: 'Update rider status and configure payment plan' })
   async updateRiderStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { status: UserStatus },
+    @Body()
+    body: {
+      status: UserStatus;
+      leaseToOwn?: boolean;
+      leasePrincipal?: number;
+      leaseDailyRate?: number;
+      paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM';
+      assignedRate?: number;
+      customScheduleDays?: number;
+    },
   ): Promise<RiderSummary> {
-    return this.ridersService.updateRiderStatusForUser(user, id, body.status);
+    return this.ridersService.updateRiderStatusForUser(user, id, body);
   }
 
   @Get('riders/:id/score')

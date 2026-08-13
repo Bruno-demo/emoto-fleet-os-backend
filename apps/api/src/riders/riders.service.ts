@@ -612,18 +612,56 @@ export class RidersService {
     };
   }
 
-  // Updates status of one rider profile scope to caller fleet scope.
   async updateRiderStatusForUser(
     actor: AuthenticatedUser,
     riderId: string,
-    status: UserStatus,
+    payload:
+      | {
+          status: UserStatus;
+          leaseToOwn?: boolean;
+          leasePrincipal?: number;
+          leaseDailyRate?: number;
+          paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM';
+          assignedRate?: number;
+          customScheduleDays?: number;
+        }
+      | UserStatus,
   ): Promise<RiderSummary> {
+    const status = typeof payload === 'string' ? payload : payload.status;
     const rider = await this.loadRiderIdentityOrThrow(riderId, actor.fleetId);
 
     await this.prismaService.user.update({
       where: { id: riderId },
       data: { status },
     });
+
+    if (typeof payload === 'object') {
+      const profileData: any = {};
+      if (typeof payload.leaseToOwn === 'boolean')
+        profileData.leaseToOwn = payload.leaseToOwn;
+      if (payload.leasePrincipal !== undefined)
+        profileData.leasePrincipal = payload.leasePrincipal;
+      if (payload.leaseDailyRate !== undefined)
+        profileData.leaseDailyRate = payload.leaseDailyRate;
+      if (payload.paymentSchedule !== undefined)
+        profileData.paymentSchedule = payload.paymentSchedule;
+      if (payload.assignedRate !== undefined)
+        profileData.assignedRate = payload.assignedRate;
+      if (payload.customScheduleDays !== undefined)
+        profileData.customScheduleDays = payload.customScheduleDays;
+
+      if (Object.keys(profileData).length > 0) {
+        await this.prismaService.riderProfile.upsert({
+          where: { userId: riderId },
+          create: {
+            userId: riderId,
+            fleetId: actor.fleetId,
+            ...profileData,
+          },
+          update: profileData,
+        });
+      }
+    }
 
     await this.prismaService.auditLog.create({
       data: {
@@ -635,6 +673,7 @@ export class RidersService {
         metaJson: {
           oldStatus: rider.status,
           newStatus: status,
+          financialSettings: typeof payload === 'object' ? payload : undefined,
         },
       },
     });
