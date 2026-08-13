@@ -1,4 +1,10 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -220,9 +226,13 @@ export class MomoGatewayService {
       where: { id: fleetId },
       select: { momoPhoneNumber: true, name: true },
     });
-    const receivingTarget = fleet?.momoPhoneNumber
-      ? `Fleet MoMo ${fleet.momoPhoneNumber}`
-      : 'Fleet Default';
+
+    if (!fleet?.momoPhoneNumber) {
+      throw new BadRequestException(
+        `Fleet Admin for "${fleet?.name || 'this fleet'}" has not configured a MoMo receiving phone number in Fleet Settings. Payments must transfer directly to the Fleet Admin's MoMo wallet. Please configure your MoMo number in Settings.`,
+      );
+    }
+    const receivingTarget = `Fleet Admin MoMo (${fleet.momoPhoneNumber})`;
 
     let transaction = await this.prisma.momoTransaction.create({
       data: {
@@ -496,10 +506,28 @@ export class MomoGatewayService {
               partialReason,
               reference: financialTransactionId || transaction.referenceId,
               notes: isPartial
-                ? `Partial MoMo payment: ${partialReason}`
-                : `Auto-recorded MoMo collection payment (${transaction.payerPhone})`,
+                ? `Partial MoMo direct transfer: ${partialReason}`
+                : `Direct MoMo transfer from ${transaction.payerPhone} to Fleet Admin wallet. Recorded in eMoto ledger.`,
             },
           });
+
+          // Update rider profile lease-to-own principal if applicable
+          const profile = await prisma.riderProfile.findUnique({
+            where: { userId: transaction.riderId },
+          });
+          if (profile && profile.leaseToOwn && profile.leasePrincipal) {
+            const updatedPrincipal = Math.max(
+              0,
+              profile.leasePrincipal - transaction.amount,
+            );
+            await prisma.riderProfile.update({
+              where: { userId: transaction.riderId },
+              data: { leasePrincipal: updatedPrincipal },
+            });
+            this.logger.log(
+              `Updated lease-to-own principal for rider ${transaction.riderId}: ${profile.leasePrincipal} -> ${updatedPrincipal} RWF`,
+            );
+          }
 
           await prisma.auditLog.create({
             data: {
@@ -514,12 +542,13 @@ export class MomoGatewayService {
                 method: 'MOBILE_MONEY',
                 status: isPartial ? 'PARTIAL' : 'PAID',
                 reference: financialTransactionId || transaction.referenceId,
+                isDirectFleetTransfer: true,
               },
             },
           });
 
           this.logger.log(
-            `Auto-recorded RiderPayment of ${transaction.amount} RWF (isPartial: ${isPartial}) for rider ${transaction.riderId}`,
+            `Auto-recorded direct pass-through RiderPayment of ${transaction.amount} RWF for rider ${transaction.riderId}`,
           );
         }
       });
