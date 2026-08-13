@@ -8,6 +8,7 @@ import {
   Cpu,
   Gauge,
   Lock,
+  MapPin,
   Plus,
   Shield,
   ShieldAlert,
@@ -22,6 +23,7 @@ import {
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+import { useLocationName } from '@/lib/location-resolver';
 import { useRealtime } from '@/components/realtime/realtime-provider';
 import { Badge } from '@/components/ui/badge';
 import { canProvisionDevices, canViewAssignments } from '@/lib/auth/roles';
@@ -353,6 +355,11 @@ export default function BikesPage() {
     enabled: !!selectedBikeId && selectedBikeId !== 'null',
     refetchInterval: 5000,
   });
+
+  const activeBikeLocationName = useLocationName(
+    bikeLiveStateQuery.data?.lat,
+    bikeLiveStateQuery.data?.lng,
+  );
 
   const bikeCommandStatuses = useMemo(
     () =>
@@ -693,6 +700,19 @@ export default function BikesPage() {
               </div>
             )}
             <section className="grid gap-3 sm:grid-cols-2">
+              <KeyMetric
+                label={t('Current location')}
+                value={
+                  bikeLiveStateQuery.data ? (
+                    <span className="flex items-center gap-1.5 font-bold text-accent">
+                      <MapPin size={13} className="shrink-0 text-accent" />
+                      <span className="truncate">{activeBikeLocationName}</span>
+                    </span>
+                  ) : (
+                    t('No live state')
+                  )
+                }
+              />
               <KeyMetric label={t('Bike status')} value={<BikeStatusBadge status={activeBike.status} />} />
               <KeyMetric label={t('Bike type')} value={<span>{activeBike.type ?? '—'}</span>} />
               <KeyMetric

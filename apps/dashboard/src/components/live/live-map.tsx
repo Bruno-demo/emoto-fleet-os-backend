@@ -57,6 +57,7 @@ import {
   PaginatedResponse,
 } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, formatTimestamp } from '@/lib/ui';
+import { useLocationName } from '@/lib/location-resolver';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { Drawer } from '@/components/ui/drawer';
@@ -238,6 +239,7 @@ export function LiveMapPanel() {
 
   const selectedBike = selectedBikeId ? bikesById.get(selectedBikeId) ?? null : null;
   const selectedState = throttledStates.find((state) => state.bikeId === selectedBikeId) ?? null;
+  const selectedLocationName = useLocationName(selectedState?.lat, selectedState?.lng);
   const selectedAssignment = selectedBikeId ? assignmentByBikeId.get(selectedBikeId) ?? null : null;
   const selectedBikeEvents = selectedBikeEventsQuery.data?.data ?? [];
 
@@ -875,6 +877,19 @@ export function LiveMapPanel() {
           <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-2">
               <KeyMetric
+                label={t("Current location")}
+                value={
+                  selectedState ? (
+                    <span className="flex items-center gap-1.5 font-bold text-accent">
+                      <MapPin size={13} className="shrink-0 text-accent" />
+                      <span className="truncate">{selectedLocationName}</span>
+                    </span>
+                  ) : (
+                    t('No live state')
+                  )
+                }
+              />
+              <KeyMetric
                 label={t("Current speed")}
                 value={selectedState ? `${selectedState.speedKph.toFixed(1)} ${t('kph')}` : '--'}
               />
@@ -1363,7 +1378,7 @@ function RoadLegend({
   );
 }
 
-function KeyMetric({ label, value }: { label: string; value: string }) {
+function KeyMetric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-[18px] border border-line bg-surface-muted px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
