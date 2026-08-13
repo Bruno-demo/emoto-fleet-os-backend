@@ -90,20 +90,17 @@ const geocodeCache = new Map<string, string>();
  */
 export function useLocationName(lat?: number | null, lng?: number | null): string {
   const fastName = getFastLandmarkName(lat, lng);
-  const [resolvedName, setResolvedName] = useState<string>(fastName);
+  const cacheKey =
+    lat != null && lng != null && !isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)
+      ? `${lat.toFixed(3)}_${lng.toFixed(3)}`
+      : null;
+
+  const cachedName = cacheKey ? geocodeCache.get(cacheKey) ?? null : null;
+  const [geoName, setGeoName] = useState<string | null>(cachedName);
 
   useEffect(() => {
-    setResolvedName(fastName);
-
-    if (lat == null || lng == null || isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
-      return;
-    }
-
-    const cacheKey = `${lat.toFixed(3)}_${lng.toFixed(3)}`;
-    if (geocodeCache.has(cacheKey)) {
-      setResolvedName(geocodeCache.get(cacheKey)!);
-      return;
-    }
+    if (!cacheKey) return;
+    if (geocodeCache.has(cacheKey)) return;
 
     let isMounted = true;
     const fetchAddress = async () => {
@@ -137,9 +134,8 @@ export function useLocationName(lat?: number | null, lng?: number | null): strin
             const result = String(area);
             geocodeCache.set(cacheKey, result);
             if (isMounted) {
-              setResolvedName(result);
+              setGeoName(result);
             }
-            return;
           }
         }
       } catch {
@@ -152,7 +148,7 @@ export function useLocationName(lat?: number | null, lng?: number | null): strin
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [lat, lng, fastName]);
+  }, [cacheKey, lat, lng]);
 
-  return resolvedName;
+  return cachedName ?? geoName ?? fastName;
 }
