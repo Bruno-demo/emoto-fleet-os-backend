@@ -259,6 +259,17 @@ export default function HqBillingPage() {
     },
   });
 
+  const updateFleetTypeMutation = useMutation({
+    mutationFn: ({ fleetId, type }: { fleetId: string; type: 'COOP' | 'DELIVERY' | 'PERSONAL' }) =>
+      apiFetch(`/hq/fleets/${fleetId}/type`, {
+        method: 'PUT',
+        body: JSON.stringify({ type }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
+    },
+  });
+
 
 
   const grantTrialMutation = useMutation({
@@ -1258,6 +1269,28 @@ export default function HqBillingPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Fleet Operating Category Selection */}
+            <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Fleet Operating Category</p>
+                {updateFleetTypeMutation.isPending && <span className="text-[10px] text-accent font-bold animate-pulse">Updating...</span>}
+              </div>
+              <select
+                value={activeFleetDetails.type || 'COOP'}
+                onChange={(e) => {
+                  updateFleetTypeMutation.mutate({
+                    fleetId: activeFleetDetails.id,
+                    type: e.target.value as 'COOP' | 'DELIVERY' | 'PERSONAL',
+                  });
+                }}
+                className="h-9 w-full rounded-xl border border-line bg-background px-3 text-xs text-white cursor-pointer"
+              >
+                <option value="COOP">Cooperative Fleet (350 RWF / active day default)</option>
+                <option value="PERSONAL">Individual Fleet (350 RWF / active day default)</option>
+                <option value="DELIVERY">Delivery & Logistics Fleet (500 RWF / active day default)</option>
+              </select>
             </div>
 
             {/* Edit Active Daily Rate Per Bike */}

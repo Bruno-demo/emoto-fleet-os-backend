@@ -397,12 +397,13 @@ export class HqService {
       );
     }
 
+    const newDailyRate = type === 'DELIVERY' ? 500 : 350;
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
         type: type,
-        plan: FleetPlan.PAYG,
-        monthlyRatePerBike: 10000,
+        emotoPaygRatePerActiveDay: newDailyRate,
+        monthlyRatePerBike: newDailyRate * 30,
       },
       select: {
         id: true,
@@ -410,6 +411,7 @@ export class HqService {
         type: true,
         plan: true,
         monthlyRatePerBike: true,
+        emotoPaygRatePerActiveDay: true,
       },
     });
 
@@ -2451,6 +2453,7 @@ export class HqService {
       result.push({
         id: f.id,
         name: f.name,
+        type: f.type,
         plan: f.plan,
         subscriptionStatus: f.subscriptionStatus,
         installationPaid: f.installationPaid,
@@ -2459,6 +2462,7 @@ export class HqService {
         createdAt: f.createdAt,
         insurerName: f.insurerName,
         monthlyRatePerBike: f.monthlyRatePerBike,
+        emotoPaygRatePerActiveDay: f.emotoPaygRatePerActiveDay,
         trialStartedAt: f.trialStartedAt,
         trialEndsAt: f.trialEndsAt,
         _count: {
