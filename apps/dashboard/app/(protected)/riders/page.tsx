@@ -931,24 +931,32 @@ export default function RidersPage() {
                     {t("Payment Schedule")}
                     <select
                       value={newPaymentSchedule}
-                      onChange={(e) => setNewPaymentSchedule(e.target.value as 'DAILY' | 'WEEKLY' | 'CUSTOM')}
+                      onChange={(e) => {
+                        const sched = e.target.value as 'DAILY' | 'WEEKLY' | 'CUSTOM';
+                        setNewPaymentSchedule(sched);
+                        if (sched === 'DAILY') {
+                          setNewAssignedRate(leaseDailyRate);
+                        }
+                      }}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     >
                       <option value="DAILY">{t("Daily")}</option>
-                      <option value="WEEKLY">{t("Weekly")}</option>
+                      <option value="WEEKLY">{t("Weekly (Every 7 Days)")}</option>
                       <option value="CUSTOM">{t("Custom Days")}</option>
                     </select>
                   </label>
-                  <label className="block text-sm font-medium text-ink">
-                    {t("Assigned Rate (RWF)")}
-                    <input
-                      type="number"
-                      value={newAssignedRate}
-                      onChange={(e) => setNewAssignedRate(e.target.value)}
-                      placeholder="15000"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                    />
-                  </label>
+                  {newPaymentSchedule !== 'DAILY' && (
+                    <label className="block text-sm font-medium text-ink">
+                      {t("Assigned Daily Rate (RWF)")}
+                      <input
+                        type="number"
+                        value={newAssignedRate}
+                        onChange={(e) => setNewAssignedRate(e.target.value)}
+                        placeholder={leaseDailyRate || "15000"}
+                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      />
+                    </label>
+                  )}
                   {newPaymentSchedule === 'CUSTOM' && (
                     <label className="block text-sm font-medium text-ink">
                       {t("Custom Schedule Days")}
@@ -956,10 +964,21 @@ export default function RidersPage() {
                         type="number"
                         value={newCustomScheduleDays}
                         onChange={(e) => setNewCustomScheduleDays(e.target.value)}
-                        placeholder="7"
+                        placeholder="3"
                         className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                       />
                     </label>
+                  )}
+                  {newPaymentSchedule !== 'DAILY' && (
+                    <div className="sm:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-semibold flex items-center justify-between">
+                      <span>{t("Scheduled Collection Prompt Batch")}:</span>
+                      <span className="font-extrabold text-white">
+                        {(
+                          Number(newAssignedRate || leaseDailyRate || 15000) *
+                          (newPaymentSchedule === 'WEEKLY' ? 7 : Number(newCustomScheduleDays || 1))
+                        ).toLocaleString()} RWF {t("every")} {newPaymentSchedule === 'WEEKLY' ? '7' : (newCustomScheduleDays || '1')} {t("days")}
+                      </span>
+                    </div>
                   )}
                 </div>
 
@@ -1444,24 +1463,32 @@ export default function RidersPage() {
                     {t("Payment Schedule")}
                     <select
                       value={editPaymentSchedule}
-                      onChange={(e) => setEditPaymentSchedule(e.target.value as 'DAILY' | 'WEEKLY' | 'CUSTOM')}
+                      onChange={(e) => {
+                        const sched = e.target.value as 'DAILY' | 'WEEKLY' | 'CUSTOM';
+                        setEditPaymentSchedule(sched);
+                        if (sched === 'DAILY') {
+                          setEditAssignedRate(editLeaseDailyRate);
+                        }
+                      }}
                       className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                     >
                       <option value="DAILY">{t("Daily")}</option>
-                      <option value="WEEKLY">{t("Weekly")}</option>
+                      <option value="WEEKLY">{t("Weekly (Every 7 Days)")}</option>
                       <option value="CUSTOM">{t("Custom Days")}</option>
                     </select>
                   </label>
-                  <label className="block text-sm font-medium text-ink">
-                    {t("Assigned Rate (RWF)")}
-                    <input
-                      type="number"
-                      value={editAssignedRate}
-                      onChange={(e) => setEditAssignedRate(e.target.value)}
-                      placeholder="15000"
-                      className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                    />
-                  </label>
+                  {editPaymentSchedule !== 'DAILY' && (
+                    <label className="block text-sm font-medium text-ink">
+                      {t("Assigned Daily Rate (RWF)")}
+                      <input
+                        type="number"
+                        value={editAssignedRate}
+                        onChange={(e) => setEditAssignedRate(e.target.value)}
+                        placeholder={editLeaseDailyRate || "15000"}
+                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                      />
+                    </label>
+                  )}
                   {editPaymentSchedule === 'CUSTOM' && (
                     <label className="block text-sm font-medium text-ink">
                       {t("Custom Schedule Days")}
@@ -1469,10 +1496,21 @@ export default function RidersPage() {
                         type="number"
                         value={editCustomScheduleDays}
                         onChange={(e) => setEditCustomScheduleDays(e.target.value)}
-                        placeholder="7"
+                        placeholder="3"
                         className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
                       />
                     </label>
+                  )}
+                  {editPaymentSchedule !== 'DAILY' && (
+                    <div className="sm:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-semibold flex items-center justify-between">
+                      <span>{t("Scheduled Collection Prompt Batch")}:</span>
+                      <span className="font-extrabold text-white">
+                        {(
+                          Number(editAssignedRate || editLeaseDailyRate || 15000) *
+                          (editPaymentSchedule === 'WEEKLY' ? 7 : Number(editCustomScheduleDays || 1))
+                        ).toLocaleString()} RWF {t("every")} {editPaymentSchedule === 'WEEKLY' ? '7' : (editCustomScheduleDays || '1')} {t("days")}
+                      </span>
+                    </div>
                   )}
                 </div>
 
