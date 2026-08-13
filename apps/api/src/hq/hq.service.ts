@@ -2420,6 +2420,7 @@ export class HqService {
       select: {
         id: true,
         name: true,
+        type: true,
         plan: true,
         subscriptionStatus: true,
         installationPaid: true,
@@ -2428,6 +2429,7 @@ export class HqService {
         createdAt: true,
         insurerName: true,
         monthlyRatePerBike: true,
+        emotoPaygRatePerActiveDay: true,
         trialStartedAt: true,
         trialEndsAt: true,
         momoPhoneNumber: true,

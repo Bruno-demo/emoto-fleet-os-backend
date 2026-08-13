@@ -36,6 +36,7 @@ const billingFleetSchema = z.array(
   z.object({
     id: z.string(),
     name: z.string(),
+    type: z.string().nullable().optional(),
     plan: z.string(),
     subscriptionStatus: z.string(),
     installationPaid: z.boolean(),
@@ -1196,10 +1197,10 @@ export default function HqBillingPage() {
               {activeFleetDetails.plan === 'PAYG' && (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-[11px] text-emerald-400 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
-                    <Sparkles size={13} /> Calculated via Active Days (350 RWF/active day)
+                    <Sparkles size={13} /> Calculated via Active Days ({activeFleetDetails.emotoPaygRatePerActiveDay ?? (activeFleetDetails.type === 'DELIVERY' ? 500 : 350)} RWF/active day - {activeFleetDetails.type || 'COOP'})
                   </div>
                   <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    Billing is automatically computed from actual bike GPS movement recorded during the 30-day cycle. Parked/idle days are 0 RWF.
+                    Billing is automatically computed from actual bike GPS movement recorded during the 30-day cycle ({activeFleetDetails.type === 'DELIVERY' ? '500 RWF for Delivery' : '350 RWF for Coop/Individual'}). Parked/idle days are 0 RWF.
                   </p>
                 </div>
               )}
@@ -1260,7 +1261,9 @@ export default function HqBillingPage() {
             <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Edit Active Daily Rate Per Bike (RWF)</p>
-                <span className="text-[10px] text-emerald-400 font-bold">350 RWF/active day default</span>
+                <span className="text-[10px] text-emerald-400 font-bold">
+                  {activeFleetDetails.type === 'DELIVERY' ? '500 RWF/day (Delivery)' : '350 RWF/day (Coop/Individual)'}
+                </span>
               </div>
               <p className="text-[10px] text-zinc-400">
                 Active daily collection rate charged per bike on days with GPS movement. Parked/idle days are 0 RWF.
@@ -1268,10 +1271,10 @@ export default function HqBillingPage() {
               <div className="flex gap-2">
                 <input
                   type="number"
-                  defaultValue={activeFleetDetails.emotoPaygRatePerActiveDay ?? 350}
+                  defaultValue={activeFleetDetails.emotoPaygRatePerActiveDay ?? (activeFleetDetails.type === 'DELIVERY' ? 500 : 350)}
                   key={activeFleetDetails.id}
                   id={`rate-input-${activeFleetDetails.id}`}
-                  placeholder="Daily rate e.g. 350 RWF..."
+                  placeholder={`Daily rate e.g. ${activeFleetDetails.type === 'DELIVERY' ? '500' : '350'} RWF...`}
                   className="h-9 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
                 />
                 <button
@@ -1449,7 +1452,7 @@ export default function HqBillingPage() {
                 {/* Notice Banner */}
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-1">
                   <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                    <Sparkles size={16} /> Calculated via Active Days (350 RWF/active day)
+                    <Sparkles size={16} /> Calculated via Active Days ({cycleBreakdownData.cycle.ratePerBike} RWF/active day)
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
                     Billing is calculated strictly from actual bike GPS movement recorded during the 30-day cycle. Parked/idle days are 0 RWF.
@@ -1489,7 +1492,7 @@ export default function HqBillingPage() {
                           <th className="py-2.5 px-3">Plate</th>
                           <th className="py-2.5 px-3">Active Days</th>
                           <th className="py-2.5 px-3">Distance (km)</th>
-                          <th className="py-2.5 px-3 text-right">Subtotal (350 RWF/day)</th>
+                          <th className="py-2.5 px-3 text-right">Subtotal ({cycleBreakdownData.cycle.ratePerBike} RWF/day)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line text-zinc-300">
