@@ -307,6 +307,10 @@ export class SmsService {
       this.logger.error(
         `Failed to dispatch SMS via generic webhook to ${to}: ${errorMsg}`,
       );
+      return { success: false, provider: 'generic', error: errorMsg };
+    }
+  }
+
   /**
    * BulkSend Rwanda (bulksend.rw) SMS Gateway Integration.
    */
