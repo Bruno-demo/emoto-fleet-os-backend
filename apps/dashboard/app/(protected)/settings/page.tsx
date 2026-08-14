@@ -119,10 +119,19 @@ export default function SettingsPage() {
   const [salesFormSubmitted, setSalesFormSubmitted] = useState(false);
   const [salesSending, setSalesSending] = useState(false);
 
-  // Fleet MoMo Receiving Phone Settings
+  // Fleet MoMo & Bank Receiving Settings
   const fleetSettingsQuery = useQuery({
     queryKey: ['fleet-settings'],
-    queryFn: () => apiFetch<{ id: string; name: string; momoPhoneNumber?: string | null; emotoPaygRatePerActiveDay?: number | null }>('/subscription/fleet-settings'),
+    queryFn: () =>
+      apiFetch<{
+        id: string;
+        name: string;
+        momoPhoneNumber?: string | null;
+        bankName?: string | null;
+        bankAccountNumber?: string | null;
+        bankAccountName?: string | null;
+        emotoPaygRatePerActiveDay?: number | null;
+      }>('/subscription/fleet-settings'),
     enabled: !!user,
   });
 
@@ -130,7 +139,15 @@ export default function SettingsPage() {
   const coreMonthlyRate = paygDailyRate; // kept for backward compat references
 
   const [phoneOverride, setPhoneOverride] = useState<string | null>(null);
+  const [bankNameOverride, setBankNameOverride] = useState<string | null>(null);
+  const [bankAccNumOverride, setBankAccNumOverride] = useState<string | null>(null);
+  const [bankAccNameOverride, setBankAccNameOverride] = useState<string | null>(null);
+
   const receivingPhoneInput = phoneOverride ?? fleetSettingsQuery.data?.momoPhoneNumber ?? '';
+  const bankNameInput = bankNameOverride ?? fleetSettingsQuery.data?.bankName ?? '';
+  const bankAccNumInput = bankAccNumOverride ?? fleetSettingsQuery.data?.bankAccountNumber ?? '';
+  const bankAccNameInput = bankAccNameOverride ?? fleetSettingsQuery.data?.bankAccountName ?? '';
+
   const [savingReceivingPhone, setSavingReceivingPhone] = useState(false);
   const [receivingPhoneSuccess, setReceivingPhoneSuccess] = useState<string | null>(null);
   const [receivingPhoneError, setReceivingPhoneError] = useState<string | null>(null);
@@ -143,13 +160,21 @@ export default function SettingsPage() {
     try {
       await apiFetch('/subscription/fleet-settings', {
         method: 'PUT',
-        body: JSON.stringify({ momoPhoneNumber: receivingPhoneInput }),
+        body: JSON.stringify({
+          momoPhoneNumber: receivingPhoneInput,
+          bankName: bankNameInput,
+          bankAccountNumber: bankAccNumInput,
+          bankAccountName: bankAccNameInput,
+        }),
       });
       await fleetSettingsQuery.refetch();
       setPhoneOverride(null);
-      setReceivingPhoneSuccess(t('Mobile Money receiving account updated successfully!'));
+      setBankNameOverride(null);
+      setBankAccNumOverride(null);
+      setBankAccNameOverride(null);
+      setReceivingPhoneSuccess(t('Payment receiving account settings updated successfully!'));
     } catch (err: unknown) {
-      setReceivingPhoneError(err instanceof Error ? err.message : t('Failed to update Mobile Money receiving account'));
+      setReceivingPhoneError(err instanceof Error ? err.message : t('Failed to update receiving account settings'));
     } finally {
       setSavingReceivingPhone(false);
     }
@@ -468,11 +493,11 @@ export default function SettingsPage() {
             </div>
           </DashboardCard>
 
-          {/* MoMo Collection Receiving Target Card */}
+          {/* MoMo & Bank Collection Receiving Target Card */}
           <DashboardCard
             eyebrow={t("Collection Target")}
-            title={t("Mobile Money Receiving Account")}
-            description={t("Set the MTN MoMo phone number where all rider lease payments and daily collections are received.")}
+            title={t("Payment Receiving Account (MoMo & Bank)")}
+            description={t("Set the Mobile Money phone number (MTN or Airtel/Tigo) or Bank Account where all rider lease payments and daily collections are received.")}
           >
             <form onSubmit={handleSaveReceivingPhone} className="space-y-4 max-w-lg">
               {receivingPhoneSuccess && (
@@ -488,20 +513,58 @@ export default function SettingsPage() {
                 </div>
               )}
 
+              {/* Mobile Money Receiving Number */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-ink-muted flex items-center justify-between">
-                  <span>{t("Fleet Receiving Phone Number")}</span>
-                  <span className="text-[10px] text-ink-faint">{t("e.g. 0788123456")}</span>
+                  <span>{t("Mobile Money Receiving Number (MTN / Airtel)")}</span>
+                  <span className="text-[10px] text-ink-faint">{t("MTN (078/079) or Airtel (073/072)")}</span>
                 </label>
                 <div className="relative">
                   <input
                     type="tel"
                     value={receivingPhoneInput}
                     onChange={(e) => setPhoneOverride(e.target.value)}
-                    placeholder="078XXXXXXX"
+                    placeholder="078XXXXXXX or 073XXXXXXX"
                     className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all font-mono"
                   />
                   <CreditCard size={18} className="absolute right-3.5 top-3.5 text-ink-faint" />
+                </div>
+              </div>
+
+              {/* Bank Account Settings */}
+              <div className="pt-2 border-t border-line/60 space-y-3">
+                <p className="text-xs font-bold text-ink uppercase tracking-wider">{t("Bank Account Settlement (Optional)")}</p>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-ink-muted">{t("Bank Name")}</label>
+                  <input
+                    type="text"
+                    value={bankNameInput}
+                    onChange={(e) => setBankNameOverride(e.target.value)}
+                    placeholder={t("e.g. Bank of Kigali, I&M Bank, Equity Bank")}
+                    className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-muted">{t("Bank Account Number")}</label>
+                    <input
+                      type="text"
+                      value={bankAccNumInput}
+                      onChange={(e) => setBankAccNumOverride(e.target.value)}
+                      placeholder="0004003202014"
+                      className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-muted">{t("Account Name")}</label>
+                    <input
+                      type="text"
+                      value={bankAccNameInput}
+                      onChange={(e) => setBankAccNameOverride(e.target.value)}
+                      placeholder={t("Registered Business Name")}
+                      className="w-full rounded-xl border border-line bg-surface p-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -511,7 +574,7 @@ export default function SettingsPage() {
                 className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-all shadow-sm"
               >
                 <Check size={16} />
-                <span>{savingReceivingPhone ? t("Saving...") : t("Save Receiving Account")}</span>
+                <span>{savingReceivingPhone ? t("Saving...") : t("Save Receiving Accounts")}</span>
               </button>
             </form>
           </DashboardCard>

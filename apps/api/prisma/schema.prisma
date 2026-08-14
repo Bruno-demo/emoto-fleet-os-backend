@@ -305,6 +305,9 @@ model Fleet {
   trafficFines      TrafficFine[]
   batterySwaps      BatterySwap[]
   momoPhoneNumber          String?
+  bankName                 String?
+  bankAccountNumber        String?
+  bankAccountName          String?
   autoPayEnabled           Boolean              @default(false)
   emotoPaygRatePerActiveDay Int                 @default(350)
   billingMode              FleetBillingMode     @default(PAYG_TRIP_VALIDATED)

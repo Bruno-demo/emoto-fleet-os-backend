@@ -80,6 +80,9 @@ export class SubscriptionService {
         type: true,
         plan: true,
         momoPhoneNumber: true,
+        bankName: true,
+        bankAccountNumber: true,
+        bankAccountName: true,
         monthlyRatePerBike: true,
         emotoPaygRatePerActiveDay: true,
         subscriptionStatus: true,
@@ -95,12 +98,31 @@ export class SubscriptionService {
 
   async updateFleetSettings(
     user: AuthenticatedUser,
-    dto: { momoPhoneNumber?: string },
+    dto: {
+      momoPhoneNumber?: string;
+      bankName?: string;
+      bankAccountNumber?: string;
+      bankAccountName?: string;
+    },
   ) {
-    const updateData: { momoPhoneNumber?: string } = {};
+    const updateData: {
+      momoPhoneNumber?: string;
+      bankName?: string;
+      bankAccountNumber?: string;
+      bankAccountName?: string;
+    } = {};
 
     if (dto.momoPhoneNumber !== undefined) {
       updateData.momoPhoneNumber = dto.momoPhoneNumber.trim();
+    }
+    if (dto.bankName !== undefined) {
+      updateData.bankName = dto.bankName.trim();
+    }
+    if (dto.bankAccountNumber !== undefined) {
+      updateData.bankAccountNumber = dto.bankAccountNumber.trim();
+    }
+    if (dto.bankAccountName !== undefined) {
+      updateData.bankAccountName = dto.bankAccountName.trim();
     }
 
     const updated = await this.prismaService.fleet.update({
@@ -110,6 +132,9 @@ export class SubscriptionService {
         id: true,
         name: true,
         momoPhoneNumber: true,
+        bankName: true,
+        bankAccountNumber: true,
+        bankAccountName: true,
         plan: true,
         monthlyRatePerBike: true,
       },
