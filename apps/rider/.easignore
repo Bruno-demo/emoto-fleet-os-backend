@@ -1,0 +1,17 @@
+# EAS Ignore configuration to prevent uploading node_modules & build artifacts
+node_modules/
+.expo/
+dist/
+build/
+.next/
+*.log
+*.tmp
+*.tar.gz
+
+# Monorepo sibling directories
+../../node_modules/
+../../dist/
+../../apps/api/
+../../apps/dashboard/
+../../apps/gateway/
+../../apps/stream-processor/
