@@ -8,6 +8,8 @@
     "android": "expo start --android --port 8082",
     "ios": "expo start --ios --port 8082",
     "web": "expo start --web --port 8082",
+    "build:android": "eas build --platform android --profile production",
+    "build:apk": "eas build --platform android --profile preview",
     "lint": "tsc --noEmit",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
