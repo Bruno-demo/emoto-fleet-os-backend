@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './screen-container';
+import { useLanguage } from '../lib/i18n/language-context';
 import { theme } from '../theme/tokens';
 
 interface AuthShellProps {
@@ -10,15 +11,59 @@ interface AuthShellProps {
   children: ReactNode;
 }
 
-// Wraps unauthenticated screens in a consistent rider auth layout.
+// Wraps unauthenticated screens in a consistent rider auth layout with an interactive language picker.
 export function AuthShell({
   eyebrow,
   title,
   description,
   children,
 }: AuthShellProps) {
+  const { locale, setLocale } = useLanguage();
+
   return (
     <ScreenContainer>
+      {/* Top Header with Language Selector */}
+      <View style={styles.topBar}>
+        <View style={styles.langPickerContainer}>
+          <Pressable
+            style={[
+              styles.langOption,
+              locale === 'en' && styles.langOptionActive,
+            ]}
+            onPress={() => void setLocale('en')}
+            accessibilityRole="button"
+            accessibilityLabel="Switch to English"
+          >
+            <Text
+              style={[
+                styles.langOptionText,
+                locale === 'en' && styles.langOptionTextActive,
+              ]}
+            >
+              🇬🇧 English
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.langOption,
+              locale === 'rw' && styles.langOptionActive,
+            ]}
+            onPress={() => void setLocale('rw')}
+            accessibilityRole="button"
+            accessibilityLabel="Guhindura mu Kinyarwanda"
+          >
+            <Text
+              style={[
+                styles.langOptionText,
+                locale === 'rw' && styles.langOptionTextActive,
+              ]}
+            >
+              🇷🇼 Kinyarwanda
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.title}>{title}</Text>
@@ -30,6 +75,37 @@ export function AuthShell({
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing.xs,
+  },
+  langPickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceRaised,
+    borderRadius: theme.radius.full,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  langOption: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.full,
+  },
+  langOptionActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  langOptionText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  langOptionTextActive: {
+    color: '#000000',
+    fontWeight: '800',
+  },
   hero: {
     borderWidth: 1,
     borderColor: theme.colors.primaryBorder,
