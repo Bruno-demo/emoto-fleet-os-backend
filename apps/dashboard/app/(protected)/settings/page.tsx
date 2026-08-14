@@ -850,11 +850,11 @@ export default function SettingsPage() {
             </div>
           </DashboardCard>
 
-          {/* MoMo Auto-Pay Setup Card */}
+          {/* MoMo & Bank Auto-Pay Setup Card */}
           <DashboardCard
-            eyebrow={t("MTN Mobile Money")}
-            title={t("MoMo Auto-Pay Setup")}
-            description={t("Configure automatic MoMo payment prompts for your PAYG invoices. You will receive a USSD push 2 days before each invoice due date.")}
+            eyebrow={t("Mobile Money & Bank Settlement")}
+            title={t("Auto-Pay Setup (MoMo & Bank)")}
+            description={t("Configure automatic payment prompts for your PAYG invoices. Supports MTN Rwanda (078/079), Airtel/Tigo Money (073/072), or Bank Account settlement.")}
           >
             <div className="space-y-6">
               {/* Active Auto-Pay Status */}
@@ -863,7 +863,7 @@ export default function SettingsPage() {
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-success-ink uppercase tracking-wider flex items-center gap-2">
                       <CheckCircle2 size={16} />
-                      {t("MoMo Auto-Pay Active")}
+                      {t("Auto-Pay Active")}
                     </p>
                     <p className="text-xs text-ink-muted leading-relaxed">
                       {t("Auto-Renew:")} <strong className="text-ink">{currentSubscription.subscription.autoRenew ? t("Enabled") : t("Disabled")}</strong>
@@ -897,7 +897,7 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-line bg-surface-muted p-4 text-xs text-ink-muted">
-                  {t("No auto-pay configured. Set up MoMo auto-pay below to automatically pay PAYG invoices.")}
+                  {t("No auto-pay configured. Set up MoMo or Bank auto-pay below to automatically pay PAYG invoices.")}
                 </div>
               )}
 
@@ -915,8 +915,8 @@ export default function SettingsPage() {
                 </div>
                 <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Payment Method")}</p>
-                  <p className="text-sm font-extrabold text-ink">{t("MTN MoMo")}</p>
-                  <p className="text-[10px] text-ink-faint">{t("Automatic USSD push prompt")}</p>
+                  <p className="text-sm font-extrabold text-ink">{t("MTN / Airtel / Bank")}</p>
+                  <p className="text-[10px] text-ink-faint">{t("Automatic USSD push / Bank Transfer")}</p>
                 </div>
               </div>
 
@@ -926,10 +926,10 @@ export default function SettingsPage() {
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-ink flex items-center gap-2">
                       <CreditCard size={16} className="text-accent" />
-                      {t("MTN Mobile Money Auto-Pay")}
+                      {t("Mobile Money (MTN or Airtel) Auto-Pay")}
                     </p>
                     <p className="text-xs text-ink-muted leading-relaxed">
-                      {t("Enter your MTN Rwanda MoMo number. A payment prompt will be sent automatically 2 days before each PAYG invoice due date.")}
+                      {t("Enter your MTN (078/079) or Airtel (073/072) MoMo number. A payment prompt will be sent automatically 2 days before each PAYG invoice due date.")}
                     </p>
                   </div>
                 </div>
@@ -937,7 +937,7 @@ export default function SettingsPage() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <input
                     type="tel"
-                    placeholder="0781234567"
+                    placeholder="078XXXXXXX or 073XXXXXXX"
                     value={momoPhoneInput}
                     onChange={(e) => setMomoPhoneInput(e.target.value)}
                     className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-mono text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
@@ -1682,7 +1682,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className="text-base font-extrabold text-ink flex items-center gap-2">
                   <Banknote className="text-accent" size={18} />
-                  {t("Pay Invoice with MTN MoMo")}
+                  {t("Pay Invoice via Mobile Money")}
                 </h2>
                 <p className="text-xs text-ink-muted">{t("Invoice #{num}").replace('{num}', String(payNowCycle.cycleNumber))}</p>
               </div>
@@ -1704,16 +1704,16 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-ink">{t("MTN MoMo Phone Number")}</label>
+                <label className="text-xs font-bold text-ink">{t("Mobile Money Phone Number (MTN or Airtel)")}</label>
                 <input
                   type="tel"
-                  placeholder="0781234567"
+                  placeholder="078XXXXXXX or 073XXXXXXX"
                   value={payNowPhone}
                   onChange={(e) => setPayNowPhone(e.target.value)}
                   className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-mono text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <p className="text-[10px] text-ink-muted">
-                  {t("A USSD push prompt will be sent directly to this phone number.")}
+                  {t("A USSD push prompt will be sent directly to your phone (MTN 078/079 or Airtel 073/072).")}
                 </p>
               </div>
 
