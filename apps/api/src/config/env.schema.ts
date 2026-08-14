@@ -169,7 +169,27 @@ export const envSchema = z
     // ── SMS Fallback Service ─────────────────────────────────
     SMS_FALLBACK_ENABLED: booleanStringDefaultTrue,
     SMS_PROVIDER: z
-      .enum(['bulksend', 'africastalking', 'twilio', 'generic', 'log'])
+      .string()
+      .optional()
+      .transform((val) => {
+        if (!val) return 'log';
+        const cleaned = val.toLowerCase().replace(/['"]/g, '').trim();
+        const allowed = [
+          'bulksend',
+          'africastalking',
+          'twilio',
+          'generic',
+          'log',
+        ];
+        return allowed.includes(cleaned)
+          ? (cleaned as
+              | 'bulksend'
+              | 'africastalking'
+              | 'twilio'
+              | 'generic'
+              | 'log')
+          : 'log';
+      })
       .default('log'),
     BULKSEND_API_KEY: z.string().optional(),
     BULKSEND_SENDER_ID: z.string().optional(),
