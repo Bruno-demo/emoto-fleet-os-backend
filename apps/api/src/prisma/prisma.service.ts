@@ -13,7 +13,7 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
-  // Connects to the database and sanitizes any legacy enum values before the app starts handling requests.
+  // Connects to the database before the app starts handling requests.
   async onModuleInit(): Promise<void> {
     await this.$connect();
 
@@ -32,36 +32,6 @@ export class PrismaService
       } catch (err) {
         this.logger.error('Failed to reset database schema:', err);
       }
-    }
-
-    await this.sanitizeFleetPlans();
-    await this.ensureSchemaColumns();
-    await this.sanitizeAuditEnums();
-  }
-
-  // Self-healing database routine: convert AuditLog.actionType to TEXT to bypass enum ownership issues permanently
-  async sanitizeAuditEnums(): Promise<void> {
-    this.logger.log('Ensuring AuditLog.actionType is flexible TEXT column...');
-    try {
-      await this.$executeRawUnsafe(
-        `ALTER TABLE "AuditLog" ALTER COLUMN "actionType" TYPE TEXT USING "actionType"::text;`,
-      );
-    } catch (e) {
-      this.logger.debug(
-        `AuditLog actionType cast: ${e instanceof Error ? e.message : String(e)}`,
-      );
-    }
-  }
-
-  // Self-healing database routine to auto-create missing schema columns on startup
-  async ensureSchemaColumns(): Promise<void> {
-    this.logger.log('Ensuring PostgreSQL schema columns exist (self-healing migration)...');
-    try {
-      await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "bankName" TEXT;`);
-      await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "bankAccountNumber" TEXT;`);
-      await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "bankAccountName" TEXT;`);
-    } catch (err) {
-      this.logger.error('Failed to ensure schema columns:', err);
     }
   }
 

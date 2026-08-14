@@ -74,58 +74,28 @@ export class SubscriptionService {
   }
 
   async getFleetSettings(user: AuthenticatedUser) {
-    try {
-      const fleet = await this.prismaService.fleet.findUnique({
-        where: { id: user.fleetId },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          plan: true,
-          momoPhoneNumber: true,
-          bankName: true,
-          bankAccountNumber: true,
-          bankAccountName: true,
-          monthlyRatePerBike: true,
-          emotoPaygRatePerActiveDay: true,
-          subscriptionStatus: true,
-        },
-      });
+    const fleet = await this.prismaService.fleet.findUnique({
+      where: { id: user.fleetId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        plan: true,
+        momoPhoneNumber: true,
+        bankName: true,
+        bankAccountNumber: true,
+        bankAccountName: true,
+        monthlyRatePerBike: true,
+        emotoPaygRatePerActiveDay: true,
+        subscriptionStatus: true,
+      },
+    });
 
-      if (!fleet) {
-        throw new BadRequestException('Fleet not found');
-      }
-
-      return fleet;
-    } catch (err: unknown) {
-      this.logger.warn(
-        `getFleetSettings failed with full schema (likely un-migrated DB column). Falling back to basic selection: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      const fleet = await this.prismaService.fleet.findUnique({
-        where: { id: user.fleetId },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          plan: true,
-          momoPhoneNumber: true,
-          monthlyRatePerBike: true,
-          emotoPaygRatePerActiveDay: true,
-          subscriptionStatus: true,
-        },
-      });
-
-      if (!fleet) {
-        throw new BadRequestException('Fleet not found');
-      }
-
-      return {
-        ...fleet,
-        bankName: null,
-        bankAccountNumber: null,
-        bankAccountName: null,
-      };
+    if (!fleet) {
+      throw new BadRequestException('Fleet not found');
     }
+
+    return fleet;
   }
 
   async updateFleetSettings(
@@ -137,7 +107,12 @@ export class SubscriptionService {
       bankAccountName?: string;
     },
   ) {
-    const updateData: Record<string, any> = {};
+    const updateData: {
+      momoPhoneNumber?: string;
+      bankName?: string;
+      bankAccountNumber?: string;
+      bankAccountName?: string;
+    } = {};
 
     if (dto.momoPhoneNumber !== undefined) {
       updateData.momoPhoneNumber = dto.momoPhoneNumber.trim();
@@ -152,47 +127,19 @@ export class SubscriptionService {
       updateData.bankAccountName = dto.bankAccountName.trim();
     }
 
-    try {
-      return await this.prismaService.fleet.update({
-        where: { id: user.fleetId },
-        data: updateData,
-        select: {
-          id: true,
-          name: true,
-          momoPhoneNumber: true,
-          bankName: true,
-          bankAccountNumber: true,
-          bankAccountName: true,
-          plan: true,
-          monthlyRatePerBike: true,
-        },
-      });
-    } catch (err: unknown) {
-      this.logger.warn(
-        `updateFleetSettings failed with full schema (likely un-migrated DB column). Falling back to basic update: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      delete updateData.bankName;
-      delete updateData.bankAccountNumber;
-      delete updateData.bankAccountName;
-
-      const updated = await this.prismaService.fleet.update({
-        where: { id: user.fleetId },
-        data: updateData,
-        select: {
-          id: true,
-          name: true,
-          momoPhoneNumber: true,
-          plan: true,
-          monthlyRatePerBike: true,
-        },
-      });
-
-      return {
-        ...updated,
-        bankName: null,
-        bankAccountNumber: null,
-        bankAccountName: null,
-      };
-    }
+    return await this.prismaService.fleet.update({
+      where: { id: user.fleetId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        momoPhoneNumber: true,
+        bankName: true,
+        bankAccountNumber: true,
+        bankAccountName: true,
+        plan: true,
+        monthlyRatePerBike: true,
+      },
+    });
   }
 }
