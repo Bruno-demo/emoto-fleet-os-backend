@@ -321,8 +321,8 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     }
     if (device.simPhoneNumber) {
       const pwd = (
-        this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '000000') || '000000'
-      ).padStart(6, '0');
+        this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '0000') || '0000'
+      ).trim();
       const smsCmd = type === 'LOCK' ? `940${pwd}` : `941${pwd}`;
       try {
         const smsResult = await this.smsService.sendSms(
@@ -500,8 +500,8 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     // 2. Budget-Friendly SMS Fallback for SinoTrack hardware when Direct TCP socket is offline
     if (device.simPhoneNumber) {
       const pwd = (
-        this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '000000') || '000000'
-      ).padStart(6, '0');
+        this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '0000') || '0000'
+      ).trim();
       const smsCmd = type === 'LOCK' ? `940${pwd}` : `941${pwd}`;
       try {
         const smsResult = await this.smsService.sendSms(
