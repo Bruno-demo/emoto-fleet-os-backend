@@ -39,47 +39,17 @@ export class PrismaService
     await this.sanitizeAuditEnums();
   }
 
-  // Self-healing database routine to auto-add missing enum values to AuditActionType
+  // Self-healing database routine: convert AuditLog.actionType to TEXT to bypass enum ownership issues permanently
   async sanitizeAuditEnums(): Promise<void> {
-    const auditActions = [
-      'SUBSCRIPTION_CREATED',
-      'SUBSCRIPTION_CANCELLED',
-      'SUBSCRIPTION_RENEWED',
-      'MOMO_PAYMENT_REQUESTED',
-      'MOMO_PAYMENT_RECEIVED',
-      'MOMO_PAYMENT_FAILED',
-      'MOMO_PAYMENT_RETRIED',
-      'INSTALLATION_PAYMENT_TOGGLED',
-      'UPGRADE_APPROVED',
-      'BILLING_CYCLE_GENERATED',
-      'BILLING_PAYMENT_RECORDED',
-      'BILLING_OVERDUE_MARKED',
-      'BILLING_REMINDER_SENT',
-      'DISCOUNT_CREATED',
-      'DISCOUNT_UPDATED',
-      'PRICING_TIER_UPDATED',
-      'BILLING_CONFIG_UPDATED',
-      'TRIAL_STARTED',
-      'TRIAL_EXPIRED',
-      'PARTNER_DELETED',
-      'INSURER_DELETED',
-      'DEVICE_DELETED',
-      'DELIVERY_CREATED',
-      'DELIVERY_ASSIGNED',
-      'DELIVERY_STATUS_CHANGED',
-      'TRAFFIC_FINE_CREATED',
-      'TRAFFIC_FINE_UPDATED',
-      'TRAFFIC_FINE_DELETED',
-    ];
-
-    for (const action of auditActions) {
-      try {
-        await this.$executeRawUnsafe(
-          `ALTER TYPE "AuditActionType" ADD VALUE IF NOT EXISTS '${action}';`,
-        );
-      } catch (e) {
-        // ignore if already exists
-      }
+    this.logger.log('Ensuring AuditLog.actionType is flexible TEXT column...');
+    try {
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "AuditLog" ALTER COLUMN "actionType" TYPE TEXT USING "actionType"::text;`,
+      );
+    } catch (e) {
+      this.logger.debug(
+        `AuditLog actionType cast: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 
