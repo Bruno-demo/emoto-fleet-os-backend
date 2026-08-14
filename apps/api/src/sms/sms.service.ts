@@ -40,6 +40,12 @@ export class SmsService {
     | 'generic'
     | 'log';
 
+  private cleanStr(val: string | undefined): string | undefined {
+    if (!val) return undefined;
+    const cleaned = val.replace(/^["']|["']$/g, '').trim();
+    return cleaned.length > 0 ? cleaned : undefined;
+  }
+
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
@@ -48,9 +54,8 @@ export class SmsService {
       'SMS_FALLBACK_ENABLED',
       true,
     );
-    const rawProvider = this.configService.get<string>(
-      'SMS_PROVIDER',
-      'log',
+    const rawProvider = this.cleanStr(
+      this.configService.get<string>('SMS_PROVIDER', 'log'),
     );
     this.provider = (rawProvider ? rawProvider.toLowerCase().trim() : 'log') as any;
   }
@@ -320,15 +325,15 @@ export class SmsService {
     to: string,
     message: string,
   ): Promise<SendSmsResult> {
-    const apiKey = this.configService.get<string>('BULKSEND_API_KEY');
-    const senderId = this.configService.get<string>(
-      'BULKSEND_SENDER_ID',
-      'eMoto',
+    const apiKey = this.cleanStr(
+      this.configService.get<string>('BULKSEND_API_KEY'),
     );
-    const baseUrl = this.configService.get<string>(
-      'BULKSEND_BASE_URL',
-      'https://api.bulksend.rw/v1/sms/send',
-    );
+    const senderId =
+      this.cleanStr(this.configService.get<string>('BULKSEND_SENDER_ID')) ||
+      'emotofleet';
+    const baseUrl =
+      this.cleanStr(this.configService.get<string>('BULKSEND_BASE_URL')) ||
+      'https://api.bulksend.rw/v1/sms/send';
 
     if (!apiKey) {
       this.logger.warn(
@@ -343,21 +348,24 @@ export class SmsService {
     }
 
     try {
-      const formattedPhone = to.replace('+', '');
+      const formattedPhone = to.replace(/[\s()+-]/g, '');
 
       const response = await firstValueFrom(
         this.httpService.post(
           baseUrl,
           {
             recipients: [formattedPhone],
+            to: formattedPhone,
+            phone: formattedPhone,
             message,
             sender_id: senderId,
-            to: formattedPhone,
+            sender: senderId,
           },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'X-API-Key': apiKey,
+              'api-key': apiKey,
               'Content-Type': 'application/json',
             },
           },
