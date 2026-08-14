@@ -169,8 +169,11 @@ export const envSchema = z
     // ── SMS Fallback Service ─────────────────────────────────
     SMS_FALLBACK_ENABLED: booleanStringDefaultTrue,
     SMS_PROVIDER: z
-      .enum(['africastalking', 'twilio', 'generic', 'log'])
+      .enum(['bulksend', 'africastalking', 'twilio', 'generic', 'log'])
       .default('log'),
+    BULKSEND_API_KEY: z.string().optional(),
+    BULKSEND_SENDER_ID: z.string().optional(),
+    BULKSEND_BASE_URL: z.string().optional(),
     AFRICASTALKING_USERNAME: z.string().optional(),
     AFRICASTALKING_API_KEY: z.string().optional(),
     AFRICASTALKING_SENDER_ID: z.string().optional(),

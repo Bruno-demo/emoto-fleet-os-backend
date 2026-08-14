@@ -33,7 +33,12 @@ interface GenericSmsResponse {
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
   private readonly enabled: boolean;
-  private readonly provider: 'africastalking' | 'twilio' | 'generic' | 'log';
+  private readonly provider:
+    | 'bulksend'
+    | 'africastalking'
+    | 'twilio'
+    | 'generic'
+    | 'log';
 
   constructor(
     private readonly configService: ConfigService,
@@ -44,7 +49,7 @@ export class SmsService {
       true,
     );
     this.provider = this.configService.get<
-      'africastalking' | 'twilio' | 'generic' | 'log'
+      'bulksend' | 'africastalking' | 'twilio' | 'generic' | 'log'
     >('SMS_PROVIDER', 'log');
   }
 
@@ -80,6 +85,8 @@ export class SmsService {
     const recipient = this.normalizePhone(to);
 
     switch (this.provider) {
+      case 'bulksend':
+        return this.sendViaBulkSend(recipient, message);
       case 'africastalking':
         return this.sendViaAfricasTalking(recipient, message);
       case 'twilio':
@@ -300,7 +307,75 @@ export class SmsService {
       this.logger.error(
         `Failed to dispatch SMS via generic webhook to ${to}: ${errorMsg}`,
       );
-      return { success: false, provider: 'generic', error: errorMsg };
+  /**
+   * BulkSend Rwanda (bulksend.rw) SMS Gateway Integration.
+   */
+  private async sendViaBulkSend(
+    to: string,
+    message: string,
+  ): Promise<SendSmsResult> {
+    const apiKey = this.configService.get<string>('BULKSEND_API_KEY');
+    const senderId = this.configService.get<string>(
+      'BULKSEND_SENDER_ID',
+      'eMoto',
+    );
+    const baseUrl = this.configService.get<string>(
+      'BULKSEND_BASE_URL',
+      'https://api.bulksend.rw/v1/sms/send',
+    );
+
+    if (!apiKey) {
+      this.logger.warn(
+        'BulkSend API Key not configured (BULKSEND_API_KEY). Falling back to log.',
+      );
+      this.logger.log(`[SMS FALLBACK LOG] To: ${to} | Message: "${message}"`);
+      return {
+        success: true,
+        provider: 'log-fallback',
+        messageId: `log-${Date.now()}`,
+      };
+    }
+
+    try {
+      const formattedPhone = to.replace('+', '');
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          baseUrl,
+          {
+            recipients: [formattedPhone],
+            message,
+            sender_id: senderId,
+            to: formattedPhone,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'X-API-Key': apiKey,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      );
+
+      this.logger.log(
+        `Dispatched SMS via BulkSend Rwanda to ${formattedPhone} (Sender: ${senderId}): "${message}"`,
+      );
+      return {
+        success: true,
+        provider: 'bulksend',
+        messageId:
+          (response.data as any)?.messageId ||
+          (response.data as any)?.id ||
+          (response.data as any)?.data?.id ||
+          `bulksend-${Date.now()}`,
+      };
+    } catch (err: unknown) {
+      const errorMsg = this.extractErrorMessage(err);
+      this.logger.error(
+        `Failed to dispatch SMS via BulkSend Rwanda to ${to}: ${errorMsg}`,
+      );
+      return { success: false, provider: 'bulksend', error: errorMsg };
     }
   }
 
