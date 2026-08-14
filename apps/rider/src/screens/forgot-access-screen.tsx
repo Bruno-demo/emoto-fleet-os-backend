@@ -30,20 +30,27 @@ export function ForgotAccessScreen({ navigation }: ForgotAccessScreenProps) {
       return;
     }
 
+    let finalIdentifier = trimmed;
+
     if (!trimmed.includes('@')) {
-      if (!trimmed.startsWith('+')) {
-        setPhoneError('Include country code starting with + (e.g. +250788123456)');
-        return;
-      }
-      if (trimmed.replace(/\D/g, '').length < 8) {
-        setPhoneError('Enter a valid phone number with country code.');
+      const digitsOnly = trimmed.replace(/\D/g, '');
+      if (trimmed.startsWith('+')) {
+        if (digitsOnly.length < 8) {
+          setPhoneError('Enter a valid phone number with country code.');
+          return;
+        }
+        finalIdentifier = '+' + digitsOnly;
+      } else if (/^0\d{9}$/.test(digitsOnly)) {
+        // Local 10-digit number (e.g. 0788123456 -> +250788123456)
+        finalIdentifier = '+250' + digitsOnly.slice(1);
+      } else if (digitsOnly.length === 9 && digitsOnly.startsWith('7')) {
+        // 9-digit number without leading zero (e.g. 788123456 -> +250788123456)
+        finalIdentifier = '+250' + digitsOnly;
+      } else {
+        setPhoneError('Enter a 10-digit phone number (e.g. 0788123456) or email.');
         return;
       }
     }
-
-    const finalIdentifier = trimmed.includes('@')
-      ? trimmed
-      : '+' + trimmed.replace(/\D/g, '');
 
     setPhoneError(null);
     setIsSubmitting(true);

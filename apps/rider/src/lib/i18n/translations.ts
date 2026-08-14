@@ -490,7 +490,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
       checkPhoneCardTitle: 'Check your rider phone',
       checkPhoneCardSub: 'Start with the phone number registered by your fleet admin.',
       identifierFieldLabel: 'Rider phone number or Email',
-      identifierFieldPlaceholder: 'e.g. +250788123456 or rider@example.com',
+      identifierFieldPlaceholder: 'e.g. 0788123456 or rider@example.com',
       continueButton: 'Continue',
       backToLoginButton: 'Back to login',
       whatHappensNextTitle: 'What happens next',
