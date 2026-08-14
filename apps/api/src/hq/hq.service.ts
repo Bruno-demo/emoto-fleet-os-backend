@@ -2555,7 +2555,8 @@ export class HqService {
       throw new BadRequestException('Invalid rate per bike');
     }
 
-    const ratePerActiveDay = rateInput <= 1000 ? rateInput : Math.round(rateInput / 30);
+    const ratePerActiveDay =
+      rateInput <= 1000 ? rateInput : Math.round(rateInput / 30);
     const monthlyRate = rateInput > 1000 ? rateInput : rateInput * 30;
 
     const updated = await this.prisma.fleet.update({
@@ -2564,7 +2565,12 @@ export class HqService {
         emotoPaygRatePerActiveDay: Math.round(ratePerActiveDay),
         monthlyRatePerBike: Math.round(monthlyRate),
       },
-      select: { id: true, name: true, monthlyRatePerBike: true, emotoPaygRatePerActiveDay: true },
+      select: {
+        id: true,
+        name: true,
+        monthlyRatePerBike: true,
+        emotoPaygRatePerActiveDay: true,
+      },
     });
 
     await this.auditService.createAuditLog({

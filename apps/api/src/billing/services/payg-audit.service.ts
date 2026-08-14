@@ -58,7 +58,9 @@ export class PaygAuditService {
     }
 
     const paygRate =
-      fleet.type === 'DELIVERY' && (!fleet.emotoPaygRatePerActiveDay || fleet.emotoPaygRatePerActiveDay === 350)
+      fleet.type === 'DELIVERY' &&
+      (!fleet.emotoPaygRatePerActiveDay ||
+        fleet.emotoPaygRatePerActiveDay === 350)
         ? 500
         : (fleet.emotoPaygRatePerActiveDay ?? 350);
     const now = new Date();

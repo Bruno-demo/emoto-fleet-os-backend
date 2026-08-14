@@ -369,9 +369,9 @@ export class SmsService {
         success: true,
         provider: 'bulksend',
         messageId:
-          (response.data as any)?.messageId ||
-          (response.data as any)?.id ||
-          (response.data as any)?.data?.id ||
+          response.data?.messageId ||
+          response.data?.id ||
+          response.data?.data?.id ||
           `bulksend-${Date.now()}`,
       };
     } catch (err: unknown) {

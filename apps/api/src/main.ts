@@ -46,7 +46,13 @@ function resolveCorsOrigins(configService: ConfigService): string[] {
   );
 
   return Array.from(
-    new Set([...userOrigins, ...defaultOrigins, ...dashboardOrigins, ...riderOrigins, 'http://localhost:19006']),
+    new Set([
+      ...userOrigins,
+      ...defaultOrigins,
+      ...dashboardOrigins,
+      ...riderOrigins,
+      'http://localhost:19006',
+    ]),
   );
 }
 
@@ -102,7 +108,11 @@ async function bootstrap(): Promise<void> {
       origin: string | undefined,
       callback: (error: Error | null, allow?: boolean) => void,
     ) => {
-      if (!origin || allowedCorsOrigins.includes(origin) || allowedCorsOrigins.includes('*')) {
+      if (
+        !origin ||
+        allowedCorsOrigins.includes(origin) ||
+        allowedCorsOrigins.includes('*')
+      ) {
         callback(null, true);
         return;
       }

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import {
   buildLoginPayload,
@@ -39,6 +39,8 @@ type LoginFieldErrors = {
   password?: string;
 };
 
+const emptySubscribe = () => () => {};
+
 export default function LoginPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -50,20 +52,18 @@ export default function LoginPage() {
   const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
-  const [isRiderBlocked, setIsRiderBlocked] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('expired') === 'true') {
-        setIsExpired(true);
-      }
-      if (params.get('error') === 'rider') {
-        setIsRiderBlocked(true);
-      }
-    }
-  }, []);
+  const isExpired = useSyncExternalStore(
+    emptySubscribe,
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('expired') === 'true',
+    () => false,
+  );
+
+  const isRiderBlocked = useSyncExternalStore(
+    emptySubscribe,
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('error') === 'rider',
+    () => false,
+  );
   const loginPresentation = getLoginPresentation();
 
   // OTP login flow state

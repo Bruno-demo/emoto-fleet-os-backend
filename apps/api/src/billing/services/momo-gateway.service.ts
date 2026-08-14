@@ -144,12 +144,18 @@ export class MomoGatewayService {
       }
 
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL', '');
-      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV', 'sandbox');
+      const targetEnv = this.configService.get<string>(
+        'MOMO_TARGET_ENV',
+        'sandbox',
+      );
       const subscriptionKey = this.configService.get<string>(
         'MOMO_SUBSCRIPTION_KEY',
         '',
       );
-      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL', '');
+      const callbackUrl = this.configService.get<string>(
+        'MOMO_CALLBACK_URL',
+        '',
+      );
       const isPawaPay = baseUrl.includes('pawapay');
 
       if (isPawaPay) {
@@ -308,12 +314,18 @@ export class MomoGatewayService {
       }
 
       const baseUrl = this.configService.get<string>('MOMO_BASE_URL', '');
-      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV', 'sandbox');
+      const targetEnv = this.configService.get<string>(
+        'MOMO_TARGET_ENV',
+        'sandbox',
+      );
       const subscriptionKey = this.configService.get<string>(
         'MOMO_SUBSCRIPTION_KEY',
         '',
       );
-      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL', '');
+      const callbackUrl = this.configService.get<string>(
+        'MOMO_CALLBACK_URL',
+        '',
+      );
       const isPawaPay = baseUrl.includes('pawapay');
 
       if (isPawaPay) {
@@ -551,7 +563,10 @@ export class MomoGatewayService {
               }
 
               try {
-                await this.billingCycleService.generateCycleForFleet(transaction.fleetId, true);
+                await this.billingCycleService.generateCycleForFleet(
+                  transaction.fleetId,
+                  true,
+                );
               } catch {
                 // Next weekly period has not arrived yet or is already active
               }

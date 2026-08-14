@@ -89,7 +89,9 @@ export class AuthService implements OnModuleInit {
       `);
       this.logger.log('RegistrationInvite database columns auto-verified.');
     } catch (err: any) {
-      this.logger.warn(`Auto-migration for RegistrationInvite columns: ${err?.message}`);
+      this.logger.warn(
+        `Auto-migration for RegistrationInvite columns: ${err?.message}`,
+      );
     }
   }
 

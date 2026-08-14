@@ -240,7 +240,9 @@ export class BillingController {
 
   @Get('cycles/:id/breakdown')
   @UseGuards(HqGuard)
-  @ApiOperation({ summary: 'HQ: Get full active-days breakdown for a billing cycle' })
+  @ApiOperation({
+    summary: 'HQ: Get full active-days breakdown for a billing cycle',
+  })
   async getCycleBreakdown(@Param('id') id: string) {
     return await this.billingCycleService.getCycleBreakdown(id);
   }

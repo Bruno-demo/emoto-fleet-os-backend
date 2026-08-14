@@ -17,8 +17,13 @@ export class PrismaService
   async onModuleInit(): Promise<void> {
     await this.$connect();
 
-    if (process.env.RESET_DB === 'true' || process.env.WIPE_DATABASE === 'true') {
-      this.logger.warn('RESET_DB environment variable is set to true! Performing nuclear database reset...');
+    if (
+      process.env.RESET_DB === 'true' ||
+      process.env.WIPE_DATABASE === 'true'
+    ) {
+      this.logger.warn(
+        'RESET_DB environment variable is set to true! Performing nuclear database reset...',
+      );
       try {
         await this.$executeRawUnsafe(`DROP SCHEMA public CASCADE;`);
         await this.$executeRawUnsafe(`CREATE SCHEMA public;`);
@@ -34,7 +39,9 @@ export class PrismaService
 
   // Self-healing database routine to ensure FleetPlan enum values are valid
   async sanitizeFleetPlans(): Promise<void> {
-    this.logger.log('Executing PostgreSQL FleetPlan enum & data sanitization...');
+    this.logger.log(
+      'Executing PostgreSQL FleetPlan enum & data sanitization...',
+    );
 
     // 1. Ensure PostgreSQL FleetPlan enum type has all schema values (PAYG, INSURANCE, ENTERPRISE)
     try {
@@ -42,21 +49,27 @@ export class PrismaService
         `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';`,
       );
     } catch (e) {
-      this.logger.debug(`ADD VALUE PAYG: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.debug(
+        `ADD VALUE PAYG: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
     try {
       await this.$executeRawUnsafe(
         `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'INSURANCE';`,
       );
     } catch (e) {
-      this.logger.debug(`ADD VALUE INSURANCE: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.debug(
+        `ADD VALUE INSURANCE: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
     try {
       await this.$executeRawUnsafe(
         `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'ENTERPRISE';`,
       );
     } catch (e) {
-      this.logger.debug(`ADD VALUE ENTERPRISE: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.debug(
+        `ADD VALUE ENTERPRISE: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
 
     // 2. Direct atomic UPDATE for Fleet table: convert any DEMO/PREMIUM/invalid text values to PAYG
@@ -67,19 +80,35 @@ export class PrismaService
         WHERE "plan"::text NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE') OR "plan" IS NULL;
       `);
       if (updatedFleets > 0) {
-        this.logger.warn(`Successfully migrated ${updatedFleets} Fleet records (DEMO/PREMIUM -> PAYG)`);
+        this.logger.warn(
+          `Successfully migrated ${updatedFleets} Fleet records (DEMO/PREMIUM -> PAYG)`,
+        );
       }
     } catch (err) {
-      this.logger.debug(`Direct Fleet update fallback: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.debug(
+        `Direct Fleet update fallback: ${err instanceof Error ? err.message : String(err)}`,
+      );
 
       // Fallback: convert column to TEXT, update, and revert enum type
       try {
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;`);
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;`);
-        await this.$executeRawUnsafe(`UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE') OR "plan" IS NULL;`);
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";`);
-        await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG'::"FleetPlan";`);
-        this.logger.log('Fallback Fleet plan sanitization via TEXT cast succeeded.');
+        await this.$executeRawUnsafe(
+          `ALTER TABLE "Fleet" ALTER COLUMN "plan" DROP DEFAULT;`,
+        );
+        await this.$executeRawUnsafe(
+          `ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE TEXT USING "plan"::text;`,
+        );
+        await this.$executeRawUnsafe(
+          `UPDATE "Fleet" SET "plan" = 'PAYG' WHERE "plan" NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE') OR "plan" IS NULL;`,
+        );
+        await this.$executeRawUnsafe(
+          `ALTER TABLE "Fleet" ALTER COLUMN "plan" TYPE "FleetPlan" USING "plan"::"FleetPlan";`,
+        );
+        await this.$executeRawUnsafe(
+          `ALTER TABLE "Fleet" ALTER COLUMN "plan" SET DEFAULT 'PAYG'::"FleetPlan";`,
+        );
+        this.logger.log(
+          'Fallback Fleet plan sanitization via TEXT cast succeeded.',
+        );
       } catch (fallbackErr) {
         this.logger.error('Fleet plan sanitization error:', fallbackErr);
       }
@@ -98,7 +127,9 @@ export class PrismaService
         WHERE "planCode"::text NOT IN ('PAYG', 'INSURANCE', 'ENTERPRISE');
       `);
     } catch (e) {
-      this.logger.debug(`PricingTier update skipped: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.debug(
+        `PricingTier update skipped: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 

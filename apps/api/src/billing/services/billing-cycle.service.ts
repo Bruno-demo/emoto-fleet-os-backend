@@ -194,7 +194,9 @@ export class BillingCycleService {
         periodEnd.toISOString(),
       );
       effectiveRatePerBike =
-        fleet.type === 'DELIVERY' && (!fleet.emotoPaygRatePerActiveDay || fleet.emotoPaygRatePerActiveDay === 350)
+        fleet.type === 'DELIVERY' &&
+        (!fleet.emotoPaygRatePerActiveDay ||
+          fleet.emotoPaygRatePerActiveDay === 350)
           ? 500
           : (fleet.emotoPaygRatePerActiveDay ?? 350);
       cycleNotes = `Calculated via Active Days (${effectiveRatePerBike} RWF/active day - ${fleet.type || 'COOP'} Fleet) — ${audit.totalActiveBikeDays} active bike-day(s) recorded across ${bikeCount} bike(s).`;
