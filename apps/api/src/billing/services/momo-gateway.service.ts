@@ -143,39 +143,76 @@ export class MomoGatewayService {
         return transaction;
       }
 
-      const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
-      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV');
+      const baseUrl = this.configService.get<string>('MOMO_BASE_URL', '');
+      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV', 'sandbox');
       const subscriptionKey = this.configService.get<string>(
         'MOMO_SUBSCRIPTION_KEY',
+        '',
       );
-      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL');
+      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL', '');
+      const isPawaPay = baseUrl.includes('pawapay');
 
-      await firstValueFrom(
-        this.httpService.post(
-          `${baseUrl}/collection/v1_0/requesttopay`,
-          {
-            amount: String(amount),
-            currency: 'RWF',
-            externalId,
-            payer: {
-              partyIdType: 'MSISDN',
-              partyId: normalizedPhone,
+      if (isPawaPay) {
+        const correspondent =
+          normalizedPhone.startsWith('25073') ||
+          normalizedPhone.startsWith('25072')
+            ? 'AIRTEL_RWA'
+            : 'MTN_MOMO_RWA';
+
+        await firstValueFrom(
+          this.httpService.post(
+            `${baseUrl}/deposits`,
+            {
+              depositId: referenceId,
+              amount: String(amount),
+              currency: 'RWF',
+              country: 'RWA',
+              correspondent,
+              payer: {
+                type: 'MSISDN',
+                address: {
+                  value: normalizedPhone,
+                },
+              },
+              customerTimestamp: new Date().toISOString(),
+              statementDescription: 'eMoto Fleet Subscription',
             },
-            payerMessage: `E-Moto Fleet OS subscription payment`,
-            payeeNote: 'Fleet subscription',
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'X-Reference-Id': referenceId,
-              'X-Target-Environment': targetEnv,
-              'Ocp-Apim-Subscription-Key': subscriptionKey,
-              'X-Callback-Url': callbackUrl,
-              'Content-Type': 'application/json',
+            {
+              headers: {
+                Authorization: `Bearer ${subscriptionKey}`,
+                'Content-Type': 'application/json',
+              },
             },
-          },
-        ),
-      );
+          ),
+        );
+      } else {
+        await firstValueFrom(
+          this.httpService.post(
+            `${baseUrl}/collection/v1_0/requesttopay`,
+            {
+              amount: String(amount),
+              currency: 'RWF',
+              externalId,
+              payer: {
+                partyIdType: 'MSISDN',
+                partyId: normalizedPhone,
+              },
+              payerMessage: `E-Moto Fleet OS subscription payment`,
+              payeeNote: 'Fleet subscription',
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'X-Reference-Id': referenceId,
+                'X-Target-Environment': targetEnv,
+                'Ocp-Apim-Subscription-Key': subscriptionKey,
+                'X-Callback-Url': callbackUrl,
+                'Content-Type': 'application/json',
+              },
+            },
+          ),
+        );
+      }
 
       await this.auditService.createAuditLog({
         fleetId,
@@ -270,39 +307,76 @@ export class MomoGatewayService {
         return transaction;
       }
 
-      const baseUrl = this.configService.get<string>('MOMO_BASE_URL');
-      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV');
+      const baseUrl = this.configService.get<string>('MOMO_BASE_URL', '');
+      const targetEnv = this.configService.get<string>('MOMO_TARGET_ENV', 'sandbox');
       const subscriptionKey = this.configService.get<string>(
         'MOMO_SUBSCRIPTION_KEY',
+        '',
       );
-      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL');
+      const callbackUrl = this.configService.get<string>('MOMO_CALLBACK_URL', '');
+      const isPawaPay = baseUrl.includes('pawapay');
 
-      await firstValueFrom(
-        this.httpService.post(
-          `${baseUrl}/collection/v1_0/requesttopay`,
-          {
-            amount: String(amount),
-            currency: 'RWF',
-            externalId,
-            payer: {
-              partyIdType: 'MSISDN',
-              partyId: normalizedPhone,
+      if (isPawaPay) {
+        const correspondent =
+          normalizedPhone.startsWith('25073') ||
+          normalizedPhone.startsWith('25072')
+            ? 'AIRTEL_RWA'
+            : 'MTN_MOMO_RWA';
+
+        await firstValueFrom(
+          this.httpService.post(
+            `${baseUrl}/deposits`,
+            {
+              depositId: referenceId,
+              amount: String(amount),
+              currency: 'RWF',
+              country: 'RWA',
+              correspondent,
+              payer: {
+                type: 'MSISDN',
+                address: {
+                  value: normalizedPhone,
+                },
+              },
+              customerTimestamp: new Date().toISOString(),
+              statementDescription: 'eMoto Fleet Payment',
             },
-            payerMessage: `E-Moto Fleet OS daily collection payment`,
-            payeeNote: 'Rider daily lease collection',
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'X-Reference-Id': referenceId,
-              'X-Target-Environment': targetEnv,
-              'Ocp-Apim-Subscription-Key': subscriptionKey,
-              'X-Callback-Url': callbackUrl,
-              'Content-Type': 'application/json',
+            {
+              headers: {
+                Authorization: `Bearer ${subscriptionKey}`,
+                'Content-Type': 'application/json',
+              },
             },
-          },
-        ),
-      );
+          ),
+        );
+      } else {
+        await firstValueFrom(
+          this.httpService.post(
+            `${baseUrl}/collection/v1_0/requesttopay`,
+            {
+              amount: String(amount),
+              currency: 'RWF',
+              externalId,
+              payer: {
+                partyIdType: 'MSISDN',
+                partyId: normalizedPhone,
+              },
+              payerMessage: `E-Moto Fleet OS daily collection payment`,
+              payeeNote: 'Rider daily lease collection',
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'X-Reference-Id': referenceId,
+                'X-Target-Environment': targetEnv,
+                'Ocp-Apim-Subscription-Key': subscriptionKey,
+                'X-Callback-Url': callbackUrl,
+                'Content-Type': 'application/json',
+              },
+            },
+          ),
+        );
+      }
 
       await this.auditService.createAuditLog({
         fleetId,

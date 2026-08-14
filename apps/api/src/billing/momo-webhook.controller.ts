@@ -12,20 +12,19 @@ import { Throttle } from '@nestjs/throttler';
 import { MomoGatewayService } from './services/momo-gateway.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-// DTO for the incoming webhook payload from MTN MoMo
 interface MomoCallbackPayload {
+  depositId?: string;
+  transactionId?: string;
   financialTransactionId?: string;
-  externalId: string;
-  amount: string;
-  currency: string;
-  payer: {
-    partyIdType: string;
-    partyId: string;
-  };
+  externalId?: string;
+  amount?: string | number;
+  currency?: string;
+  payer?: any;
   payerMessage?: string;
   payeeNote?: string;
-  status: 'SUCCESSFUL' | 'FAILED';
+  status: string;
   reason?: string | null;
+  failureReason?: string | null;
 }
 
 @ApiTags('MoMo Webhooks')
@@ -39,55 +38,59 @@ export class MomoWebhookController {
   ) {}
 
   @Post('callback')
-  @Public() // Skip JWT auth - MTN sends this
+  @Public() // Skip JWT auth - PawaPay / MTN sends this
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // Rate limit: 100 req/min
   @HttpCode(HttpStatus.OK) // Must return 200 OK immediately
-  @ApiOperation({ summary: 'MTN MoMo payment callback webhook' })
+  @ApiOperation({ summary: 'PawaPay & MTN MoMo payment callback webhook' })
   async handleCallback(@Body() payload: MomoCallbackPayload) {
+    const targetId =
+      payload.depositId ||
+      payload.externalId ||
+      payload.transactionId ||
+      payload.financialTransactionId;
+
     this.logger.log(
-      `MoMo callback received: externalId=${payload.externalId}, status=${payload.status}`,
+      `MoMo/PawaPay callback received: targetId=${targetId}, status=${payload.status}`,
     );
 
     try {
-      // 1. Find the MomoTransaction by matching the externalId
-      //    The externalId format is "INV-{cycleIdPrefix}" but we should find by
-      //    looking up transactions that match this externalId
+      if (!targetId) {
+        this.logger.warn('Callback received without valid targetId/externalId');
+        return { received: true };
+      }
+
       const transaction = await this.prisma.momoTransaction.findFirst({
         where: {
-          externalId: payload.externalId,
+          OR: [{ referenceId: targetId }, { externalId: targetId }],
           status: 'PENDING',
         },
       });
 
       if (!transaction) {
-        // Could be a duplicate callback or unknown transaction
         this.logger.warn(
-          `No pending MomoTransaction found for externalId: ${payload.externalId}`,
+          `No pending MomoTransaction found for targetId: ${targetId}`,
         );
         return { received: true };
       }
 
-      // 2. Validate amount matches
-      const payloadAmount = parseInt(payload.amount, 10);
-      if (payloadAmount !== transaction.amount) {
-        this.logger.warn(
-          `Amount mismatch: expected ${transaction.amount}, got ${payloadAmount} for transaction ${transaction.id}`,
-        );
-        // Still process but log the discrepancy
-      }
+      const isSuccess =
+        payload.status === 'COMPLETED' ||
+        payload.status === 'SUCCESSFUL' ||
+        payload.status === 'SUCCESS';
 
-      // 3. Process based on status
-      if (payload.status === 'SUCCESSFUL') {
+      if (isSuccess) {
         await this.momoGatewayService.processSuccessfulPayment(
           transaction,
-          payload.financialTransactionId || '',
+          payload.financialTransactionId || payload.transactionId || targetId,
         );
-        this.logger.log(`Payment SUCCESSFUL for transaction ${transaction.id}`);
+        this.logger.log(`Payment COMPLETED for transaction ${transaction.id}`);
       } else {
         await this.momoGatewayService.processFailedPayment(
           transaction,
-          payload.reason || 'UNKNOWN',
+          payload.reason || payload.failureReason || 'FAILED',
         );
+        this.logger.warn(`Payment FAILED for transaction ${transaction.id}`);
+      }
         this.logger.warn(
           `Payment FAILED for transaction ${transaction.id}: ${payload.reason}`,
         );
