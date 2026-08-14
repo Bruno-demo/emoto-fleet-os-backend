@@ -48,9 +48,11 @@ export class SmsService {
       'SMS_FALLBACK_ENABLED',
       true,
     );
-    this.provider = this.configService.get<
-      'bulksend' | 'africastalking' | 'twilio' | 'generic' | 'log'
-    >('SMS_PROVIDER', 'log');
+    const rawProvider = this.configService.get<string>(
+      'SMS_PROVIDER',
+      'log',
+    );
+    this.provider = (rawProvider ? rawProvider.toLowerCase().trim() : 'log') as any;
   }
 
   /**

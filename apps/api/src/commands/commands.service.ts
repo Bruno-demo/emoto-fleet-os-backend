@@ -320,7 +320,10 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(`Failed to queue pending command in Redis: ${errMsg}`);
     }
     if (device.simPhoneNumber) {
-      const smsCmd = type === 'LOCK' ? '9400000' : '9410000';
+      const pwd = (
+        this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '000000') || '000000'
+      ).padStart(6, '0');
+      const smsCmd = type === 'LOCK' ? `940${pwd}` : `941${pwd}`;
       try {
         const smsResult = await this.smsService.sendSms(
           device.simPhoneNumber,
@@ -496,7 +499,10 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
     // 2. Budget-Friendly SMS Fallback for SinoTrack hardware when Direct TCP socket is offline
     if (device.simPhoneNumber) {
-      const smsCmd = type === 'LOCK' ? '9400000' : '9410000';
+      const pwd = (
+        this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '000000') || '000000'
+      ).padStart(6, '0');
+      const smsCmd = type === 'LOCK' ? `940${pwd}` : `941${pwd}`;
       try {
         const smsResult = await this.smsService.sendSms(
           device.simPhoneNumber,

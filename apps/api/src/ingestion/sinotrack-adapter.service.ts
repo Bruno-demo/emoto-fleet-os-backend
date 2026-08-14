@@ -1105,10 +1105,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const hhmmss = new Date().toISOString().substring(11, 19).replace(/:/g, '');
     const s20Cmd = type === 'LOCK' ? `S20,${hhmmss},1,1` : `S20,${hhmmss},0,1`;
     const s20Packet = `*HQ,${targetImei},${s20Cmd}#`;
+    const pwd = (this.devicePassword || '000000').padStart(6, '0');
     const sinotrackCmd =
       type === 'LOCK'
-        ? `940${this.devicePassword}`
-        : `941${this.devicePassword}`;
+        ? `940${pwd}`
+        : `941${pwd}`;
     const hqPacket = `*HQ,${targetImei},${sinotrackCmd}#`;
     const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
 
