@@ -137,6 +137,7 @@ export class AuthService implements OnModuleInit {
 
     if (
       !user ||
+      !user.passwordHash ||
       (user.status !== 'ACTIVE' && user.status !== 'PENDING_SETUP')
     ) {
       await this.recordFailedLogin(identifier);
