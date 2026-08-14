@@ -85,22 +85,21 @@ export class MomoWebhookController {
         );
         this.logger.log(`Payment COMPLETED for transaction ${transaction.id}`);
       } else {
+        const failureMsg = payload.reason || payload.failureReason || 'FAILED';
         await this.momoGatewayService.processFailedPayment(
           transaction,
-          payload.reason || payload.failureReason || 'FAILED',
+          failureMsg,
         );
-        this.logger.warn(`Payment FAILED for transaction ${transaction.id}`);
-      }
         this.logger.warn(
-          `Payment FAILED for transaction ${transaction.id}: ${payload.reason}`,
+          `Payment FAILED for transaction ${transaction.id}: ${failureMsg}`,
         );
       }
-    } catch (error) {
-      // NEVER throw to MTN - always return 200
+    } catch (error: any) {
+      // NEVER throw 500 to payment gateway - always return 200 OK
       this.logger.error('Error processing MoMo callback:', error);
     }
 
-    // Always return 200 OK to MTN
+    // Always return 200 OK
     return { received: true };
   }
 }
