@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { FleetPlan, FleetSubscriptionStatus } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SubscriptionService {
+  private readonly logger = new Logger(SubscriptionService.name);
+
   constructor(private readonly prismaService: PrismaService) {}
 
   async updateCurrentFleetPlan(
@@ -72,28 +74,58 @@ export class SubscriptionService {
   }
 
   async getFleetSettings(user: AuthenticatedUser) {
-    const fleet = await this.prismaService.fleet.findUnique({
-      where: { id: user.fleetId },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        plan: true,
-        momoPhoneNumber: true,
-        bankName: true,
-        bankAccountNumber: true,
-        bankAccountName: true,
-        monthlyRatePerBike: true,
-        emotoPaygRatePerActiveDay: true,
-        subscriptionStatus: true,
-      },
-    });
+    try {
+      const fleet = await this.prismaService.fleet.findUnique({
+        where: { id: user.fleetId },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          plan: true,
+          momoPhoneNumber: true,
+          bankName: true,
+          bankAccountNumber: true,
+          bankAccountName: true,
+          monthlyRatePerBike: true,
+          emotoPaygRatePerActiveDay: true,
+          subscriptionStatus: true,
+        },
+      });
 
-    if (!fleet) {
-      throw new BadRequestException('Fleet not found');
+      if (!fleet) {
+        throw new BadRequestException('Fleet not found');
+      }
+
+      return fleet;
+    } catch (err: unknown) {
+      this.logger.warn(
+        `getFleetSettings failed with full schema (likely un-migrated DB column). Falling back to basic selection: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      const fleet = await this.prismaService.fleet.findUnique({
+        where: { id: user.fleetId },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          plan: true,
+          momoPhoneNumber: true,
+          monthlyRatePerBike: true,
+          emotoPaygRatePerActiveDay: true,
+          subscriptionStatus: true,
+        },
+      });
+
+      if (!fleet) {
+        throw new BadRequestException('Fleet not found');
+      }
+
+      return {
+        ...fleet,
+        bankName: null,
+        bankAccountNumber: null,
+        bankAccountName: null,
+      };
     }
-
-    return fleet;
   }
 
   async updateFleetSettings(
@@ -105,12 +137,7 @@ export class SubscriptionService {
       bankAccountName?: string;
     },
   ) {
-    const updateData: {
-      momoPhoneNumber?: string;
-      bankName?: string;
-      bankAccountNumber?: string;
-      bankAccountName?: string;
-    } = {};
+    const updateData: Record<string, any> = {};
 
     if (dto.momoPhoneNumber !== undefined) {
       updateData.momoPhoneNumber = dto.momoPhoneNumber.trim();
@@ -125,21 +152,47 @@ export class SubscriptionService {
       updateData.bankAccountName = dto.bankAccountName.trim();
     }
 
-    const updated = await this.prismaService.fleet.update({
-      where: { id: user.fleetId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        momoPhoneNumber: true,
-        bankName: true,
-        bankAccountNumber: true,
-        bankAccountName: true,
-        plan: true,
-        monthlyRatePerBike: true,
-      },
-    });
+    try {
+      return await this.prismaService.fleet.update({
+        where: { id: user.fleetId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          momoPhoneNumber: true,
+          bankName: true,
+          bankAccountNumber: true,
+          bankAccountName: true,
+          plan: true,
+          monthlyRatePerBike: true,
+        },
+      });
+    } catch (err: unknown) {
+      this.logger.warn(
+        `updateFleetSettings failed with full schema (likely un-migrated DB column). Falling back to basic update: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      delete updateData.bankName;
+      delete updateData.bankAccountNumber;
+      delete updateData.bankAccountName;
 
-    return updated;
+      const updated = await this.prismaService.fleet.update({
+        where: { id: user.fleetId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          momoPhoneNumber: true,
+          plan: true,
+          monthlyRatePerBike: true,
+        },
+      });
+
+      return {
+        ...updated,
+        bankName: null,
+        bankAccountNumber: null,
+        bankAccountName: null,
+      };
+    }
   }
 }
