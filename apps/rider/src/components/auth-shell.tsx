@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.surfaceRaised,
-    borderRadius: theme.radius.full,
+    borderRadius: theme.radius.pill,
     padding: 3,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   langOption: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 6,
-    borderRadius: theme.radius.full,
+    borderRadius: theme.radius.pill,
   },
   langOptionActive: {
     backgroundColor: theme.colors.primary,
