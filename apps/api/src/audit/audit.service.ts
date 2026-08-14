@@ -12,16 +12,23 @@ export class AuditService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createAuditLog(input: CreateAuditLogInput): Promise<void> {
-    await this.prismaService.auditLog.create({
-      data: {
-        fleetId: input.fleetId,
-        actorUserId: input.actorUserId,
-        actionType: input.actionType,
-        targetType: input.targetType,
-        targetId: input.targetId,
-        metaJson: input.metaJson ?? {},
-      },
-    });
+    try {
+      await this.prismaService.auditLog.create({
+        data: {
+          fleetId: input.fleetId,
+          actorUserId: input.actorUserId,
+          actionType: input.actionType,
+          targetType: input.targetType,
+          targetId: input.targetId,
+          metaJson: input.metaJson ?? {},
+        },
+      });
+    } catch (err) {
+      // Non-critical audit logging failure fallback (e.g. un-migrated enum value on DB)
+      console.warn(
+        `[AuditService] Non-critical audit log skipped for action '${input.actionType}': ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async listAuditLogs(
