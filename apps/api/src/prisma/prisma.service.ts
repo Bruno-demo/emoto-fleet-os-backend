@@ -35,6 +35,19 @@ export class PrismaService
     }
 
     await this.sanitizeFleetPlans();
+    await this.ensureSchemaColumns();
+  }
+
+  // Self-healing database routine to auto-create missing schema columns on startup
+  async ensureSchemaColumns(): Promise<void> {
+    this.logger.log('Ensuring PostgreSQL schema columns exist (self-healing migration)...');
+    try {
+      await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "bankName" TEXT;`);
+      await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "bankAccountNumber" TEXT;`);
+      await this.$executeRawUnsafe(`ALTER TABLE "Fleet" ADD COLUMN IF NOT EXISTS "bankAccountName" TEXT;`);
+    } catch (err) {
+      this.logger.error('Failed to ensure schema columns:', err);
+    }
   }
 
   // Self-healing database routine to ensure FleetPlan enum values are valid
