@@ -50,14 +50,20 @@ export default function LoginPage() {
   const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const [touched, setTouched] = useState({ identifier: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExpired] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return new URLSearchParams(window.location.search).get('expired') === 'true';
-  });
-  const [isRiderBlocked] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return new URLSearchParams(window.location.search).get('error') === 'rider';
-  });
+  const [isExpired, setIsExpired] = useState(false);
+  const [isRiderBlocked, setIsRiderBlocked] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('expired') === 'true') {
+        setIsExpired(true);
+      }
+      if (params.get('error') === 'rider') {
+        setIsRiderBlocked(true);
+      }
+    }
+  }, []);
   const loginPresentation = getLoginPresentation();
 
   // OTP login flow state
