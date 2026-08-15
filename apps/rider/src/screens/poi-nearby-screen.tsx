@@ -22,10 +22,10 @@ import { useAuth } from '../lib/auth/auth-context';
 import { useLanguage } from '../lib/i18n/language-context';
 import { PendingSetupGate } from '../components/pending-setup-gate';
 
-const POI_TYPES: PoiType[] = ['GARAGE', 'SWAP', 'CLINIC', 'OTHER'];
-const POI_ICONS: Record<PoiType, string> = { GARAGE: '🔧', SWAP: '🔋', CLINIC: '🏥', OTHER: '📍' };
-const DEFAULT_RADIUS_KM = 5;
-const DEFAULT_LIMIT = 20;
+const POI_TYPES: PoiType[] = ['SWAP', 'GARAGE', 'CLINIC', 'OTHER'];
+const POI_ICONS: Record<PoiType, string> = { SWAP: '🔋', GARAGE: '🔧', CLINIC: '🏥', OTHER: '📍' };
+const DEFAULT_RADIUS_KM = 25;
+const DEFAULT_LIMIT = 50;
 
 // Requests foreground location permission and reads current rider coordinates.
 async function fetchCurrentLocation(): Promise<{
@@ -72,7 +72,7 @@ export function PoiNearbyScreen() {
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
     null,
   );
-  const [selectedType, setSelectedType] = useState<PoiType>('GARAGE');
+  const [selectedType, setSelectedType] = useState<PoiType>('SWAP');
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isResolvingLocation, setIsResolvingLocation] = useState(false);
 
