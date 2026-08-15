@@ -104,6 +104,7 @@ export class DevicesService {
           fleetId: true,
           imei: true,
           deviceUid: true,
+          simPhoneNumber: true,
           bikeId: true,
           lastSeenAt: true,
           fwVersion: true,

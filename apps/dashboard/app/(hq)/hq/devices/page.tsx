@@ -38,6 +38,7 @@ const devicesResponseSchema = z.object({
       id: z.string(),
       deviceUid: z.string(),
       imei: z.string().nullable(),
+      simPhoneNumber: z.string().nullable().optional(),
       status: z.string(),
       lastSeenAt: z.string().nullable(),
       fwVersion: z.string().nullable(),
@@ -310,6 +311,20 @@ export default function HqDevicesPage() {
       render: (row) => <span className="font-mono text-xs text-ink-muted whitespace-nowrap">{row.imei ?? '—'}</span>,
     },
     {
+      header: t('SIM Phone'),
+      render: (row) => (
+        <span className="font-mono text-xs text-ink-muted whitespace-nowrap">
+          {row.simPhoneNumber ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-0.5 text-sky-400 font-semibold">
+              📱 {row.simPhoneNumber}
+            </span>
+          ) : (
+            <span className="text-ink-faint italic">{t('No SIM')}</span>
+          )}
+        </span>
+      ),
+    },
+    {
       header: t('Fleet'),
       render: (row) => <span className="text-xs text-ink-soft whitespace-nowrap">{row.fleet.name}</span>,
     },
@@ -563,6 +578,7 @@ export default function HqDevicesPage() {
                 }
               />
               <KeyMetric label={t('IMEI')} value={selectedDevice.imei ?? t('Not set')} />
+              <KeyMetric label={t('SIM Phone')} value={selectedDevice.simPhoneNumber ? `📱 ${selectedDevice.simPhoneNumber}` : t('Not set')} />
               <KeyMetric label={t('FW Version')} value={selectedDevice.fwVersion ?? t('Not set')} />
               <KeyMetric label={t('Fleet')} value={selectedDevice.fleet.name} />
               <KeyMetric
