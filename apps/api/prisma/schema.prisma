@@ -17,8 +17,6 @@ enum FleetPlan {
   PAYG
   INSURANCE
   ENTERPRISE
-  DEMO
-  PREMIUM
 }
 
 enum FleetSubscriptionStatus {
