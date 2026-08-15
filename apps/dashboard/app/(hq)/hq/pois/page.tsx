@@ -9,21 +9,21 @@ import { useState } from 'react';
 // Zod schemas for POIs
 const poiSchema = z.object({
   id: z.string(),
-  fleetId: z.string().nullable(),
+  fleetId: z.string().nullable().optional(),
   type: z.enum(['GARAGE', 'SWAP', 'CLINIC', 'OTHER']),
   name: z.string(),
-  phone: z.string().nullable(),
-  lat: z.number(),
-  lng: z.number(),
-  address: z.string().nullable(),
-  active: z.boolean(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  supportedBikeTypes: z.array(z.string()).default([]),
-  fullSwapFeeRwf: z.number().nullable().optional(),
-  halfSwapFeeRwf: z.number().nullable().optional(),
-  quarterSwapFeeRwf: z.number().nullable().optional(),
-});
+  phone: z.string().nullable().optional(),
+  lat: z.coerce.number(),
+  lng: z.coerce.number(),
+  address: z.string().nullable().optional(),
+  active: z.boolean().optional().default(true),
+  createdAt: z.any().optional(),
+  updatedAt: z.any().optional(),
+  supportedBikeTypes: z.array(z.string()).optional().default([]),
+  fullSwapFeeRwf: z.coerce.number().nullable().optional(),
+  halfSwapFeeRwf: z.coerce.number().nullable().optional(),
+  quarterSwapFeeRwf: z.coerce.number().nullable().optional(),
+}).passthrough();
 
 const poisResponseSchema = z.object({
   data: z.array(poiSchema),
@@ -31,7 +31,7 @@ const poisResponseSchema = z.object({
   page: z.number(),
   pageSize: z.number(),
   totalPages: z.number(),
-});
+}).passthrough();
 
 const POI_TYPES = ['GARAGE', 'SWAP', 'CLINIC', 'OTHER'] as const;
 const POI_ICONS = {

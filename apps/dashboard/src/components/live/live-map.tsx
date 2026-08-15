@@ -1934,15 +1934,23 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
   const { t } = useTranslation();
   const icon = useMemo(() => createPoiMarkerIcon(poi.type), [poi.type]);
 
-  const typeColor = (t: string) => {
-    if (t === 'GARAGE') return 'bg-indigo-400/15 text-indigo-400 border-indigo-400/20';
-    if (t === 'SWAP') return 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20';
-    if (t === 'CLINIC') return 'bg-rose-400/15 text-rose-400 border-rose-400/20';
+  const latNum = Number(poi.lat);
+  const lngNum = Number(poi.lng);
+
+  if (isNaN(latNum) || isNaN(lngNum)) {
+    return null;
+  }
+
+  const typeColor = (tStr: string) => {
+    const upper = (tStr || '').toUpperCase();
+    if (upper === 'GARAGE') return 'bg-indigo-400/15 text-indigo-400 border-indigo-400/20';
+    if (upper === 'SWAP') return 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20';
+    if (upper === 'CLINIC') return 'bg-rose-400/15 text-rose-400 border-rose-400/20';
     return 'bg-violet-400/15 text-violet-400 border-violet-400/20';
   };
 
   return (
-    <Marker position={[poi.lat, poi.lng]} icon={icon}>
+    <Marker position={[latNum, lngNum]} icon={icon}>
       <Popup className="emoto-poi-popup">
         <div className="p-1 space-y-2 min-w-[200px]">
           <div className="flex items-center justify-between gap-3 border-b border-line pb-1.5">
@@ -1967,8 +1975,8 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
             </div>
           )}
           <div className="text-[10px] text-ink-muted font-mono pt-0.5 flex justify-between border-t border-line">
-            <span>{t("Lat:")} {poi.lat.toFixed(5)}</span>
-            <span>{t("Lng:")} {poi.lng.toFixed(5)}</span>
+            <span>{t("Lat:")} {latNum.toFixed(5)}</span>
+            <span>{t("Lng:")} {lngNum.toFixed(5)}</span>
           </div>
         </div>
       </Popup>
@@ -1985,20 +1993,25 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
 });
 
 // Creates a custom, high-contrast Point of Interest (POI) marker icon.
-function createPoiMarkerIcon(type: 'GARAGE' | 'SWAP' | 'CLINIC' | 'OTHER') {
-  const emoji = {
+function createPoiMarkerIcon(type: string) {
+  const upperType = (type || 'SWAP').toUpperCase();
+  
+  const emojiMap: Record<string, string> = {
     GARAGE: '🔧',
     SWAP: '🔋',
     CLINIC: '🏥',
     OTHER: '📍',
-  }[type];
+  };
 
-  const bgColor = {
+  const bgMap: Record<string, string> = {
     GARAGE: '#818cf8', // Indigo
     SWAP: '#34d399', // Emerald
     CLINIC: '#f87171', // Rose
     OTHER: '#a78bfa', // Violet
-  }[type];
+  };
+
+  const emoji = emojiMap[upperType] || '🔋';
+  const bgColor = bgMap[upperType] || '#34d399';
 
   return L.divIcon({
     className: 'emoto-poi-marker',
