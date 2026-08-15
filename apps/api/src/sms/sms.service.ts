@@ -338,7 +338,7 @@ export class SmsService {
       'emotofleet';
     const baseUrl =
       this.cleanStr(this.configService.get<string>('BULKSEND_BASE_URL')) ||
-      'https://api.bulksend.rw/v1/sms/send';
+      'https://api.sms.bulksend.rw/send-sms';
 
     if (!apiKey) {
       this.logger.warn(
@@ -363,12 +363,14 @@ export class SmsService {
             to: formattedPhone,
             phone: formattedPhone,
             message,
+            senderName: senderId,
             sender_id: senderId,
             sender: senderId,
           },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
+              'x-api-key': apiKey,
               'X-API-Key': apiKey,
               'api-key': apiKey,
               'Content-Type': 'application/json',
