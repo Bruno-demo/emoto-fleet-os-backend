@@ -352,80 +352,55 @@ export class SmsService {
       };
     }
 
-    // Sanitize envBaseUrl if user has the legacy non-existent api.bulksend.rw domain in Railway
-    const safeEnvBaseUrl = envBaseUrl?.includes('api.bulksend.rw')
-      ? envBaseUrl.replace('api.bulksend.rw', 'api.sms.bulksend.rw')
-      : envBaseUrl;
-
-    const candidateUrls = Array.from(
-      new Set(
-        [
-          'https://api.sms.bulksend.rw/api/v1/sms/send-sms',
-          'https://api.sms.bulksend.rw/send-sms',
-          safeEnvBaseUrl,
-          'https://bulksend.rw/api/v1/sms/send',
-          'https://bulksend.rw/api/v1/sms',
-        ].filter((u): u is string => Boolean(u)),
-      ),
-    );
-
+    const targetUrl = 'https://api.sms.bulksend.rw/api/v1/sms/send-sms';
     const formattedPhone = to.replace(/[\s()+-]/g, '');
-    let lastError: unknown = null;
 
-    for (const url of candidateUrls) {
-      try {
-        const response = await firstValueFrom(
-          this.httpService.post(
-            url,
-            {
-              senderId: senderId,
-              senderName: senderId,
-              recipients: [formattedPhone],
-              message,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          targetUrl,
+          {
+            senderId: senderId,
+            senderName: senderId,
+            recipients: [formattedPhone],
+            message,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': apiKey,
+              'x-api-key': apiKey,
+              'X-API-Key': apiKey,
+              'api-key': apiKey,
+              Authorization: `Bearer ${apiKey}`,
             },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': apiKey,
-                'x-api-key': apiKey,
-                'X-API-Key': apiKey,
-                'api-key': apiKey,
-                Authorization: `Bearer ${apiKey}`,
-              },
-            },
-          ),
-        );
+          },
+        ),
+      );
 
-        this.logger.log(
-          `Dispatched SMS via BulkSend Rwanda (${url}) to ${formattedPhone} (Sender: ${senderId}): "${message}"`,
-        );
-        return {
-          success: true,
-          provider: 'bulksend',
-          messageId:
-            response.data?.messageId ||
-            response.data?.id ||
-            response.data?.data?.id ||
-            `bulksend-${Date.now()}`,
-        };
-      } catch (err: unknown) {
-        lastError = err;
-        const msg = this.extractErrorMessage(err);
-        this.logger.debug(
-          `BulkSend endpoint ${url} failed: ${msg}. Trying next candidate if available...`,
-        );
-      }
+      this.logger.log(
+        `Dispatched SMS via BulkSend Rwanda to ${formattedPhone} (Sender: ${senderId}): "${message}"`,
+      );
+      return {
+        success: true,
+        provider: 'bulksend',
+        messageId:
+          response.data?.messageId ||
+          response.data?.id ||
+          response.data?.data?.id ||
+          `bulksend-${Date.now()}`,
+      };
+    } catch (err: unknown) {
+      const errorMsg = this.extractErrorMessage(err);
+      this.logger.error(
+        `Failed to dispatch SMS via BulkSend Rwanda to ${to}: ${errorMsg}`,
+      );
+      return {
+        success: false,
+        provider: 'bulksend',
+        error: errorMsg,
+      };
     }
-
-    const errorMsg = this.extractErrorMessage(lastError);
-    this.logger.error(
-      `Failed to dispatch SMS via BulkSend Rwanda to ${to}: ${errorMsg}`,
-    );
-    return {
-      success: false,
-      provider: 'bulksend',
-      error: errorMsg,
-    };
   }
 
   private extractErrorMessage(err: unknown): string {
