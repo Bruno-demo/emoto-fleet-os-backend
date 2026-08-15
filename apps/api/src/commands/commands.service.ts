@@ -287,17 +287,17 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `Direct TCP command ${type} dispatched instantly to SinoTrack deviceUid=${device.deviceUid}`,
       );
-      const ackedCommand = await this.transitionStatus(
+      const sentCommand = await this.transitionStatus(
         command,
-        'ACKED',
+        'SENT',
         {
           sentAt: new Date(),
-          ackedAt: new Date(),
+          ackedAt: null,
           errorMessage: null,
         },
         user.id,
       );
-      return this.toFleetDeviceCommand(ackedCommand);
+      return this.toFleetDeviceCommand(sentCommand);
     }
 
     // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects
@@ -464,17 +464,17 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `HQ Direct TCP command ${type} dispatched instantly to SinoTrack deviceUid=${device.deviceUid}`,
       );
-      const ackedCommand = await this.transitionStatus(
+      const sentCommand = await this.transitionStatus(
         command,
-        'ACKED',
+        'SENT',
         {
           sentAt: new Date(),
-          ackedAt: new Date(),
+          ackedAt: null,
           errorMessage: null,
         },
         user.id,
       );
-      return this.toFleetDeviceCommand(ackedCommand);
+      return this.toFleetDeviceCommand(sentCommand);
     }
 
     // Store pending command in Redis for SinoTrack TCP auto-flush when tracker connects

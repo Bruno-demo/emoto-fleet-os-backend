@@ -416,31 +416,44 @@ export default function BikesPage() {
   };
 
   const getBikeLockStatus = useCallback(
-    (bikeId: string) => {
+    (bike: FleetBike | null | undefined) => {
+      if (!bike) return 'UNLOCKED';
       const bikeCommands = commandStatuses
         .filter(
           (status) =>
-            status.bikeId === bikeId && (status.action === 'LOCK' || status.action === 'UNLOCK'),
+            status.bikeId === bike.id && (status.action === 'LOCK' || status.action === 'UNLOCK'),
         )
         .sort((left, right) => right.ts.localeCompare(left.ts));
-      if (bikeCommands.length === 0) return 'UNLOCKED';
-      const latest = bikeCommands[0];
-      if (latest.action === 'LOCK') {
-        if (latest.status === 'ACKED') return 'LOCKED';
+
+      let action = 'UNLOCK';
+      let status = 'UNLOCKED';
+
+      if (bikeCommands.length > 0) {
+        action = bikeCommands[0].action ?? 'UNLOCK';
+        status = bikeCommands[0].status;
+      } else if (bike.commands && bike.commands.length > 0) {
+        action = bike.commands[0].type;
+        status = bike.commands[0].status;
+      } else {
+        return 'UNLOCKED';
+      }
+
+      if (action === 'LOCK') {
+        if (status === 'ACKED') return 'LOCKED';
         if (
-          latest.status === 'PENDING' ||
-          latest.status === 'SENT' ||
-          latest.status === 'QUEUED'
+          status === 'PENDING' ||
+          status === 'SENT' ||
+          status === 'QUEUED'
         ) {
           return 'LOCKING';
         }
         return 'UNLOCKED';
       } else {
-        if (latest.status === 'ACKED') return 'UNLOCKED';
+        if (status === 'ACKED') return 'UNLOCKED';
         if (
-          latest.status === 'PENDING' ||
-          latest.status === 'SENT' ||
-          latest.status === 'QUEUED'
+          status === 'PENDING' ||
+          status === 'SENT' ||
+          status === 'QUEUED'
         ) {
           return 'UNLOCKING';
         }
@@ -455,7 +468,7 @@ export default function BikesPage() {
       {
         header: t('Bike'),
         render: (bike) => {
-          const lockStatus = getBikeLockStatus(bike.id);
+          const lockStatus = getBikeLockStatus(bike);
           return (
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -720,7 +733,7 @@ export default function BikesPage() {
                 value={
                   <div className="flex items-center gap-2">
                     {(() => {
-                      const lockStatus = getBikeLockStatus(activeBike.id);
+                      const lockStatus = getBikeLockStatus(activeBike);
                       switch (lockStatus) {
                         case 'LOCKED':
                           return (

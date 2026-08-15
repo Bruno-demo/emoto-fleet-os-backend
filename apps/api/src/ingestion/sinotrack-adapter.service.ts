@@ -360,25 +360,16 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
             type: 'LOCK' | 'UNLOCK';
             imei: string;
           };
-          const hhmmss = new Date()
-            .toISOString()
-            .substring(11, 19)
-            .replace(/:/g, '');
-          const s20Cmd =
-            pendingCmd.type === 'LOCK'
-              ? `S20,${hhmmss},1,1`
-              : `S20,${hhmmss},0,1`;
-          const s20Packet = `*HQ,${imei},${s20Cmd}#`;
+          const pwd = (this.devicePassword || '0000').trim();
           const sinotrackCmd =
             pendingCmd.type === 'LOCK'
-              ? `940${this.devicePassword}`
-              : `941${this.devicePassword}`;
-          const hqPacket = `*HQ,${imei},${sinotrackCmd}#`;
-          const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
+              ? `940${pwd}`
+              : `941${pwd}`;
+          const hqPacket = `*HQ,${imei},${sinotrackCmd}#\r\n`;
 
-          socket.write(combinedPackets, 'ascii', () => {
+          socket.write(hqPacket, 'ascii', () => {
             this.logger.log(
-              `Auto-flushed queued ${pendingCmd.type} command to SinoTrack TCP socket imei=${imei}: ${s20Packet} & ${hqPacket}`,
+              `Auto-flushed queued ${pendingCmd.type} command to SinoTrack TCP socket imei=${imei}: ${hqPacket.trim()}`,
             );
           });
 
@@ -390,6 +381,15 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
               status: 'ACKED',
               ackedAt: new Date(),
             },
+          });
+
+          this.eventsGateway.emitCommandStatus(device.fleetId, {
+            commandId: pendingCmd.commandId,
+            status: 'ACKED',
+            ts: new Date().toISOString(),
+            bikeId: device.bikeId ?? undefined,
+            deviceId: device.id,
+            action: pendingCmd.type,
           });
         }
       } catch (flushErr: unknown) {
@@ -1102,21 +1102,17 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     }
     targetImei = targetImei || connection.imei || deviceUid;
 
-    const hhmmss = new Date().toISOString().substring(11, 19).replace(/:/g, '');
-    const s20Cmd = type === 'LOCK' ? `S20,${hhmmss},1,1` : `S20,${hhmmss},0,1`;
-    const s20Packet = `*HQ,${targetImei},${s20Cmd}#`;
     const pwd = (this.devicePassword || '0000').trim();
     const sinotrackCmd =
       type === 'LOCK'
         ? `940${pwd}`
         : `941${pwd}`;
-    const hqPacket = `*HQ,${targetImei},${sinotrackCmd}#`;
-    const combinedPackets = `${s20Packet}\r\n${hqPacket}\r\n`;
+    const hqPacket = `*HQ,${targetImei},${sinotrackCmd}#\r\n`;
 
     try {
-      connection.socket.write(combinedPackets, 'ascii', () => {
+      connection.socket.write(hqPacket, 'ascii', () => {
         this.logger.log(
-          `Directly dispatched SinoTrack GPRS TCP packets to imei=${targetImei} (deviceUid=${deviceUid}): ${s20Packet} & ${hqPacket}`,
+          `Directly dispatched SinoTrack GPRS TCP packet to imei=${targetImei} (deviceUid=${deviceUid}): ${hqPacket.trim()}`,
         );
       });
       return true;

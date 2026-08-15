@@ -57,6 +57,20 @@ export class BikesService {
         orderBy: { createdAt: 'desc' },
         skip: pagination.skip,
         take: pagination.take,
+        include: {
+          commands: {
+            where: { type: { in: ['LOCK', 'UNLOCK'] } },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              type: true,
+              status: true,
+              updatedAt: true,
+              errorMessage: true,
+            },
+          },
+        },
       }),
       this.prismaService.bike.count({ where }),
     ]);

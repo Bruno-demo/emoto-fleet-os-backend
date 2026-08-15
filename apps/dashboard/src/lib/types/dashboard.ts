@@ -50,6 +50,13 @@ export interface Bike {
   imageUrl?: string | null;
   type?: string | null;
   leaseToOwn?: boolean;
+  commands?: Array<{
+    id: string;
+    type: 'LOCK' | 'UNLOCK';
+    status: string;
+    updatedAt: string;
+    errorMessage: string | null;
+  }>;
   insurer?: {
     id: string;
     email: string | null;
