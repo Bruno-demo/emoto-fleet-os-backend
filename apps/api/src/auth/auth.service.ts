@@ -84,8 +84,7 @@ export class AuthService implements OnModuleInit {
   async onModuleInit() {
     try {
       await this.prismaService.$executeRawUnsafe(`
-        ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "maxUses" INTEGER DEFAULT 1;
-        ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "usedCount" INTEGER DEFAULT 0;
+        ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "maxUses" INTEGER DEFAULT 1, ADD COLUMN IF NOT EXISTS "usedCount" INTEGER DEFAULT 0;
       `);
       this.logger.log('RegistrationInvite database columns auto-verified.');
     } catch (err: any) {
@@ -889,8 +888,7 @@ export class AuthService implements OnModuleInit {
       );
       try {
         await this.prismaService.$executeRawUnsafe(`
-          ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "maxUses" INTEGER DEFAULT 1;
-          ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "usedCount" INTEGER DEFAULT 0;
+          ALTER TABLE "RegistrationInvite" ADD COLUMN IF NOT EXISTS "maxUses" INTEGER DEFAULT 1, ADD COLUMN IF NOT EXISTS "usedCount" INTEGER DEFAULT 0;
         `);
         createdInvite = await this.prismaService.registrationInvite.create({
           data: {

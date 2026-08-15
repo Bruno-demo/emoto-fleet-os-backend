@@ -336,9 +336,9 @@ export class SmsService {
     const senderId =
       this.cleanStr(this.configService.get<string>('BULKSEND_SENDER_ID')) ||
       'emotofleet';
-    const baseUrl =
-      this.cleanStr(this.configService.get<string>('BULKSEND_BASE_URL')) ||
-      'https://api.sms.bulksend.rw/send-sms';
+    const envBaseUrl = this.cleanStr(
+      this.configService.get<string>('BULKSEND_BASE_URL'),
+    );
 
     if (!apiKey) {
       this.logger.warn(
@@ -352,52 +352,77 @@ export class SmsService {
       };
     }
 
-    try {
-      const formattedPhone = to.replace(/[\s()+-]/g, '');
+    const candidateUrls = Array.from(
+      new Set(
+        [
+          envBaseUrl,
+          'https://api.sms.bulksend.rw/send-sms',
+          'https://bulksend.rw/api/v1/sms/send',
+          'https://bulksend.rw/api/v1/sms',
+          'https://api.bulksend.rw/v1/sms/send',
+        ].filter((u): u is string => Boolean(u)),
+      ),
+    );
 
-      const response = await firstValueFrom(
-        this.httpService.post(
-          baseUrl,
-          {
-            recipients: [formattedPhone],
-            to: formattedPhone,
-            phone: formattedPhone,
-            message,
-            senderName: senderId,
-            sender_id: senderId,
-            sender: senderId,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'x-api-key': apiKey,
-              'X-API-Key': apiKey,
-              'api-key': apiKey,
-              'Content-Type': 'application/json',
+    const formattedPhone = to.replace(/[\s()+-]/g, '');
+    let lastError: unknown = null;
+
+    for (const url of candidateUrls) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post(
+            url,
+            {
+              recipients: [formattedPhone],
+              to: formattedPhone,
+              phone: formattedPhone,
+              message,
+              senderName: senderId,
+              sender_id: senderId,
+              sender: senderId,
             },
-          },
-        ),
-      );
+            {
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'x-api-key': apiKey,
+                'X-API-Key': apiKey,
+                'api-key': apiKey,
+                'Content-Type': 'application/json',
+              },
+            },
+          ),
+        );
 
-      this.logger.log(
-        `Dispatched SMS via BulkSend Rwanda to ${formattedPhone} (Sender: ${senderId}): "${message}"`,
-      );
-      return {
-        success: true,
-        provider: 'bulksend',
-        messageId:
-          response.data?.messageId ||
-          response.data?.id ||
-          response.data?.data?.id ||
-          `bulksend-${Date.now()}`,
-      };
-    } catch (err: unknown) {
-      const errorMsg = this.extractErrorMessage(err);
-      this.logger.error(
-        `Failed to dispatch SMS via BulkSend Rwanda to ${to}: ${errorMsg}`,
-      );
-      return { success: false, provider: 'bulksend', error: errorMsg };
+        this.logger.log(
+          `Dispatched SMS via BulkSend Rwanda (${url}) to ${formattedPhone} (Sender: ${senderId}): "${message}"`,
+        );
+        return {
+          success: true,
+          provider: 'bulksend',
+          messageId:
+            response.data?.messageId ||
+            response.data?.id ||
+            response.data?.data?.id ||
+            `bulksend-${Date.now()}`,
+        };
+      } catch (err: unknown) {
+        lastError = err;
+        const msg = this.extractErrorMessage(err);
+        this.logger.debug(
+          `BulkSend endpoint ${url} failed: ${msg}. Trying next candidate if available...`,
+        );
+      }
     }
+
+    const errorMsg = this.extractErrorMessage(lastError);
+    this.logger.error(
+      `Failed to dispatch SMS via BulkSend Rwanda to ${to}: ${errorMsg}`,
+    );
+    return {
+      success: false,
+      provider: 'bulksend',
+      error: errorMsg,
+    };
   }
 
   private extractErrorMessage(err: unknown): string {
