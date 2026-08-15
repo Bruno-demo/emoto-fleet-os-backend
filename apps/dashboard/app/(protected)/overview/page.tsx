@@ -142,12 +142,12 @@ export default function OverviewPage() {
     },
     {
       id: 'devices',
-      title: t('Pair GPS Tracker / Device'),
-      desc: t('Provision IoT hardware trackers to enable remote lock/unlock & live map.'),
+      title: t('Link GPS Hardware Tracker'),
+      desc: t('Connect assigned IoT hardware trackers to your motos for live map telemetry & remote lock control.'),
       href: '/devices',
       icon: <Zap size={18} className="text-accent" />,
       isCompleted: totalDevices > 0,
-      actionText: t('Pair Device'),
+      actionText: t('Link GPS Device'),
     },
     {
       id: 'momo',
