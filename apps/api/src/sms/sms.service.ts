@@ -67,6 +67,11 @@ export class SmsService {
     let cleaned = phone.replace(/[\s()+-]/g, '');
     if (cleaned.startsWith('0')) {
       cleaned = '250' + cleaned.substring(1);
+    } else if (
+      cleaned.length === 9 &&
+      (cleaned.startsWith('7') || cleaned.startsWith('8'))
+    ) {
+      cleaned = '250' + cleaned;
     }
     if (!cleaned.startsWith('+')) {
       cleaned = '+' + cleaned;
