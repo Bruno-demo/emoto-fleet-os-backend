@@ -936,27 +936,42 @@ export default function BikesPage() {
                 title={t('Command actions')}
                 description={t('Send a lock or unlock request to the assigned device. Use the command history below to confirm acknowledgements.')}
               >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    disabled={!canSendCommands || isSendingCommand}
-                    onClick={() => setCommandIntent('LOCK')}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
-                    style={{ background: '#EF4444', color: 'white' }}
-                  >
-                    <Lock size={16} />
-                    {t('Lock bike')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!canSendCommands || isSendingCommand}
-                    onClick={() => setCommandIntent('UNLOCK')}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Unlock size={16} />
-                    {t('Unlock bike')}
-                  </button>
-                </div>
+                {(() => {
+                  const activeLockStatus = getBikeLockStatus(activeBike);
+                  return (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        disabled={
+                          !canSendCommands ||
+                          isSendingCommand ||
+                          activeLockStatus === 'LOCKED' ||
+                          activeLockStatus === 'LOCKING'
+                        }
+                        onClick={() => setCommandIntent('LOCK')}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ background: '#EF4444', color: 'white' }}
+                      >
+                        <Lock size={16} className={activeLockStatus === 'LOCKING' ? 'animate-spin' : ''} />
+                        {activeLockStatus === 'LOCKING' ? t('Locking...') : t('Lock bike')}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          !canSendCommands ||
+                          isSendingCommand ||
+                          activeLockStatus === 'UNLOCKED' ||
+                          activeLockStatus === 'UNLOCKING'
+                        }
+                        onClick={() => setCommandIntent('UNLOCK')}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Unlock size={16} className={activeLockStatus === 'UNLOCKING' ? 'animate-spin' : ''} />
+                        {activeLockStatus === 'UNLOCKING' ? t('Unlocking...') : t('Unlock bike')}
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {!canUseFeature(currentUser, 'commands') ? (
                   <InlineNotice message={t('Remote lock and unlock controls are available on Delivery Fleet.')} />

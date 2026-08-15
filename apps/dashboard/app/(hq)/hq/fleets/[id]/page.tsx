@@ -75,6 +75,17 @@ const fleetDetailSchema = z.object({
       type: z.string().nullable().optional(),
       imageUrl: z.string().nullable().optional(),
       leaseToOwn: z.boolean().optional(),
+      commands: z
+        .array(
+          z.object({
+            id: z.string(),
+            type: z.string(),
+            status: z.string(),
+            updatedAt: z.string(),
+            errorMessage: z.string().nullable().optional(),
+          })
+        )
+        .optional(),
       devices: z
         .array(
           z.object({
@@ -1023,6 +1034,23 @@ export default function FleetDetailPage() {
               ) : (
                 fleet.bikes.map((bike) => {
                   const assignedDevice = bike.devices?.[0];
+                  const latestCmd = bike.commands?.[0];
+                  let isLocked = false;
+                  let isLocking = false;
+                  let isUnlocking = false;
+
+                  if (lockingBikeId === bike.id) {
+                    isLocking = true;
+                  } else if (latestCmd) {
+                    if (latestCmd.type === 'LOCK') {
+                      if (latestCmd.status === 'ACKED') isLocked = true;
+                      else if (['PENDING', 'SENT', 'QUEUED'].includes(latestCmd.status)) isLocking = true;
+                    } else {
+                      if (latestCmd.status === 'ACKED') isLocked = false;
+                      else if (['PENDING', 'SENT', 'QUEUED'].includes(latestCmd.status)) isUnlocking = true;
+                    }
+                  }
+
                   return (
                     <tr key={bike.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-4 py-3 font-medium text-white">{bike.label}</td>
@@ -1096,30 +1124,32 @@ export default function FleetDetailPage() {
                               lockMutation.mutate({ bikeId: bike.id, action: 'lock' })
                             }
                             disabled={
-                              lockingBikeId === bike.id ||
-                              bike.status !== 'ACTIVE' ||
-                              ((bike as unknown) as { lockState?: string }).lockState === 'LOCKED' ||
-                              ((bike as unknown) as { lockState?: string }).lockState === 'LOCKING'
+                              isLocking ||
+                              isLocked ||
+                              bike.status !== 'ACTIVE'
                             }
-                            title="Lock bike"
+                            title={isLocking ? "Locking..." : isLocked ? "Bike is Locked" : "Lock bike"}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition-all hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
                           >
-                            <Lock size={14} />
+                            {isLocking ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Lock size={14} />
+                            )}
                           </button>
                           <button
                             onClick={() =>
                               lockMutation.mutate({ bikeId: bike.id, action: 'unlock' })
                             }
                             disabled={
-                              lockingBikeId === bike.id ||
-                              bike.status !== 'ACTIVE' ||
-                              ((bike as unknown) as { lockState?: string }).lockState === 'UNLOCKED' ||
-                              ((bike as unknown) as { lockState?: string }).lockState === 'UNLOCKING'
+                              isUnlocking ||
+                              (!isLocked && !isUnlocking) ||
+                              bike.status !== 'ACTIVE'
                             }
-                            title="Unlock bike"
+                            title={isUnlocking ? "Unlocking..." : !isLocked ? "Bike is Unlocked" : "Unlock bike"}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 transition-all hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
                           >
-                            {lockingBikeId === bike.id ? (
+                            {isUnlocking ? (
                               <Loader2 size={14} className="animate-spin" />
                             ) : (
                               <Unlock size={14} />

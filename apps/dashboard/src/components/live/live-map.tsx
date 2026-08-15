@@ -253,30 +253,41 @@ export function LiveMapPanel() {
   );
 
   const selectedBikeLockStatus = useMemo(() => {
-    if (selectedCommandStream.length === 0) return 'UNLOCKED';
-    const latest = selectedCommandStream[0];
-    if (latest.action === 'LOCK') {
-      if (latest.status === 'ACKED') return 'LOCKED';
+    let action = 'UNLOCK';
+    let status = 'UNLOCKED';
+
+    if (selectedCommandStream.length > 0) {
+      action = selectedCommandStream[0].action ?? 'UNLOCK';
+      status = selectedCommandStream[0].status;
+    } else if (selectedBike?.commands && selectedBike.commands.length > 0) {
+      action = selectedBike.commands[0].type;
+      status = selectedBike.commands[0].status;
+    } else {
+      return 'UNLOCKED';
+    }
+
+    if (action === 'LOCK') {
+      if (status === 'ACKED') return 'LOCKED';
       if (
-        latest.status === 'PENDING' ||
-        latest.status === 'SENT' ||
-        latest.status === 'QUEUED'
+        status === 'PENDING' ||
+        status === 'SENT' ||
+        status === 'QUEUED'
       ) {
         return 'LOCKING';
       }
       return 'UNLOCKED';
     } else {
-      if (latest.status === 'ACKED') return 'UNLOCKED';
+      if (status === 'ACKED') return 'UNLOCKED';
       if (
-        latest.status === 'PENDING' ||
-        latest.status === 'SENT' ||
-        latest.status === 'QUEUED'
+        status === 'PENDING' ||
+        status === 'SENT' ||
+        status === 'QUEUED'
       ) {
         return 'UNLOCKING';
       }
       return 'LOCKED';
     }
-  }, [selectedCommandStream]);
+  }, [selectedCommandStream, selectedBike]);
 
   const onlineCount = throttledStates.filter((state) => isFreshState(state.ts)).length;
   const movingCount = throttledStates.filter((state) => state.speedKph >= 5).length;
@@ -934,10 +945,10 @@ export function LiveMapPanel() {
             >
               <div className="space-y-3">
                 <ActionButton
-                  icon={<Lock size={16} />}
+                  icon={<Lock size={16} className={selectedBikeLockStatus === 'LOCKING' ? 'animate-spin' : ''} />}
                   label={
-                    isSendingCommand && commandIntent === 'LOCK'
-                      ? t('Sending lock...')
+                    selectedBikeLockStatus === 'LOCKING' || (isSendingCommand && commandIntent === 'LOCK')
+                      ? t('Locking...')
                       : t('Lock bike')
                   }
                   tone="danger"
@@ -959,10 +970,10 @@ export function LiveMapPanel() {
                 ) : null}
 
                 <ActionButton
-                  icon={<Unlock size={16} />}
+                  icon={<Unlock size={16} className={selectedBikeLockStatus === 'UNLOCKING' ? 'animate-spin' : ''} />}
                   label={
-                    isSendingCommand && commandIntent === 'UNLOCK'
-                      ? t('Sending unlock...')
+                    selectedBikeLockStatus === 'UNLOCKING' || (isSendingCommand && commandIntent === 'UNLOCK')
+                      ? t('Unlocking...')
                       : t('Unlock bike')
                   }
                   tone="default"

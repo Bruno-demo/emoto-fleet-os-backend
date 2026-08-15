@@ -245,6 +245,18 @@ export class HqService {
             type: true,
             imageUrl: true,
             updatedAt: true,
+            commands: {
+              where: { type: { in: ['LOCK', 'UNLOCK'] } },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                type: true,
+                status: true,
+                updatedAt: true,
+                errorMessage: true,
+              },
+            },
             devices: {
               select: {
                 id: true,
