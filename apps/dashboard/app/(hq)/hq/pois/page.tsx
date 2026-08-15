@@ -75,10 +75,11 @@ export default function HqPoisPage() {
   queryParams.set('pageSize', '50'); // Pull 50 items so client searching is extensive
   if (filterType) queryParams.set('type', filterType);
   if (filterActive !== '') queryParams.set('active', filterActive);
+  if (search) queryParams.set('search', search);
 
   // Fetch POIs
   const { data, isLoading } = useQuery({
-    queryKey: ['hq', 'pois', page, filterType, filterActive],
+    queryKey: ['hq', 'pois', page, filterType, filterActive, search],
     queryFn: () => apiFetch(`/poi?${queryParams.toString()}`, {}, { schema: poisResponseSchema }),
   });
 

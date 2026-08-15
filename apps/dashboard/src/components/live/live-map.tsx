@@ -176,7 +176,7 @@ export function LiveMapPanel() {
   const poisQuery = useQuery({
     queryKey: ['pois', 'live-active'],
     queryFn: () =>
-      apiFetch<PaginatedResponse<Poi>>('/poi?page=1&pageSize=200&active=true'),
+      apiFetch<PaginatedResponse<Poi>>('/poi?page=1&pageSize=1000&active=true'),
   });
 
   const selectedBikeEventsQuery = useQuery({

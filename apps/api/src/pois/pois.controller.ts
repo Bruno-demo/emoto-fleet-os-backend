@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Put,
   Post,
   Query,
@@ -44,6 +45,15 @@ export class PoisController {
   @Put(':id')
   @ApiOperation({ summary: 'Update a point of interest by ID' })
   async updatePoi(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: Partial<CreatePoiDto>,
+  ) {
+    return this.poisService.updatePoi(id, dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a point of interest by ID' })
+  async patchPoi(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: Partial<CreatePoiDto>,
   ) {
