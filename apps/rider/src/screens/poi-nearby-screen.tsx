@@ -270,21 +270,6 @@ export function PoiNearbyScreen() {
                     rightSlot={<Badge label={poi.type} tone="primary" />}
                   />
                   <View style={styles.poiActions}>
-                    {contactPhone ? (
-                      <View style={styles.poiActionButton}>
-                        <SecondaryButton
-                          label="Call"
-                          onPress={() => {
-                            void openPhoneDialer(contactPhone).catch((error: unknown) => {
-                              logAppError('rider.poi_call_failed', error, {
-                                feature: 'poi',
-                                operation: 'call',
-                              });
-                            });
-                          }}
-                        />
-                      </View>
-                    ) : null}
                     <View style={styles.poiActionButton}>
                       <PrimaryButton
                         label="Directions"
