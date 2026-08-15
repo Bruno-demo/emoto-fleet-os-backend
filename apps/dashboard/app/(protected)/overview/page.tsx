@@ -16,6 +16,7 @@ import {
   CreditCard,
   Gauge,
   Lock,
+  MapPin,
   Settings,
   ShieldAlert,
   Siren,
@@ -87,9 +88,9 @@ export default function OverviewPage() {
     enabled: !!user && user.role !== 'INSURER',
   });
 
-  const devicesQuery = useQuery({
-    queryKey: ['devices', 'overview-count'],
-    queryFn: () => apiFetch<PaginatedResponse<{ id: string }>>('/devices?page=1&pageSize=1'),
+  const zonesQuery = useQuery({
+    queryKey: ['zones', 'overview-count'],
+    queryFn: () => apiFetch<PaginatedResponse<{ id: string }>>('/zones?page=1&pageSize=1'),
     enabled: !!user && user.role !== 'INSURER',
   });
 
@@ -103,7 +104,7 @@ export default function OverviewPage() {
   const openIncidents = incidentsQuery.data?.total ?? 0;
   const totalBikes = bikesQuery.data?.total ?? 0;
   const totalRiders = ridersQuery.data?.total ?? 0;
-  const totalDevices = devicesQuery.data?.total ?? 0;
+  const totalZones = zonesQuery.data?.total ?? 0;
   const momoConfigured = Boolean(fleetSettingsQuery.data?.momoPhoneNumber);
   const recentIncidents = recentIncidentsQuery.data?.data ?? [];
 
@@ -141,13 +142,13 @@ export default function OverviewPage() {
       actionText: t('Onboard Motari'),
     },
     {
-      id: 'devices',
-      title: t('Link GPS Hardware Tracker'),
-      desc: t('Connect assigned IoT hardware trackers to your motos for live map telemetry & remote lock control.'),
-      href: '/devices',
-      icon: <Zap size={18} className="text-accent" />,
-      isCompleted: totalDevices > 0,
-      actionText: t('Link GPS Device'),
+      id: 'zones',
+      title: t('Create Your First Zone'),
+      desc: t('Define operational geofences to monitor fleet boundary movements & security alerts.'),
+      href: '/zones',
+      icon: <MapPin size={18} className="text-accent" />,
+      isCompleted: totalZones > 0,
+      actionText: t('Create Zone'),
     },
     {
       id: 'momo',
