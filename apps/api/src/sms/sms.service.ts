@@ -352,14 +352,18 @@ export class SmsService {
       };
     }
 
+    // Sanitize envBaseUrl if user has the legacy non-existent api.bulksend.rw domain in Railway
+    const safeEnvBaseUrl = envBaseUrl?.includes('api.bulksend.rw')
+      ? envBaseUrl.replace('api.bulksend.rw', 'api.sms.bulksend.rw')
+      : envBaseUrl;
+
     const candidateUrls = Array.from(
       new Set(
         [
-          envBaseUrl,
           'https://api.sms.bulksend.rw/send-sms',
+          safeEnvBaseUrl,
           'https://bulksend.rw/api/v1/sms/send',
           'https://bulksend.rw/api/v1/sms',
-          'https://api.bulksend.rw/v1/sms/send',
         ].filter((u): u is string => Boolean(u)),
       ),
     );
@@ -373,21 +377,16 @@ export class SmsService {
           this.httpService.post(
             url,
             {
-              recipients: [formattedPhone],
-              to: formattedPhone,
-              phone: formattedPhone,
-              message,
               senderName: senderId,
-              sender_id: senderId,
-              sender: senderId,
+              recipients: [formattedPhone],
+              message,
             },
             {
               headers: {
-                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
                 'x-api-key': apiKey,
                 'X-API-Key': apiKey,
-                'api-key': apiKey,
-                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey}`,
               },
             },
           ),
