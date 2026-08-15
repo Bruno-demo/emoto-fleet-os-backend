@@ -161,6 +161,11 @@ export default function TripsPage() {
                 <Bike size={13} />
               </span>
               <span className="font-semibold text-ink">{trip.bikeLabel ?? t('Unknown Bike')}</span>
+              {trip.bikePlate && (
+                <span className="rounded-md bg-accent/10 border border-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                  {trip.bikePlate}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-ink-soft">
               <User size={11} className="text-ink-muted" />
@@ -332,7 +337,7 @@ export default function TripsPage() {
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
                 <input
                   type="text"
-                  placeholder={t('Search bike label, rider name, or ID...')}
+                  placeholder={t('Search plate number, bike label, rider name, or ID...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 pl-10 pr-10 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"

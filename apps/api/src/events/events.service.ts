@@ -88,8 +88,12 @@ export class EventsService {
       where.bikeId = query.bikeId;
     }
 
-    if (query.deviceId) {
-      where.deviceId = query.deviceId;
+    if (query.search) {
+      where.OR = [
+        { bike: { label: { contains: query.search, mode: 'insensitive' } } },
+        { bike: { plate: { contains: query.search, mode: 'insensitive' } } },
+        { device: { deviceUid: { contains: query.search, mode: 'insensitive' } } },
+      ];
     }
 
     const pagination = getPaginationParams(query);

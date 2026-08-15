@@ -20,6 +20,7 @@ type TripWithRelations = Prisma.TripGetPayload<{
     bike: {
       select: {
         label: true;
+        plate: true;
       };
     };
     rider: {
@@ -52,6 +53,16 @@ export class TripsService {
         {
           bike: {
             label: { contains: query.search, mode: 'insensitive' },
+          },
+        },
+        {
+          bike: {
+            plate: { contains: query.search, mode: 'insensitive' },
+          },
+        },
+        {
+          bike: {
+            serial: { contains: query.search, mode: 'insensitive' },
           },
         },
         {
@@ -121,6 +132,7 @@ export class TripsService {
           bike: {
             select: {
               label: true,
+              plate: true,
             },
           },
           rider: {
@@ -228,6 +240,7 @@ export class TripsService {
           bike: {
             select: {
               label: true,
+              plate: true,
             },
           },
           rider: {
@@ -269,6 +282,7 @@ export class TripsService {
         bike: {
           select: {
             label: true,
+            plate: true,
           },
         },
         rider: {
@@ -429,6 +443,7 @@ export class TripsService {
       fleetId: trip.fleetId,
       bikeId: trip.bikeId,
       bikeLabel: trip.bike?.label,
+      bikePlate: trip.bike?.plate ?? null,
       riderId: trip.riderId,
       riderName:
         trip.rider?.riderProfile?.fullName ??

@@ -5,6 +5,7 @@ export interface FleetTrip {
   fleetId: string;
   bikeId: string;
   bikeLabel?: string;
+  bikePlate?: string | null;
   riderId: string | null;
   riderName?: string | null;
   startTs: Date;

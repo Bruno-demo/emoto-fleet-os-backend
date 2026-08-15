@@ -18,6 +18,7 @@ import {
   NotificationChannel,
   Delivery,
   FleetType,
+  Prisma,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { NotificationOutboxService } from '../incidents/notification-outbox.service';
@@ -91,19 +92,31 @@ export class DeliveriesService {
 
   async listDeliveries(
     fleetId: string,
-    query: { status?: DeliveryStatus; riderId?: string },
+    query: { status?: DeliveryStatus; riderId?: string; search?: string },
   ) {
     await this.ensureDeliveryFleet(fleetId);
-    const where: {
-      fleetId: string;
-      status?: DeliveryStatus;
-      riderId?: string;
-    } = { fleetId };
+    const where: Prisma.DeliveryWhereInput = { fleetId };
     if (query.status) {
       where.status = query.status;
     }
     if (query.riderId) {
       where.riderId = query.riderId;
+    }
+    if (query.search) {
+      where.OR = [
+        { orderNumber: { contains: query.search, mode: 'insensitive' } },
+        { customerName: { contains: query.search, mode: 'insensitive' } },
+        { customerPhone: { contains: query.search, mode: 'insensitive' } },
+        { pickupAddress: { contains: query.search, mode: 'insensitive' } },
+        { dropoffAddress: { contains: query.search, mode: 'insensitive' } },
+        {
+          rider: {
+            riderProfile: {
+              fullName: { contains: query.search, mode: 'insensitive' },
+            },
+          },
+        },
+      ];
     }
 
     return this.prisma.delivery.findMany({

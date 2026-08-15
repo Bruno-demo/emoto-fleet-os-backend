@@ -321,8 +321,12 @@ export class IncidentsService {
       where.fleetId = user.fleetId;
     }
 
-    if (query.status) {
-      where.status = query.status;
+    if (query.search) {
+      where.OR = [
+        { bike: { label: { contains: query.search, mode: 'insensitive' } } },
+        { bike: { plate: { contains: query.search, mode: 'insensitive' } } },
+        { device: { deviceUid: { contains: query.search, mode: 'insensitive' } } },
+      ];
     }
     if (query.from || query.to) {
       where.createdAt = {};

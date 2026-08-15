@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, CalendarDays, Filter, ShieldAlert, Lock, MapPin, ArrowRight, ChevronDown, Check } from 'lucide-react';
+import { Activity, CalendarDays, Filter, ShieldAlert, Lock, MapPin, ArrowRight, ChevronDown, Check, Search, X } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
 import { DataTable, type DataTableColumn, DataTableToolbar } from '@/components/ui/data-table';
@@ -42,6 +42,7 @@ export default function EventsPage() {
 
   const [page, setPage] = useState(1);
   const [accumulatedEvents, setAccumulatedEvents] = useState<FleetEvent[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [type, setType] = useState('');
   const [severity, setSeverity] = useState('');
   const [bikeId, setBikeId] = useState('');
@@ -52,7 +53,7 @@ export default function EventsPage() {
   useEffect(() => {
     setPage(1);
     setAccumulatedEvents([]);
-  }, [type, severity, bikeId, from, to]);
+  }, [type, severity, bikeId, from, to, searchQuery]);
 
   const bikesQuery = useQuery({
     queryKey: ['bikes', 'event-filter'],
@@ -60,7 +61,7 @@ export default function EventsPage() {
   });
 
   const eventsQuery = useQuery({
-    queryKey: ['events', page, type, severity, bikeId, from, to],
+    queryKey: ['events', page, type, severity, bikeId, from, to, searchQuery],
     queryFn: () =>
       apiFetch<PaginatedResponse<FleetEvent>>(
         `/events${buildQueryString({
@@ -69,6 +70,7 @@ export default function EventsPage() {
           type: type || undefined,
           severity: severity || undefined,
           bikeId: bikeId || undefined,
+          search: searchQuery.trim() || undefined,
           from: toIsoUtcOrUndefined(from),
           to: toIsoUtcOrUndefined(to),
         })}`,
@@ -222,6 +224,7 @@ export default function EventsPage() {
             <button
               type="button"
               onClick={() => {
+                setSearchQuery('');
                 setType('');
                 setSeverity('');
                 setBikeId('');
@@ -236,6 +239,29 @@ export default function EventsPage() {
           }
         >
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {/* Search Input */}
+            <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-3">
+              <label className="text-sm font-medium text-ink">{t('Search Context')}</label>
+              <div className="relative">
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="text"
+                  placeholder={t('Search by plate number (e.g. RAC 123A), bike label, or device UID...')}
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                  className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 pl-10 pr-10 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setPage(1); }}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
             <SelectField label={t('Event type')} value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}>
               <option value="">{t('All event types')}</option>
               <option value="OVERSPEED">{t('Overspeed')}</option>

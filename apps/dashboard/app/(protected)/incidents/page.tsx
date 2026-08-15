@@ -11,6 +11,8 @@ import {
   Siren,
   ChevronDown,
   Check,
+  Search,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api/client';
@@ -38,6 +40,7 @@ export default function IncidentsPage() {
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [accumulatedIncidents, setAccumulatedIncidents] = useState<Incident[]>([]);
   const [status, setStatus] = useState<IncidentStatusFilter>('OPEN');
   const [from, setFrom] = useState('');
@@ -47,7 +50,7 @@ export default function IncidentsPage() {
   useEffect(() => {
     setPage(1);
     setAccumulatedIncidents([]);
-  }, [status, from, to]);
+  }, [status, from, to, searchQuery]);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<IncidentAction | null>(null);
   const [notes, setNotes] = useState('');
@@ -59,13 +62,14 @@ export default function IncidentsPage() {
   const canGenerateEvidence = canUseFeature(currentUser, 'evidence');
 
   const incidentsQuery = useQuery({
-    queryKey: ['incidents', page, status, from, to],
+    queryKey: ['incidents', page, status, from, to, searchQuery],
     queryFn: () =>
       apiFetch<PaginatedResponse<Incident>>(
         `/incidents${buildQueryString({
           page,
           pageSize: PAGE_SIZE,
           status: status || undefined,
+          search: searchQuery.trim() || undefined,
           from: toIsoUtcOrUndefined(from),
           to: toIsoUtcOrUndefined(to),
         })}`,
@@ -324,6 +328,7 @@ export default function IncidentsPage() {
             <button
               type="button"
               onClick={() => {
+                setSearchQuery('');
                 setStatus('OPEN');
                 setFrom('');
                 setTo('');
@@ -345,6 +350,29 @@ export default function IncidentsPage() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
+              {/* Search Input */}
+              <div className="flex flex-col gap-2 md:col-span-3">
+                <label className="text-sm font-medium text-ink">{t('Search Context')}</label>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
+                  <input
+                    type="text"
+                    placeholder={t('Search by plate number (e.g. RAC 123A), bike label, or device UID...')}
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                    className="w-full rounded-[var(--radius-control)] border border-line bg-surface-hover py-3 pl-10 pr-10 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => { setSearchQuery(''); setPage(1); }}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
               <FilterField label={t("From")} type="datetime-local" value={from} onChange={(value) => { setFrom(value); setPage(1); }} />
               <FilterField label={t("To")} type="datetime-local" value={to} onChange={(value) => { setTo(value); setPage(1); }} />
               <div className="rounded-[var(--radius-panel)] border border-line bg-surface-muted px-4 py-4">
