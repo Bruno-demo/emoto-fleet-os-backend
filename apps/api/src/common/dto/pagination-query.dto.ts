@@ -10,20 +10,20 @@ export class PaginationQueryDto {
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ example: 20, minimum: 1, maximum: 100, default: 20 })
+  @ApiPropertyOptional({ example: 20, minimum: 1, maximum: 2000, default: 20 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(250)
+  @Max(2000)
   pageSize?: number;
 
-  @ApiPropertyOptional({ example: 20, minimum: 1, maximum: 100, default: 20 })
+  @ApiPropertyOptional({ example: 20, minimum: 1, maximum: 2000, default: 20 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(250)
+  @Max(2000)
   limit?: number;
 
   @ApiPropertyOptional({ description: 'Optional search term filter' })

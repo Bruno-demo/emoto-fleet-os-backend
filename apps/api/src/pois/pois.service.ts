@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, PoiType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePoiDto } from './dto/create-poi.dto';
 import { ListPoisDto } from './dto/list-pois.dto';
@@ -14,27 +14,34 @@ export class PoisService {
 
   async listPois(query: ListPoisDto) {
     const pagination = getPaginationParams(query);
-    const where: Prisma.PoiWhereInput = {};
+    const whereAnd: Prisma.PoiWhereInput[] = [];
 
     if (query.type) {
-      where.type = query.type;
+      whereAnd.push({ type: query.type });
     }
 
     if (query.active !== undefined && query.active !== '') {
-      where.active = query.active === 'true';
+      whereAnd.push({ active: query.active === 'true' });
     }
 
     if (query.fleetId) {
-      where.OR = [{ fleetId: query.fleetId }, { fleetId: null }];
+      whereAnd.push({
+        OR: [{ fleetId: query.fleetId }, { fleetId: null }],
+      });
     }
 
     if (query.search) {
       const searchTerm = query.search.trim();
-      where.OR = [
-        { name: { contains: searchTerm, mode: 'insensitive' } },
-        { address: { contains: searchTerm, mode: 'insensitive' } },
-      ];
+      whereAnd.push({
+        OR: [
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { address: { contains: searchTerm, mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const where: Prisma.PoiWhereInput =
+      whereAnd.length > 0 ? { AND: whereAnd } : {};
 
     const [pois, total] = await Promise.all([
       this.prisma.poi.findMany({
