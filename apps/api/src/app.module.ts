@@ -31,6 +31,7 @@ import { BillingModule } from './billing/billing.module';
 import { DeliveriesModule } from './deliveries/deliveries.module';
 import { TrafficFinesModule } from './traffic-fines/traffic-fines.module';
 import { SmsModule } from './sms/sms.module';
+import { PoisModule } from './pois/pois.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { SmsModule } from './sms/sms.module';
     DeliveriesModule,
     TrafficFinesModule,
     SmsModule,
+    PoisModule,
   ],
   providers: [
     {
