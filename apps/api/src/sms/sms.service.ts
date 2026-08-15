@@ -360,6 +360,7 @@ export class SmsService {
     const candidateUrls = Array.from(
       new Set(
         [
+          'https://api.sms.bulksend.rw/api/v1/sms/send-sms',
           'https://api.sms.bulksend.rw/send-sms',
           safeEnvBaseUrl,
           'https://bulksend.rw/api/v1/sms/send',
@@ -377,6 +378,7 @@ export class SmsService {
           this.httpService.post(
             url,
             {
+              senderId: senderId,
               senderName: senderId,
               recipients: [formattedPhone],
               message,
@@ -384,8 +386,10 @@ export class SmsService {
             {
               headers: {
                 'Content-Type': 'application/json',
+                'apikey': apiKey,
                 'x-api-key': apiKey,
                 'X-API-Key': apiKey,
+                'api-key': apiKey,
                 Authorization: `Bearer ${apiKey}`,
               },
             },
