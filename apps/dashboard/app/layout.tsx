@@ -154,6 +154,29 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* Preconnect & Resource Hints for Performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Structured Data (JSON-LD) for 100 SEO score */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "eMoto Fleet OS",
+              "operatingSystem": "Web",
+              "applicationCategory": "BusinessApplication",
+              "description": "Real-time safety, tracking, and B2B SaaS operations management for electric motorcycle fleets in Kigali, Rwanda.",
+              "url": "https://emotofleet.com",
+              "publisher": {
+                "@type": "Organization",
+                "name": "eMoto Rwanda",
+                "url": "https://emotofleet.com"
+              }
+            })
+          }}
+        />
       </head>
       <body
         className={`${manrope.variable} ${spaceGrotesk.variable} min-h-screen antialiased`}

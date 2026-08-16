@@ -1897,7 +1897,7 @@ export default function HqBillingPage() {
                 >
                   <Printer size={13} /> Print / Save PDF
                 </button>
-                <button onClick={() => setBreakdownCycleId(null)} className="p-1.5 text-zinc-400 hover:text-white cursor-pointer">
+                <button onClick={() => setBreakdownCycleId(null)} aria-label="Close statement modal" className="p-1.5 text-zinc-400 hover:text-white cursor-pointer">
                   <X size={18} />
                 </button>
               </div>
