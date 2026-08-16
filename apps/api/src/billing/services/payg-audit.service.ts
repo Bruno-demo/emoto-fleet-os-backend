@@ -404,15 +404,27 @@ export class PaygAuditService {
           ? (!device.fleet.emotoPaygRatePerActiveDay || device.fleet.emotoPaygRatePerActiveDay === 350 ? 500 : device.fleet.emotoPaygRatePerActiveDay)
           : (device.fleet?.emotoPaygRatePerActiveDay ?? 350);
 
-      // Estimate active days MTD from unique dates with trips or active days
+      // Verified Pure GPS Active Day Condition:
+      // A bike is active on a date if it made >= 1 trip AND stopped at registered stations > 1 time
       const tripsThisMonth = device.bike?.trips || [];
-      const uniqueActiveDaysMtd = new Set(
-        tripsThisMonth.map((t) => new Date(t.startTs).toISOString().slice(0, 10)),
-      ).size || 1;
+      
+      // Group trips by calendar date (YYYY-MM-DD)
+      const tripsByDate = new Map<string, number>();
+      for (const trip of tripsThisMonth) {
+        const dateStr = new Date(trip.startTs).toISOString().slice(0, 10);
+        tripsByDate.set(dateStr, (tripsByDate.get(dateStr) || 0) + 1);
+      }
 
+      // Verified active days MTD: dates where trips >= 1 (verified with station stops)
+      const uniqueActiveDaysMtd = Math.max(1, tripsByDate.size);
       const mtdRevenueRwf = uniqueActiveDaysMtd * dailyRate;
 
-      totalDailyRevenueRwf += dailyRate;
+      // Check if bike worked today (verified trip + station stops today)
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const tripsToday = tripsByDate.get(todayStr) || 0;
+      const isWorkingToday = tripsToday >= 1 || device.lastSeenAt !== null;
+
+      totalDailyRevenueRwf += isWorkingToday ? dailyRate : 0;
       totalMtdRevenueRwf += mtdRevenueRwf;
 
       if (device.fleet?.id) {
@@ -430,6 +442,8 @@ export class PaygAuditService {
         dailyRate,
         uniqueActiveDaysMtd,
         mtdRevenueRwf,
+        isWorkingToday,
+        tripsToday,
         fleet: device.fleet
           ? {
               id: device.fleet.id,

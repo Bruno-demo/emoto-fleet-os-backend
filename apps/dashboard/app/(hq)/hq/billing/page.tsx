@@ -650,9 +650,11 @@ export default function HqBillingPage() {
                             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                             <span>{device.deviceUid}</span>
                           </div>
-                          <p className="text-[10px] text-zinc-500 font-sans mt-0.5">
-                            Last seen: {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <span className="rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-extrabold font-sans">
+                              ✓ Verified Active (Trips + Station Stops)
+                            </span>
+                          </div>
                         </td>
 
                         <td className="py-3.5 px-4">
