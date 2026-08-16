@@ -765,56 +765,13 @@ export default function SettingsPage() {
             </div>
           </DashboardCard>
 
-          {/* MoMo & Bank Auto-Pay Setup Card */}
+          {/* Payment Settlement Card */}
           <DashboardCard
-            eyebrow={t("Mobile Money & Bank Settlement")}
-            title={t("Auto-Pay Setup (MoMo & Bank)")}
-            description={t("Configure automatic payment prompts for your PAYG invoices. Supports MTN Rwanda (078/079), Airtel/Tigo Money (073/072), or Bank Account settlement.")}
+            eyebrow={t("Payment Settlement")}
+            title={t("PAYG Invoice Payment Method")}
+            description={t("Weekly PAYG invoices are issued based on verified active bike-days. Pay via MTN MoMo (*182*8*1*CODE#), Airtel Money, or Bank Account settlement.")}
           >
             <div className="space-y-6">
-              {/* Active Auto-Pay Status */}
-              {currentSubscription?.subscription ? (
-                <div className="rounded-2xl border border-success-ink/20 bg-success-soft/10 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-success-ink uppercase tracking-wider flex items-center gap-2">
-                      <CheckCircle2 size={16} />
-                      {t("Auto-Pay Active")}
-                    </p>
-                    <p className="text-xs text-ink-muted leading-relaxed">
-                      {t("Auto-Renew:")} <strong className="text-ink">{currentSubscription.subscription.autoRenew ? t("Enabled") : t("Disabled")}</strong>
-                      {' • '}
-                      {t("Next invoice:")} <span className="font-medium text-ink">{new Date(currentSubscription.subscription.endDate).toLocaleDateString()}</span>
-                    </p>
-                    {currentSubscription.subscription.momoPhoneNumber && (
-                      <p className="text-xs text-ink-muted">
-                        {t("Auto-Pay Phone:")} <span className="font-mono font-bold text-ink">{currentSubscription.subscription.momoPhoneNumber}</span>
-                      </p>
-                    )}
-                  </div>
-                  {currentSubscription.subscription.autoRenew && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm(t("Are you sure you want to disable auto-pay? You will need to pay invoices manually."))) return;
-                        try {
-                          await apiFetch('/billing/subscription/cancel', { method: 'PUT' });
-                          refetchSub();
-                          queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-                        } catch (err: unknown) {
-                          alert(err instanceof Error ? err.message : t("Failed to disable auto-pay"));
-                        }
-                      }}
-                      className="rounded-xl border border-error-ink/30 bg-error-soft/10 px-3.5 py-2 text-xs font-bold text-error-ink hover:bg-error-soft/20 transition cursor-pointer"
-                    >
-                      {t("Disable Auto-Pay")}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-line bg-surface-muted p-4 text-xs text-ink-muted">
-                  {t("No auto-pay configured. Set up MoMo or Bank auto-pay below to automatically pay PAYG invoices.")}
-                </div>
-              )}
 
               {/* PAYG Billing Summary */}
               <div className="grid gap-4 sm:grid-cols-3">
