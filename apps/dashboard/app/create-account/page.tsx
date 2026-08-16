@@ -106,9 +106,9 @@ const PLAN_DETAILS: Record<
   },
   enterprise: {
     title: 'Enterprise Operations',
-    price: 'Custom Quote',
-    period: 'Contact Sales',
-    description: 'Multi-fleet HQ command center, SLAs & custom IoT.',
+    price: 'Custom Negotiated Rate',
+    period: 'Negotiated with HQ',
+    description: 'Multi-fleet HQ command center, dedicated SLA & custom negotiated rate for 51 – 200+ bikes.',
     setupFeePerBike: 0,
     icon: <Building2 size={18} />
   },
@@ -264,7 +264,7 @@ function CreateAccountInner() {
   const [role, setRole] = useState<UserRole>('ADMIN');
   const [fleetName, setFleetName] = useState('');
   const [fleetType, setFleetType] = useState<'COOP' | 'DELIVERY' | 'PERSONAL'>('COOP');
-  const [bikeRange, setBikeRange] = useState('11-50');
+  const [bikeRange, setBikeRange] = useState(planSlugFromUrl === 'enterprise' ? '51-200' : '11-50');
   const [insurerName, setInsurerName] = useState('');
   const [customInsurerName, setCustomInsurerName] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
