@@ -598,7 +598,7 @@ function CreateAccountInner() {
               email: parsed.data.email,
               phone: parsed.data.phone,
               password: parsed.data.password,
-              plan: 'PAYG',
+              plan: selectedPlanSlug === 'insurance' ? 'INSURANCE' : selectedPlanSlug === 'enterprise' ? 'ENTERPRISE' : 'PAYG',
               fleetType: selectedPlanSlug === 'insurance' ? undefined : fleetType,
               insurerName: finalInsurerName,
               fullName: fullName.trim() || undefined,
