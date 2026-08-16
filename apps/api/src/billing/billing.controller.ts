@@ -95,6 +95,15 @@ export class BillingController {
     return await this.paygAuditService.getRevenueRiskDevices();
   }
 
+  @Get('active-revenue')
+  @UseGuards(HqGuard)
+  @ApiOperation({
+    summary: 'HQ: List active working devices generating daily revenue and MRR',
+  })
+  async getActiveRevenue() {
+    return await this.paygAuditService.getActiveRevenueDevices();
+  }
+
   // ── Fleet-Operator Endpoints ─────────────────────────────────────
 
   @Get('my-cycles')

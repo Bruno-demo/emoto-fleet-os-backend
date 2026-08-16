@@ -150,7 +150,7 @@ type BillingCycle = z.infer<typeof billingCycleSchema>['data'][number];
 
 export default function HqBillingPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'ledger' | 'revenue-risk' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
+  const [activeTab, setActiveTab] = useState<'ledger' | 'active-revenue' | 'revenue-risk' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'ENTERPRISE' | 'PAYG' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
@@ -183,6 +183,44 @@ export default function HqBillingPage() {
   });
 
   // Queries
+  const { data: activeRevenueData, isLoading: activeRevenueLoading } = useQuery({
+    queryKey: ['hq', 'billing-active-revenue'],
+    queryFn: () => apiFetch<{
+      summary: {
+        totalActiveDevices: number;
+        totalDailyRevenueRwf: number;
+        totalMtdRevenueRwf: number;
+        estMonthlyMrrRwf: number;
+        activeFleetsCount: number;
+      };
+      devices: Array<{
+        id: string;
+        deviceUid: string;
+        status: string;
+        lastSeenAt: string | null;
+        dailyRate: number;
+        uniqueActiveDaysMtd: number;
+        mtdRevenueRwf: number;
+        fleet: {
+          id: string;
+          name: string;
+          type: string;
+          adminEmail: string | null;
+          adminPhone: string | null;
+        } | null;
+        bike: {
+          id: string;
+          label: string;
+          plate: string | null;
+          model: string | null;
+          riderName: string | null;
+          riderPhone: string | null;
+          tripsCountMtd: number;
+        } | null;
+      }>;
+    }>('/billing/active-revenue'),
+  });
+
   const { data: inactiveDevicesData, isLoading: inactiveDevicesLoading } = useQuery({
     queryKey: ['hq', 'billing-inactive-devices'],
     queryFn: () => apiFetch<{
@@ -479,7 +517,7 @@ export default function HqBillingPage() {
 
       {/* Navigation Tabs */}
       <div className="flex border-b border-line gap-2 overflow-x-auto pb-1">
-        {(['ledger', 'revenue-risk', 'pricing', 'discounts', 'settings', 'trials'] as const).map((tab) => (
+        {(['ledger', 'active-revenue', 'revenue-risk', 'pricing', 'discounts', 'settings', 'trials'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -490,7 +528,16 @@ export default function HqBillingPage() {
                 : 'border-transparent text-zinc-400 hover:text-white'
             )}
           >
-            {tab === 'revenue-risk' ? (
+            {tab === 'active-revenue' ? (
+              <>
+                <span>Active Revenue</span>
+                {activeRevenueData?.summary.totalActiveDevices ? (
+                  <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-extrabold">
+                    {activeRevenueData.summary.totalActiveDevices}
+                  </span>
+                ) : null}
+              </>
+            ) : tab === 'revenue-risk' ? (
               <>
                 <span>Revenue Risk</span>
                 {inactiveDevicesData?.summary.totalInactiveDevices ? (
@@ -505,6 +552,160 @@ export default function HqBillingPage() {
           </button>
         ))}
       </div>
+
+      {/* TAB 1.5: ACTIVE REVENUE (WORKING DEVICES & EARNINGS) */}
+      {activeTab === 'active-revenue' && (
+        <div className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80">Active Working Trackers</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">
+                    {activeRevenueData?.summary.totalActiveDevices ?? 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <Banknote size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80">Daily Revenue Earned</p>
+                  <p className="text-2xl font-extrabold text-emerald-400 mt-1">
+                    {(activeRevenueData?.summary.totalDailyRevenueRwf ?? 0).toLocaleString()} RWF <span className="text-[10px] text-zinc-400 font-normal">/day</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-blue-500/20 bg-blue-500/[0.04] p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <TrendingUp size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400/80">Est. Monthly MRR</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">
+                    {(activeRevenueData?.summary.estMonthlyMrrRwf ?? 0).toLocaleString()} RWF
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-purple-500/20 bg-purple-500/[0.04] p-6 relative overflow-hidden group hover:border-purple-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                  <Building2 size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400/80">Earning Fleets</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">
+                    {activeRevenueData?.summary.activeFleetsCount ?? 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Revenue Audit Table */}
+          <DashboardCard
+            eyebrow="Revenue Generation"
+            title="Active Trackers & Daily Earnings Audit"
+            description="Trackers actively reporting telemetry on working motorcycles generating daily active revenue."
+          >
+            {activeRevenueLoading ? (
+              <p className="text-zinc-500 py-8 text-center">Loading active working devices...</p>
+            ) : activeRevenueData?.devices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Info size={28} className="text-zinc-500" />
+                <p className="mt-3 text-sm font-bold text-white">No Active Devices Reporting</p>
+                <p className="mt-1 text-xs text-zinc-400">Devices will appear here as soon as telemetry heartbeats and active trips are verified.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-zinc-400 font-bold uppercase tracking-wider bg-white/[0.02]">
+                      <th className="py-3 px-4">Device / UID</th>
+                      <th className="py-3 px-4">Fleet & Type</th>
+                      <th className="py-3 px-4">Assigned Moto & Rider</th>
+                      <th className="py-3 px-4 text-center">Active Days MTD</th>
+                      <th className="py-3 px-4 text-right">Daily Active Rate</th>
+                      <th className="py-3 px-4 text-right">MTD Revenue Earned</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {activeRevenueData?.devices.map((device) => (
+                      <tr key={device.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-bold text-white">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>{device.deviceUid}</span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 font-sans mt-0.5">
+                            Last seen: {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                          </p>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <p className="font-bold text-white">{device.fleet?.name || 'HQ Managed'}</p>
+                          <span className={cx(
+                            "inline-block mt-1 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider border",
+                            device.fleet?.type === 'DELIVERY'
+                              ? "bg-purple-500/15 text-purple-400 border-purple-500/30"
+                              : "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                          )}>
+                            {device.fleet?.type === 'DELIVERY' ? 'Delivery (500 RWF/d)' : 'Coop (350 RWF/d)'}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          {device.bike ? (
+                            <div>
+                              <p className="font-bold text-emerald-300">{device.bike.plate || device.bike.label}</p>
+                              {device.bike.riderName ? (
+                                <p className="text-[10px] text-zinc-400 mt-0.5 truncate">
+                                  Motari: {device.bike.riderName} ({device.bike.riderPhone || 'No Phone'})
+                                </p>
+                              ) : (
+                                <p className="text-[10px] text-zinc-600 mt-0.5">Unassigned Motari</p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-zinc-600 italic">Unassigned Bike</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-extrabold">
+                            {device.uniqueActiveDaysMtd} active days
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-bold text-emerald-400">
+                          +{device.dailyRate} RWF <span className="text-[9px] text-zinc-500 font-normal">/day</span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-extrabold text-emerald-300">
+                          +{device.mtdRevenueRwf.toLocaleString()} RWF
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DashboardCard>
+        </div>
+      )}
 
       {/* TAB 2: REVENUE RISK (INACTIVE DEVICES) */}
       {activeTab === 'revenue-risk' && (

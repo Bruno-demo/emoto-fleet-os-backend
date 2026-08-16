@@ -331,4 +331,139 @@ export class PaygAuditService {
       devices: enrichedDevices,
     };
   }
+
+  /**
+   * Fetches all IoT devices that are actively working (reporting telemetry & verified active)
+   * along with daily rate earned, MTD revenue generated, bike details, and fleet breakdown.
+   */
+  async getActiveRevenueDevices() {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const devices = await this.prisma.device.findMany({
+      where: {
+        status: 'ACTIVE',
+        lastSeenAt: { gte: twentyFourHoursAgo },
+      },
+      select: {
+        id: true,
+        deviceUid: true,
+        status: true,
+        lastSeenAt: true,
+        createdAt: true,
+        fleet: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            emotoPaygRatePerActiveDay: true,
+            users: {
+              where: { role: { in: ['ADMIN', 'OWNER'] }, status: 'ACTIVE' },
+              select: { email: true, phone: true, role: true },
+              take: 2,
+            },
+          },
+        },
+        bike: {
+          select: {
+            id: true,
+            label: true,
+            plate: true,
+            model: true,
+            status: true,
+            trips: {
+              where: { startTs: { gte: startOfMonth } },
+              select: { id: true, startTs: true, distanceKm: true },
+            },
+            assignments: {
+              where: { active: true },
+              select: {
+                rider: {
+                  select: {
+                    id: true,
+                    phone: true,
+                    riderProfile: { select: { fullName: true } },
+                  },
+                },
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+
+    let totalDailyRevenueRwf = 0;
+    let totalMtdRevenueRwf = 0;
+    const activeFleetIds = new Set<string>();
+
+    const enrichedDevices = devices.map((device) => {
+      const dailyRate =
+        device.fleet?.type === 'DELIVERY'
+          ? (!device.fleet.emotoPaygRatePerActiveDay || device.fleet.emotoPaygRatePerActiveDay === 350 ? 500 : device.fleet.emotoPaygRatePerActiveDay)
+          : (device.fleet?.emotoPaygRatePerActiveDay ?? 350);
+
+      // Estimate active days MTD from unique dates with trips or active days
+      const tripsThisMonth = device.bike?.trips || [];
+      const uniqueActiveDaysMtd = new Set(
+        tripsThisMonth.map((t) => new Date(t.startTs).toISOString().slice(0, 10)),
+      ).size || 1;
+
+      const mtdRevenueRwf = uniqueActiveDaysMtd * dailyRate;
+
+      totalDailyRevenueRwf += dailyRate;
+      totalMtdRevenueRwf += mtdRevenueRwf;
+
+      if (device.fleet?.id) {
+        activeFleetIds.add(device.fleet.id);
+      }
+
+      const adminUser = device.fleet?.users?.[0];
+      const activeAssignment = device.bike?.assignments?.[0];
+
+      return {
+        id: device.id,
+        deviceUid: device.deviceUid,
+        status: device.status,
+        lastSeenAt: device.lastSeenAt ? device.lastSeenAt.toISOString() : null,
+        dailyRate,
+        uniqueActiveDaysMtd,
+        mtdRevenueRwf,
+        fleet: device.fleet
+          ? {
+              id: device.fleet.id,
+              name: device.fleet.name,
+              type: device.fleet.type,
+              adminEmail: adminUser?.email || null,
+              adminPhone: adminUser?.phone || null,
+            }
+          : null,
+        bike: device.bike
+          ? {
+              id: device.bike.id,
+              label: device.bike.label,
+              plate: device.bike.plate,
+              model: device.bike.model,
+              riderName: activeAssignment?.rider?.riderProfile?.fullName || null,
+              riderPhone: activeAssignment?.rider?.phone || null,
+              tripsCountMtd: tripsThisMonth.length,
+            }
+          : null,
+      };
+    });
+
+    const estMonthlyMrrRwf = totalDailyRevenueRwf * 30;
+
+    return {
+      summary: {
+        totalActiveDevices: enrichedDevices.length,
+        totalDailyRevenueRwf,
+        totalMtdRevenueRwf,
+        estMonthlyMrrRwf,
+        activeFleetsCount: activeFleetIds.size,
+      },
+      devices: enrichedDevices,
+    };
+  }
 }
