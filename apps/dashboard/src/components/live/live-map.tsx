@@ -14,6 +14,7 @@ import {
   Minimize2,
   Phone,
   Radio,
+  Search,
   ShieldAlert,
   Unlock,
   X,
@@ -119,9 +120,11 @@ export function LiveMapPanel() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [drawerDismissed, setDrawerDismissed] = useState(false);
   const [isFeedCollapsed, setIsFeedCollapsed] = useState(false);
-  const [showRoadFeatures, setShowRoadFeatures] = useState(true);
+  const [showRoadFeatures, setShowRoadFeatures] = useState(false);
   const [showHelpPoints, setShowHelpPoints] = useState(true);
   const [mapStyle, setMapStyle] = useState<'standard' | 'satellite' | 'hybrid'>('standard');
+  const [bikeSearchQuery, setBikeSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const pendingToastEventsRef = useRef<FleetEvent[]>([]);
@@ -216,6 +219,37 @@ export function LiveMapPanel() {
   );
 
   const throttledStates = useThrottledValue(mergedStates, MAP_REFRESH_THROTTLE_MS);
+
+  const searchFilteredBikes = useMemo(() => {
+    if (!bikeSearchQuery.trim()) return [];
+    const query = bikeSearchQuery.trim().toLowerCase();
+    const results: Array<{
+      bike: FleetBike;
+      state: LiveBikeState | undefined;
+      assignment: Assignment | undefined;
+    }> = [];
+
+    for (const bike of bikesQuery.data?.data ?? []) {
+      const state = mergedStates.find((s) => s.bikeId === bike.id);
+      const assignment = assignmentByBikeId.get(bike.id);
+      const plate = (bike.plate || '').toLowerCase();
+      const label = (bike.label || '').toLowerCase();
+      const serial = (bike.serial || '').toLowerCase();
+      const model = (bike.model || '').toLowerCase();
+      const riderName = (assignment?.riderFullName || '').toLowerCase();
+
+      if (
+        plate.includes(query) ||
+        label.includes(query) ||
+        serial.includes(query) ||
+        model.includes(query) ||
+        riderName.includes(query)
+      ) {
+        results.push({ bike, state, assignment });
+      }
+    }
+    return results.slice(0, 8);
+  }, [bikeSearchQuery, bikesQuery.data?.data, mergedStates, assignmentByBikeId]);
 
   const feedEvents = useMemo(
     () => mergeEvents(initialEventsQuery.data?.data ?? [], recentEvents).slice(0, EVENT_FEED_LIMIT),
@@ -624,8 +658,92 @@ export function LiveMapPanel() {
                   <MapZoomControls />
                 </MapContainer>
 
-                {/* Floating Map Layers Selector Control */}
-                <div className="absolute top-4 left-12 md:left-16 right-4 sm:right-auto z-[500] pointer-events-auto">
+                {/* Floating Map Searchbar & Layers Controls */}
+                <div className="absolute top-4 left-12 md:left-16 right-4 sm:right-auto z-[500] pointer-events-auto flex flex-wrap items-center gap-2">
+                  {/* Moto Search Bar Overlay */}
+                  <div className="relative min-w-[220px] max-w-[320px] flex-1">
+                    <div className="flex items-center gap-2 rounded-lg border border-line bg-[var(--background-strong)]/90 px-3 py-1.5 shadow-sm backdrop-blur-md">
+                      <Search size={14} className="text-accent shrink-0" />
+                      <input
+                        type="text"
+                        value={bikeSearchQuery}
+                        onChange={(e) => setBikeSearchQuery(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                        placeholder={t("Search moto by plate (e.g. RAA 123)...")}
+                        className="w-full bg-transparent text-xs font-semibold text-ink placeholder:text-ink-muted focus:outline-none"
+                      />
+                      {bikeSearchQuery ? (
+                        <button
+                          type="button"
+                          onClick={() => setBikeSearchQuery('')}
+                          className="text-ink-muted hover:text-ink transition-colors"
+                        >
+                          <X size={13} />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {/* Search Results Dropdown */}
+                    {isSearchFocused && searchFilteredBikes.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1.5 rounded-xl border border-line bg-[var(--background-strong)]/95 p-1.5 shadow-2xl backdrop-blur-xl z-[600] max-h-[260px] overflow-y-auto space-y-1">
+                        {searchFilteredBikes.map(({ bike, state, assignment }) => {
+                          const displayLabel = bike.plate || bike.label || bike.serial || bike.id.slice(0, 8);
+                          const riderName = assignment?.riderFullName;
+                          const isOnline = state ? isFreshState(state.ts) : false;
+                          const isMoving = state ? state.speedKph >= 5 : false;
+
+                          return (
+                            <button
+                              key={bike.id}
+                              type="button"
+                              onClick={() => {
+                                selectBikeContext(bike.id);
+                                setBikeSearchQuery('');
+                                setIsSearchFocused(false);
+                              }}
+                              className="w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-left hover:bg-surface-hover transition-colors group"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-ink group-hover:text-accent transition-colors flex items-center gap-1.5">
+                                  <Bike size={13} className="text-accent" />
+                                  <span>{displayLabel}</span>
+                                </p>
+                                {riderName ? (
+                                  <p className="text-[10px] text-ink-muted truncate mt-0.5">
+                                    Motari: {riderName}
+                                  </p>
+                                ) : (
+                                  <p className="text-[10px] text-ink-faint truncate mt-0.5">
+                                    Serial: {bike.serial || 'N/A'}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {state && state.batteryPct !== undefined ? (
+                                  <span className="text-[10px] font-mono font-semibold text-emerald-400">
+                                    {Math.round(state.batteryPct)}%
+                                  </span>
+                                ) : null}
+                                <span
+                                  className={cx(
+                                    'h-2 w-2 rounded-full',
+                                    isMoving
+                                      ? 'bg-blue-400'
+                                      : isOnline
+                                        ? 'bg-emerald-400'
+                                        : 'bg-zinc-500',
+                                  )}
+                                />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 rounded-lg border border-line bg-[var(--background-strong)]/90 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm backdrop-blur-md">
                     <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted flex items-center gap-1.5 border-r border-line pr-2.5">
                       <Layers size={12} className="text-accent" /> {t("Layers")}
@@ -1108,42 +1226,32 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
   label: string;
   severity?: FleetEvent['severity'];
   selected: boolean;
-  onSelect: (bikeId: string, shouldCenter?: boolean) => void;
+  onSelect: (bikeId: string) => void;
 }) {
   const { t } = useTranslation();
-
-  const [animatedPos, setAnimatedPos] = useState<[number, number]>([state.lat, state.lng]);
+  const markerRef = useRef<L.Marker | null>(null);
   const lastPosRef = useRef<[number, number]>([state.lat, state.lng]);
-  const lastUpdateRef = useRef<number>(0);
+  const lastUpdateRef = useRef<number>(Date.now());
 
   useEffect(() => {
+    const marker = markerRef.current;
     const startLat = lastPosRef.current[0];
     const startLng = lastPosRef.current[1];
     const endLat = state.lat;
     const endLng = state.lng;
 
-    // Skip if coordinates are identical
-    if (startLat === endLat && startLng === endLng) return;
-
-    // Distance threshold: if jump is too large (e.g. > 2km / 0.02 degrees), snap immediately
-    const distance = Math.sqrt(Math.pow(endLat - startLat, 2) + Math.pow(endLng - startLng, 2));
-    if (distance > 0.02) {
-      lastPosRef.current = [endLat, endLng];
-      requestAnimationFrame(() => {
-        setAnimatedPos([endLat, endLng]);
-      });
+    if (Math.abs(startLat - endLat) < 0.000001 && Math.abs(startLng - endLng) < 0.000001) {
+      if (marker) {
+        marker.setLatLng([endLat, endLng]);
+      }
       return;
     }
 
-    // Adaptive duration calculation:
-    const now = performance.now();
-    let currentDuration = 5000; // Default fallback to 5 seconds
+    const now = Date.now();
+    let currentDuration = 5000;
     if (lastUpdateRef.current > 0) {
       const elapsed = now - lastUpdateRef.current;
-      // Accept elapsed time if it is a realistic update interval (between 1s and 45s)
       if (elapsed >= 1000 && elapsed <= 45000) {
-        // Pad the duration slightly (e.g., 5%) so that the interpolation lasts slightly
-        // longer than the packet interval, keeping the movement fluid and continuous
         currentDuration = elapsed * 1.05;
       }
     }
@@ -1160,7 +1268,9 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
       const currentLng = startLng + (endLng - startLng) * progress;
 
       lastPosRef.current = [currentLat, currentLng];
-      setAnimatedPos([currentLat, currentLng]);
+      if (markerRef.current) {
+        markerRef.current.setLatLng([currentLat, currentLng]);
+      }
 
       if (progress < 1) {
         animFrameId = requestAnimationFrame(animate);
@@ -1187,7 +1297,8 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
 
   return (
     <Marker
-      position={animatedPos}
+      ref={markerRef}
+      position={[state.lat, state.lng]}
       icon={icon}
       eventHandlers={{
         click: () => {
