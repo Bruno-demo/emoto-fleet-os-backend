@@ -142,9 +142,7 @@ function CheckoutContent() {
     return () => clearTimeout(timer);
   }, [showSuccess, countdown, router]);
 
-  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'pay-on-request'>(
-    planSlug === 'payg' ? 'momo' : 'pay-on-request'
-  );
+  const [paymentMethod] = useState<'pay-on-request'>('pay-on-request');
   const [momoPhoneNumber, setMomoPhoneNumber] = useState('');
 
   const checkoutMutation = useMutation({
@@ -155,7 +153,7 @@ function CheckoutContent() {
           method: 'POST',
           body: JSON.stringify({
             plan: planSlug === 'insurance' ? 'INSURANCE' : planSlug === 'enterprise' ? 'ENTERPRISE' : 'PAYG',
-            momoPhoneNumber: paymentMethod === 'momo' && momoPhoneNumber.trim() ? momoPhoneNumber.trim() : undefined,
+            momoPhoneNumber: undefined,
           }),
         },
         { schema: subscriptionCheckoutResponseSchema },
@@ -398,87 +396,15 @@ function CheckoutContent() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-ink-muted">
                   Payment Method
                 </p>
-                <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider shrink-0">
+                <span className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider shrink-0">
                   Pay on Request
                 </span>
               </div>
 
-              {/* MTN Mobile Money Option */}
-              <div
-                onClick={() => setPaymentMethod('momo')}
-                className={`relative flex flex-col gap-3 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-300 ${
-                  paymentMethod === 'momo'
-                    ? 'border-amber-500 bg-amber-500/10 shadow-xl shadow-amber-500/5 ring-1 ring-amber-500/30'
-                    : 'border-white/10 bg-slate-900/40 hover:border-white/20 hover:bg-slate-900/60'
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="momo"
-                    checked={paymentMethod === 'momo'}
-                    onChange={() => setPaymentMethod('momo')}
-                    className="h-4 w-4 accent-amber-500 cursor-pointer shrink-0"
-                  />
-
-                  {/* MoMo Badge */}
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow-md">
-                    MoMo
-                  </div>
-
-                  <div className="flex-1 flex items-center justify-between min-w-0">
-                    <span className="text-sm font-extrabold text-white truncate">
-                      MTN MoMo (*182*8*1*CODE#)
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold text-amber-300 shrink-0 ml-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      Pay on Request
-                    </span>
-                  </div>
-                </div>
-
-                {paymentMethod === 'momo' && (
-                  <div className="mt-1 pt-3 border-t border-amber-500/20 space-y-2.5 animate-in fade-in duration-200">
-                    <div className="relative flex items-center">
-                      <div className="absolute left-3 flex items-center gap-1.5 text-xs font-bold text-slate-400 select-none border-r border-slate-700/80 pr-2.5">
-                        <span className="text-sm">🇷🇼</span>
-                        <span>+250</span>
-                      </div>
-                      <input
-                        type="tel"
-                        placeholder="788 123 456"
-                        value={momoPhoneNumber}
-                        onChange={(e) => setMomoPhoneNumber(e.target.value)}
-                        className="w-full bg-slate-950 border border-amber-500/40 rounded-xl pl-24 pr-4 py-2.5 text-sm font-bold text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium pt-1">
-                      <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
-                      <span>Enter your phone or dial *182*8*1*CODE# to complete payment on request.</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Pay on Request */}
               <div
-                onClick={() => setPaymentMethod('pay-on-request')}
-                className={`flex items-center gap-3.5 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-300 ${
-                  paymentMethod === 'pay-on-request'
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/5'
-                    : 'border-white/10 bg-slate-900/40 hover:border-white/20 hover:bg-slate-900/60'
-                }`}
+                className="flex items-center gap-3.5 rounded-2xl border-2 border-blue-500 bg-blue-500/10 p-4 shadow-lg shadow-blue-500/5"
               >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="pay-on-request"
-                  checked={paymentMethod === 'pay-on-request'}
-                  onChange={() => setPaymentMethod('pay-on-request')}
-                  className="h-4 w-4 accent-blue-500 cursor-pointer shrink-0"
-                />
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-md">
                   <Banknote size={18} />
                 </div>
@@ -487,7 +413,7 @@ function CheckoutContent() {
                     Pay on Request / Admin Invoice
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 shrink-0 ml-2">
-                    Bank / Wire / Cash
+                    MoMo / Bank / Cash
                   </span>
                 </div>
               </div>
