@@ -251,8 +251,22 @@ interface LandingPricingTier {
 export default function LandingContent() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('live-map');
-  const [hasSession, setHasSession] = useState(false);
-  const [sessionUser, setSessionUser] = useState<{ status?: string; role?: string } | null>(null);
+  const [hasSession, setHasSession] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('emoto_has_session') === 'true';
+    }
+    return false;
+  });
+  const [sessionUser, setSessionUser] = useState<{ status?: string; role?: string } | null>(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('emoto_has_session') === 'true') {
+      return {
+        status: localStorage.getItem('emoto_user_status') || undefined,
+        role: localStorage.getItem('emoto_user_role') || undefined,
+      };
+    }
+    return null;
+  });
+  const [isCheckingSession, setIsCheckingSession] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [pricingTiers, setPricingTiers] = useState<LandingPricingTier[] | null>(null);
@@ -265,17 +279,34 @@ export default function LandingContent() {
         return null;
       })
       .then((userData) => {
+        setIsCheckingSession(false);
         if (userData) {
           setHasSession(true);
           setSessionUser(userData);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('emoto_has_session', 'true');
+            if (userData.status) localStorage.setItem('emoto_user_status', userData.status);
+            if (userData.role) localStorage.setItem('emoto_user_role', userData.role);
+          }
         } else {
           setHasSession(false);
           setSessionUser(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('emoto_has_session');
+            localStorage.removeItem('emoto_user_status');
+            localStorage.removeItem('emoto_user_role');
+          }
         }
       })
       .catch(() => {
+        setIsCheckingSession(false);
         setHasSession(false);
         setSessionUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('emoto_has_session');
+          localStorage.removeItem('emoto_user_status');
+          localStorage.removeItem('emoto_user_role');
+        }
       });
 
     async function loadPricing() {
@@ -411,7 +442,9 @@ export default function LandingContent() {
 
           <div className="hidden items-center gap-4 md:flex">
             <LanguageSwitcher />
-            {hasSession ? (
+            {isCheckingSession && !hasSession ? (
+              <div className="h-9 w-36 animate-pulse rounded-lg bg-white/10" />
+            ) : hasSession ? (
               <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
                 {dashboardLabel} <ArrowRight size={14} />
               </Link>
@@ -449,7 +482,9 @@ export default function LandingContent() {
               <div className="flex justify-center mb-2">
                 <LanguageSwitcher />
               </div>
-              {hasSession ? (
+              {isCheckingSession && !hasSession ? (
+                <div className="h-10 w-full animate-pulse rounded-lg bg-white/10" />
+              ) : hasSession ? (
                 <Link
                   href={dashboardHref}
                   onClick={() => setMobileMenuOpen(false)}
@@ -507,7 +542,9 @@ export default function LandingContent() {
         </p>
 
         <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
-          {hasSession ? (
+          {isCheckingSession && !hasSession ? (
+            <div className="h-12 w-44 animate-pulse rounded-lg bg-white/10" />
+          ) : hasSession ? (
             <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
               {dashboardLabel} <ArrowRight size={15} />
             </Link>
