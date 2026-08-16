@@ -5,24 +5,25 @@ import { useState } from 'react';
 import {
   Activity,
   AlertTriangle,
-  ArrowDownRight,
   ArrowRight,
-  ArrowUpRight,
   Bike,
-  Calendar,
   CheckCircle2,
   Circle,
-  Clock,
+  Coins,
   CreditCard,
+  DollarSign,
   Gauge,
   Lock,
   MapPin,
+  PieChart,
+  Receipt,
   Settings,
   ShieldAlert,
   Siren,
   Sparkles,
   TrendingUp,
   Users,
+  Wallet,
   X,
   Zap,
 } from 'lucide-react';
@@ -38,6 +39,17 @@ import { useCurrentUser } from '@/lib/auth/use-current-user';
 import type { Incident, PaginatedResponse, WeeklyReport } from '@/lib/types/dashboard';
 import { cx, formatEnumLabel, formatTimeAgo, getLocalDateString } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
+
+interface FinancialSummaryResponse {
+  totalEarnedAllTime: number;
+  totalEarnedRange: number;
+  totalLeaseArrears: number;
+  overdueCount: number;
+  unpaidCount: number;
+  methodBreakdown: Record<string, number>;
+  statusBreakdown: Record<string, number>;
+  dailyEarnings: Array<{ date: string; amount: number }>;
+}
 
 function getDefaultRange() {
   const to = new Date();
@@ -55,12 +67,22 @@ export default function OverviewPage() {
   const { data: user } = useCurrentUser();
   const canUseReports = canUseFeature(user, 'reports');
   const canUseIncidents = canUseFeature(user, 'incidents');
+  const canUseFinancials = canUseFeature(user, 'financial');
 
   const weeklyReportQuery = useQuery({
     queryKey: ['reports', 'weekly', dateRange.from, dateRange.to],
     queryFn: () =>
       apiFetch<WeeklyReport>(`/reports/weekly?from=${dateRange.from}&to=${dateRange.to}`),
     enabled: canUseReports,
+  });
+
+  const financialsQuery = useQuery({
+    queryKey: ['financials', 'summary', dateRange.from, dateRange.to],
+    queryFn: () =>
+      apiFetch<FinancialSummaryResponse>(
+        `/financials/summary?startDate=${dateRange.from}&endDate=${dateRange.to}`,
+      ),
+    enabled: canUseFinancials && !!user && user.role !== 'INSURER',
   });
 
   const incidentsQuery = useQuery({
@@ -101,6 +123,7 @@ export default function OverviewPage() {
   });
 
   const report = weeklyReportQuery.data;
+  const financialSummary = financialsQuery.data;
   const openIncidents = incidentsQuery.data?.total ?? 0;
   const totalBikes = bikesQuery.data?.total ?? 0;
   const totalRiders = ridersQuery.data?.total ?? 0;
@@ -168,16 +191,40 @@ export default function OverviewPage() {
     ? Object.values(report.eventCounts).reduce((s, v) => s + v, 0)
     : 0;
 
-  return (
-    <div className="space-y-6">
-      {/* Date range picker */}
-      <DateRangePicker
-        from={dateRange.from}
-        to={dateRange.to}
-        onChange={setDateRange}
-      />
+  // Compute financial metric calculations
+  const totalRevenuePeriod = financialSummary?.totalEarnedRange ?? 0;
+  const totalArrears = financialSummary?.totalLeaseArrears ?? 0;
+  const dailyEarningsList = financialSummary?.dailyEarnings ?? [];
+  const daysInPeriod = Math.max(1, dailyEarningsList.length);
+  const avgDailyRevenue = Math.round(totalRevenuePeriod / daysInPeriod);
 
-      {/* First-Run Onboarding Checklist Widget */}
+  // Method breakdown totals
+  const methodMap = financialSummary?.methodBreakdown ?? {};
+  const momoEarned = methodMap['MOMO'] ?? 0;
+  const cashEarned = methodMap['CASH'] ?? 0;
+  const bankEarned = methodMap['BANK'] ?? 0;
+  const methodSum = momoEarned + cashEarned + bankEarned;
+
+  return (
+    <div className="space-y-8 pb-12">
+      {/* Date Range Picker */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">
+            {t('Fleet Command Overview')}
+          </h1>
+          <p className="text-xs text-ink-muted mt-0.5">
+            {t('Real-time operational, safety risk, and financial collection performance dashboard.')}
+          </p>
+        </div>
+        <DateRangePicker
+          from={dateRange.from}
+          to={dateRange.to}
+          onChange={setDateRange}
+        />
+      </div>
+
+      {/* Checklist Widget */}
       {!isOnboardingDismissed && user?.role !== 'INSURER' && completedCount < 4 && (
         <section className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-surface via-surface to-accent/5 p-6 shadow-sm transition-all">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -205,7 +252,6 @@ export default function OverviewPage() {
             </button>
           </div>
 
-          {/* Progress bar */}
           <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-hover">
             <div
               className="h-full bg-accent transition-all duration-500 rounded-full"
@@ -213,7 +259,6 @@ export default function OverviewPage() {
             />
           </div>
 
-          {/* Steps Grid */}
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {onboardingSteps.map((step, idx) => (
               <div
@@ -272,128 +317,141 @@ export default function OverviewPage() {
         </section>
       )}
 
-      {/* KPI row */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {weeklyReportQuery.isLoading ? (
-          <>
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-            <MetricCardSkeleton />
-          </>
-        ) : (
-          <>
-            <MetricCard
-              title={user?.role === 'INSURER' ? t('Insured Trips') : t('Weekly Trips')}
-              value={canUseReports ? (report ? String(report.tripCount) : '--') : '🔒'}
-              hint={canUseReports ? (user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in the current 7-day window')) : t('Upgrade fleet plan to unlock')}
-              icon={<Bike size={18} />}
-              tone="info"
-            />
-            <MetricCard
-              title={user?.role === 'INSURER' ? t('Covered Score') : t('Fleet Score')}
-              value={canUseReports ? (report ? report.avgScore.toFixed(1) : '--') : '🔒'}
-              hint={canUseReports ? (user?.role === 'INSURER' ? t('Avg driving score of covered bikes') : t('Avg driving score across completed trips')) : t('Upgrade fleet plan to unlock')}
-              icon={<TrendingUp size={18} />}
-              tone={
-                report
-                  ? report.avgScore >= 85
-                    ? 'success'
-                    : report.avgScore >= 70
-                      ? 'warning'
-                      : 'danger'
-                  : 'success'
-              }
-            />
-            <MetricCard
-              title={user?.role === 'INSURER' ? t('Open Covered Incidents') : t('Open Incidents')}
-              value={canUseIncidents ? String(openIncidents) : '🔒'}
-              hint={canUseIncidents ? t('Awaiting acknowledgement or resolution') : t('Upgrade fleet plan to unlock')}
-              icon={<ShieldAlert size={18} />}
-              tone={canUseIncidents && openIncidents > 0 ? 'danger' : 'neutral'}
-            />
-            <MetricCard
-              title={user?.role === 'INSURER' ? t('Covered Events') : t('Total Events')}
-              value={canUseReports ? String(totalEvents) : '🔒'}
-              hint={canUseReports ? `${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}` : t('Upgrade fleet plan to unlock')}
-              icon={<Zap size={18} />}
-              tone="warning"
-            />
-          </>
-        )}
-      </section>
+      {/* ==================================================================== */}
+      {/* SECTION 1: OPERATIONS & FLEET SAFETY (TOP 50%)                       */}
+      {/* ==================================================================== */}
+      <section className="space-y-5">
+        <div className="flex items-center justify-between border-b border-line/60 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+              <Gauge size={16} />
+            </span>
+            <h2 className="text-base font-bold text-ink">
+              {t('1. Operations & Safety Performance')}
+            </h2>
+          </div>
+          <Badge tone="info" label={t('50% Operational Focus')} />
+        </div>
 
-      {/* Fleet health bar */}
-      <section className="grid gap-4 sm:grid-cols-3">
-        <FleetStatCard
-          label={user?.role === 'INSURER' ? t('Insured Bikes') : t('Active Bikes')}
-          value={totalBikes}
-          icon={<Bike size={16} />}
-          loading={bikesQuery.isLoading}
-        />
-        <FleetStatCard
-          label={user?.role === 'INSURER' ? t('Covered Risk Events') : t('Risk Events')}
-          value={canUseReports ? totalEvents : '🔒'}
-          icon={<AlertTriangle size={16} />}
-          loading={canUseReports && weeklyReportQuery.isLoading}
-        />
-        <FleetStatCard
-          label={user?.role === 'INSURER' ? t('Covered Incidents') : t('Incidents')}
-          value={canUseIncidents ? openIncidents : '🔒'}
-          icon={<Siren size={16} />}
-          loading={canUseIncidents && incidentsQuery.isLoading}
-          urgent={canUseIncidents && openIncidents > 0}
-        />
-      </section>
-
-      {/* Main grid */}
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        {/* Left: Event mix + chart area */}
-        <div className="space-y-5">
-          {user?.role === 'INSURER' && report && (
-            <TrendChart dailyScores={report.dailyScores} />
+        {/* Operational KPI Cards */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {weeklyReportQuery.isLoading ? (
+            <>
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                title={user?.role === 'INSURER' ? t('Insured Trips') : t('Weekly Trips')}
+                value={canUseReports ? (report ? String(report.tripCount) : '--') : '🔒'}
+                hint={canUseReports ? (user?.role === 'INSURER' ? t('Trips by covered bikes') : t('Trips in current window')) : t('Upgrade fleet plan')}
+                icon={<Bike size={18} />}
+                tone="info"
+              />
+              <MetricCard
+                title={user?.role === 'INSURER' ? t('Covered Score') : t('Fleet Score')}
+                value={canUseReports ? (report ? report.avgScore.toFixed(1) : '--') : '🔒'}
+                hint={canUseReports ? t('Avg driving score across completed trips') : t('Upgrade fleet plan')}
+                icon={<TrendingUp size={18} />}
+                tone={
+                  report
+                    ? report.avgScore >= 85
+                      ? 'success'
+                      : report.avgScore >= 70
+                        ? 'warning'
+                        : 'danger'
+                    : 'success'
+                }
+              />
+              <MetricCard
+                title={user?.role === 'INSURER' ? t('Open Incidents') : t('Open Incidents')}
+                value={canUseIncidents ? String(openIncidents) : '🔒'}
+                hint={canUseIncidents ? t('Awaiting resolution') : t('Upgrade fleet plan')}
+                icon={<ShieldAlert size={18} />}
+                tone={canUseIncidents && openIncidents > 0 ? 'danger' : 'neutral'}
+              />
+              <MetricCard
+                title={user?.role === 'INSURER' ? t('Risk Events') : t('Total Events')}
+                value={canUseReports ? String(totalEvents) : '🔒'}
+                hint={canUseReports ? `${report?.eventCounts.CRASH ?? 0} ${t('crashes')} · ${report?.eventCounts.HARSH_BRAKE ?? 0} ${t('brakes')}` : t('Upgrade fleet plan')}
+                icon={<Zap size={18} />}
+                tone="warning"
+              />
+            </>
           )}
+        </div>
 
-          <DashboardCard
-            eyebrow={t('Risk profile')}
-            title={t('Event breakdown')}
-            actions={
-              user?.role === 'INSURER' || !canUseReports ? null : (
-                <Link
-                  href="/events"
-                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-                >
-                  {t('View all')} <ArrowRight size={12} />
-                </Link>
-              )
-            }
-          >
-            {!canUseReports ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent mb-3 animate-pulse">
-                  <Lock size={18} />
-                </span>
-                <p className="text-xs font-bold text-ink">{t('Event Breakdown Locked')}</p>
-                <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
-                  {t('Detailed crash, speeding, and driving safety event breakdowns require an active fleet plan.')}
-                </p>
-                <Link
-                  href="/checkout?plan=delivery"
-                  className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
-                >
-                  {t('Upgrade fleet plan')}
-                </Link>
-              </div>
-            ) : weeklyReportQuery.isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
-              </div>
-            ) : report && totalEvents > 0 ? (
-              <>
-                {/* Horizontal bar chart */}
+        {/* Operational Stats Sub-bar */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <FleetStatCard
+            label={user?.role === 'INSURER' ? t('Insured Bikes') : t('Active Bikes')}
+            value={totalBikes}
+            icon={<Bike size={16} />}
+            loading={bikesQuery.isLoading}
+          />
+          <FleetStatCard
+            label={user?.role === 'INSURER' ? t('Covered Risk Events') : t('Risk Events')}
+            value={canUseReports ? totalEvents : '🔒'}
+            icon={<AlertTriangle size={16} />}
+            loading={canUseReports && weeklyReportQuery.isLoading}
+          />
+          <FleetStatCard
+            label={user?.role === 'INSURER' ? t('Covered Incidents') : t('Incidents')}
+            value={canUseIncidents ? openIncidents : '🔒'}
+            icon={<Siren size={16} />}
+            loading={canUseIncidents && incidentsQuery.isLoading}
+            urgent={canUseIncidents && openIncidents > 0}
+          />
+        </div>
+
+        {/* Main Operational Grid */}
+        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-5">
+            {report && (
+              <TrendChart dailyScores={report.dailyScores} />
+            )}
+
+            <DashboardCard
+              eyebrow={t('Risk Profile')}
+              title={t('Safety Event Histogram & Breakdown')}
+              actions={
+                user?.role === 'INSURER' || !canUseReports ? null : (
+                  <Link
+                    href="/events"
+                    className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                  >
+                    {t('View all')} <ArrowRight size={12} />
+                  </Link>
+                )
+              }
+            >
+              {!canUseReports ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent mb-3 animate-pulse">
+                    <Lock size={18} />
+                  </span>
+                  <p className="text-xs font-bold text-ink">{t('Event Breakdown Locked')}</p>
+                  <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
+                    {t('Detailed crash, speeding, and driving safety event breakdowns require an active fleet plan.')}
+                  </p>
+                  <Link
+                    href="/checkout?plan=delivery"
+                    className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
+                  >
+                    {t('Upgrade fleet plan')}
+                  </Link>
+                </div>
+              ) : weeklyReportQuery.isLoading ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Skeleton className="h-24 w-full rounded-xl" />
+                  <Skeleton className="h-24 w-full rounded-xl" />
+                  <Skeleton className="h-24 w-full rounded-xl" />
+                  <Skeleton className="h-24 w-full rounded-xl" />
+                </div>
+              ) : report && totalEvents > 0 ? (
                 <div className="space-y-3">
                   {Object.entries(report.eventCounts)
                     .sort(([, a], [, b]) => b - a)
@@ -403,14 +461,16 @@ export default function OverviewPage() {
                         <div key={type} className="group">
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
-                              <span className={cx(
-                                'flex h-6 w-6 items-center justify-center rounded-md text-[10px]',
-                                type === 'CRASH'
-                                  ? 'bg-danger-soft text-danger-ink'
-                                  : type === 'SPEEDING'
-                                    ? 'bg-warning-soft text-warning-ink'
-                                    : 'bg-accent/20 text-accent',
-                              )}>
+                              <span
+                                className={cx(
+                                  'flex h-6 w-6 items-center justify-center rounded-md text-[10px]',
+                                  type === 'CRASH'
+                                    ? 'bg-danger-soft text-danger-ink'
+                                    : type === 'SPEEDING'
+                                      ? 'bg-warning-soft text-warning-ink'
+                                      : 'bg-accent/20 text-accent',
+                                )}
+                              >
                                 <Activity size={11} />
                               </span>
                               <span className="text-sm font-medium text-ink">
@@ -438,220 +498,307 @@ export default function OverviewPage() {
                       );
                     })}
                 </div>
-              </>
-            ) : (
-              <EmptyState
-                icon={<Activity size={18} />}
-                title={t('No events this week')}
-                description={t('Event distribution appears once telemetry generates activity.')}
-              />
-            )}
-          </DashboardCard>
-
-          {/* Recent incidents timeline */}
-          <DashboardCard
-            eyebrow={t('Activity')}
-            title={t('Recent incidents')}
-            actions={
-              user?.role === 'INSURER' || !canUseIncidents ? null : (
-                <Link
-                  href="/incidents"
-                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-                >
-                  {t('Incident desk')} <ArrowRight size={12} />
-                </Link>
-              )
-            }
-          >
-            {!canUseIncidents ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent mb-3 animate-pulse">
-                  <Lock size={18} />
-                </span>
-                <p className="text-xs font-bold text-ink">{t('Incident Desk Locked')}</p>
-                <p className="text-[11px] text-ink-muted max-w-[280px] mt-1 mb-4 leading-relaxed">
-                  {t('Real-time crash tracking, safety alerts, and dispatch incident desk require an active fleet plan.')}
-                </p>
-                <Link
-                  href="/checkout?plan=delivery"
-                  className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
-                >
-                  {t('Upgrade fleet plan')}
-                </Link>
-              </div>
-            ) : recentIncidentsQuery.isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-14 w-full rounded-xl" />
-                <Skeleton className="h-14 w-full rounded-xl" />
-                <Skeleton className="h-14 w-full rounded-xl" />
-              </div>
-            ) : recentIncidents.length === 0 ? (
-              <EmptyState
-                icon={<Siren size={18} />}
-                title={t('No recent incidents')}
-                description={t('Incidents will appear here as they are created.')}
-              />
-            ) : (
-              <div className="space-y-1">
-                {recentIncidents.map((inc, i) => (
-                  <div
-                    key={inc.id}
-                    className={cx(
-                      'flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-hover',
-                      i < recentIncidents.length - 1
-                        ? 'border-b border-line'
-                        : '',
-                    )}
-                  >
-                    <span
-                      className={cx(
-                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                        inc.status === 'OPEN'
-                          ? 'bg-danger-soft text-danger-ink'
-                          : inc.status === 'ACKNOWLEDGED'
-                            ? 'bg-warning-soft text-warning-ink'
-                            : 'bg-success-soft text-success-ink',
-                      )}
-                    >
-                      <Siren size={13} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink">
-                        {t(formatEnumLabel(inc.status))} {t('Incident')}
-                      </p>
-                      <p className="text-xs text-ink-muted">
-                        {inc.createdAt ? formatTimeAgo(inc.createdAt) : 'Recently'}
-                      </p>
-                    </div>
-                    <Badge
-                      label={t(formatEnumLabel(inc.status))}
-                      tone={
-                        inc.status === 'OPEN'
-                          ? 'danger'
-                          : inc.status === 'ACKNOWLEDGED'
-                            ? 'warning'
-                            : 'success'
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </DashboardCard>
-        </div>
-
-        {/* Right: Watchlist */}
-        <div className="space-y-5">
-          <DashboardCard
-            eyebrow={t('Watchlist')}
-            title={user?.role === 'INSURER' ? t('Insured Risky Bikes') : t('Risky bikes')}
-            actions={
-              !canUseReports ? null : (
-                <Link
-                  href="/bikes"
-                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-                >
-                  {user?.role === 'INSURER' ? t('Bikes') : t('Fleet')} <ArrowRight size={12} />
-                </Link>
-              )
-            }
-          >
-            {!canUseReports ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent mb-2 animate-pulse">
-                  <Lock size={16} />
-                </span>
-                <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
-                <p className="text-[10px] text-ink-muted max-w-[200px] mt-1 mb-3">
-                  {t('Rider safety scoring and risky vehicle watchlist require an active fleet plan.')}
-                </p>
-                <Link
-                  href="/checkout?plan=delivery"
-                  className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
-                >
-                  {t('Upgrade')}
-                </Link>
-              </div>
-            ) : (
-              <WatchlistSection
-                emptyLabel={t('No risky bikes this week')}
-                items={(report?.topRiskyBikes ?? []).slice(0, 5).map((bike) => ({
-                  id: bike.bikeId,
-                  title: bike.label,
-                  subtitle: `${bike.tripCount} ${t('trips')} · ${bike.eventCount} ${t('events')}`,
-                  score: bike.avgScore,
-                }))}
-                loading={weeklyReportQuery.isLoading}
-              />
-            )}
-          </DashboardCard>
-
-          <DashboardCard
-            eyebrow={t('Watchlist')}
-            title={user?.role === 'INSURER' ? t('Insured Risky Riders') : t('Risky riders')}
-            actions={
-              user?.role === 'INSURER' || !canUseReports ? null : (
-                <Link
-                  href="/riders"
-                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-                >
-                  {t('Riders')} <ArrowRight size={12} />
-                </Link>
-              )
-            }
-          >
-            {!canUseReports ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent mb-2 animate-pulse">
-                  <Lock size={16} />
-                </span>
-                <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
-                <p className="text-[10px] text-ink-muted max-w-[200px] mt-1 mb-3">
-                  {t('Rider safety scoring and risky vehicle watchlist require an active fleet plan.')}
-                </p>
-                <Link
-                  href="/checkout?plan=delivery"
-                  className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white transition hover:brightness-110 shadow-md shadow-accent/20 cursor-pointer"
-                >
-                  {t('Upgrade')}
-                </Link>
-              </div>
-            ) : (
-              <WatchlistSection
-                emptyLabel={t('No risky riders this week')}
-                items={(report?.topRiskyRiders ?? []).slice(0, 5).map((rider) => ({
-                  id: rider.riderId,
-                  title: rider.fullName ?? `Rider ${rider.riderId.slice(0, 8)}`,
-                  subtitle: `${rider.tripCount} ${t('trips')}`,
-                  score: rider.avgScore,
-                }))}
-                loading={weeklyReportQuery.isLoading}
-              />
-            )}
-          </DashboardCard>
-
-          {/* Quick actions */}
-          <DashboardCard eyebrow={t('Quick actions')} title={t('Shortcuts')}>
-            <div className="grid grid-cols-2 gap-2">
-              {user?.role === 'INSURER' ? (
-                <>
-                  <QuickAction href="/bikes" icon={<Bike size={16} />} label={t('Bikes')} />
-                  <QuickAction href="/reports" icon={<Activity size={16} />} label={t('Reports')} />
-                  <QuickAction href="/settings?tab=apiCredentials" icon={<Settings size={16} />} label={t('API Credentials')} />
-                </>
               ) : (
-                <>
-                  <QuickAction href="/live" icon={<Gauge size={16} />} label={t('Live Map')} />
-                  <QuickAction href="/incidents" icon={<Siren size={16} />} label={t('Incidents')} />
-                  <QuickAction href="/bikes" icon={<Bike size={16} />} label={t('Fleet')} />
-                  <QuickAction href="/reports" icon={<Activity size={16} />} label={t('Reports')} />
-                </>
+                <EmptyState
+                  icon={<Activity size={18} />}
+                  title={t('No events this week')}
+                  description={t('Event distribution appears once telemetry generates activity.')}
+                />
               )}
-            </div>
-          </DashboardCard>
+            </DashboardCard>
+          </div>
+
+          <div className="space-y-5">
+            <DashboardCard
+              eyebrow={t('Watchlist')}
+              title={user?.role === 'INSURER' ? t('Insured Risky Bikes') : t('Risky bikes')}
+              actions={
+                !canUseReports ? null : (
+                  <Link
+                    href="/bikes"
+                    className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                  >
+                    {user?.role === 'INSURER' ? t('Bikes') : t('Fleet')} <ArrowRight size={12} />
+                  </Link>
+                )
+              }
+            >
+              {!canUseReports ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent mb-2 animate-pulse">
+                    <Lock size={16} />
+                  </span>
+                  <p className="text-xs font-bold text-ink">{t('Watchlist Locked')}</p>
+                </div>
+              ) : (
+                <WatchlistSection
+                  emptyLabel={t('No risky bikes this week')}
+                  items={(report?.topRiskyBikes ?? []).slice(0, 4).map((bike) => ({
+                    id: bike.bikeId,
+                    title: bike.label,
+                    subtitle: `${bike.tripCount} ${t('trips')} · ${bike.eventCount} ${t('events')}`,
+                    score: bike.avgScore,
+                  }))}
+                  loading={weeklyReportQuery.isLoading}
+                />
+              )}
+            </DashboardCard>
+
+            <DashboardCard eyebrow={t('Quick actions')} title={t('Shortcuts')}>
+              <div className="grid grid-cols-2 gap-2">
+                <QuickAction href="/live" icon={<Gauge size={16} />} label={t('Live Map')} />
+                <QuickAction href="/incidents" icon={<Siren size={16} />} label={t('Incidents')} />
+                <QuickAction href="/bikes" icon={<Bike size={16} />} label={t('Fleet')} />
+                <QuickAction href="/financial" icon={<Wallet size={16} />} label={t('Financials')} />
+              </div>
+            </DashboardCard>
+          </div>
         </div>
       </section>
+
+      {/* ==================================================================== */}
+      {/* SECTION 2: FINANCIAL REVENUE & COLLECTIONS (BOTTOM 50%)              */}
+      {/* ==================================================================== */}
+      {user?.role !== 'INSURER' && (
+        <section className="space-y-5 pt-4">
+          <div className="flex items-center justify-between border-b border-line/60 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <Wallet size={16} />
+              </span>
+              <h2 className="text-base font-bold text-ink">
+                {t('2. Financial Revenue & Rider Collections')}
+              </h2>
+            </div>
+            <Badge tone="success" label={t('50% Financial Focus')} />
+          </div>
+
+          {/* Financial KPI Summary Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {financialsQuery.isLoading ? (
+              <>
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+                <MetricCardSkeleton />
+              </>
+            ) : (
+              <>
+                <MetricCard
+                  title={t('Total Revenue Collected')}
+                  value={`${totalRevenuePeriod.toLocaleString()} RWF`}
+                  hint={`${dailyEarningsList.length} ${t('days in selected period')}`}
+                  icon={<DollarSign size={18} />}
+                  tone="success"
+                />
+                <MetricCard
+                  title={t('Daily Average Revenue')}
+                  value={`${avgDailyRevenue.toLocaleString()} RWF`}
+                  hint={t('Average daily rider lease collections')}
+                  icon={<Coins size={18} />}
+                  tone="info"
+                />
+                <MetricCard
+                  title={t('Total Lease Arrears')}
+                  value={`${totalArrears.toLocaleString()} RWF`}
+                  hint={t('Outstanding rider debt & overdue fees')}
+                  icon={<Receipt size={18} />}
+                  tone={totalArrears > 0 ? 'warning' : 'success'}
+                />
+                <MetricCard
+                  title={t('Collection Status')}
+                  value={`${financialSummary?.overdueCount ?? 0} ${t('Overdue')}`}
+                  hint={`${financialSummary?.unpaidCount ?? 0} ${t('Unpaid payment logs')}`}
+                  icon={<CreditCard size={18} />}
+                  tone={(financialSummary?.overdueCount ?? 0) > 0 ? 'danger' : 'neutral'}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Financial Histograms & Distribution Row */}
+          <div className="grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
+            {/* Left: Revenue Histogram */}
+            <RevenueHistogram
+              dailyEarnings={dailyEarningsList}
+              loading={financialsQuery.isLoading}
+            />
+
+            {/* Right: Payment Channels & Method Distribution */}
+            <DashboardCard
+              eyebrow={t('Payment Channels')}
+              title={t('Revenue Method Breakdown')}
+              description={t('Distribution of collections across Mobile Money, Cash, and Bank Transfers.')}
+              actions={
+                <Link
+                  href="/financial"
+                  className="flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  {t('Financial ledger')} <ArrowRight size={12} />
+                </Link>
+              }
+            >
+              {financialsQuery.isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full rounded-xl" />
+                  <Skeleton className="h-12 w-full rounded-xl" />
+                  <Skeleton className="h-12 w-full rounded-xl" />
+                </div>
+              ) : methodSum > 0 ? (
+                <div className="space-y-4 pt-1">
+                  {/* MoMo */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-ink flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                        Mobile Money (MoMo)
+                      </span>
+                      <span className="font-bold text-ink font-mono">
+                        {momoEarned.toLocaleString()} RWF ({Math.round((momoEarned / methodSum) * 100)}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-surface-hover overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                        style={{ width: `${(momoEarned / methodSum) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cash */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-ink flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-indigo-400" />
+                        Cash Direct
+                      </span>
+                      <span className="font-bold text-ink font-mono">
+                        {cashEarned.toLocaleString()} RWF ({Math.round((cashEarned / methodSum) * 100)}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-surface-hover overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+                        style={{ width: `${(cashEarned / methodSum) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bank */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-ink flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-violet-400" />
+                        Bank Transfer
+                      </span>
+                      <span className="font-bold text-ink font-mono">
+                        {bankEarned.toLocaleString()} RWF ({Math.round((bankEarned / methodSum) * 100)}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-surface-hover overflow-hidden">
+                      <div
+                        className="h-full bg-violet-400 rounded-full transition-all duration-500"
+                        style={{ width: `${(bankEarned / methodSum) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-line flex items-center justify-between text-xs text-ink-muted">
+                    <span>Total Period Collections:</span>
+                    <span className="font-bold text-emerald-400 font-mono text-sm">
+                      {methodSum.toLocaleString()} RWF
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<PieChart size={18} />}
+                  title={t('No payments recorded')}
+                  description={t('Rider payment methods will display here once recorded.')}
+                />
+              )}
+            </DashboardCard>
+          </div>
+        </section>
+      )}
     </div>
+  );
+}
+
+function RevenueHistogram({
+  dailyEarnings,
+  loading,
+}: {
+  dailyEarnings: Array<{ date: string; amount: number }>;
+  loading: boolean;
+}) {
+  const { t } = useTranslation();
+
+  if (loading) {
+    return <Skeleton className="h-64 w-full rounded-2xl" />;
+  }
+
+  if (!dailyEarnings || dailyEarnings.length === 0) {
+    return (
+      <DashboardCard
+        eyebrow={t('Financial Analytics')}
+        title={t('Daily Revenue Collection Histogram')}
+      >
+        <EmptyState
+          icon={<DollarSign size={20} />}
+          title={t('No financial collection data')}
+          description={t('Collections will appear here as daily rider payments are recorded.')}
+        />
+      </DashboardCard>
+    );
+  }
+
+  const maxAmount = Math.max(...dailyEarnings.map((d) => d.amount), 1);
+  const totalInPeriod = dailyEarnings.reduce((s, d) => s + d.amount, 0);
+
+  return (
+    <DashboardCard
+      eyebrow={t('Financial Analytics')}
+      title={t('Daily Revenue Collection Histogram')}
+      description={`${t('Period Revenue:')} ${totalInPeriod.toLocaleString()} RWF · ${dailyEarnings.length} ${t('days recorded')}`}
+    >
+      <div className="pt-2 pb-1 space-y-4">
+        {/* Histogram Bars Container */}
+        <div className="relative w-full overflow-x-auto">
+          <div className="min-w-[420px] h-[200px] flex items-end justify-between gap-2 pt-6 pb-2 px-1">
+            {dailyEarnings.map((item) => {
+              const heightPct = Math.max(8, Math.round((item.amount / maxAmount) * 100));
+              const formattedAmt = item.amount.toLocaleString();
+              return (
+                <div key={item.date} className="group relative flex-1 flex flex-col items-center h-full justify-end">
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-white/10 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg shadow-xl z-20 whitespace-nowrap pointer-events-none">
+                    <p className="text-emerald-400 font-semibold">{item.date}</p>
+                    <p>{formattedAmt} RWF</p>
+                  </div>
+
+                  {/* Bar height & label */}
+                  <span className="text-[9px] font-mono font-bold text-ink-muted mb-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    {item.amount > 0 ? (item.amount >= 1000 ? `${Math.round(item.amount / 1000)}k` : item.amount) : '0'}
+                  </span>
+
+                  {/* Histogram Bar element */}
+                  <div
+                    className="w-full max-w-[36px] rounded-t-lg bg-gradient-to-t from-emerald-600/70 to-emerald-400 border-t border-x border-emerald-400/40 transition-all duration-300 group-hover:brightness-125 group-hover:shadow-[0_0_12px_rgba(52,211,153,0.4)]"
+                    style={{ height: `${heightPct}%` }}
+                  />
+
+                  {/* X Axis Date label */}
+                  <span className="text-[10px] font-mono text-ink-muted mt-2 truncate w-full text-center">
+                    {item.date.slice(5)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </DashboardCard>
   );
 }
 
@@ -793,7 +940,6 @@ function ScorePill({ score }: { score: number }) {
   );
 }
 
-
 function TrendChart({
   dailyScores,
 }: {
@@ -828,8 +974,8 @@ function TrendChart({
   return (
     <DashboardCard
       eyebrow={t('Trend Analysis')}
-      title={t('Insured safety score timeline')}
-      description={t('Daily safety score trend lines for the active insured pool.')}
+      title={t('Fleet Safety Score Timeline')}
+      description={t('Daily safety score trend lines for active operating motorcycles.')}
     >
       <div className="relative w-full">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
@@ -840,7 +986,6 @@ function TrendChart({
             </linearGradient>
           </defs>
 
-          {/* Grid lines */}
           {[100, 75, 50, 25].map((lvl) => {
             const y = paddingTop + chartHeight - (lvl / 100) * chartHeight;
             return (
@@ -872,7 +1017,6 @@ function TrendChart({
             stroke="rgba(255,255,255,0.1)"
           />
 
-          {/* X Axis Labels */}
           {dailyScores.map((p, index) => {
             const x = paddingLeft + (index / Math.max(1, pointsCount - 1)) * chartWidth;
             return (
@@ -888,12 +1032,10 @@ function TrendChart({
             );
           })}
 
-          {/* Area fill */}
           {dailyScores.length > 1 && (
             <path d={areaPath} fill="url(#areaGradient)" />
           )}
 
-          {/* Line */}
           {dailyScores.length > 1 && (
             <polyline
               fill="none"
@@ -905,7 +1047,6 @@ function TrendChart({
             />
           )}
 
-          {/* Data points */}
           {dailyScores.map((p, i) => {
             const x = paddingLeft + (i / Math.max(1, pointsCount - 1)) * chartWidth;
             const y = paddingTop + chartHeight - (p.score / 100) * chartHeight;
