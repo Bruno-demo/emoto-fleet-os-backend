@@ -142,6 +142,7 @@ export class RulesEngineService {
             insideZoneIds,
           ),
       ],
+      ['stationVisits', () => this.evaluateStationVisits(device, payload)],
     ];
 
     for (const [name, evaluate] of evaluations) {
@@ -926,6 +927,78 @@ export class RulesEngineService {
           speedKph: payload.speedKph,
         },
       });
+    }
+  }
+
+  /**
+   * Evaluates if a motorcycle stopped at registered map station POIs.
+   * If a bike completes trip(s) AND stops at registered stations > 1 time today,
+   * it is verified as active/worked today for daily fleet lease billing.
+   * (ZERO reliance on battery telemetry).
+   */
+  private async evaluateStationVisits(
+    device: RuleDeviceContext,
+    payload: TelemetryPayload,
+  ): Promise<void> {
+    if (!device.bikeId) return;
+
+    // Check if vehicle is stopped or at low speed (<= 5 kph)
+    if (payload.speedKph > 5) return;
+
+    const todayDate = new Date(payload.ts || Date.now()).toISOString().slice(0, 10);
+    const cooldownKey = `cooldown:station_stop:${device.bikeId}:${todayDate}`;
+
+    // 5-minute cooldown between recording stops at the same station
+    const isCoolingDown = await this.redisService.get(cooldownKey);
+    if (isCoolingDown) return;
+
+    const poiStations = await this.prismaService.poi.findMany({
+      where: { active: true },
+      select: { id: true, name: true, lat: true, lng: true },
+    });
+
+    for (const station of poiStations) {
+      const distMeters = haversineDistanceMeters(
+        payload.lat,
+        payload.lng,
+        Number(station.lat),
+        Number(station.lng),
+      );
+
+      // Within 250 meters of registered map station POI
+      if (distMeters <= 250) {
+        await this.redisService.set(cooldownKey, '1', 300);
+
+        const countKey = `station_visit_count:${device.bikeId}:${todayDate}`;
+        const currentCountStr = await this.redisService.get(countKey);
+        const totalVisits = (currentCountStr ? parseInt(currentCountStr, 10) : 0) + 1;
+        await this.redisService.set(countKey, String(totalVisits), 86400 * 2);
+
+        this.logger.log(
+          `📍 Moto ${device.bikeId} stopped at Station "${station.name}" (${totalVisits} station stops today)`,
+        );
+
+        // Check if bike also completed at least 1 trip today
+        const tripsCountToday = await this.prismaService.trip.count({
+          where: {
+            bikeId: device.bikeId,
+            startTs: {
+              gte: new Date(`${todayDate}T00:00:00.000Z`),
+              lte: new Date(`${todayDate}T23:59:59.999Z`),
+            },
+          },
+        });
+
+        // RULE: If bike made trip(s) AND stopped at registered map stations > 1 time today
+        if (tripsCountToday >= 1 && totalVisits > 1) {
+          const workedKey = `bike_worked_today:${device.bikeId}:${todayDate}`;
+          await this.redisService.set(workedKey, 'true', 86400 * 2);
+          this.logger.log(
+            `✅ Moto ${device.bikeId} VERIFIED WORKED TODAY (Trips: ${tripsCountToday}, Station Stops: ${totalVisits})`,
+          );
+        }
+        break;
+      }
     }
   }
 }
