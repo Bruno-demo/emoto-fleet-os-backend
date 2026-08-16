@@ -656,21 +656,6 @@ export default function SettingsPage() {
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
-                            {cycle.status !== 'PAID' && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPayNowCycle(cycle);
-                                  setPayNowPhone(currentSubscription?.subscription?.momoPhoneNumber || '');
-                                  setPayNowSuccessMsg(null);
-                                  setPayNowErrorMsg(null);
-                                }}
-                                className="inline-flex items-center gap-1 rounded-lg border border-accent bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent/20 transition cursor-pointer"
-                              >
-                                <Banknote size={12} />
-                                {t("Pay with MoMo")}
-                              </button>
-                            )}
                             <button
                               type="button"
                               onClick={() => setSelectedInvoiceModal(cycle)}
