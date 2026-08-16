@@ -84,15 +84,21 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, isError, data, nextPath, pathname, router]);
 
-  if (!hasWindow || (isLoading && !isError)) {
+  const isPendingSetup = data?.status === 'PENDING_SETUP';
+  const isInvalidRole = data?.role === 'RIDER';
+
+  if (!hasWindow || (isLoading && !isError) || isError || isPendingSetup || isInvalidRole) {
     return (
-      <div className="grid min-h-screen place-items-center">
+      <div className="grid min-h-screen place-items-center bg-[#09090b]">
         <div className="flex flex-col items-center gap-4">
-          <p className="text-sm text-ink-soft">Checking session...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+          <p className="text-sm font-medium text-zinc-400">
+            {isPendingSetup ? 'Redirecting to setup status...' : 'Checking session...'}
+          </p>
           {isTimedOut && (
             <button 
               onClick={() => window.location.reload()}
-              className="text-xs font-semibold text-accent underline underline-offset-4"
+              className="text-xs font-semibold text-cyan-400 underline underline-offset-4"
             >
               Taking too long? Try again
             </button>

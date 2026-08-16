@@ -252,6 +252,7 @@ export default function LandingContent() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('live-map');
   const [hasSession, setHasSession] = useState(false);
+  const [sessionUser, setSessionUser] = useState<{ status?: string; role?: string } | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [pricingTiers, setPricingTiers] = useState<LandingPricingTier[] | null>(null);
@@ -260,14 +261,21 @@ export default function LandingContent() {
     const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
     fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
       .then((res) => {
-        if (res.ok) {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((userData) => {
+        if (userData) {
           setHasSession(true);
+          setSessionUser(userData);
         } else {
           setHasSession(false);
+          setSessionUser(null);
         }
       })
       .catch(() => {
         setHasSession(false);
+        setSessionUser(null);
       });
 
     async function loadPricing() {
@@ -282,6 +290,15 @@ export default function LandingContent() {
     }
     loadPricing();
   }, []);
+
+  const isPendingSetup = sessionUser?.status === 'PENDING_SETUP';
+  const dashboardHref = isPendingSetup
+    ? (sessionUser?.role === 'INSURER' ? '/registration-success?type=insurance' : '/registration-success')
+    : (sessionUser?.role === 'HQ_SUPERADMIN' || sessionUser?.role === 'HQ_DISPATCH' ? '/hq/overview' : '/overview');
+
+  const dashboardLabel = isPendingSetup
+    ? t('View Setup Status')
+    : t('land_dashboard');
 
 
   const localizedFaqItems = useMemo(() => {
@@ -395,8 +412,8 @@ export default function LandingContent() {
           <div className="hidden items-center gap-4 md:flex">
             <LanguageSwitcher />
             {hasSession ? (
-              <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
-                {t('land_dashboard')} <ArrowRight size={14} />
+              <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition" style={{background:'white', color:'black'}}>
+                {dashboardLabel} <ArrowRight size={14} />
               </Link>
             ) : (
               <>
@@ -434,12 +451,12 @@ export default function LandingContent() {
               </div>
               {hasSession ? (
                 <Link
-                  href="/overview"
+                  href={dashboardHref}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
                   style={{background:'white', color:'black'}}
                 >
-                  {t('land_dashboard')} <ArrowRight size={14} />
+                  {dashboardLabel} <ArrowRight size={14} />
                 </Link>
               ) : (
                 <>
@@ -491,8 +508,8 @@ export default function LandingContent() {
 
         <div className="relative z-10 mt-10 flex flex-wrap justify-center gap-4">
           {hasSession ? (
-            <Link href="/overview" className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
-              {t('land_dashboard')} <ArrowRight size={15} />
+            <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition" style={{background:'white',color:'black'}}>
+              {dashboardLabel} <ArrowRight size={15} />
             </Link>
           ) : (
             <>
