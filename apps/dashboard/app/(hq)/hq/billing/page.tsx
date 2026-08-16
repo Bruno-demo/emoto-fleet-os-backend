@@ -564,9 +564,8 @@ export default function HqBillingPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredFleets?.map((fleet) => {
                   const setupAmount = 0;
-                  const dailyRate = fleet.emotoPaygRatePerActiveDay ?? (fleet.type === 'DELIVERY' ? 500 : 350);
-                  const monthlyRate = fleet.monthlyRatePerBike ?? (dailyRate * 30);
-                  const estimatedMonthly = fleet._count.bikes * monthlyRate;
+                  const dailyRate = getFleetDailyRate(fleet.type, fleet.emotoPaygRatePerActiveDay);
+                  const estimatedMonthly = fleet._count.bikes * dailyRate * 30;
                   const hasUpgrade = fleet.upgradeRequested;
 
                   return (
@@ -1592,6 +1591,7 @@ const PREDEFINED_DESCRIPTIONS = [
 
 function PricingTierCard({ tier }: PricingTierCardProps) {
   const queryClient = useQueryClient();
+  const [paygSubTier, setPaygSubTier] = useState<'COOP' | 'DELIVERY'>('COOP');
 
   const updatePricingTierMutation = useMutation({
     mutationFn: ({ planCode, name, monthlyRatePerBike, setupFeePerBike, description }: { planCode: string; name: string; monthlyRatePerBike: number; setupFeePerBike: number; description: string }) =>
@@ -1611,6 +1611,10 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
   const [selectVal, setSelectVal] = useState(initialSelectVal);
   const [customDesc, setCustomDesc] = useState(tier.description ?? "");
 
+  const displayRate = tier.planCode === 'PAYG'
+    ? (paygSubTier === 'DELIVERY' ? 500 : 350)
+    : tier.monthlyRatePerBike;
+
   return (
     <div className="rounded-3xl border border-line bg-surface-strong/50 p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -1623,16 +1627,45 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
       <div className="h-px bg-line w-full" />
       
       {tier.planCode === 'PAYG' && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-2 text-xs text-emerald-400">
-          <div className="flex items-center gap-1.5 font-bold">
-            <Sparkles size={13} /> Active Daily Sub-Tier Rates
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-3 text-xs text-emerald-400">
+          <div className="flex items-center justify-between font-bold">
+            <span className="flex items-center gap-1.5"><Sparkles size={13} /> Active Daily Sub-Tier Rates</span>
           </div>
+
+          {/* Sub-Tier Selector Buttons */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-background/80 rounded-xl border border-line">
+            <button
+              type="button"
+              onClick={() => setPaygSubTier('COOP')}
+              className={cx(
+                "py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all",
+                paygSubTier === 'COOP'
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "text-zinc-400 hover:text-white"
+              )}
+            >
+              Coop & Individual
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaygSubTier('DELIVERY')}
+              className={cx(
+                "py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all",
+                paygSubTier === 'DELIVERY'
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "text-zinc-400 hover:text-white"
+              )}
+            >
+              Delivery & Logistics
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="bg-background/60 p-2 rounded-xl border border-line">
+            <div className={cx("p-2 rounded-xl border transition-all", paygSubTier === 'COOP' ? "bg-emerald-500/10 border-emerald-500/40" : "bg-background/60 border-line")}>
               <p className="text-zinc-400 font-bold">Coop & Individual</p>
               <p className="text-white font-extrabold text-sm mt-0.5">350 RWF <span className="text-[10px] text-zinc-400 font-normal">/ active day</span></p>
             </div>
-            <div className="bg-background/60 p-2 rounded-xl border border-line">
+            <div className={cx("p-2 rounded-xl border transition-all", paygSubTier === 'DELIVERY' ? "bg-emerald-500/10 border-emerald-500/40" : "bg-background/60 border-line")}>
               <p className="text-zinc-400 font-bold">Delivery & Logistics</p>
               <p className="text-white font-extrabold text-sm mt-0.5">500 RWF <span className="text-[10px] text-zinc-400 font-normal">/ active day</span></p>
             </div>
@@ -1642,11 +1675,14 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
       
       <div className="space-y-3">
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Monthly Rate Per Bike (RWF)</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+            {tier.planCode === 'PAYG' ? "Daily Rate Per Active Bike (RWF)" : "Monthly Rate Per Bike (RWF)"}
+          </label>
           <input
             type="number"
             id={`price-rate-${tier.planCode}`}
-            defaultValue={tier.monthlyRatePerBike}
+            key={`${tier.planCode}-${paygSubTier}`}
+            defaultValue={displayRate}
             className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-sm text-white"
           />
         </div>
@@ -1671,7 +1707,8 @@ function PricingTierCard({ tier }: PricingTierCardProps) {
             }}
             className="mt-1 h-10 w-full rounded-xl border border-line bg-background px-3 text-xs text-white"
           >
-            <option value="350 RWF / day per active bike. Pay only for bikes active on the road each day with full telemetry, remote lock/unlock, rider scoring, and financial management.">Pay-As-You-Go description (350 RWF/day)</option>
+            <option value="350 RWF / day per active bike (Coop/Indiv). Pay only for bikes active on the road each day with full telemetry, remote lock/unlock, rider scoring, and financial management.">Pay-As-You-Go Coop & Individual (350 RWF/day)</option>
+            <option value="500 RWF / day per active bike (Delivery & Logistics). Pay only for bikes active on the road each day with full telemetry, remote lock/unlock, rider scoring, and financial management.">Pay-As-You-Go Delivery & Logistics (500 RWF/day)</option>
             <option value="Dedicated Insurer Portal, FNOL crash & theft evidence packs, automated risk analytics, and underwriter compliance monitoring.">Insurance description</option>
             <option value="Tailored multi-fleet HQ command center, custom IoT integrations, dedicated account manager, and SLA guarantees.">Enterprise description</option>
             <option value="Other">Other (custom description)</option>

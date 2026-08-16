@@ -150,8 +150,22 @@ export class PricingTierService implements OnModuleInit {
           },
         },
       });
+
+      // Ensure DELIVERY fleets have 500 RWF/day active rate in DB
+      await this.prisma.fleet.updateMany({
+        where: {
+          type: 'DELIVERY',
+          emotoPaygRatePerActiveDay: {
+            not: 500,
+          },
+        },
+        data: {
+          emotoPaygRatePerActiveDay: 500,
+          monthlyRatePerBike: 15000,
+        },
+      });
     } catch {
-      // Ignore if enums removed from DB
+      // Ignore if enums or fields non-blocking
     }
   }
 }
