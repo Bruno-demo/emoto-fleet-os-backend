@@ -583,7 +583,7 @@ export default function SettingsPage() {
             id="billing"
             eyebrow={t("Billing")}
             title={t("Pay-As-You-Go Billing Overview")}
-            description={t("You are only charged on days your bikes are actively used (validated trips > 0.5 km). Idle days are free.")}
+            description={t("You are only charged on days your bikes are actively working (validated trips & station stops > 1). Idle days are free.")}
           >
             {(() => {
               const isInsurance = user?.fleetPlan === 'INSURANCE';
@@ -624,10 +624,10 @@ export default function SettingsPage() {
                     <div className="rounded-2xl border border-success-ink/20 bg-success-soft/5 p-5 space-y-2">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-success-ink">{t('Billing Mode')}</p>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-extrabold text-success-ink">{t('PAYG Trip-Validated')}</span>
+                        <span className="text-lg font-extrabold text-success-ink">{t('PAYG GPS-Validated')}</span>
                       </div>
                       <p className="text-xs text-ink-faint leading-relaxed">
-                        {t('Only days with trips > 0.5 km are charged.')}
+                        {t('Only days with validated trips & station stops (> 1 stop) are charged.')}
                       </p>
                     </div>
 
@@ -651,21 +651,21 @@ export default function SettingsPage() {
                     </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-ink">{t('1. Trip Validation')}</p>
+                        <p className="text-xs font-bold text-ink">{t('1. Active Day Verification')}</p>
                         <p className="text-[11px] text-ink-muted leading-relaxed">
-                          {t('Each bike is monitored daily. A day counts as "active" only when the bike records validated trips totaling > 0.5 km.')}
+                          {t('Each bike is monitored daily. A day counts as "active" only when the bike completes validated trip(s) AND stops at registered swap stations (> 1 stop).')}
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-ink">{t('2. Daily Charge')}</p>
+                        <p className="text-xs font-bold text-ink">{t('2. Daily Active Charge')}</p>
                         <p className="text-[11px] text-ink-muted leading-relaxed">
                           {t('Active bike-days are charged at')} <strong className="text-accent">{paygDailyRate.toLocaleString()} RWF</strong> {t('per bike. Idle or maintenance days are completely exempt.')}
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-ink">{t('3. Monthly Invoice')}</p>
+                        <p className="text-xs font-bold text-ink">{t('3. Weekly Billing Cycle & Invoicing')}</p>
                         <p className="text-[11px] text-ink-muted leading-relaxed">
-                          {t('At the end of each billing cycle, your total is calculated as: Active Bike-Days × Rate. Pay via MoMo or invoice.')}
+                          {t('At the end of each weekly billing cycle, your total is calculated as: Active Bike-Days × Rate. Pay conveniently via MTN MoMo or invoice.')}
                         </p>
                       </div>
                     </div>
