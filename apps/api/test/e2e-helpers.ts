@@ -3,6 +3,22 @@ import { PrismaClient } from '@prisma/client';
 export async function ensureTestSchemaSync(
   prisma: PrismaClient,
 ): Promise<void> {
+  const dbUrl = process.env.DATABASE_URL || '';
+  const isProdEnv = process.env.NODE_ENV === 'production';
+  const isRemoteDb =
+    !dbUrl.includes('localhost') &&
+    !dbUrl.includes('127.0.0.1') &&
+    !dbUrl.includes('host.docker.internal');
+  const isProdDbHost =
+    dbUrl.includes('46.225.124.225') ||
+    dbUrl.includes('emoto_app') ||
+    dbUrl.includes('sslmode=require');
+
+  if (isProdEnv || isRemoteDb || isProdDbHost) {
+    throw new Error(
+      '⛔ FATAL: E2E tests are strictly prohibited from executing against a production or remote database!',
+    );
+  }
   try {
     await prisma.$executeRawUnsafe(
       `ALTER TYPE "FleetPlan" ADD VALUE IF NOT EXISTS 'PAYG';`,

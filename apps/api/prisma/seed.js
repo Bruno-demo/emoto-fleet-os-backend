@@ -3,8 +3,25 @@ const bcrypt = require('bcrypt');
 const Redis = require('ioredis');
 const { PrismaClient } = require('@prisma/client');
 
-if (process.env.NODE_ENV === 'production') {
-  console.error('ERROR: seed.js must not run in production (NODE_ENV=production)');
+// ── Production Database Guard ──────────────────────────────────────────────
+const dbUrl = process.env.DATABASE_URL || '';
+const isProdEnv = process.env.NODE_ENV === 'production';
+const isRemoteDb =
+  !dbUrl.includes('localhost') &&
+  !dbUrl.includes('127.0.0.1') &&
+  !dbUrl.includes('host.docker.internal');
+const isProdDbHost =
+  dbUrl.includes('46.225.124.225') ||
+  dbUrl.includes('emoto_app') ||
+  dbUrl.includes('sslmode=require');
+
+if (isProdEnv || isRemoteDb || isProdDbHost || !dbUrl) {
+  console.error('\n' + '='.repeat(80));
+  console.error('⛔ FATAL: DB SEEDING BLOCKED ON NON-LOCAL / PRODUCTION DATABASE!');
+  console.error(`Target DB URL: ${dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'UNSET'}`);
+  console.error(`Environment: NODE_ENV="${process.env.NODE_ENV}"`);
+  console.error('Seeding mock data into production or remote databases is permanently prohibited.');
+  console.error('='.repeat(80) + '\n');
   process.exit(1);
 }
 
