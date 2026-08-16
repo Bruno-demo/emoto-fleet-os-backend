@@ -777,8 +777,8 @@ export default function SettingsPage() {
           {/* PAYG Active-Day Audit Card */}
           <DashboardCard
             eyebrow={t("Pay As You Go (PAYG) Audit")}
-            title={t("Trip-Validated Daily Usage Breakdown")}
-            description={t("Bikes are billed 350 RWF/day ONLY on days with validated trips (>0.5 km). Idle days or maintenance days are exempt.")}
+            title={t("GPS-Validated Daily Usage Breakdown")}
+            description={t("Bikes are billed at their active daily rate ONLY on days with validated trips & station stops (> 1 stop). Idle or maintenance days are exempt.")}
           >
             <div className="space-y-6">
               {paygAuditQuery.isLoading ? (
@@ -791,18 +791,18 @@ export default function SettingsPage() {
                   <div className="grid gap-3 sm:grid-cols-4">
                     <div className="rounded-xl border border-line bg-surface-muted p-4 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Billing Mode")}</p>
-                      <p className="text-sm font-extrabold text-ink">{paygAuditQuery.data.billingMode === 'PAYG_TRIP_VALIDATED' ? t('PAYG Validated') : t('Fixed Monthly')}</p>
+                      <p className="text-sm font-extrabold text-ink">{paygAuditQuery.data.billingMode === 'PAYG_TRIP_VALIDATED' ? t('PAYG GPS-Validated') : t('Fixed Monthly')}</p>
                       <p className="text-[10px] text-ink-faint">{paygAuditQuery.data.paygRatePerActiveDay} RWF / {t("active day")}</p>
                     </div>
                     <div className="rounded-xl border border-success-ink/20 bg-success-soft/10 p-4 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-success-ink">{t("Active Bike-Days")}</p>
                       <p className="text-xl font-extrabold text-success-ink">{paygAuditQuery.data.totalActiveBikeDays}</p>
-                      <p className="text-[10px] text-success-ink/70">{t("Verified trips > 0.5 km")}</p>
+                      <p className="text-[10px] text-success-ink/70">{t("Verified trips & station stops (> 1 stop)")}</p>
                     </div>
                     <div className="rounded-xl border border-line bg-surface-muted p-4 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Exempt Idle Days")}</p>
                       <p className="text-xl font-extrabold text-ink-muted">{paygAuditQuery.data.totalExemptBikeDays}</p>
-                      <p className="text-[10px] text-ink-faint">{t("0 trips / zero charges")}</p>
+                      <p className="text-[10px] text-ink-faint">{t("0 trips or unverified stops / zero charges")}</p>
                     </div>
                     <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-accent">{t("Calculated PAYG Total")}</p>
@@ -911,7 +911,7 @@ export default function SettingsPage() {
                 <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Active Day Rate")}</p>
                   <p className="text-sm font-extrabold text-ink">{paygDailyRate.toLocaleString()} RWF <span className="text-[10px] text-ink-muted font-normal">/ bike / day</span></p>
-                  <p className="text-[10px] text-ink-faint">{t("Only charged when bike has trips > 0.5 km")}</p>
+                  <p className="text-[10px] text-ink-faint">{t("Only charged on days with trips & station stops")}</p>
                 </div>
                 <div className="rounded-2xl border border-line bg-surface-muted p-4 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">{t("Payment Method")}</p>
