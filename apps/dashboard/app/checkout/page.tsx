@@ -399,7 +399,7 @@ function CheckoutContent() {
                   Payment Method
                 </p>
                 <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider shrink-0">
-                  MTN MoMo Integrated
+                  Pay on Request
                 </span>
               </div>
 
@@ -429,11 +429,11 @@ function CheckoutContent() {
 
                   <div className="flex-1 flex items-center justify-between min-w-0">
                     <span className="text-sm font-extrabold text-white truncate">
-                      MTN Mobile Money (RWF)
+                      MTN MoMo (*182*8*1*CODE#)
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 shrink-0 ml-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Instant STK Push
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold text-amber-300 shrink-0 ml-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      Pay on Request
                     </span>
                   </div>
                 </div>
@@ -456,7 +456,7 @@ function CheckoutContent() {
 
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium pt-1">
                       <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
-                      <span>Enter your phone number to receive an instant USSD PIN prompt.</span>
+                      <span>Enter your phone or dial *182*8*1*CODE# to complete payment on request.</span>
                     </div>
                   </div>
                 )}
