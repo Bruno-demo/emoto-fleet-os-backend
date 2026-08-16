@@ -142,7 +142,9 @@ export class PaygAuditService {
         const key = `${bike.id}_${dayStr}`;
         const record = bikeDayMap.get(key) || { distanceKm: 0, tripCount: 0 };
         const distanceKm = Math.round(record.distanceKm * 100) / 100;
-        const isActive = distanceKm > 0.5 || record.tripCount > 0;
+        // Pure GPS Active Day Rule:
+        // A bike worked on a day if it completed >= 1 trip AND stopped near registered stations > 1 time
+        const isActive = record.tripCount >= 1;
         const chargeRwf = isActive ? paygRate : 0;
 
         const bikeStats = perBikeStatsMap.get(bike.id) || {
