@@ -86,6 +86,15 @@ export class BillingController {
     );
   }
 
+  @Get('inactive-devices')
+  @UseGuards(HqGuard)
+  @ApiOperation({
+    summary: 'HQ: List non-working devices causing revenue risk with fleet admin contacts',
+  })
+  async getInactiveDevices() {
+    return await this.paygAuditService.getRevenueRiskDevices();
+  }
+
   // ── Fleet-Operator Endpoints ─────────────────────────────────────
 
   @Get('my-cycles')

@@ -207,4 +207,128 @@ export class PaygAuditService {
       dailyBreakdown,
     };
   }
+
+  /**
+   * Fetches all IoT devices that are non-working/inactive (no active day / telemetry > 24h)
+   * along with assigned fleet admin contact details, bike details, and lost revenue calculation.
+   */
+  async getRevenueRiskDevices() {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const devices = await this.prisma.device.findMany({
+      where: {
+        OR: [
+          { status: 'INACTIVE' },
+          { status: 'RETIRED' },
+          { lastSeenAt: { lt: twentyFourHoursAgo } },
+          { lastSeenAt: null },
+        ],
+      },
+      select: {
+        id: true,
+        deviceUid: true,
+        status: true,
+        lastSeenAt: true,
+        createdAt: true,
+        fleet: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            emotoPaygRatePerActiveDay: true,
+            users: {
+              where: { role: { in: ['ADMIN', 'OWNER'] }, status: 'ACTIVE' },
+              select: { email: true, phone: true, role: true },
+              take: 2,
+            },
+          },
+        },
+        bike: {
+          select: {
+            id: true,
+            label: true,
+            plate: true,
+            status: true,
+            assignments: {
+              where: { active: true },
+              select: {
+                rider: {
+                  select: {
+                    id: true,
+                    phone: true,
+                    riderProfile: { select: { fullName: true } },
+                  },
+                },
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: { lastSeenAt: 'asc' },
+    });
+
+    const now = Date.now();
+    let totalRevenueLostRwf = 0;
+    const impactedFleetIds = new Set<string>();
+
+    const enrichedDevices = devices.map((device) => {
+      const lastSeen = device.lastSeenAt ? new Date(device.lastSeenAt).getTime() : new Date(device.createdAt).getTime();
+      const inactiveHours = Math.max(1, Math.floor((now - lastSeen) / (1000 * 60 * 60)));
+      const inactiveDays = Math.max(1, Math.floor(inactiveHours / 24));
+
+      const dailyRate =
+        device.fleet?.type === 'DELIVERY'
+          ? (!device.fleet.emotoPaygRatePerActiveDay || device.fleet.emotoPaygRatePerActiveDay === 350 ? 500 : device.fleet.emotoPaygRatePerActiveDay)
+          : (device.fleet?.emotoPaygRatePerActiveDay ?? 350);
+
+      const estimatedLossRwf = inactiveDays * dailyRate;
+      totalRevenueLostRwf += estimatedLossRwf;
+
+      if (device.fleet?.id) {
+        impactedFleetIds.add(device.fleet.id);
+      }
+
+      const adminUser = device.fleet?.users?.[0];
+      const activeAssignment = device.bike?.assignments?.[0];
+
+      return {
+        id: device.id,
+        deviceUid: device.deviceUid,
+        status: device.status,
+        lastSeenAt: device.lastSeenAt ? device.lastSeenAt.toISOString() : null,
+        inactiveHours,
+        inactiveDays,
+        dailyRate,
+        estimatedLossRwf,
+        fleet: device.fleet
+          ? {
+              id: device.fleet.id,
+              name: device.fleet.name,
+              type: device.fleet.type,
+              adminEmail: adminUser?.email || null,
+              adminPhone: adminUser?.phone || null,
+            }
+          : null,
+        bike: device.bike
+          ? {
+              id: device.bike.id,
+              label: device.bike.label,
+              plate: device.bike.plate,
+              riderName: activeAssignment?.rider?.riderProfile?.fullName || null,
+              riderPhone: activeAssignment?.rider?.phone || null,
+            }
+          : null,
+      };
+    });
+
+    return {
+      summary: {
+        totalInactiveDevices: enrichedDevices.length,
+        totalRevenueLostRwf,
+        impactedFleetsCount: impactedFleetIds.size,
+      },
+      devices: enrichedDevices,
+    };
+  }
 }

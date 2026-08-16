@@ -17,6 +17,7 @@ import {
   Shield,
   Trash2,
   Plus,
+  Phone,
   Info,
   RefreshCw,
   Edit2,
@@ -149,7 +150,7 @@ type BillingCycle = z.infer<typeof billingCycleSchema>['data'][number];
 
 export default function HqBillingPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'ledger' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
+  const [activeTab, setActiveTab] = useState<'ledger' | 'revenue-risk' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'ENTERPRISE' | 'PAYG' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
@@ -182,6 +183,41 @@ export default function HqBillingPage() {
   });
 
   // Queries
+  const { data: inactiveDevicesData, isLoading: inactiveDevicesLoading } = useQuery({
+    queryKey: ['hq', 'billing-inactive-devices'],
+    queryFn: () => apiFetch<{
+      summary: {
+        totalInactiveDevices: number;
+        totalRevenueLostRwf: number;
+        impactedFleetsCount: number;
+      };
+      devices: Array<{
+        id: string;
+        deviceUid: string;
+        status: string;
+        lastSeenAt: string | null;
+        inactiveHours: number;
+        inactiveDays: number;
+        dailyRate: number;
+        estimatedLossRwf: number;
+        fleet: {
+          id: string;
+          name: string;
+          type: string;
+          adminEmail: string | null;
+          adminPhone: string | null;
+        } | null;
+        bike: {
+          id: string;
+          label: string;
+          plate: string | null;
+          riderName: string | null;
+          riderPhone: string | null;
+        } | null;
+      }>;
+    }>('/billing/inactive-devices'),
+  });
+
   const { data: fleets, isLoading: fleetsLoading } = useQuery({
     queryKey: ['hq', 'billing-fleets'],
     queryFn: () => apiFetch('/hq/billing', {}, { schema: billingFleetSchema }),
@@ -443,21 +479,196 @@ export default function HqBillingPage() {
 
       {/* Navigation Tabs */}
       <div className="flex border-b border-line gap-2 overflow-x-auto pb-1">
-        {(['ledger', 'pricing', 'discounts', 'settings', 'trials'] as const).map((tab) => (
+        {(['ledger', 'revenue-risk', 'pricing', 'discounts', 'settings', 'trials'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cx(
-              "px-5 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap cursor-pointer",
+              "px-5 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2",
               activeTab === tab 
                 ? 'border-accent text-accent' 
                 : 'border-transparent text-zinc-400 hover:text-white'
             )}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'revenue-risk' ? (
+              <>
+                <span>Revenue Risk</span>
+                {inactiveDevicesData?.summary.totalInactiveDevices ? (
+                  <span className="rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 text-[10px] font-extrabold">
+                    {inactiveDevicesData.summary.totalInactiveDevices}
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              tab.charAt(0).toUpperCase() + tab.slice(1)
+            )}
           </button>
         ))}
       </div>
+
+      {/* TAB 2: REVENUE RISK (INACTIVE DEVICES) */}
+      {activeTab === 'revenue-risk' && (
+        <div className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl border border-rose-500/20 bg-rose-500/[0.04] p-6 relative overflow-hidden group hover:border-rose-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  <AlertCircle size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80">Non-Working Trackers</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">
+                    {inactiveDevicesData?.summary.totalInactiveDevices ?? 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.04] p-6 relative overflow-hidden group hover:border-amber-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Banknote size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">Accumulated Lost Revenue</p>
+                  <p className="text-2xl font-extrabold text-amber-400 mt-1">
+                    {(inactiveDevicesData?.summary.totalRevenueLostRwf ?? 0).toLocaleString()} RWF
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-blue-500/20 bg-blue-500/[0.04] p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <Building2 size={22} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400/80">Impacted Fleets</p>
+                  <p className="text-2xl font-extrabold text-white mt-1">
+                    {inactiveDevicesData?.summary.impactedFleetsCount ?? 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Table & Action Center */}
+          <DashboardCard
+            eyebrow="Revenue Risk"
+            title="Non-Working Trackers Audit & Action Center"
+            description="Trackers offline or with zero verified active days generate 0 RWF revenue. Contact fleet admins immediately to replace or reassign them."
+          >
+            {inactiveDevicesLoading ? (
+              <p className="text-zinc-500 py-8 text-center">Loading non-working devices...</p>
+            ) : inactiveDevicesData?.devices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Check size={28} className="text-emerald-400" />
+                <p className="mt-3 text-sm font-bold text-white">All Trackers Active!</p>
+                <p className="mt-1 text-xs text-zinc-400">All registered IoT devices are reporting telemetry and generating daily revenue.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-zinc-400 font-bold uppercase tracking-wider bg-white/[0.02]">
+                      <th className="py-3 px-4">Device / UID</th>
+                      <th className="py-3 px-4">Fleet & Admin Contact</th>
+                      <th className="py-3 px-4">Assigned Moto & Rider</th>
+                      <th className="py-3 px-4">Idle Duration</th>
+                      <th className="py-3 px-4 text-right">Daily Rate Lost</th>
+                      <th className="py-3 px-4 text-right">Total Est. Loss</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {inactiveDevicesData?.devices.map((device) => (
+                      <tr key={device.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-bold text-white">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                            <span>{device.deviceUid}</span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 font-sans mt-0.5">ID: {device.id.slice(0, 8)}</p>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <p className="font-bold text-white">{device.fleet?.name || 'Unassigned Fleet'}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {device.fleet?.adminPhone ? (
+                              <a
+                                href={`tel:${device.fleet.adminPhone}`}
+                                className="text-[10px] font-bold text-accent hover:underline flex items-center gap-1"
+                              >
+                                <Phone size={10} /> {device.fleet.adminPhone}
+                              </a>
+                            ) : device.fleet?.adminEmail ? (
+                              <span className="text-[10px] text-zinc-400 truncate">{device.fleet.adminEmail}</span>
+                            ) : (
+                              <span className="text-[10px] text-zinc-600">No Admin Contact</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          {device.bike ? (
+                            <div>
+                              <p className="font-bold text-zinc-200">{device.bike.plate || device.bike.label}</p>
+                              {device.bike.riderName ? (
+                                <p className="text-[10px] text-zinc-400 mt-0.5 truncate">
+                                  Motari: {device.bike.riderName} ({device.bike.riderPhone || 'No Phone'})
+                                </p>
+                              ) : (
+                                <p className="text-[10px] text-zinc-600 mt-0.5">No Rider Assigned</p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-zinc-600 italic">Unassigned Bike</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <span className="rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 px-2.5 py-1 text-[10px] font-extrabold">
+                            Offline {device.inactiveDays}d ({device.inactiveHours}h)
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-bold text-rose-400">
+                          -{device.dailyRate} RWF <span className="text-[9px] text-zinc-500 font-normal">/day</span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-extrabold text-rose-300">
+                          -{device.estimatedLossRwf.toLocaleString()} RWF
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {device.fleet?.adminPhone ? (
+                              <a
+                                href={`tel:${device.fleet.adminPhone}`}
+                                className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all flex items-center gap-1"
+                              >
+                                <Phone size={11} /> Call Admin
+                              </a>
+                            ) : null}
+                            <a
+                              href="/hq/devices"
+                              className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-white/10 text-white border border-line hover:bg-white/15 transition-all"
+                            >
+                              Reassign Device
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DashboardCard>
+        </div>
+      )}
 
       {/* TAB 1: LEDGER */}
       {activeTab === 'ledger' && (
