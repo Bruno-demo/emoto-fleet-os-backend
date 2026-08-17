@@ -2253,6 +2253,7 @@ export class HqService {
       identityCardPhoto?: string;
       leaseToOwn?: boolean;
       leasePrincipal?: number;
+      leaseDownPayment?: number;
       leaseDailyRate?: number;
     },
     actor: AuthenticatedUser,
@@ -2320,9 +2321,25 @@ export class HqService {
             identityCardPhoto: body.identityCardPhoto || null,
             leaseToOwn: body.leaseToOwn ?? false,
             leasePrincipal: body.leasePrincipal ?? 2500000,
+            leaseDownPayment: body.leaseDownPayment ?? 0,
             leaseDailyRate: body.leaseDailyRate ?? 15000,
           },
         });
+
+        if (body.leaseToOwn && body.leaseDownPayment && body.leaseDownPayment > 0) {
+          await tx.riderPayment.create({
+            data: {
+              fleetId,
+              riderId: u.id,
+              amount: body.leaseDownPayment,
+              paidAt: new Date(),
+              method: 'CASH',
+              status: 'PAID',
+              notes: 'Upfront Lease Deposit / Down Payment',
+              reference: 'UPFRONT-LEASE-DEPOSIT',
+            },
+          });
+        }
       }
 
       return {

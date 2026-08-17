@@ -67,6 +67,11 @@ export class UpdateRiderDto {
   @IsNumber()
   leasePrincipal?: number;
 
+  @ApiPropertyOptional({ example: 500000 })
+  @IsOptional()
+  @IsNumber()
+  leaseDownPayment?: number;
+
   @ApiPropertyOptional({ example: 15000 })
   @IsOptional()
   @IsNumber()

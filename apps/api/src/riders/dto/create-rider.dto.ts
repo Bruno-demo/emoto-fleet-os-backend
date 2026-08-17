@@ -73,6 +73,11 @@ export class CreateRiderDto {
   @IsNumber()
   leasePrincipal?: number;
 
+  @ApiPropertyOptional({ example: 500000, description: 'Upfront deposit/down payment for lease-to-own' })
+  @IsOptional()
+  @IsNumber()
+  leaseDownPayment?: number;
+
   @ApiPropertyOptional({ example: 15000 })
   @IsOptional()
   @IsNumber()

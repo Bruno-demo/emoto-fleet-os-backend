@@ -100,6 +100,7 @@ export default function HqRidersPage() {
   const [newIdentityCardPhoto, setNewIdentityCardPhoto] = useState('');
   const [leaseToOwn, setLeaseToOwn] = useState(false);
   const [leasePrincipal, setLeasePrincipal] = useState('2500000');
+  const [leaseDownPayment, setLeaseDownPayment] = useState('0');
   const [leaseDailyRate, setLeaseDailyRate] = useState('15000');
   
   const [isCompresingPassport, setIsCompresingPassport] = useState(false);
@@ -305,6 +306,7 @@ export default function HqRidersPage() {
           identityCardPhoto: newIdentityCardPhoto || undefined,
           leaseToOwn,
           leasePrincipal: leaseToOwn ? Number(leasePrincipal) : undefined,
+          leaseDownPayment: leaseToOwn ? Number(leaseDownPayment) : undefined,
           leaseDailyRate: Number(leaseDailyRate),
         }),
       });
@@ -646,15 +648,27 @@ export default function HqRidersPage() {
                       </select>
                     </label>
                     {leaseToOwn && (
-                      <label className="block text-xs font-semibold text-ink">
-                        {t('Lease Principal Amount (RWF)')}
-                        <input
-                          type="number"
-                          value={leasePrincipal}
-                          onChange={(e) => setLeasePrincipal(e.target.value)}
-                          className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
-                        />
-                      </label>
+                      <>
+                        <label className="block text-xs font-semibold text-ink">
+                          {t('Lease Principal Amount (RWF)')}
+                          <input
+                            type="number"
+                            value={leasePrincipal}
+                            onChange={(e) => setLeasePrincipal(e.target.value)}
+                            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
+                          />
+                        </label>
+                        <label className="block text-xs font-semibold text-ink">
+                          {t('Upfront Down Payment / Deposit (RWF)')}
+                          <input
+                            type="number"
+                            value={leaseDownPayment}
+                            onChange={(e) => setLeaseDownPayment(e.target.value)}
+                            placeholder="e.g. 500000 (half or initial deposit)"
+                            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink outline-none focus:border-accent"
+                          />
+                        </label>
+                      </>
                     )}
                     <label className="block text-xs font-semibold text-ink">
                       {t('Lease Daily Rate (RWF)')}

@@ -81,6 +81,7 @@ interface RiderIdentity {
     identityCardPhoto: string | null;
     leaseToOwn: boolean;
     leasePrincipal: number;
+    leaseDownPayment: number;
     leaseDailyRate: number;
     paymentSchedule: string;
     assignedRate: number;
@@ -271,12 +272,28 @@ export class RidersService {
             identityCardPhoto: dto.identityCardPhoto,
             leaseToOwn: dto.leaseToOwn ?? false,
             leasePrincipal: dto.leasePrincipal ?? 2500000,
+            leaseDownPayment: dto.leaseDownPayment ?? 0,
             leaseDailyRate: dto.leaseDailyRate ?? 15000,
             paymentSchedule: dto.paymentSchedule ?? 'DAILY',
             assignedRate: dto.assignedRate ?? dto.leaseDailyRate ?? 15000,
             customScheduleDays: dto.customScheduleDays ?? null,
           },
         });
+
+        if (dto.leaseToOwn && dto.leaseDownPayment && dto.leaseDownPayment > 0) {
+          await tx.riderPayment.create({
+            data: {
+              fleetId: actor.fleetId,
+              riderId: createdUser.id,
+              amount: dto.leaseDownPayment,
+              paidAt: new Date(),
+              method: 'CASH',
+              status: 'PAID',
+              notes: 'Upfront Lease Deposit / Down Payment',
+              reference: 'UPFRONT-LEASE-DEPOSIT',
+            },
+          });
+        }
 
         if (dto.assignBikeId) {
           await this.assignRiderToBikeTx(
@@ -544,6 +561,8 @@ export class RidersService {
       if (dto.leaseToOwn !== undefined) profileData.leaseToOwn = dto.leaseToOwn;
       if (dto.leasePrincipal !== undefined)
         profileData.leasePrincipal = dto.leasePrincipal;
+      if (dto.leaseDownPayment !== undefined)
+        profileData.leaseDownPayment = dto.leaseDownPayment;
       if (dto.leaseDailyRate !== undefined)
         profileData.leaseDailyRate = dto.leaseDailyRate;
       if (dto.paymentSchedule !== undefined)
@@ -1642,6 +1661,7 @@ export class RidersService {
             identityCardPhoto: true,
             leaseToOwn: true,
             leasePrincipal: true,
+            leaseDownPayment: true,
             leaseDailyRate: true,
             paymentSchedule: true,
             assignedRate: true,
@@ -1703,6 +1723,7 @@ export class RidersService {
             identityCardPhoto: true,
             leaseToOwn: true,
             leasePrincipal: true,
+            leaseDownPayment: true,
             leaseDailyRate: true,
             paymentSchedule: true,
             assignedRate: true,
@@ -1798,6 +1819,7 @@ export class RidersService {
       identityCardPhoto: rider.riderProfile?.identityCardPhoto ?? null,
       leaseToOwn: rider.riderProfile?.leaseToOwn ?? false,
       leasePrincipal: rider.riderProfile?.leasePrincipal ?? 2500000,
+      leaseDownPayment: rider.riderProfile?.leaseDownPayment ?? 0,
       leaseDailyRate: rider.riderProfile?.leaseDailyRate ?? 15000,
       paymentSchedule: rider.riderProfile?.paymentSchedule ?? 'DAILY',
       assignedRate:

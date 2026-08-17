@@ -96,7 +96,9 @@ export default function RidersPage() {
   const [newIdentityCardPhoto, setNewIdentityCardPhoto] = useState('');
   const [leaseToOwn, setLeaseToOwn] = useState(false);
   const [leasePrincipal, setLeasePrincipal] = useState('2500000');
+  const [leaseDownPayment, setLeaseDownPayment] = useState('0');
   const [leaseDailyRate, setLeaseDailyRate] = useState('15000');
+  const [editLeaseDownPayment, setEditLeaseDownPayment] = useState('0');
   const [newPaymentSchedule, setNewPaymentSchedule] = useState<'DAILY' | 'WEEKLY' | 'CUSTOM'>('DAILY');
   const [newAssignedRate, setNewAssignedRate] = useState('15000');
   const [newCustomScheduleDays, setNewCustomScheduleDays] = useState('7');
@@ -228,6 +230,7 @@ export default function RidersPage() {
     setEditIdentityCardPhoto(selectedRider.identityCardPhoto ?? '');
     setEditLeaseToOwn(selectedRider.leaseToOwn ?? false);
     setEditLeasePrincipal(String(selectedRider.leasePrincipal ?? '2500000'));
+    setEditLeaseDownPayment(String(selectedRider.leaseDownPayment ?? '0'));
     setEditLeaseDailyRate(String(selectedRider.leaseDailyRate ?? '15000'));
     setEditPaymentSchedule((selectedRider.paymentSchedule as 'DAILY' | 'WEEKLY' | 'CUSTOM') ?? 'DAILY');
     setEditAssignedRate(String(selectedRider.assignedRate ?? selectedRider.leaseDailyRate ?? '15000'));
@@ -365,6 +368,7 @@ export default function RidersPage() {
         identityCardPhoto: editIdentityCardPhoto || undefined,
         leaseToOwn: editLeaseToOwn,
         leasePrincipal: editLeaseToOwn ? Number(editLeasePrincipal) : null,
+        leaseDownPayment: editLeaseToOwn ? Number(editLeaseDownPayment) : null,
         leaseDailyRate: Number(editLeaseDailyRate),
         paymentSchedule: editPaymentSchedule,
         assignedRate: Number(editAssignedRate),
@@ -579,6 +583,7 @@ export default function RidersPage() {
           identityCardPhoto: newIdentityCardPhoto || undefined,
           leaseToOwn,
           leasePrincipal: leaseToOwn ? Number(leasePrincipal) : undefined,
+          leaseDownPayment: leaseToOwn ? Number(leaseDownPayment) : undefined,
           leaseDailyRate: Number(leaseDailyRate),
           paymentSchedule: newPaymentSchedule,
           assignedRate: Number(leaseDailyRate),
@@ -882,15 +887,27 @@ export default function RidersPage() {
                     </select>
                   </label>
                   {leaseToOwn && (
-                    <label className="block text-sm font-medium text-ink">
-                      {t("Lease Principal Amount (RWF)")}
-                      <input
-                        type="number"
-                        value={leasePrincipal}
-                        onChange={(e) => setLeasePrincipal(e.target.value)}
-                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                      />
-                    </label>
+                    <>
+                      <label className="block text-sm font-medium text-ink">
+                        {t("Lease Principal Amount (RWF)")}
+                        <input
+                          type="number"
+                          value={leasePrincipal}
+                          onChange={(e) => setLeasePrincipal(e.target.value)}
+                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-ink">
+                        {t("Upfront Down Payment / Deposit (RWF)")}
+                        <input
+                          type="number"
+                          value={leaseDownPayment}
+                          onChange={(e) => setLeaseDownPayment(e.target.value)}
+                          placeholder="e.g. 500000 (half or initial upfront money)"
+                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                        />
+                      </label>
+                    </>
                   )}
                   <label className="block text-sm font-medium text-ink">
                     {t("Lease Daily Rate (RWF)")}
@@ -1700,7 +1717,7 @@ export default function RidersPage() {
                         <div>
                           <p className="font-semibold text-ink">{t('Lease-to-Own')}</p>
                           <p className="text-[10px] text-ink-muted mt-0.5">
-                            {t('Principal')}: {selectedRider.leasePrincipal?.toLocaleString()} RWF | {t('Daily')}: {selectedRider.leaseDailyRate?.toLocaleString()} RWF
+                            {t('Principal')}: {selectedRider.leasePrincipal?.toLocaleString()} RWF | {t('Upfront Deposit')}: {(selectedRider.leaseDownPayment ?? 0).toLocaleString()} RWF | {t('Daily')}: {selectedRider.leaseDailyRate?.toLocaleString()} RWF
                           </p>
                         </div>
                       ) : (

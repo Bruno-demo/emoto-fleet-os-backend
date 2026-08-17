@@ -496,6 +496,7 @@ model RiderProfile {
   identityCardPhoto String?
   leaseToOwn        Boolean              @default(false)
   leasePrincipal    Int                  @default(2500000)
+  leaseDownPayment  Int                  @default(0)
   leaseDailyRate    Int                  @default(15000)
   paymentSchedule   RiderPaymentSchedule @default(DAILY)
   assignedRate      Int                  @default(15000)

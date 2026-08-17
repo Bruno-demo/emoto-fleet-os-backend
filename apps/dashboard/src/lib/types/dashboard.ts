@@ -300,6 +300,7 @@ export interface Rider {
   }>;
   leaseToOwn?: boolean;
   leasePrincipal?: number;
+  leaseDownPayment?: number;
   leaseDailyRate?: number;
   paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM' | string;
   assignedRate?: number;

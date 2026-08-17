@@ -17,6 +17,7 @@ export interface RiderSummary {
   identityCardPhoto?: string | null;
   leaseToOwn?: boolean;
   leasePrincipal?: number;
+  leaseDownPayment?: number;
   leaseDailyRate?: number;
   paymentSchedule?: string;
   assignedRate?: number;
