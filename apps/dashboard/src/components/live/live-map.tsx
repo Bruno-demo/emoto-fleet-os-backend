@@ -584,6 +584,9 @@ export function LiveMapPanel() {
                 <MapContainer
                   center={mapCenter}
                   zoom={13}
+                  preferCanvas={true}
+                  wheelDebounceTime={150}
+                  wheelPxPerZoomLevel={120}
                   className="h-full w-full"
                   style={{ height: '100%', width: '100%' }}
                   zoomControl={false}
@@ -591,6 +594,7 @@ export function LiveMapPanel() {
                   {mapStyle === 'standard' && (
                     <TileLayer
                       key="standard"
+                      keepBuffer={4}
                       attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                       url={resolvedTheme === 'light' 
                         ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
@@ -600,6 +604,7 @@ export function LiveMapPanel() {
                   {mapStyle === 'satellite' && (
                     <TileLayer
                       key="satellite"
+                      keepBuffer={4}
                       attribution='&copy; Google'
                       url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
                     />
@@ -607,6 +612,7 @@ export function LiveMapPanel() {
                   {mapStyle === 'hybrid' && (
                     <TileLayer
                       key="hybrid"
+                      keepBuffer={4}
                       attribution='&copy; Google'
                       url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                     />

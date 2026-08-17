@@ -41,24 +41,30 @@ export function EventMap({ lat, lng }: EventMapProps) {
       <MapContainer
         center={[lat, lng]}
         zoom={15}
+        preferCanvas={true}
+        wheelDebounceTime={150}
+        wheelPxPerZoomLevel={120}
         className="h-full w-full"
         zoomControl={false}
       >
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Map">
             <TileLayer
+              keepBuffer={4}
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Satellite">
             <TileLayer
+              keepBuffer={4}
               attribution='&copy; Google'
               url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
             />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Hybrid">
             <TileLayer
+              keepBuffer={4}
               attribution='&copy; Google'
               url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
             />

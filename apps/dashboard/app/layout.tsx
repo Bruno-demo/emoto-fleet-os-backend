@@ -157,6 +157,8 @@ export default function RootLayout({
         {/* Preconnect & Resource Hints for Performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://basemaps.cartocdn.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://mt1.google.com" crossOrigin="anonymous" />
         {/* Structured Data (JSON-LD) for 100 SEO score */}
         <script
           type="application/ld+json"
