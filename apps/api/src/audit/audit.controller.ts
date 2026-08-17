@@ -29,7 +29,7 @@ export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.RIDER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'List audit logs for fleet' })
   async listAuditLogs(
     @CurrentUser() user: AuthenticatedUser,

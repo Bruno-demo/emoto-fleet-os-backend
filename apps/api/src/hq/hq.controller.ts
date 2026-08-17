@@ -17,6 +17,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import { CommandsService } from '../commands/commands.service';
 import { HqGuard } from './guards/hq.guard';
 import { HqService } from './hq.service';
+import { CreateUserHqDto, UpdateUserHqDto } from './dto/user-hq.dto';
 
 @ApiTags('HQ (Internal)')
 @ApiBearerAuth()
@@ -292,24 +293,7 @@ export class HqController {
   })
   createUserForFleet(
     @Param('fleetId') fleetId: string,
-    @Body()
-    body: {
-      email?: string;
-      phone?: string;
-      role: any;
-      status?: any;
-      password?: string;
-      fullName?: string;
-      passportPhoto?: string;
-      licenceNumber?: string;
-      identityNumber?: string;
-      licencePhoto?: string;
-      identityCardPhoto?: string;
-      leaseToOwn?: boolean;
-      leasePrincipal?: number;
-      leaseDailyRate?: number;
-      leaseDownPayment?: number;
-    },
+    @Body() body: CreateUserHqDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.hqService.createUserForFleet(fleetId, body, user);
@@ -319,23 +303,7 @@ export class HqController {
   @ApiOperation({ summary: 'Update operator/rider user details (HQ admin)' })
   updateUserHq(
     @Param('id') id: string,
-    @Body()
-    body: {
-      email?: string;
-      phone?: string;
-      role?: any;
-      status?: any;
-      fullName?: string;
-      passportPhoto?: string;
-      licenceNumber?: string;
-      identityNumber?: string;
-      licencePhoto?: string;
-      identityCardPhoto?: string;
-      leaseToOwn?: boolean;
-      leasePrincipal?: number;
-      leaseDailyRate?: number;
-      leaseDownPayment?: number;
-    },
+    @Body() body: UpdateUserHqDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.hqService.updateUserHq(id, body, user);

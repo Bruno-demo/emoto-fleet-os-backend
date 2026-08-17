@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  MaxLength,
   IsBoolean,
   IsNumber,
 } from 'class-validator';
@@ -45,16 +46,19 @@ export class UpdateRiderDto {
   @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
   @IsOptional()
   @IsString()
+  @MaxLength(7000000)
   passportPhoto?: string;
 
   @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
   @IsOptional()
   @IsString()
+  @MaxLength(7000000)
   licencePhoto?: string;
 
   @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
   @IsOptional()
   @IsString()
+  @MaxLength(7000000)
   identityCardPhoto?: string;
 
   @ApiPropertyOptional({ example: true })

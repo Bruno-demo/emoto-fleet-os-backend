@@ -169,13 +169,15 @@ export class AuthService implements OnModuleInit {
         await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
 
         const border = '='.repeat(40);
-        this.logger.log(`
+        if (process.env.NODE_ENV !== 'production') {
+          this.logger.log(`
 \x1b[33m${border}\x1b[0m
 \x1b[32m  [OTP Verification] for LOGIN\x1b[0m
 \x1b[36m  User:  ${userIdentifier}\x1b[0m
 \x1b[35m  OTP:   ${otp}\x1b[0m
 \x1b[33m${border}\x1b[0m
 `);
+        }
 
         if (user.email) {
           this.mailService
@@ -1586,13 +1588,15 @@ export class AuthService implements OnModuleInit {
     await this.redisService.set(otpKey, otp, 300); // 5 minutes TTL
 
     const border = '='.repeat(40);
-    this.logger.log(`
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.log(`
 \x1b[33m${border}\x1b[0m
 \x1b[32m  [OTP Verification] for ${dto.reason.toUpperCase()}\x1b[0m
 \x1b[36m  Email: ${normalizedEmail}\x1b[0m
 \x1b[35m  OTP:   ${otp}\x1b[0m
 \x1b[33m${border}\x1b[0m
 `);
+    }
 
     this.mailService
       .sendOtpEmail(normalizedEmail, otp, dto.reason)

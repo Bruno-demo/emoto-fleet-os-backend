@@ -24,7 +24,7 @@ import { FleetZone, ZonesService } from './zones.service';
 @ApiTags('zones')
 @ApiBearerAuth()
 @Controller('zones')
-@Roles(UserRole.ADMIN, UserRole.OWNER, UserRole.RIDER)
+@Roles(UserRole.ADMIN, UserRole.OWNER, UserRole.DISPATCHER)
 @RequireSubscriptionFeature('zones')
 export class ZonesController {
   constructor(private readonly zonesService: ZonesService) {}

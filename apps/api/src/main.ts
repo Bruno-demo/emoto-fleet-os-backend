@@ -27,31 +27,26 @@ function resolveCorsOrigins(configService: ConfigService): string[] {
     : [];
 
   const defaultOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
     'https://gateway.emotofleet.com',
     'https://dashboard.emotofleet.com',
     'https://emotofleet.com',
     'https://www.emotofleet.com',
   ];
 
-  const dashboardOrigins = Array.from(
-    { length: 10 },
-    (_, index) => `http://localhost:${3001 + index}`,
-  );
-  const riderOrigins = Array.from(
-    { length: 10 },
-    (_, index) => `http://localhost:${8081 + index}`,
-  );
+  const localhostOrigins = process.env.NODE_ENV !== 'production' ? [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:19006',
+    ...Array.from({ length: 10 }, (_, index) => `http://localhost:${3001 + index}`),
+    ...Array.from({ length: 10 }, (_, index) => `http://localhost:${8081 + index}`),
+  ] : [];
 
   return Array.from(
     new Set([
       ...userOrigins,
       ...defaultOrigins,
-      ...dashboardOrigins,
-      ...riderOrigins,
-      'http://localhost:19006',
+      ...localhostOrigins,
     ]),
   );
 }
@@ -70,8 +65,8 @@ async function bootstrap(): Promise<void> {
   );
   const logger = app.get(Logger);
   app.useLogger(logger);
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ limit: '50mb', extended: true }));
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ limit: '10mb', extended: true }));
   app.use(cookieParser());
   app.use(helmet());
 

@@ -1085,6 +1085,7 @@ model Delivery {
   @@index([fleetId])
   @@index([riderId])
   @@index([status])
+  @@unique([fleetId, orderNumber])
 }
 
 model TrafficFine {

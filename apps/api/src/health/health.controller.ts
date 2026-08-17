@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, ForbiddenException, Get } from '@nestjs/common';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -59,6 +59,9 @@ export class HealthController {
       'Simulates health check failure for 3 minutes for failover testing',
   })
   simulateFail() {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('Not allowed in production');
+    }
     return this.healthService.simulateFail();
   }
 }

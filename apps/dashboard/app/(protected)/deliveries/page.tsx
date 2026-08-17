@@ -968,9 +968,11 @@ export default function DeliveriesPage() {
                   notes: simulatedNotes || undefined,
                 };
                 if (simulatedStatus === 'DELIVERED') {
-                  // Simulate proof photo and signature
-                  payload.proofPhotoUrl = 'https://picsum.photos/400/300';
-                  payload.proofSignature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAt0lEQVR42u3YwQnCQBQF0HMtN9FArMTQyhy0C8sY2ogX1sIs3ESFIIgP7oH/eTCDYQcWTpL/k4wREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREXm1wAMA/r7P1eZz6m4AAAAASUVORK5CYII=';
+                  if (process.env.NODE_ENV === 'development') {
+                    // Simulate proof photo and signature
+                    payload.proofPhotoUrl = 'https://picsum.photos/400/300';
+                    payload.proofSignature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAt0lEQVR42u3YwQnCQBQF0HMtN9FArMTQyhy0C8sY2ogX1sIs3ESFIIgP7oH/eTCDYQcWTpL/k4wREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREREXm1wAMA/r7P1eZz6m4AAAAASUVORK5CYII=';
+                  }
                 }
                 if (simulatedStatus === 'FAILED') {
                   payload.failureReason = failureReason || 'Unreachable customer';
@@ -1010,7 +1012,7 @@ export default function DeliveriesPage() {
                 </div>
               )}
 
-              {simulatedStatus === 'DELIVERED' && (
+              {simulatedStatus === 'DELIVERED' && process.env.NODE_ENV === 'development' && (
                 <div className="rounded-xl border border-dashed border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-400">
                   <p className="font-bold mb-1">✓ {t('simulated_pod', 'Simulated POD (Proof of Delivery)')}</p>
                   <p>{t('simulated_pod_desc', 'This action will automatically append a simulated proof-of-delivery photo and customer signature.')}</p>
