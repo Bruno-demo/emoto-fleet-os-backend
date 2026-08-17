@@ -116,7 +116,7 @@ export default function ZoneDrawMap({
   center,
   liveBikes,
   bikes,
-  zoneType = 'SLOW',
+  zoneType = 'WORK_BOUNDARY',
 }: {
   points: Array<[number, number]>;
   onChange: (points: Array<[number, number]>) => void;

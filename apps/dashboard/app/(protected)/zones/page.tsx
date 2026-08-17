@@ -560,8 +560,8 @@ export default function ZonesPage() {
   const [accumulatedZones, setAccumulatedZones] = useState<Zone[]>([]);
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [type, setType] = useState<'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY'>('SLOW');
-  const [speedLimitKph, setSpeedLimitKph] = useState('20');
+  const [type, setType] = useState<'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY'>('WORK_BOUNDARY');
+  const [speedLimitKph, setSpeedLimitKph] = useState('');
   const [active, setActive] = useState(true);
   const [geojsonPolygon, setGeojsonPolygon] = useState(defaultPolygon);
   const [points, setPoints] = useState<Array<[number, number]>>(defaultPoints);
@@ -574,7 +574,7 @@ export default function ZonesPage() {
     setSelectedTemplateId(template.id);
     setName(template.name);
     setType(template.type);
-    setSpeedLimitKph(template.speedLimitKph || (template.type === 'SLOW' ? '20' : ''));
+    setSpeedLimitKph(template.speedLimitKph || '');
     handlePointsChange(template.points);
   };
 
@@ -651,7 +651,7 @@ export default function ZonesPage() {
     return {
       total: zonesQuery.data?.total ?? 0,
       active: zones.filter((zone) => zone.active).length,
-      slow: zones.filter((zone) => zone.type === 'SLOW').length,
+      boundaries: zones.filter((zone) => zone.type === 'WORK_BOUNDARY').length,
       restricted: zones.filter((zone) => zone.type === 'NO_GO').length,
     };
   }, [accumulatedZones, zonesQuery.data?.total]);
@@ -661,8 +661,8 @@ export default function ZonesPage() {
     setEditingZoneId(null);
     setSelectedTemplateId(null);
     setName('');
-    setType('SLOW');
-    setSpeedLimitKph('20');
+    setType('WORK_BOUNDARY');
+    setSpeedLimitKph('');
     setActive(true);
     setGeojsonPolygon(defaultPolygon);
     setPoints(defaultPoints);
@@ -954,11 +954,11 @@ export default function ZonesPage() {
           tone="success"
         />
         <MetricCard
-          title={t('Slow Speed Zones')}
-          value={String(zoneStats.slow)}
-          hint={t('Zones with an enforced speed limit.')}
-          icon={<Zap size={18} />}
-          tone="warning"
+          title={t('Work Boundaries')}
+          value={String(zoneStats.boundaries)}
+          hint={t('Operating perimeters assigned for fleets.')}
+          icon={<Layers size={18} />}
+          tone="info"
         />
         <MetricCard
           title={t('No-Go Restricted')}
@@ -1082,7 +1082,7 @@ export default function ZonesPage() {
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-semibold text-ink-faint">
                   <span className="bg-surface-muted border border-line px-2 py-0.5 rounded-lg">{zoneStats.active} Active</span>
-                  <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-lg">{zoneStats.slow} Slow</span>
+                  <span className="bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2 py-0.5 rounded-lg">{zoneStats.boundaries} Work Boundaries</span>
                   <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded-lg">{zoneStats.restricted} No-Go</span>
                 </div>
               </div>
@@ -1108,23 +1108,15 @@ export default function ZonesPage() {
             {/* Interactive Zone Type Selector Cards */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-ink">{t('Zone Type')}</label>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-3 gap-2.5">
                 {[
                   {
-                    key: 'SLOW',
-                    label: t('Slow Zone'),
-                    desc: t('Speed limit enforced'),
-                    icon: <Zap size={16} />,
-                    color: 'hover:border-amber-500/50',
-                    activeColor: 'border-amber-500 bg-amber-500/10 text-amber-500',
-                  },
-                  {
-                    key: 'NO_GO',
-                    label: t('No-Go Area'),
-                    desc: t('Restricted / Alerts'),
-                    icon: <ShieldAlert size={16} />,
-                    color: 'hover:border-rose-500/50',
-                    activeColor: 'border-rose-500 bg-rose-500/10 text-rose-500',
+                    key: 'WORK_BOUNDARY',
+                    label: t('Work Boundary'),
+                    desc: t('Operating perimeter'),
+                    icon: <Layers size={16} />,
+                    color: 'hover:border-blue-500/50',
+                    activeColor: 'border-blue-500 bg-blue-500/10 text-blue-500',
                   },
                   {
                     key: 'PARK',
@@ -1135,12 +1127,12 @@ export default function ZonesPage() {
                     activeColor: 'border-emerald-500 bg-emerald-500/10 text-emerald-500',
                   },
                   {
-                    key: 'WORK_BOUNDARY',
-                    label: t('Work Boundary'),
-                    desc: t('Operating perimeter'),
-                    icon: <Layers size={16} />,
-                    color: 'hover:border-blue-500/50',
-                    activeColor: 'border-blue-500 bg-blue-500/10 text-blue-500',
+                    key: 'NO_GO',
+                    label: t('No-Go Area'),
+                    desc: t('Restricted / Alerts'),
+                    icon: <ShieldAlert size={16} />,
+                    color: 'hover:border-rose-500/50',
+                    activeColor: 'border-rose-500 bg-rose-500/10 text-rose-500',
                   },
                 ].map((item) => {
                   const isSelected = type === item.key;
@@ -1151,9 +1143,6 @@ export default function ZonesPage() {
                       onClick={() => {
                         const newType = item.key as 'SLOW' | 'NO_GO' | 'PARK' | 'WORK_BOUNDARY';
                         setType(newType);
-                        if (newType === 'SLOW' && !speedLimitKph) {
-                          setSpeedLimitKph('20');
-                        }
                       }}
                       className={cx(
                         'flex flex-col p-3 rounded-xl border text-left transition-all cursor-pointer relative',
@@ -1173,18 +1162,6 @@ export default function ZonesPage() {
                 })}
               </div>
             </div>
-
-            {/* Speed Limit (Only active for SLOW zone) */}
-            {type === 'SLOW' && (
-              <div className="animate-fade-in">
-                <TextField
-                  label={t('Enforced Speed Limit (kph)')}
-                  placeholder="20"
-                  value={speedLimitKph}
-                  onChange={(event) => setSpeedLimitKph(event.target.value)}
-                />
-              </div>
-            )}
 
             {/* Active Toggle Switch */}
             <label className="flex items-center justify-between rounded-xl border border-line bg-surface-muted/50 px-4 py-3 text-xs font-bold text-ink cursor-pointer hover:bg-surface-hover transition-colors">
