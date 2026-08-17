@@ -605,16 +605,9 @@ export class MomoGatewayService {
             where: { userId: transaction.riderId },
           });
           if (profile && profile.leaseToOwn && profile.leasePrincipal) {
-            const updatedPrincipal = Math.max(
-              0,
-              profile.leasePrincipal - transaction.amount,
-            );
-            await prisma.riderProfile.update({
-              where: { userId: transaction.riderId },
-              data: { leasePrincipal: updatedPrincipal },
-            });
+            // leasePrincipal is the fixed total asset price. Remaining balance is computed as (leasePrincipal - totalPaid) in getRiderPaymentSummary.
             this.logger.log(
-              `Updated lease-to-own principal for rider ${transaction.riderId}: ${profile.leasePrincipal} -> ${updatedPrincipal} RWF`,
+              `Recorded payment ${transaction.amount} towards lease-to-own for rider ${transaction.riderId} (principal: ${profile.leasePrincipal} RWF)`,
             );
           }
 

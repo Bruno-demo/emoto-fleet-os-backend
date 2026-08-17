@@ -490,6 +490,9 @@ export class FinancialsService {
         (sum, p) => sum + p.amount.toNumber(),
         0,
       );
+      const dailyPaymentsTotal = rider.payments
+        .filter((p) => p.reference !== 'UPFRONT-LEASE-DEPOSIT')
+        .reduce((sum, p) => sum + p.amount.toNumber(), 0);
 
       const periodPaid = rider.payments
         .filter((p) => {
@@ -524,7 +527,7 @@ export class FinancialsService {
           Math.floor(msDiff / (1000 * 60 * 60 * 24)),
         );
         const expected = daysDiff * dailyRate;
-        arrears = Math.max(0, expected - totalPaid);
+        arrears = Math.max(0, expected - dailyPaymentsTotal);
       }
 
       const totalPendingFines = rider.trafficFines

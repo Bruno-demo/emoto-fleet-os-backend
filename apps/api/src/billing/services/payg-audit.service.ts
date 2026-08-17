@@ -108,7 +108,7 @@ export class PaygAuditService {
 
     const dayStrings: string[] = [];
     const curr = new Date(start);
-    while (curr <= end) {
+    while (curr < end) {
       dayStrings.push(curr.toISOString().slice(0, 10));
       curr.setDate(curr.getDate() + 1);
     }

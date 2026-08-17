@@ -145,7 +145,7 @@ export default function ForgotPasswordPage() {
           disabled={identifier.trim().length < 3 || isSubmitting}
         />
         
-        {generatedToken && (
+        {process.env.NODE_ENV !== 'production' && generatedToken && (
           <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4 text-center animate-scale-in">
             <p className="text-xs text-ink-muted mb-2">
               [DEV MODE] Password reset token generated successfully:

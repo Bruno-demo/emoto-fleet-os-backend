@@ -313,7 +313,7 @@ export default function LoginPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent flex items-center gap-1.5">
                 <ShieldCheck size={14} className="text-accent" /> Email Verification
               </p>
-              {devOtp && (
+              {process.env.NODE_ENV !== 'production' && devOtp && (
                 <span className="text-[10px] font-bold bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/20">
                   Dev Mode OTP: {devOtp}
                 </span>

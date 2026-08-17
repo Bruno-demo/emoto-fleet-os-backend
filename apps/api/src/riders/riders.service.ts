@@ -2022,6 +2022,9 @@ export class RidersService {
       (sum, p) => sum + p.amount.toNumber(),
       0,
     );
+    const dailyPaymentsTotal = allPaidPayments
+      .filter((p) => p.reference !== 'UPFRONT-LEASE-DEPOSIT')
+      .reduce((sum, p) => sum + p.amount.toNumber(), 0);
 
     const activeAssignment = rider.bikeAssignments[0];
     let arrears = 0;
@@ -2031,7 +2034,7 @@ export class RidersService {
       const msDiff = Date.now() - activeAssignment.assignedAt.getTime();
       const daysDiff = Math.max(0, Math.floor(msDiff / (1000 * 60 * 60 * 24)));
       expectedPaid = daysDiff * leaseDailyRate;
-      arrears = Math.max(0, expectedPaid - totalPaid);
+      arrears = Math.max(0, expectedPaid - dailyPaymentsTotal);
     }
 
     const pendingFines = rider.trafficFines
@@ -2061,14 +2064,14 @@ export class RidersService {
     const requiredPeriodAmount = assignedRate * schedulePeriodDays;
     const requiredTotalAmount = requiredPeriodAmount + arrears;
 
-    const timeArrears = Math.max(0, expectedPaid - totalPaid);
+    const timeArrears = Math.max(0, expectedPaid - dailyPaymentsTotal);
     const fineArrears = pendingFines;
     const daysInArrears =
       assignedRate > 0 ? Math.ceil(timeArrears / assignedRate) : 0;
     const remainingLeaseBalance = isLeaseToOwn
       ? Math.max(0, leasePrincipal - totalPaid)
       : 0;
-    const paidPeriodProgress = totalPaid % requiredPeriodAmount;
+    const paidPeriodProgress = dailyPaymentsTotal % requiredPeriodAmount;
     const remainingPeriodAmount = Math.max(
       0,
       requiredPeriodAmount - paidPeriodProgress,
@@ -2081,7 +2084,7 @@ export class RidersService {
     if (activeAssignment) {
       const assignedAt = activeAssignment.assignedAt;
       const daysPaidFor =
-        assignedRate > 0 ? Math.floor(totalPaid / assignedRate) : 0;
+        assignedRate > 0 ? Math.floor(dailyPaymentsTotal / assignedRate) : 0;
       nextDueAt = new Date(
         assignedAt.getTime() + (daysPaidFor + 1) * 24 * 60 * 60 * 1000,
       );

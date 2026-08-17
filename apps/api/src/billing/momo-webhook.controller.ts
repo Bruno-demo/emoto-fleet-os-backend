@@ -5,7 +5,10 @@ import {
   Logger,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
+  Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Public } from '../auth/public.decorator';
 import { Throttle } from '@nestjs/throttler';
@@ -35,6 +38,7 @@ export class MomoWebhookController {
   constructor(
     private readonly momoGatewayService: MomoGatewayService,
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('callback')
@@ -42,7 +46,14 @@ export class MomoWebhookController {
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // Rate limit: 100 req/min
   @HttpCode(HttpStatus.OK) // Must return 200 OK immediately
   @ApiOperation({ summary: 'PawaPay & MTN MoMo payment callback webhook' })
-  async handleCallback(@Body() payload: MomoCallbackPayload) {
+  async handleCallback(@Body() payload: MomoCallbackPayload, @Req() req: any) {
+    const webhookSecret = this.configService.get<string>('MOMO_WEBHOOK_SECRET');
+    if (webhookSecret) {
+      const headerSecret = req.headers['x-webhook-secret'] || req.headers['x-callback-secret'];
+      if (headerSecret !== webhookSecret) {
+        throw new UnauthorizedException('Invalid webhook secret');
+      }
+    }
     const targetId =
       payload.depositId ||
       payload.externalId ||
