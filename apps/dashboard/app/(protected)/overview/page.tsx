@@ -15,6 +15,7 @@ import {
   Gauge,
   Lock,
   MapPin,
+  Palette,
   PieChart,
   Receipt,
   Settings,
@@ -174,13 +175,13 @@ export default function OverviewPage() {
       actionText: t('Create Zone'),
     },
     {
-      id: 'momo',
-      title: t('Configure MoMo Receiving Account'),
-      desc: t('Set up your Mobile Money phone number to receive automated daily rider payments.'),
+      id: 'theme',
+      title: t('Customize Theme & Appearance'),
+      desc: t('Configure your preferred visual theme, language, and workspace layout preferences.'),
       href: '/settings',
-      icon: <CreditCard size={18} className="text-accent" />,
-      isCompleted: momoConfigured,
-      actionText: t('Set Up MoMo'),
+      icon: <Palette size={18} className="text-accent" />,
+      isCompleted: true,
+      actionText: t('Set Up Theme'),
     },
   ];
 
