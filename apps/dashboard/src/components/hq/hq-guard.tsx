@@ -24,22 +24,14 @@ export function HqGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
+  if (isLoading || user?.fleetName !== 'E-Moto HQ') {
     return (
-      <div className="grid min-h-screen place-items-center bg-surface">
-        <p className="text-sm font-medium text-ink-soft animate-pulse">
-          Verifying HQ access...
-        </p>
+      <div className="grid min-h-screen place-items-center bg-[#09090b]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
       </div>
     );
   }
 
-  // Only render children if verified as super admin.
-  if (user?.fleetName === 'E-Moto HQ') {
-    return <>{children}</>;
-  }
-
-  // Otherwise return nothing (redirecting...)
-  return null;
+  return <>{children}</>;
 }
 

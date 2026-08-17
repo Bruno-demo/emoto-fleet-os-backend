@@ -32,6 +32,39 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [isLoading]);
 
+  // Synchronously compute if path is forbidden for current user
+  const isForbidden = useMemo(() => {
+    if (!data || pathname === '/forbidden') return false;
+
+    // Check HQ route permission
+    if (pathname?.startsWith('/hq')) {
+      return data.fleetName !== 'E-Moto HQ';
+    }
+
+    // Check Insurer role permissions
+    if (data.role === 'INSURER') {
+      const isAllowed =
+        pathname === '/' ||
+        pathname === '/overview' || pathname.startsWith('/overview/') ||
+        pathname.startsWith('/bikes') ||
+        pathname.startsWith('/events') ||
+        pathname.startsWith('/incidents') ||
+        pathname.startsWith('/trips') ||
+        pathname.startsWith('/reports') ||
+        pathname.startsWith('/settings') ||
+        pathname.startsWith('/insurer');
+
+      return !isAllowed;
+    }
+
+    // Non-insurers attempting /insurer routes
+    if (pathname?.startsWith('/insurer')) {
+      return true;
+    }
+
+    return false;
+  }, [data, pathname]);
+
   useEffect(() => {
     if (isLoading) return;
 
@@ -59,41 +92,22 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (data.role === 'INSURER') {
-      const isAllowed =
-        pathname === '/' ||
-        pathname === '/overview' || pathname.startsWith('/overview/') ||
-        pathname.startsWith('/bikes') ||
-        pathname.startsWith('/events') ||
-        pathname.startsWith('/incidents') ||
-        pathname.startsWith('/trips') ||
-        pathname.startsWith('/reports') ||
-        pathname.startsWith('/settings') ||
-        pathname.startsWith('/insurer') ||
-        pathname === '/forbidden';
-
-      if (!isAllowed) {
-        router.replace('/forbidden');
-        return;
-      }
-    } else {
-      if (pathname.startsWith('/insurer')) {
-        router.replace('/forbidden');
-        return;
-      }
+    if (isForbidden) {
+      router.replace('/forbidden');
+      return;
     }
-  }, [isLoading, isError, data, nextPath, pathname, router]);
+  }, [isLoading, isError, data, isForbidden, nextPath, pathname, router]);
 
   const isPendingSetup = data?.status === 'PENDING_SETUP';
   const isInvalidRole = data?.role === 'RIDER';
 
-  if (!hasWindow || (isLoading && !isError) || isError || isPendingSetup || isInvalidRole) {
+  if (!hasWindow || (isLoading && !isError) || isError || isPendingSetup || isInvalidRole || isForbidden) {
     return (
       <div className="grid min-h-screen place-items-center bg-[#09090b]">
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
           <p className="text-sm font-medium text-zinc-400">
-            {isPendingSetup ? 'Redirecting to setup status...' : 'Checking session...'}
+            {isPendingSetup ? 'Redirecting to setup status...' : isForbidden ? 'Redirecting...' : 'Checking session...'}
           </p>
           {isTimedOut && (
             <button 

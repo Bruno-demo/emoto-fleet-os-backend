@@ -126,8 +126,8 @@ export async function apiFetch<T = unknown>(
       }
 
       // If access is forbidden (403) on an HQ admin route, redirect to forbidden page.
-      if (response.status === 403 && typeof window !== 'undefined' && window.location.pathname.startsWith('/hq')) {
-        window.location.href = '/forbidden';
+      if (response.status === 403 && typeof window !== 'undefined' && window.location.pathname !== '/forbidden' && window.location.pathname.startsWith('/hq')) {
+        window.location.replace('/forbidden');
       }
 
       let rawMessage = extractErrorMessage(body, 'Request failed. Please try again.');
