@@ -561,6 +561,23 @@ export class HqController {
     return this.hqService.rotateDeviceSecret(id, user);
   }
 
+  @Put('devices/:id')
+  @ApiOperation({ summary: 'Update device details (HQ admin)' })
+  updateDevice(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      deviceUid?: string;
+      imei?: string;
+      simPhoneNumber?: string;
+      status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
+      fleetId?: string;
+    },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.updateDevice(id, body, user);
+  }
+
   // ── Insurers ──────────────────────────────────────────────────────
 
   @Get('insurers')

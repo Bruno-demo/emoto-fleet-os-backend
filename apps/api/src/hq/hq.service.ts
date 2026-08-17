@@ -1632,6 +1632,62 @@ export class HqService {
     };
   }
 
+  async updateDevice(
+    id: string,
+    body: {
+      deviceUid?: string;
+      imei?: string;
+      simPhoneNumber?: string;
+      status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
+      fleetId?: string;
+    },
+    actor: AuthenticatedUser,
+  ) {
+    const existing = await this.prisma.device.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Device not found');
+
+    if (body.fleetId && body.fleetId !== existing.fleetId) {
+      const fleet = await this.prisma.fleet.findUnique({ where: { id: body.fleetId } });
+      if (!fleet) throw new NotFoundException('Target fleet not found');
+    }
+
+    try {
+      const updated = await this.prisma.device.update({
+        where: { id },
+        data: {
+          ...(body.deviceUid !== undefined ? { deviceUid: body.deviceUid } : {}),
+          ...(body.imei !== undefined ? { imei: body.imei || null } : {}),
+          ...(body.simPhoneNumber !== undefined ? { simPhoneNumber: body.simPhoneNumber || null } : {}),
+          ...(body.status !== undefined ? { status: body.status } : {}),
+          ...(body.fleetId !== undefined ? { fleetId: body.fleetId } : {}),
+        },
+        include: {
+          bike: { select: { id: true, label: true } },
+          fleet: { select: { id: true, name: true } },
+        },
+      });
+
+      await this.auditService.createAuditLog({
+        fleetId: updated.fleetId,
+        actorUserId: actor.id,
+        actionType: AuditActionType.DEVICE_SECRET_ROTATED,
+        targetType: 'DEVICE',
+        targetId: updated.id,
+        metaJson: { changes: body },
+      });
+
+      return updated;
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('deviceUid or imei already exists');
+      }
+      throw error;
+    }
+  }
+
   // ── Insurers ──────────────────────────────────────────────────────
 
   async getInsurers(opts: { page: number; pageSize: number; search?: string }) {
