@@ -503,7 +503,37 @@ export default function SettingsPage() {
             {(() => {
               const isInsurance = user?.fleetPlan === 'INSURANCE';
               return (
-                <>
+                <div className="space-y-6">
+                  {/* Official MTN MoMo Payment Instructions Card */}
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-5 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
+                        <Banknote size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-extrabold text-white flex items-center gap-2">
+                          <span>Official E-Moto HQ Payment Channel</span>
+                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-300 font-bold border border-amber-500/30">MTN MoMo</span>
+                        </h4>
+                        <p className="text-xs text-zinc-400 mt-0.5">Use the USSD merchant code below to pay weekly software invoices directly from your MTN Mobile Money phone.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-amber-500/20">
+                      <div className="rounded-xl border border-amber-500/20 bg-black/40 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">MoMo Merchant USSD Code</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-mono text-base font-extrabold text-amber-400 select-all">*182*8*1*1347154#</span>
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 font-semibold px-1.5 py-0.5 rounded">Dial on MTN</span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-amber-500/20 bg-black/40 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Merchant Account Name</p>
+                        <p className="font-sans text-base font-extrabold text-white mt-1">BRUNO</p>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
                     {/* Stat 1: Fleet Size */}
                     <div className="rounded-2xl border border-line bg-surface-muted p-5 space-y-2">
@@ -598,7 +628,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               );
             })()}
           </DashboardCard>
@@ -1371,7 +1401,7 @@ export default function SettingsPage() {
               <div className="space-y-1 text-ink-soft print:text-gray-600">
                 <p className="font-bold text-ink print:text-black">{t("Payment Status")}: <span className="uppercase text-accent font-bold">{selectedInvoiceModal.status}</span></p>
                 <p>{t("Payment Method")}: MTN Mobile Money / Bank Transfer</p>
-                <p>{t("MoMo Pay Merchant Code")}: <span className="font-mono font-bold text-ink print:text-black">*182*8*1# (Code: 881234)</span></p>
+                <p>{t("MoMo Pay Merchant Code")}: <span className="font-mono font-bold text-ink print:text-black">*182*8*1*1347154#</span> ({t("Merchant Name")}: <span className="font-sans font-bold text-ink print:text-black">BRUNO</span>)</p>
               </div>
               <div className="text-right space-y-1.5 border-t border-line pt-2 w-full sm:w-56 print:border-gray-300">
                 <div className="flex justify-between text-ink-soft">

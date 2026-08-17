@@ -230,6 +230,19 @@ function CheckoutContent() {
             <p className="text-sm text-ink-soft leading-relaxed">
               Your request to update to <strong className="text-accent font-bold">{plan?.title || 'Delivery Fleet Plan'}</strong> is currently pending.
             </p>
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] p-3 text-left space-y-2">
+              <p className="text-[10px] font-extrabold uppercase text-amber-300">Pay via MTN Mobile Money</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] text-zinc-400 block">USSD Code:</span>
+                  <span className="font-mono font-extrabold text-amber-400 select-all">*182*8*1*1347154#</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-400 block">Merchant Name:</span>
+                  <span className="font-sans font-extrabold text-white">BRUNO</span>
+                </div>
+              </div>
+            </div>
             <p className="text-xs text-ink-muted leading-relaxed">
               Please wait for your payment to be approved by the HQ admin. Your current fleet plan remains active until the HQ admin confirms your payment.
             </p>

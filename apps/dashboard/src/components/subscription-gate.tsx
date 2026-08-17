@@ -60,26 +60,39 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
         </Link>
       }
     >
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SubscriptionReason
-          icon={<Lock size={18} />}
-          title={lockedLabel}
-          description={
-            isInactive
-              ? 'Paused while the subscription is not active.'
-              : 'Available after upgrading this fleet to Delivery Fleet.'
-          }
-        />
-        <SubscriptionReason
-          icon={<ShieldCheck size={18} />}
-          title={entitlements.planLabel}
-          description={`Current plan: ${entitlements.planLabel}. Status: ${entitlements.statusLabel}.`}
-        />
-        <SubscriptionReason
-          icon={<Sparkles size={18} />}
-          title="Included now"
-          description="Overview, live map, alerts, events, bikes, riders, and settings remain available on the core plan."
-        />
+      <div className="space-y-4">
+        {isInactive && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.08] p-4 text-xs">
+            <p className="font-extrabold text-amber-300 text-sm flex items-center gap-2">
+              💳 Settle Invoice via MTN Mobile Money
+            </p>
+            <p className="text-zinc-300 mt-1">
+              Dial USSD code <span className="font-mono font-extrabold text-amber-400 select-all">*182*8*1*1347154#</span> on MTN (Recipient: <span className="font-extrabold text-white">BRUNO</span>) to pay your weekly invoice. HQ will immediately restore your fleet access.
+            </p>
+          </div>
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <SubscriptionReason
+            icon={<Lock size={18} />}
+            title={lockedLabel}
+            description={
+              isInactive
+                ? 'Paused while the subscription is not active.'
+                : 'Available after upgrading this fleet to Delivery Fleet.'
+            }
+          />
+          <SubscriptionReason
+            icon={<ShieldCheck size={18} />}
+            title={entitlements.planLabel}
+            description={`Current plan: ${entitlements.planLabel}. Status: ${entitlements.statusLabel}.`}
+          />
+          <SubscriptionReason
+            icon={<Sparkles size={18} />}
+            title="Included now"
+            description="Overview, live map, alerts, events, bikes, riders, and settings remain available on the core plan."
+          />
+        </div>
       </div>
     </DashboardCard>
   );

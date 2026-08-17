@@ -92,8 +92,29 @@ function RegistrationSuccessContent() {
           />
         </div>
 
+        {!isInsurance && (
+          <div className="mt-6 w-full rounded-[20px] border border-amber-500/30 bg-amber-500/[0.08] p-5 text-left space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300">Official Payment Channel</span>
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[9px] text-amber-300 font-bold border border-amber-500/30">MTN MoMo</span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-amber-500/20 bg-black/40 p-3">
+                <p className="text-[10px] font-bold uppercase text-zinc-400">MoMo Merchant USSD Code</p>
+                <p className="font-mono text-sm font-extrabold text-amber-400 mt-1 select-all">*182*8*1*1347154#</p>
+              </div>
+              <div className="rounded-xl border border-amber-500/20 bg-black/40 p-3">
+                <p className="text-[10px] font-bold uppercase text-zinc-400">Merchant Account Name</p>
+                <p className="font-sans text-sm font-extrabold text-white mt-1">BRUNO</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-zinc-400">Use this USSD code on MTN to pay weekly software invoices or activation fees.</p>
+          </div>
+        )}
+
         {!isInsurance && fleetName && (
-          <div className="mt-6 w-full rounded-[20px] border border-line bg-surface-muted/50 p-5 text-left flex items-center justify-between">
+          <div className="mt-4 w-full rounded-[20px] border border-line bg-surface-muted/50 p-5 text-left flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted">{t('registered_fleet', 'Registered Fleet')}</p>
               <p className="text-sm font-bold text-ink mt-1.5">{fleetName}</p>

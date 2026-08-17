@@ -18,7 +18,8 @@ import {
   CheckCircle2, 
   AlertCircle,
   Trash2,
-  ChevronDown
+  ChevronDown,
+  Pencil,
 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { DashboardCard, MetricCard } from '@/components/ui/dashboard-card';
@@ -107,6 +108,14 @@ export default function HqDevicesPage() {
   const [newSimPhoneNumber, setNewSimPhoneNumber] = useState('');
   const [newFleetId, setNewFleetId] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  // Edit Device modal state
+  const [editingDevice, setEditingDevice] = useState<HqDevice | null>(null);
+  const [editDeviceUid, setEditDeviceUid] = useState('');
+  const [editImei, setEditImei] = useState('');
+  const [editSimPhoneNumber, setEditSimPhoneNumber] = useState('');
+  const [editStatus, setEditStatus] = useState<'ACTIVE' | 'INACTIVE' | 'RETIRED'>('ACTIVE');
+  const [editFleetId, setEditFleetId] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
 
   // One-time secret display state
   const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null);
@@ -253,6 +262,26 @@ export default function HqDevicesPage() {
     },
   });
 
+  const updateDeviceMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: { deviceUid?: string; imei?: string; simPhoneNumber?: string; status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED'; fleetId?: string } }) =>
+      apiFetch(`/hq/devices/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hq', 'devices'] });
+      setPage(1);
+      setAccumulatedDevices([]);
+      setEditingDevice(null);
+      setEditError(null);
+    },
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setEditError(error?.message ?? t('Failed to update device'));
+    },
+  });
+
   const rotateSecretMutation = useMutation({
     mutationFn: (deviceId: string) =>
       apiFetch(`/hq/devices/${deviceId}/rotate-secret`, {
@@ -360,6 +389,22 @@ export default function HqDevicesPage() {
       cellClassName: 'text-right',
       render: (row) => (
         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => {
+              setEditingDevice(row);
+              setEditDeviceUid(row.deviceUid);
+              setEditImei(row.imei ?? '');
+              setEditSimPhoneNumber(row.simPhoneNumber ?? '');
+              setEditStatus((row.status as 'ACTIVE' | 'INACTIVE' | 'RETIRED') ?? 'ACTIVE');
+              setEditFleetId(row.fleet.id);
+              setEditError(null);
+            }}
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 text-[11px] font-bold text-accent hover:bg-accent/10 transition-all"
+            title={t('Edit Device')}
+          >
+            <Pencil size={12} />
+            {t('Edit')}
+          </button>
           <button
             onClick={() => {
               setRotateTargetId(row.id);
@@ -764,6 +809,140 @@ export default function HqDevicesPage() {
                   className="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition hover:bg-accent-strong disabled:opacity-50"
                 >
                   {createDeviceMutation.isPending ? t('Provisioning...') : t('Provision')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Device Modal */}
+      {editingDevice && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 animate-fade-in" style={{ animationDuration: '150ms' }}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingDevice(null)} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="relative w-full max-w-md rounded-[var(--radius-panel)] border border-line bg-background p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-line">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Pencil size={18} />
+                </span>
+                <div>
+                  <h2 className="text-base font-bold text-ink">{t('Edit Device')}</h2>
+                  <p className="text-xs text-ink-muted">{editingDevice.deviceUid}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDevice(null)}
+                className="rounded-lg p-1 text-ink-muted hover:bg-surface-hover hover:text-ink transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateDeviceMutation.mutate({
+                  id: editingDevice.id,
+                  body: {
+                    deviceUid: editDeviceUid,
+                    imei: editImei || undefined,
+                    simPhoneNumber: editSimPhoneNumber || undefined,
+                    status: editStatus,
+                    fleetId: editFleetId,
+                  },
+                });
+              }}
+              className="space-y-4 pt-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">{t('Device UID')}</label>
+                <input
+                  type="text"
+                  required
+                  value={editDeviceUid}
+                  onChange={(e) => setEditDeviceUid(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">{t('IMEI (Hardware ID)')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g., 864291048291034"
+                  value={editImei}
+                  onChange={(e) => setEditImei(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">{t('SIM Phone Number')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g., +250780000000"
+                  value={editSimPhoneNumber}
+                  onChange={(e) => setEditSimPhoneNumber(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">{t('Device Status')}</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as 'ACTIVE' | 'INACTIVE' | 'RETIRED')}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none cursor-pointer"
+                >
+                  <option value="ACTIVE">{t('ACTIVE')}</option>
+                  <option value="INACTIVE">{t('INACTIVE')}</option>
+                  <option value="RETIRED">{t('RETIRED')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">{t('Assigned Fleet')}</label>
+                <select
+                  value={editFleetId}
+                  onChange={(e) => setEditFleetId(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none cursor-pointer"
+                >
+                  {(fleetsList ?? []).map((fleet) => (
+                    <option key={fleet.id} value={fleet.id}>
+                      {fleet.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {editError && (
+                <p className="rounded-xl border border-danger-ink/20 bg-danger-soft px-3.5 py-2 text-xs text-danger-ink">
+                  {editError}
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDevice(null)}
+                  className="flex-1 rounded-xl border border-line bg-surface-hover px-4 py-2.5 text-xs font-semibold text-ink-soft transition hover:bg-surface-muted"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateDeviceMutation.isPending}
+                  className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-white transition hover:bg-accent-strong disabled:opacity-50"
+                  style={{ backgroundColor: '#3B82F6', color: 'white' }}
+                >
+                  {updateDeviceMutation.isPending ? t('Saving...') : t('Save changes')}
                 </button>
               </div>
             </form>
