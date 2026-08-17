@@ -544,7 +544,7 @@ export class AuthService implements OnModuleInit {
 
           // Automatically generate the first billing cycle based on date of registration
           const config = await tx.billingConfig.findFirst();
-          const cycleDays = config?.billingCycleDays ?? 30;
+          const cycleDays = config?.billingCycleDays ?? 7;
           const periodStart = new Date();
           const periodEnd = new Date(periodStart);
           periodEnd.setDate(periodEnd.getDate() + cycleDays);
@@ -701,7 +701,7 @@ export class AuthService implements OnModuleInit {
 
           // Automatically generate the first billing cycle based on date of registration
           const config = await tx.billingConfig.findFirst();
-          const cycleDays = config?.billingCycleDays ?? 30;
+          const cycleDays = config?.billingCycleDays ?? 7;
           const periodStart = new Date();
           const periodEnd = new Date(periodStart);
           periodEnd.setDate(periodEnd.getDate() + cycleDays);
