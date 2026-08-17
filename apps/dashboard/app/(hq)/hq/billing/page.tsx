@@ -223,6 +223,9 @@ export default function HqBillingPage() {
 
   const filteredWeeklyInvoices = useMemo(() => {
     return allHqBillingCycles.filter((cycle) => {
+      // 0. Exclude Insurers completely from Weekly Software Invoices
+      if ((cycle as any).fleetPlan === 'INSURANCE') return false;
+
       // 1. Week Filter
       if (selectedWeekIndex !== 'ALL') {
         const week = weekOptions[selectedWeekIndex];

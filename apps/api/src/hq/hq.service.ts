@@ -2870,6 +2870,13 @@ export class HqService {
 
   async getBillingCycles() {
     const cycles = await this.prisma.billingCycle.findMany({
+      where: {
+        fleet: {
+          plan: {
+            not: 'INSURANCE',
+          },
+        },
+      },
       include: {
         fleet: {
           select: {
@@ -2890,6 +2897,7 @@ export class HqService {
       id: c.id,
       fleetId: c.fleetId,
       fleetName: c.fleet?.name ?? 'Unknown Fleet',
+      fleetPlan: c.fleet?.plan ?? 'PAYG',
       cycleNumber: c.cycleNumber,
       periodStart: c.periodStart,
       periodEnd: c.periodEnd,
