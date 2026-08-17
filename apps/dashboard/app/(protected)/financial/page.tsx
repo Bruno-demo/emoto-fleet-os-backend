@@ -122,6 +122,7 @@ interface LeaseContract {
   status: 'ACTIVE' | 'PAID_OFF' | 'DELINQUENT';
   lockState: 'LOCKED' | 'UNLOCKED';
   bikeId: string | null;
+  leaseDownPayment?: number;
 }
 
 export default function FinancialsPage() {
@@ -654,6 +655,7 @@ export default function FinancialsPage() {
 
     const matched = weekPayments.find((p) => {
       if (p.riderId !== riderId) return false;
+      if (p.reference === 'UPFRONT-LEASE-DEPOSIT') return false;
       const d = new Date(p.paidAt);
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -689,9 +691,10 @@ export default function FinancialsPage() {
 
   // Helper to check payment on a matrix day
   const getMatrixCellStatus = (riderId: string, dateString: string): 'paid' | 'partial' | 'overdue' | 'unpaid' => {
-    // 1. Direct payments on this specific date
+    // 1. Direct payments on this specific date (excluding upfront capital deposit)
     const sameDayPayments = weekPayments.filter((p) => {
       if (p.riderId !== riderId) return false;
+      if (p.reference === 'UPFRONT-LEASE-DEPOSIT') return false;
       if (p.status !== 'PAID' && p.status !== 'PARTIAL') return false;
       const d = new Date(p.paidAt);
       const year = d.getFullYear();
@@ -714,13 +717,13 @@ export default function FinancialsPage() {
       return 'partial';
     }
 
-    // 2. Multi-day / Weekly / Advance Coverage Check
+    // 2. Multi-day / Weekly / Advance Coverage Check (excluding upfront deposit)
     const lease = leases.find((l) => l.id === riderId || (l as unknown as { riderId?: string }).riderId === riderId);
     const riderObj = ridersList.find((r) => r.id === riderId);
     const dailyRate = lease?.dailyRate ?? riderObj?.leaseDailyRate ?? DAILY_LEASE_RATE;
 
     const riderPayments = weekPayments.filter(
-      (p) => p.riderId === riderId && (p.status === 'PAID' || p.status === 'PARTIAL'),
+      (p) => p.riderId === riderId && p.reference !== 'UPFRONT-LEASE-DEPOSIT' && (p.status === 'PAID' || p.status === 'PARTIAL'),
     );
 
     if (riderPayments.length > 0) {
@@ -729,7 +732,8 @@ export default function FinancialsPage() {
         .filter((p) => new Date(p.paidAt).getTime() <= dayEnd)
         .reduce((sum, p) => sum + Number(p.amount), 0);
 
-      const totalPaidToUse = Math.max(lease?.totalPaid ?? 0, cumulativePaidUpToDay);
+      const dailyLeaseTotal = Math.max(0, (lease?.totalPaid ?? 0) - (riderObj?.leaseDownPayment ?? lease?.leaseDownPayment ?? 0));
+      const totalPaidToUse = Math.max(dailyLeaseTotal, cumulativePaidUpToDay);
       const sortedPayments = [...riderPayments].sort(
         (a, b) => new Date(a.paidAt).getTime() - new Date(b.paidAt).getTime(),
       );

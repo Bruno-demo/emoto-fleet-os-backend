@@ -484,6 +484,7 @@ model Event {
   @@index([fleetId, ts])
   @@index([deviceId, ts])
   @@index([severity, createdAt])
+  @@index([bikeId])
 }
 
 model RiderProfile {
@@ -570,6 +571,7 @@ model Trip {
   @@index([startTs])
   @@index([fleetId, startTs])
   @@unique([bikeId, startTs])
+  @@index([riderId])
 }
 
 model ScoreSummary {
@@ -971,6 +973,11 @@ model BillingPayment {
   billingCycle   BillingCycle  @relation(fields: [billingCycleId], references: [id], onDelete: Cascade)
   fleet          Fleet         @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   recordedBy     User          @relation(fields: [recordedById], references: [id])
+
+  @@index([fleetId])
+  @@index([billingCycleId])
+  @@index([paidAt])
+  @@index([fleetId, paidAt])
 }
 
 model SubscriptionPlan {

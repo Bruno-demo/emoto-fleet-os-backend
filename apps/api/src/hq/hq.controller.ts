@@ -308,6 +308,7 @@ export class HqController {
       leaseToOwn?: boolean;
       leasePrincipal?: number;
       leaseDailyRate?: number;
+      leaseDownPayment?: number;
     },
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -333,6 +334,7 @@ export class HqController {
       leaseToOwn?: boolean;
       leasePrincipal?: number;
       leaseDailyRate?: number;
+      leaseDownPayment?: number;
     },
     @CurrentUser() user: AuthenticatedUser,
   ) {

@@ -2387,6 +2387,7 @@ export class HqService {
       leaseToOwn?: boolean;
       leasePrincipal?: number;
       leaseDailyRate?: number;
+      leaseDownPayment?: number;
     },
     actor: AuthenticatedUser,
   ) {
@@ -2437,7 +2438,8 @@ export class HqService {
         body.identityCardPhoto !== undefined ||
         body.leaseToOwn !== undefined ||
         body.leasePrincipal !== undefined ||
-        body.leaseDailyRate !== undefined;
+        body.leaseDailyRate !== undefined ||
+        body.leaseDownPayment !== undefined;
 
       if (hasProfileUpdate) {
         const updateData: {
@@ -2450,6 +2452,7 @@ export class HqService {
           leaseToOwn?: boolean;
           leasePrincipal?: number;
           leaseDailyRate?: number;
+          leaseDownPayment?: number;
         } = {};
         if (body.fullName !== undefined) updateData.fullName = body.fullName;
         if (body.licenceNumber !== undefined)
@@ -2468,6 +2471,8 @@ export class HqService {
           updateData.leasePrincipal = body.leasePrincipal;
         if (body.leaseDailyRate !== undefined)
           updateData.leaseDailyRate = body.leaseDailyRate;
+        if (body.leaseDownPayment !== undefined)
+          updateData.leaseDownPayment = body.leaseDownPayment;
 
         if (user.riderProfile) {
           await tx.riderProfile.update({

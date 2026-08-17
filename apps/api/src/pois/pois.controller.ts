@@ -13,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { CreatePoiDto } from './dto/create-poi.dto';
 import { ListPoisDto } from './dto/list-pois.dto';
 import { PoisService } from './pois.service';
@@ -20,6 +22,7 @@ import { PoisService } from './pois.service';
 @ApiTags('poi')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)
 @Controller('poi')
 export class PoisController {
   constructor(private readonly poisService: PoisService) {}

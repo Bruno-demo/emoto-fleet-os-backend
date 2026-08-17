@@ -1416,15 +1416,27 @@ export default function RidersPage() {
                     </select>
                   </label>
                   {editLeaseToOwn && (
-                    <label className="block text-sm font-medium text-ink">
-                      {t("Lease Principal Amount (RWF)")}
-                      <input
-                        type="number"
-                        value={editLeasePrincipal}
-                        onChange={(e) => setEditLeasePrincipal(e.target.value)}
-                        className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
-                      />
-                    </label>
+                    <>
+                      <label className="block text-sm font-medium text-ink">
+                        {t("Lease Principal Amount (RWF)")}
+                        <input
+                          type="number"
+                          value={editLeasePrincipal}
+                          onChange={(e) => setEditLeasePrincipal(e.target.value)}
+                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-ink">
+                        {t("Upfront Down Payment / Deposit (RWF)")}
+                        <input
+                          type="number"
+                          value={editLeaseDownPayment}
+                          onChange={(e) => setEditLeaseDownPayment(e.target.value)}
+                          placeholder="e.g. 500000 (half or initial upfront money)"
+                          className="mt-1.5 w-full rounded-xl border border-line bg-surface-hover px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent/50"
+                        />
+                      </label>
+                    </>
                   )}
                   <label className="block text-sm font-medium text-ink">
                     {t("Lease Daily Rate (RWF)")}
@@ -2117,7 +2129,7 @@ export default function RidersPage() {
                   onClick={() => {
                     const totalPaid = statementPayments
                       .filter(p => p.status === 'PAID')
-                      .reduce((sum, p) => sum + Number(p.amount), 0);
+                      .reduce((sum, p) => sum + Number(p.amount), 0) + (statementRider.leaseDownPayment || 0);
                     const totalArrears = statementPayments
                       .filter(p => p.status === 'OVERDUE' || p.status === 'UNPAID')
                       .reduce((sum, p) => sum + Number(p.amount), 0);
@@ -2202,7 +2214,7 @@ export default function RidersPage() {
                       {(() => {
                         const totalPaid = statementPayments
                           .filter(p => p.status === 'PAID')
-                          .reduce((sum, p) => sum + Number(p.amount), 0);
+                          .reduce((sum, p) => sum + Number(p.amount), 0) + (statementRider.leaseDownPayment || 0);
                         const principal = statementRider.leasePrincipal ?? 2500000;
                         const pct = Math.min(100, Math.max(0, Math.round((totalPaid / principal) * 100)));
                         return `${pct}% (${totalPaid.toLocaleString()} / ${principal.toLocaleString()} RWF)`;
@@ -2216,7 +2228,7 @@ export default function RidersPage() {
                         width: `${(() => {
                           const totalPaid = statementPayments
                             .filter(p => p.status === 'PAID')
-                            .reduce((sum, p) => sum + Number(p.amount), 0);
+                            .reduce((sum, p) => sum + Number(p.amount), 0) + (statementRider.leaseDownPayment || 0);
                           const principal = statementRider.leasePrincipal ?? 2500000;
                           return Math.min(100, Math.max(0, Math.round((totalPaid / principal) * 100)));
                         })()}%`,

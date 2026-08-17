@@ -640,6 +640,7 @@ export class RidersService {
           leaseToOwn?: boolean;
           leasePrincipal?: number;
           leaseDailyRate?: number;
+          leaseDownPayment?: number;
           paymentSchedule?: 'DAILY' | 'WEEKLY' | 'CUSTOM';
           assignedRate?: number;
           customScheduleDays?: number;
@@ -662,6 +663,8 @@ export class RidersService {
         profileData.leasePrincipal = payload.leasePrincipal;
       if (payload.leaseDailyRate !== undefined)
         profileData.leaseDailyRate = payload.leaseDailyRate;
+      if (payload.leaseDownPayment !== undefined)
+        profileData.leaseDownPayment = payload.leaseDownPayment;
       if (payload.paymentSchedule !== undefined)
         profileData.paymentSchedule = payload.paymentSchedule;
       if (payload.assignedRate !== undefined)
@@ -675,6 +678,7 @@ export class RidersService {
           create: {
             userId: riderId,
             fleetId: actor.fleetId,
+            leaseDownPayment: payload.leaseDownPayment ?? 0,
             ...profileData,
           },
           update: profileData,
