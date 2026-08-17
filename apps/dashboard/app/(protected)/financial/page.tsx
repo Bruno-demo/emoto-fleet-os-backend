@@ -1424,12 +1424,27 @@ export default function FinancialsPage() {
                                       {(rider.fullName ?? 'U').charAt(0).toUpperCase()}
                                     </span>
                                     <div className="flex flex-col min-w-0">
-                                      <span className="truncate max-w-[120px] font-semibold">
+                                      <span className="truncate max-w-[120px] font-semibold flex items-center gap-1">
                                         {rider.fullName ?? t('Rider {id}').replace('{id}', rider.id.slice(0, 8))}
                                       </span>
-                                      <span className="text-[10px] text-ink-muted leading-tight font-normal">
-                                        {rider.phone ?? rider.email ?? ''}
-                                      </span>
+                                      <div className="flex items-center gap-1 mt-0.5">
+                                        <span className="text-[10px] text-ink-muted leading-tight font-normal truncate max-w-[80px]">
+                                          {rider.phone ?? rider.email ?? ''}
+                                        </span>
+                                        {rider.paymentSchedule === 'WEEKLY' ? (
+                                          <span className="inline-flex items-center rounded-md bg-purple-500/10 px-1 py-0.2 text-[8px] font-bold text-purple-400 border border-purple-500/20 whitespace-nowrap">
+                                            Weekly (7d)
+                                          </span>
+                                        ) : rider.paymentSchedule === 'CUSTOM' ? (
+                                          <span className="inline-flex items-center rounded-md bg-amber-500/10 px-1 py-0.2 text-[8px] font-bold text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                                            Custom ({rider.customScheduleDays ?? 7}d)
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center rounded-md bg-cyan-500/10 px-1 py-0.2 text-[8px] font-bold text-cyan-400 border border-cyan-500/20 whitespace-nowrap">
+                                            Daily
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
@@ -1438,42 +1453,64 @@ export default function FinancialsPage() {
                                   const todayStr = getLocalDateString(new Date());
                                   const isPastOrToday = day.dateString <= todayStr;
                                   const isUnpaid = status === 'unpaid';
-                                  const isUnpaidPastOrToday = isUnpaid && isPastOrToday;
+
+                                  const isCustomOrWeekly = rider.paymentSchedule === 'WEEKLY' || rider.paymentSchedule === 'CUSTOM';
+                                  const intervalDays = rider.paymentSchedule === 'WEEKLY' ? 7 : (rider.customScheduleDays ?? 7);
+
+                                  let isOffCycleDay = false;
+                                  if (isCustomOrWeekly && intervalDays > 1) {
+                                    const dateObj = new Date(`${day.dateString}T00:00:00.000Z`);
+                                    const dayNum = dateObj.getUTCDate();
+                                    if (dayNum % intervalDays !== 0 && isUnpaid) {
+                                      isOffCycleDay = true;
+                                    }
+                                  }
+
+                                  const isUnpaidPastOrToday = isUnpaid && isPastOrToday && !isOffCycleDay;
 
                                   return (
                                     <td key={day.dateString} className="py-3 text-center">
-                                      <button
-                                        type="button"
-                                        onClick={() => openCollectForMatrix(rider.id, day.dateString)}
-                                        className={cx(
-                                          'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
-                                          status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
-                                          status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
-                                          status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
-                                          isUnpaidPastOrToday && 'bg-rose-500/15 border-rose-500/30 text-rose-500 hover:bg-rose-500/30 shadow-xs',
-                                          isUnpaid && !isPastOrToday && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
-                                        )}
-                                        title={
-                                          isUnpaidPastOrToday
-                                            ? t('UNPAID: Click to log payment for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
-                                            : isUnpaid
-                                              ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
-                                              : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
-                                        }
-                                      >
-                                        {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
-                                        {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
-                                        {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
-                                        {isUnpaidPastOrToday && (
-                                          <>
-                                            <XCircle size={12} className="stroke-[2.5px] group-hover:hidden" />
-                                            <Plus size={12} className="stroke-[2.5px] hidden group-hover:block" />
-                                          </>
-                                        )}
-                                        {isUnpaid && !isPastOrToday && (
-                                          <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                      </button>
+                                      {isOffCycleDay ? (
+                                        <div
+                                          className="h-7 w-7 rounded-lg flex items-center justify-center border border-line/40 bg-surface-muted/30 text-ink-faint text-[10px] mx-auto cursor-help"
+                                          title={t('Interval day for {schedule} schedule ({days}d cycle)').replace('{schedule}', rider.paymentSchedule ?? 'CUSTOM').replace('{days}', String(intervalDays))}
+                                        >
+                                          —
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => openCollectForMatrix(rider.id, day.dateString)}
+                                          className={cx(
+                                            'h-7 w-7 rounded-lg flex items-center justify-center transition-all border outline-none cursor-pointer group mx-auto',
+                                            status === 'paid' && 'bg-success-soft/20 border-success-ink/25 text-success-ink hover:bg-success-soft/40',
+                                            status === 'partial' && 'bg-warning-soft/20 border-warning-ink/25 text-warning-ink hover:bg-warning-soft/40',
+                                            status === 'overdue' && 'bg-danger-soft/20 border-danger-ink/25 text-danger-ink hover:bg-danger-soft/40',
+                                            isUnpaidPastOrToday && 'bg-rose-500/15 border-rose-500/30 text-rose-500 hover:bg-rose-500/30 shadow-xs',
+                                            isUnpaid && !isPastOrToday && 'bg-surface-muted/50 border-line text-ink-faint hover:bg-surface-hover hover:border-line-strong hover:text-ink-soft',
+                                          )}
+                                          title={
+                                            isUnpaidPastOrToday
+                                              ? t('UNPAID: Click to log payment for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                              : isUnpaid
+                                                ? t('Log rate for {rider} on {day}').replace('{rider}', rider.fullName ?? '').replace('{day}', t(day.dayLabel))
+                                                : t('Status: {status} (Click to log new)').replace('{status}', t(status.toUpperCase()))
+                                          }
+                                        >
+                                          {status === 'paid' && <Check size={12} className="stroke-[3px]" />}
+                                          {status === 'partial' && <AlertTriangle size={12} className="stroke-[2.5px]" />}
+                                          {status === 'overdue' && <AlertCircle size={12} className="stroke-[2.5px]" />}
+                                          {isUnpaidPastOrToday && (
+                                            <>
+                                              <XCircle size={12} className="stroke-[2.5px] group-hover:hidden" />
+                                              <Plus size={12} className="stroke-[2.5px] hidden group-hover:block" />
+                                            </>
+                                          )}
+                                          {isUnpaid && !isPastOrToday && (
+                                            <Plus size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                                          )}
+                                        </button>
+                                      )}
                                     </td>
                                   );
                                 })}
