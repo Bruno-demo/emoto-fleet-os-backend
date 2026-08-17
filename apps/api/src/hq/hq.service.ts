@@ -2870,6 +2870,113 @@ export class HqService {
     };
   }
 
+  // ── Weekly Invoice Payment Approvals ──────────────────────────────
+
+  async getBillingCycles() {
+    const cycles = await this.prisma.billingCycle.findMany({
+      include: {
+        fleet: {
+          select: {
+            id: true,
+            name: true,
+            plan: true,
+            subscriptionStatus: true,
+          },
+        },
+        payments: {
+          orderBy: { paidAt: 'desc' },
+        },
+      },
+      orderBy: { periodStart: 'desc' },
+    });
+
+    return cycles.map((c) => ({
+      id: c.id,
+      fleetId: c.fleetId,
+      fleetName: c.fleet?.name ?? 'Unknown Fleet',
+      cycleNumber: c.cycleNumber,
+      periodStart: c.periodStart,
+      periodEnd: c.periodEnd,
+      dueDate: c.dueDate,
+      bikeCount: c.bikeCount,
+      ratePerBike: c.ratePerBike,
+      subtotal: c.subtotal,
+      totalDue: c.totalDue,
+      totalPaid: c.totalPaid,
+      status: c.status,
+      isTrial: c.isTrial,
+      payments: c.payments.map((p) => ({
+        id: p.id,
+        amount: p.amount,
+        method: p.method,
+        reference: p.reference,
+        notes: p.notes,
+        paidAt: p.paidAt,
+      })),
+    }));
+  }
+
+  async approveBillingPayment(
+    cycleId: string,
+    body: {
+      amount?: number;
+      method: 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CASH';
+      reference?: string;
+      notes?: string;
+    },
+    user: AuthenticatedUser,
+  ) {
+    const cycle = await this.prisma.billingCycle.findUnique({
+      where: { id: cycleId },
+      include: { fleet: true },
+    });
+
+    if (!cycle) {
+      throw new NotFoundException('Billing cycle not found');
+    }
+
+    const payAmount = body.amount ?? Math.max(0, cycle.totalDue - cycle.totalPaid);
+
+    const payment = await this.prisma.billingPayment.create({
+      data: {
+        billingCycleId: cycle.id,
+        fleetId: cycle.fleetId,
+        amount: payAmount,
+        method: (body.method as any) || 'BANK_TRANSFER',
+        reference: body.reference || `PAY-${Date.now()}`,
+        notes: body.notes || 'HQ Manual Weekly Payment Approval',
+        recordedById: user.id,
+        paidAt: new Date(),
+      },
+    });
+
+    const newTotalPaid = cycle.totalPaid + payAmount;
+    const isFullyPaid = newTotalPaid >= cycle.totalDue;
+    const newStatus = isFullyPaid ? 'PAID' : 'PARTIAL';
+
+    await this.prisma.billingCycle.update({
+      where: { id: cycle.id },
+      data: {
+        totalPaid: newTotalPaid,
+        status: newStatus as any,
+      },
+    });
+
+    // Restore fleet subscription status if it was PAST_DUE
+    if (cycle.fleet.subscriptionStatus === 'PAST_DUE') {
+      await this.prisma.fleet.update({
+        where: { id: cycle.fleetId },
+        data: { subscriptionStatus: 'ACTIVE' },
+      });
+    }
+
+    return {
+      message: 'Payment recorded and weekly invoice approved successfully',
+      payment,
+      status: newStatus,
+    };
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────
 
   private formatRelative(date: Date) {

@@ -150,7 +150,7 @@ type BillingCycle = z.infer<typeof billingCycleSchema>['data'][number];
 
 export default function HqBillingPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'ledger' | 'active-revenue' | 'revenue-risk' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
+  const [activeTab, setActiveTab] = useState<'ledger' | 'invoices' | 'active-revenue' | 'revenue-risk' | 'pricing' | 'discounts' | 'settings' | 'trials' | 'momo'>('ledger');
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PENDING_UPGRADE' | 'UNPAID_SETUP' | 'PAID_SETUP' | 'ENTERPRISE' | 'PAYG' | 'INSURANCE' | 'SUB_ACTIVE' | 'SUB_UNPAID'>('ALL');
   const [selectedFleet, setSelectedFleet] = useState<BillingFleet | null>(null);
@@ -159,6 +159,35 @@ export default function HqBillingPage() {
   const [showCreateDiscount, setShowCreateDiscount] = useState(false);
   const [showRecordPayment, setShowRecordPayment] = useState<BillingCycle | null>(null);
   const [breakdownCycleId, setBreakdownCycleId] = useState<string | null>(null);
+
+  // Query all weekly billing cycles for HQ settlement
+  const { data: allHqBillingCycles = [], isLoading: allCyclesLoading } = useQuery({
+    queryKey: ['hq', 'all-billing-cycles'],
+    queryFn: () => apiFetch<Array<{
+      id: string;
+      fleetId: string;
+      fleetName: string;
+      cycleNumber: number;
+      periodStart: string;
+      periodEnd: string;
+      dueDate: string;
+      bikeCount: number;
+      ratePerBike: number;
+      subtotal: number;
+      totalDue: number;
+      totalPaid: number;
+      status: 'DRAFT' | 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELED' | 'VOID';
+      isTrial: boolean;
+      payments: Array<{
+        id: string;
+        amount: number;
+        method: string;
+        reference: string | null;
+        notes: string | null;
+        paidAt: string;
+      }>;
+    }>>('/hq/billing/cycles'),
+  });
 
   const { data: cycleBreakdownData, isLoading: breakdownLoading } = useQuery({
     queryKey: ['hq', 'cycle-breakdown', breakdownCycleId],
@@ -399,12 +428,13 @@ export default function HqBillingPage() {
 
   const recordPaymentMutation = useMutation({
     mutationFn: ({ cycleId, amount, method, reference, notes }: { cycleId: string; amount: number; method: string; reference?: string; notes?: string }) =>
-      apiFetch(`/billing/cycles/${cycleId}/payments`, {
+      apiFetch(`/hq/billing/cycles/${cycleId}/approve-payment`, {
         method: 'POST',
         body: JSON.stringify({ amount, method, reference, notes }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hq', 'fleet-cycles'] });
+      queryClient.invalidateQueries({ queryKey: ['hq', 'all-billing-cycles'] });
       queryClient.invalidateQueries({ queryKey: ['hq', 'billing-fleets'] });
       setShowRecordPayment(null);
     },
@@ -517,7 +547,7 @@ export default function HqBillingPage() {
 
       {/* Navigation Tabs */}
       <div className="flex border-b border-line gap-2 overflow-x-auto pb-1">
-        {(['ledger', 'active-revenue', 'revenue-risk', 'pricing', 'discounts', 'settings', 'trials'] as const).map((tab) => (
+        {(['ledger', 'invoices', 'active-revenue', 'revenue-risk', 'pricing', 'discounts', 'settings', 'trials'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -528,7 +558,16 @@ export default function HqBillingPage() {
                 : 'border-transparent text-zinc-400 hover:text-white'
             )}
           >
-            {tab === 'active-revenue' ? (
+            {tab === 'invoices' ? (
+              <>
+                <span>Weekly Invoices</span>
+                {allHqBillingCycles.filter(c => c.status === 'PENDING' || c.status === 'OVERDUE' || c.status === 'DRAFT').length > 0 ? (
+                  <span className="rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[10px] font-extrabold">
+                    {allHqBillingCycles.filter(c => c.status === 'PENDING' || c.status === 'OVERDUE' || c.status === 'DRAFT').length}
+                  </span>
+                ) : null}
+              </>
+            ) : tab === 'active-revenue' ? (
               <>
                 <span>Active Revenue</span>
                 {activeRevenueData?.summary.totalActiveDevices ? (
@@ -552,6 +591,119 @@ export default function HqBillingPage() {
           </button>
         ))}
       </div>
+
+      {/* TAB: WEEKLY INVOICES & SETTLEMENTS */}
+      {activeTab === 'invoices' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-white">Weekly Invoices & Manual Settlements</h3>
+              <p className="text-xs text-zinc-400">Review weekly PAYG software invoices and approve received bank transfers or mobile money payments.</p>
+            </div>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['hq', 'all-billing-cycles'] })}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface-muted px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-surface-hover hover:text-white transition cursor-pointer"
+            >
+              <RefreshCw size={14} className={allCyclesLoading ? 'animate-spin' : ''} />
+              Refresh Invoices
+            </button>
+          </div>
+
+          <div className="rounded-3xl border border-line bg-surface overflow-hidden">
+            {allCyclesLoading ? (
+              <div className="p-8 text-center text-xs text-zinc-500">Loading weekly invoices...</div>
+            ) : allHqBillingCycles.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <FileText size={32} className="mx-auto text-zinc-600" />
+                <p className="text-sm font-bold text-zinc-300">No Weekly Invoices Found</p>
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto">Weekly software billing cycles are automatically generated for active fleets.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-line bg-surface-muted/50 text-[10px] uppercase font-bold tracking-wider text-zinc-400">
+                    <tr>
+                      <th className="px-5 py-3.5">Fleet Name</th>
+                      <th className="px-5 py-3.5">Cycle #</th>
+                      <th className="px-5 py-3.5">Billing Period</th>
+                      <th className="px-5 py-3.5">Active Bikes</th>
+                      <th className="px-5 py-3.5">Total Due</th>
+                      <th className="px-5 py-3.5">Total Paid</th>
+                      <th className="px-5 py-3.5">Status</th>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/60">
+                    {allHqBillingCycles.map((cycle) => {
+                      const isPaid = cycle.status === 'PAID';
+                      const isOverdue = cycle.status === 'OVERDUE';
+                      const isPartial = cycle.status === 'PARTIAL';
+
+                      return (
+                        <tr key={cycle.id} className="hover:bg-surface-muted/30 transition-colors">
+                          <td className="px-5 py-4 font-bold text-white">
+                            {cycle.fleetName}
+                            {cycle.isTrial && (
+                              <span className="ml-2 inline-flex items-center rounded-md bg-purple-500/10 px-2 py-0.5 text-[10px] font-bold text-purple-400 border border-purple-500/20">
+                                Trial
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-4 font-medium text-zinc-400">
+                            #{cycle.cycleNumber}
+                          </td>
+                          <td className="px-5 py-4 text-zinc-300">
+                            {new Date(cycle.periodStart).toLocaleDateString()} – {new Date(cycle.periodEnd).toLocaleDateString()}
+                          </td>
+                          <td className="px-5 py-4 font-medium text-zinc-300">
+                            {cycle.bikeCount} bikes
+                          </td>
+                          <td className="px-5 py-4 font-extrabold text-white">
+                            {cycle.totalDue.toLocaleString()} RWF
+                          </td>
+                          <td className="px-5 py-4 font-bold text-emerald-400">
+                            {cycle.totalPaid.toLocaleString()} RWF
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={cx(
+                              'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold border',
+                              isPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              isPartial ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                              isOverdue ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                              'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            )}>
+                              {isPaid ? <Check size={12} /> : isOverdue ? <AlertCircle size={12} /> : <Clock size={12} />}
+                              {cycle.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            {!isPaid ? (
+                              <button
+                                onClick={() => setShowRecordPayment({
+                                  ...cycle,
+                                  fleet: { name: cycle.fleetName, plan: 'PAYG' }
+                                } as any)}
+                                className="inline-flex items-center gap-1 rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-accent-strong transition cursor-pointer"
+                              >
+                                <Banknote size={13} />
+                                Approve Payment
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-semibold text-emerald-400/80 italic">
+                                Settled ({cycle.payments[0]?.method?.replace('_', ' ') || 'Manual'})
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1.5: ACTIVE REVENUE (WORKING DEVICES & EARNINGS) */}
       {activeTab === 'active-revenue' && (

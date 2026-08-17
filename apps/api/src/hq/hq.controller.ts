@@ -644,6 +644,28 @@ export class HqController {
     return this.hqService.getBillingFleets();
   }
 
+  @Get('billing/cycles')
+  @ApiOperation({ summary: 'Get all weekly fleet billing cycles / invoices' })
+  getBillingCycles() {
+    return this.hqService.getBillingCycles();
+  }
+
+  @Post('billing/cycles/:id/approve-payment')
+  @ApiOperation({ summary: 'Approve manual weekly invoice payment for a fleet' })
+  approveBillingPayment(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      amount?: number;
+      method: 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CASH';
+      reference?: string;
+      notes?: string;
+    },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.hqService.approveBillingPayment(id, body, user);
+  }
+
   @Put('fleets/:id/toggle-installation-payment')
   @ApiOperation({
     summary: 'Toggle one-time device installation fee payment status',
