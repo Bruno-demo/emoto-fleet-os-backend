@@ -709,42 +709,42 @@ export default function FleetDetailPage() {
             <div className="grid grid-cols-3 gap-1 p-1 bg-background/50 border border-line rounded-xl">
               <button
                 type="button"
-                title="Cooperative (COOP)"
+                title="Co-op Fleet (350 RWF/active day per bike)"
                 onClick={() => typeMutation.mutate('COOP')}
                 disabled={typeMutation.isPending || fleet.type === 'COOP'}
-                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
+                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 cursor-pointer ${
                   fleet.type === 'COOP'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                COOP
+                Co-op (350/d)
               </button>
               <button
                 type="button"
-                title="Delivery Fleet"
+                title="Delivery Fleet (500 RWF/active day per bike)"
                 onClick={() => typeMutation.mutate('DELIVERY')}
                 disabled={typeMutation.isPending || fleet.type === 'DELIVERY'}
-                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
+                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 cursor-pointer ${
                   fleet.type === 'DELIVERY'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                DELIVERY
+                Delivery (500/d)
               </button>
               <button
                 type="button"
-                title="Personal / Individual"
+                title="Individual Fleet (350 RWF/active day per bike)"
                 onClick={() => typeMutation.mutate('PERSONAL')}
                 disabled={typeMutation.isPending || fleet.type === 'PERSONAL'}
-                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 ${
+                className={`rounded-lg px-1 py-2 text-[10px] font-extrabold transition-all truncate disabled:opacity-50 cursor-pointer ${
                   fleet.type === 'PERSONAL'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                PERSONAL
+                Individual (350/d)
               </button>
             </div>
           </div>

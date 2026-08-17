@@ -2519,24 +2519,19 @@ export class HqService {
   async approveFleetUpgrade(fleetId: string, actor: AuthenticatedUser) {
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: fleetId },
-      select: { id: true, upgradeRequested: true },
+      select: { id: true, type: true, upgradeRequested: true },
     });
     if (!fleet) throw new NotFoundException('Fleet not found');
-
-    const tier = await this.prisma.pricingTier.findUnique({
-      where: { planCode: FleetPlan.ENTERPRISE },
-    });
-    const monthlyRatePerBike = tier ? tier.monthlyRatePerBike : 0;
 
     const updated = await this.prisma.fleet.update({
       where: { id: fleetId },
       data: {
-        plan: FleetPlan.ENTERPRISE,
+        type: 'DELIVERY',
+        emotoPaygRatePerActiveDay: 500,
         upgradeRequested: false,
         upgradeRequestedAt: null,
-        monthlyRatePerBike,
       },
-      select: { id: true, name: true, plan: true, upgradeRequested: true },
+      select: { id: true, name: true, type: true, plan: true, emotoPaygRatePerActiveDay: true, upgradeRequested: true },
     });
 
     await this.auditService.createAuditLog({
@@ -2547,7 +2542,8 @@ export class HqService {
       targetId: fleetId,
       metaJson: {
         approvedUpgrade: true,
-        plan: 'ENTERPRISE',
+        upgradedToType: 'DELIVERY',
+        ratePerActiveDay: 500,
       },
     });
 

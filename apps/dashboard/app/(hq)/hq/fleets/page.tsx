@@ -3,9 +3,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
-import { Building2, Search, Funnel, MoreHorizontal, User, Bike, Calendar, X, Sparkles } from 'lucide-react';
+import { Building2, Search, Funnel, MoreHorizontal, User, Bike, Calendar, X, Sparkles, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { cx } from '@/lib/ui';
 
 const fleetsSchema = z.array(
   z.object({
@@ -209,10 +210,24 @@ export default function HqFleetsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">
-                        <div className={`h-1 w-1 rounded-full ${fleet.type === 'DELIVERY' ? 'bg-amber-400' : 'bg-cyan-400'}`} />
-                        {fleet.type}
-                      </span>
+                      {fleet.plan === 'INSURANCE' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-purple-300">
+                          <Shield size={12} className="text-purple-400" />
+                          Insurance Partner (Negotiated)
+                        </span>
+                      ) : (
+                        <span className={cx(
+                          "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold",
+                          fleet.type === 'DELIVERY' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' :
+                          fleet.type === 'COOP' ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300' :
+                          'border-purple-500/30 bg-purple-500/10 text-purple-300'
+                        )}>
+                          <div className={`h-1.5 w-1.5 rounded-full ${fleet.type === 'DELIVERY' ? 'bg-amber-400' : fleet.type === 'COOP' ? 'bg-cyan-400' : 'bg-purple-400'}`} />
+                          {fleet.type === 'DELIVERY' ? 'Delivery Fleet (500 RWF/day)' :
+                           fleet.type === 'COOP' ? 'Co-op Fleet (350 RWF/day)' :
+                           'Individual Fleet (350 RWF/day)'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-8 py-6">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/5 px-2.5 py-1 text-xs font-bold text-ink-soft">

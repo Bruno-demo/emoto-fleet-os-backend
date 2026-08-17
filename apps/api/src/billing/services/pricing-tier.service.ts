@@ -72,8 +72,9 @@ export class PricingTierService implements OnModuleInit {
     return tier?.monthlyRatePerBike ?? 10000;
   }
 
-  static getRateForFleetType(): number {
-    return 10000; // Uniform PAYG rate across all fleet types (350 RWF/day per bike)
+  static getRateForFleetType(type?: string | null): number {
+    if (type === 'DELIVERY') return 500;
+    return 350; // COOP & PERSONAL/INDIVIDUAL default to 350 RWF/day per active bike
   }
 
   async seedDefaultTiers(): Promise<void> {
