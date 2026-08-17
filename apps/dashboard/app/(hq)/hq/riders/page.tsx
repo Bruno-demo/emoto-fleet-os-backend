@@ -257,10 +257,6 @@ export default function HqRidersPage() {
       setCreateError(t('Phone number must be exactly 10 digits starting with 07 (e.g. 0788123456).'));
       return;
     }
-    if (!newPassword || newPassword.length < 8) {
-      setCreateError(t('Password must be at least 8 characters.'));
-      return;
-    }
     if (!newLicenceNumber) {
       setCreateError(t('Driving licence number is required.'));
       return;
@@ -301,7 +297,7 @@ export default function HqRidersPage() {
           phone: newPhone || undefined,
           email: newEmail || undefined,
           fullName: newFullName || undefined,
-          password: newPassword || undefined,
+          password: newPassword || 'EMotoRider2026!',
           licenceNumber: newLicenceNumber || undefined,
           identityNumber: newIdentityNumber || undefined,
           passportPhoto: newPassportPhoto || undefined,
@@ -359,7 +355,7 @@ export default function HqRidersPage() {
   }, [ridersList]);
 
   const isDirectFormInvalid = useMemo(() => {
-    if (!newFleetId || !newFullName || !newPassword || newPassword.length < 8) return true;
+    if (!newFleetId || !newFullName) return true;
     if (!newPhone || !/^07\d{8}$/.test(newPhone.trim())) return true;
     if (!newLicenceNumber || !newIdentityNumber) return true;
     if (!newPassportPhoto || !newLicencePhoto || !newIdentityCardPhoto) return true;
@@ -370,9 +366,7 @@ export default function HqRidersPage() {
   }, [
     newFleetId,
     newFullName,
-    newPassword,
     newPhone,
-    newEmail,
     leaseToOwn,
     newLicenceNumber,
     newIdentityNumber,
@@ -617,26 +611,6 @@ export default function HqRidersPage() {
                         onChange={(e) => setNewPhone(e.target.value)}
                         placeholder="0788123456"
                         maxLength={10}
-                        className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink placeholder:text-ink-faint outline-none focus:border-accent"
-                      />
-                    </label>
-                    <label className="block text-xs font-semibold text-ink">
-                      {t('Email Address')}
-                      <input
-                        type="email"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                        placeholder="e.g. rider@fleet.co"
-                        className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink placeholder:text-ink-faint outline-none focus:border-accent"
-                      />
-                    </label>
-                    <label className="block text-xs font-semibold text-ink">
-                      {t('Password')}
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder={t('At least 8 characters')}
                         className="mt-2 h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-xs text-ink placeholder:text-ink-faint outline-none focus:border-accent"
                       />
                     </label>
