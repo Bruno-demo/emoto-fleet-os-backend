@@ -22,7 +22,10 @@ import {
   RefreshCw,
   Edit2,
   FileText,
-  Printer
+  Printer,
+  ChevronDown,
+  ChevronRight,
+  Layers
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { z } from 'zod';
@@ -190,8 +193,14 @@ export default function HqBillingPage() {
   });
 
   // Week Selection & Invoice Filtering States
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number | 'ALL'>('ALL');
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number | 'ALL'>(0);
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'OVERDUE'>('ALL');
+  const [groupByFleet, setGroupByFleet] = useState<boolean>(false);
+  const [expandedFleetIds, setExpandedFleetIds] = useState<Record<string, boolean>>({});
+
+  const toggleFleetExpanded = (fleetId: string) => {
+    setExpandedFleetIds(prev => ({ ...prev, [fleetId]: !prev[fleetId] }));
+  };
 
   const weekOptions = useMemo(() => {
     const options = [];
@@ -257,6 +266,47 @@ export default function HqBillingPage() {
       return true;
     });
   }, [allHqBillingCycles, selectedWeekIndex, invoiceStatusFilter, search, weekOptions]);
+
+  const groupedFleetInvoices = useMemo(() => {
+    const map = new Map<string, {
+      fleetId: string;
+      fleetName: string;
+      fleetPlan: string;
+      isTrial: boolean;
+      totalDue: number;
+      totalPaid: number;
+      pendingCount: number;
+      overdueCount: number;
+      latestBikeCount: number;
+      cycles: typeof filteredWeeklyInvoices;
+    }>();
+
+    for (const cycle of filteredWeeklyInvoices) {
+      const existing = map.get(cycle.fleetId);
+      if (existing) {
+        existing.totalDue += cycle.totalDue;
+        existing.totalPaid += cycle.totalPaid;
+        if (cycle.status === 'PENDING' || cycle.status === 'DRAFT') existing.pendingCount++;
+        if (cycle.status === 'OVERDUE') existing.overdueCount++;
+        existing.cycles.push(cycle);
+      } else {
+        map.set(cycle.fleetId, {
+          fleetId: cycle.fleetId,
+          fleetName: cycle.fleetName,
+          fleetPlan: (cycle as any).fleetPlan ?? 'PAYG',
+          isTrial: cycle.isTrial,
+          totalDue: cycle.totalDue,
+          totalPaid: cycle.totalPaid,
+          pendingCount: (cycle.status === 'PENDING' || cycle.status === 'DRAFT') ? 1 : 0,
+          overdueCount: cycle.status === 'OVERDUE' ? 1 : 0,
+          latestBikeCount: cycle.bikeCount,
+          cycles: [cycle],
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [filteredWeeklyInvoices]);
 
   const weeklyMetrics = useMemo(() => {
     const totalDue = filteredWeeklyInvoices.reduce((sum, c) => sum + c.totalDue, 0);
@@ -779,7 +829,7 @@ export default function HqBillingPage() {
             </div>
           </div>
 
-          {/* Filter Pills & Search */}
+          {/* Filter Pills, Search & Group Toggle */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {(['ALL', 'PENDING', 'PAID', 'OVERDUE'] as const).map((st) => (
@@ -801,19 +851,38 @@ export default function HqBillingPage() {
               ))}
             </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Search fleet or invoice #"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-xl border border-line bg-surface-strong pl-9 pr-3 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-accent"
-              />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {/* Group by Fleet Toggle */}
+              {selectedWeekIndex === 'ALL' && (
+                <button
+                  type="button"
+                  onClick={() => setGroupByFleet(!groupByFleet)}
+                  className={cx(
+                    "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-bold transition cursor-pointer whitespace-nowrap",
+                    groupByFleet
+                      ? "border-accent bg-accent/15 text-accent shadow-sm"
+                      : "border-line bg-surface-muted text-zinc-400 hover:text-white hover:bg-surface-hover"
+                  )}
+                >
+                  <Layers size={14} />
+                  {groupByFleet ? "Grouped by Fleet" : "Group by Fleet"}
+                </button>
+              )}
+
+              <div className="relative w-full sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Search fleet or invoice #"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-9 w-full rounded-xl border border-line bg-surface-strong pl-9 pr-3 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-accent"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Synchronized Table */}
+          {/* Synchronized Table (Grouped vs Chronological) */}
           <div className="rounded-3xl border border-line bg-surface overflow-hidden shadow-sm">
             {allCyclesLoading ? (
               <div className="p-12 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
@@ -826,7 +895,158 @@ export default function HqBillingPage() {
                 <p className="text-sm font-bold text-zinc-300">No Weekly Invoices Matching Selection</p>
                 <p className="text-xs text-zinc-500 max-w-sm mx-auto">Try switching the week selector or status filter above.</p>
               </div>
+            ) : (selectedWeekIndex === 'ALL' && groupByFleet) ? (
+              /* GROUPED BY FLEET ACCORDION TABLE */
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-line bg-surface-muted/60 text-[10px] uppercase font-bold tracking-wider text-zinc-400">
+                    <tr>
+                      <th className="px-5 py-3.5">Fleet Organization</th>
+                      <th className="px-5 py-3.5">Weekly Cycles</th>
+                      <th className="px-5 py-3.5">Bikes</th>
+                      <th className="px-5 py-3.5">Total Amount Due</th>
+                      <th className="px-5 py-3.5">Total Paid</th>
+                      <th className="px-5 py-3.5">Status</th>
+                      <th className="px-5 py-3.5 text-right">Actions / Expand</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/60">
+                    {groupedFleetInvoices.map((group) => {
+                      const isExpanded = !!expandedFleetIds[group.fleetId];
+                      const isSettled = group.pendingCount === 0 && group.overdueCount === 0;
+                      const hasOverdue = group.overdueCount > 0;
+
+                      return (
+                        <>
+                          <tr key={group.fleetId} className="hover:bg-surface-muted/40 transition-colors bg-surface-muted/10">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleFleetExpanded(group.fleetId)}
+                                  className="p-1 text-zinc-400 hover:text-white transition cursor-pointer"
+                                >
+                                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                </button>
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent font-bold text-xs shrink-0 border border-accent/20">
+                                  {group.fleetName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <span className="font-extrabold text-white text-sm block">{group.fleetName}</span>
+                                  <span className="text-[10px] text-zinc-400 font-medium">PAYG Fleet</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 font-bold text-zinc-300">
+                              <span className="rounded-lg bg-accent/10 text-accent border border-accent/20 px-2.5 py-1 text-xs">
+                                {group.cycles.length} Weekly Cycles
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 font-bold text-white">
+                              {group.latestBikeCount} bikes
+                            </td>
+                            <td className="px-5 py-4 font-extrabold text-white text-sm">
+                              {group.totalDue.toLocaleString()} RWF
+                            </td>
+                            <td className="px-5 py-4 font-bold text-emerald-400 text-sm">
+                              {group.totalPaid.toLocaleString()} RWF
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className={cx(
+                                'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold border',
+                                isSettled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                hasOverdue ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              )}>
+                                {isSettled ? <Check size={12} /> : hasOverdue ? <AlertCircle size={12} /> : <Clock size={12} />}
+                                {isSettled ? 'ALL SETTLED' : hasOverdue ? `${group.overdueCount} OVERDUE` : `${group.pendingCount} PENDING`}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => toggleFleetExpanded(group.fleetId)}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface-muted px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-surface-hover hover:text-white transition cursor-pointer"
+                              >
+                                {isExpanded ? 'Hide Cycles' : `View Cycles (${group.cycles.length})`}
+                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Nested Sub-Table */}
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan={7} className="p-0 bg-black/30 border-y border-accent/20">
+                                <div className="p-4 pl-12">
+                                  <table className="w-full text-left text-xs bg-surface-strong/60 rounded-2xl overflow-hidden border border-line">
+                                    <thead className="bg-surface-muted/80 text-[10px] uppercase font-bold text-zinc-400 border-b border-line">
+                                      <tr>
+                                        <th className="px-4 py-2.5">Cycle #</th>
+                                        <th className="px-4 py-2.5">Billing Period</th>
+                                        <th className="px-4 py-2.5">Active Bikes</th>
+                                        <th className="px-4 py-2.5">Total Due</th>
+                                        <th className="px-4 py-2.5">Paid</th>
+                                        <th className="px-4 py-2.5">Status</th>
+                                        <th className="px-4 py-2.5 text-right">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-line/40">
+                                      {group.cycles.map((subCycle) => {
+                                        const isPaid = subCycle.status === 'PAID';
+                                        const isOverdue = subCycle.status === 'OVERDUE';
+                                        return (
+                                          <tr key={subCycle.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="px-4 py-3 font-bold text-white">Cycle #{subCycle.cycleNumber}</td>
+                                            <td className="px-4 py-3 text-zinc-300">
+                                              {new Date(subCycle.periodStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(subCycle.periodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </td>
+                                            <td className="px-4 py-3 font-medium text-zinc-300">{subCycle.bikeCount} bikes</td>
+                                            <td className="px-4 py-3 font-bold text-white">{subCycle.totalDue.toLocaleString()} RWF</td>
+                                            <td className="px-4 py-3 font-bold text-emerald-400">{subCycle.totalPaid.toLocaleString()} RWF</td>
+                                            <td className="px-4 py-3">
+                                              <span className={cx(
+                                                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold border',
+                                                isPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                isOverdue ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                              )}>
+                                                {subCycle.status}
+                                              </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                              {!isPaid ? (
+                                                <button
+                                                  onClick={() => setShowRecordPayment({
+                                                    ...subCycle,
+                                                    fleet: { name: subCycle.fleetName, plan: 'PAYG' }
+                                                  } as any)}
+                                                  className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1 text-[11px] font-bold text-white hover:bg-accent-strong transition cursor-pointer"
+                                                >
+                                                  <Banknote size={12} />
+                                                  Approve
+                                                </button>
+                                              ) : (
+                                                <span className="text-[10px] text-emerald-400 font-semibold italic">Settled</span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
+              /* CHRONOLOGICAL LIST TABLE (SINGLE WEEK OR UNGROUPED) */
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-line bg-surface-muted/60 text-[10px] uppercase font-bold tracking-wider text-zinc-400">
