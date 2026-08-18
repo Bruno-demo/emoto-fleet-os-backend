@@ -19,6 +19,13 @@ const DEFAULT_TYPES: RoadFeatureType[] = [
   RoadFeatureType.SPEED_LIMIT,
 ];
 
+const OVERPASS_FALLBACK_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
+  'https://overpass.openstreetmap.ru/cgi/interpreter',
+];
+
 interface OverpassElement {
   id: number;
   type: 'node' | 'way' | 'relation';
@@ -31,7 +38,7 @@ interface OverpassElement {
 @Injectable()
 export class RoadFeaturesService {
   private readonly logger = new Logger(RoadFeaturesService.name);
-  private readonly overpassUrl: string;
+  private readonly overpassEndpoints: string[];
   private readonly cacheTtlSeconds: number;
   private readonly refreshSeconds: number;
   private readonly maxFetchResults: number;
@@ -41,17 +48,20 @@ export class RoadFeaturesService {
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
   ) {
-    this.overpassUrl = this.configService.get<string>(
-      'OVERPASS_API_URL',
-      'https://overpass-api.de/api/interpreter',
-    );
+    const configuredUrl = this.configService.get<string>('OVERPASS_API_URL');
+    this.overpassEndpoints = configuredUrl
+      ? [configuredUrl, ...OVERPASS_FALLBACK_ENDPOINTS.filter((url) => url !== configuredUrl)]
+      : OVERPASS_FALLBACK_ENDPOINTS;
+
+    // Cache road features for 7 days in Redis (604,800 seconds)
     this.cacheTtlSeconds = this.configService.get<number>(
       'ROAD_FEATURE_CACHE_TTL_SECONDS',
-      3600,
+      604_800,
     );
+    // Refresh DB features from OSM once every 30 days (2,592,000 seconds)
     this.refreshSeconds = this.configService.get<number>(
       'ROAD_FEATURE_REFRESH_SECONDS',
-      86_400,
+      2_592_000,
     );
     this.maxFetchResults = this.configService.get<number>(
       'ROAD_FEATURE_MAX_RESULTS',
@@ -207,7 +217,7 @@ export class RoadFeaturesService {
   }> | null> {
     const bbox = `${bounds.minLat},${bounds.minLng},${bounds.maxLat},${bounds.maxLng}`;
     const query = `
-      [out:json][timeout:25];
+      [out:json][timeout:15];
       (
         node["amenity"~"school|hospital|marketplace"](${bbox});
         way["amenity"~"school|hospital|marketplace"](${bbox});
@@ -218,37 +228,52 @@ export class RoadFeaturesService {
       out center tags ${this.maxFetchResults};
     `;
 
-    try {
-      const response = await fetch(this.overpassUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'eMotoFleetOS/1.0 (contact: bruno@emotofleet.com)',
-          Accept: 'application/json',
-        },
-        body: `data=${encodeURIComponent(query)}`,
-      });
+    for (const endpoint of this.overpassEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
-      if (!response.ok) {
-        this.logger.warn(
-          `Overpass request failed with status ${response.status}`,
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'eMotoFleetOS/1.0 (contact: bruno@emotofleet.com)',
+            Accept: 'application/json',
+          },
+          body: `data=${encodeURIComponent(query)}`,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          this.logger.debug(
+            `Overpass endpoint ${endpoint} returned status ${response.status}. Trying next mirror...`,
+          );
+          continue;
+        }
+
+        const payload = (await response.json()) as {
+          elements: OverpassElement[];
+        };
+        const elements = payload.elements ?? [];
+        return elements
+          .map((element) => this.normalizeOverpassElement(element))
+          .filter(
+            (feature): feature is NonNullable<typeof feature> => feature !== null,
+          );
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        this.logger.debug(
+          `Overpass request to ${endpoint} failed (${errMsg}). Trying next mirror...`,
         );
-        return null;
       }
-
-      const payload = (await response.json()) as {
-        elements: OverpassElement[];
-      };
-      const elements = payload.elements ?? [];
-      return elements
-        .map((element) => this.normalizeOverpassElement(element))
-        .filter(
-          (feature): feature is NonNullable<typeof feature> => feature !== null,
-        );
-    } catch (error: unknown) {
-      this.logger.warn('Overpass request failed', error as Error);
-      return null;
     }
+
+    this.logger.warn(
+      `All Overpass API mirrors were unreachable or rate-limited. Falling back to cached local road database.`,
+    );
+    return null;
   }
 
   // Converts Overpass elements into normalized road feature rows.
