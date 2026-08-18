@@ -339,7 +339,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
             {
               sentAt: new Date(),
               ackedAt: null,
-              errorMessage: `TCP offline. Dispatched budget-friendly SMS (${smsCmd}) via ${smsResult.provider} to SIM`,
+              errorMessage: `TCP offline. Dispatched SMS (${smsCmd}) via Africa's Talking to tracker SIM`,
             },
             user.id,
           );
@@ -518,7 +518,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
             {
               sentAt: new Date(),
               ackedAt: null,
-              errorMessage: `HQ TCP offline. Dispatched budget-friendly SMS (${smsCmd}) via ${smsResult.provider} to SIM`,
+              errorMessage: `HQ TCP offline. Dispatched SMS (${smsCmd}) via Africa's Talking to tracker SIM`,
             },
             user.id,
           );

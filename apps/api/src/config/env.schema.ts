@@ -166,42 +166,21 @@ export const envSchema = z
       .min(0)
       .max(14)
       .default(2),
-    // ── SMS Fallback Service ─────────────────────────────────
+    // ── SMS Fallback Service (Africa's Talking) ─────────────
     SMS_FALLBACK_ENABLED: booleanStringDefaultTrue,
     SMS_PROVIDER: z
       .string()
       .optional()
       .transform((val) => {
-        if (!val) return 'log';
+        if (!val) return 'africastalking';
         const cleaned = val.toLowerCase().replace(/['"]/g, '').trim();
-        const allowed = [
-          'bulksend',
-          'africastalking',
-          'twilio',
-          'generic',
-          'log',
-        ];
-        return allowed.includes(cleaned)
-          ? (cleaned as
-              | 'bulksend'
-              | 'africastalking'
-              | 'twilio'
-              | 'generic'
-              | 'log')
-          : 'log';
+        return cleaned === 'log' ? 'log' : 'africastalking';
       })
-      .default('log'),
-    BULKSEND_API_KEY: z.string().optional(),
-    BULKSEND_SENDER_ID: z.string().optional(),
-    BULKSEND_BASE_URL: z.string().optional(),
+      .default('africastalking'),
     AFRICASTALKING_USERNAME: z.string().optional(),
     AFRICASTALKING_API_KEY: z.string().optional(),
     AFRICASTALKING_SENDER_ID: z.string().optional(),
-    TWILIO_ACCOUNT_SID: z.string().optional(),
-    TWILIO_AUTH_TOKEN: z.string().optional(),
-    TWILIO_FROM_NUMBER: z.string().optional(),
-    GENERIC_SMS_WEBHOOK_URL: z.string().url().optional(),
-    GENERIC_SMS_WEBHOOK_TOKEN: z.string().optional(),
+    SINOTRACK_DEVICE_PASSWORD: z.string().default('0000'),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {
