@@ -63,6 +63,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   private mqttClient: mqtt.MqttClient | null = null;
   private readonly deviceSecretMasterKey: string;
   private readonly devicePassword: string;
+  private connectionHealthInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -120,6 +121,16 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       );
     });
 
+    // GAP 10 fix: Periodic connection health metrics logging every 60s
+    this.connectionHealthInterval = setInterval(() => {
+      const uniqueSockets = new Set(
+        [...this.activeConnections.values()].map((c) => c.socket),
+      );
+      this.logger.log(
+        `[TCP Health] Active connections: ${uniqueSockets.size} devices, ${this.activeConnections.size} map entries, ${this.activeSockets.size} tracked sockets`,
+      );
+    }, 60_000);
+
     // Initialize MQTT command subscriber
     const mqttUrl = this.configService.getOrThrow<string>('MQTT_URL');
     const mqttUser = this.configService.get<string>('MQTT_USER');
@@ -173,6 +184,10 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy(): void {
     this.logger.log('Shutting down SinoTrack TCP Server...');
+    if (this.connectionHealthInterval) {
+      clearInterval(this.connectionHealthInterval);
+      this.connectionHealthInterval = null;
+    }
     for (const socket of this.activeSockets) {
       socket.destroy();
     }
@@ -195,6 +210,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
   private handleSocketConnection(socket: net.Socket): void {
     const remoteAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     this.logger.debug(`New SinoTrack TCP connection from ${remoteAddress}`);
+    this.activeSockets.add(socket);
     // Enable TCP Keep-Alive every 30s to prevent mobile GPRS carrier idle drops
     socket.setKeepAlive(true, 30000);
     socket.setNoDelay(true);
@@ -253,9 +269,11 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     socket.on('close', () => {
       this.logger.debug(`SinoTrack TCP connection closed for ${remoteAddress}`);
       this.activeSockets.delete(socket);
-      const dUid = (socket as SinoTrackSocket).deviceUid;
-      if (dUid) {
-        this.activeConnections.delete(dUid);
+      // Clean up ALL keys in activeConnections that point to this socket (deviceUid + IMEI)
+      for (const [key, entry] of this.activeConnections.entries()) {
+        if (entry.socket === socket) {
+          this.activeConnections.delete(key);
+        }
       }
     });
   }
@@ -378,18 +396,20 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           await this.prismaService.deviceCommand.update({
             where: { id: pendingCmd.commandId },
             data: {
-              status: 'ACKED',
-              ackedAt: new Date(),
+              status: 'SENT',
+              sentAt: new Date(),
+              errorMessage: null,
             },
           });
 
           this.eventsGateway.emitCommandStatus(device.fleetId, {
             commandId: pendingCmd.commandId,
-            status: 'ACKED',
+            status: 'SENT',
             ts: new Date().toISOString(),
             bikeId: device.bikeId ?? undefined,
             deviceId: device.id,
             action: pendingCmd.type,
+            message: 'Auto-flushed over TCP on reconnect. Awaiting device ACK.',
           });
         }
       } catch (flushErr: unknown) {
@@ -416,6 +436,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
           where: {
             deviceId: device.id,
             status: { in: ['PENDING', 'SENT'] },
+            expiresAt: { gte: new Date() },
           },
           orderBy: { createdAt: 'desc' },
         });
@@ -995,7 +1016,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      const packet = `*HQ,${connection.imei},${sinotrackCmd}#`;
+      const packet = `*HQ,${connection.imei},${sinotrackCmd}#\r\n`;
       connection.socket.write(packet, 'ascii', () => {
         this.logger.log(
           `Successfully dispatched raw TCP packet to SinoTrack device imei=${connection.imei}: ${packet}`,
@@ -1086,7 +1107,7 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    if (!connection || !connection.socket || connection.socket.destroyed) {
+    if (!connection || !connection.socket || connection.socket.destroyed || !connection.socket.writable) {
       return false;
     }
 
@@ -1110,11 +1131,39 @@ export class SinoTrackAdapterService implements OnModuleInit, OnModuleDestroy {
     const hqPacket = `*HQ,${targetImei},${sinotrackCmd}#\r\n`;
 
     try {
-      connection.socket.write(hqPacket, 'ascii', () => {
-        this.logger.log(
-          `Directly dispatched SinoTrack GPRS TCP packet to imei=${targetImei} (deviceUid=${deviceUid}): ${hqPacket.trim()}`,
-        );
+      const flushed = connection.socket.write(hqPacket, 'ascii', (writeErr) => {
+        if (writeErr) {
+          this.logger.error(
+            `TCP write callback error for SinoTrack deviceUid=${deviceUid}: ${writeErr.message}`,
+          );
+        } else {
+          this.logger.log(
+            `Directly dispatched SinoTrack GPRS TCP packet to imei=${targetImei} (deviceUid=${deviceUid}): ${hqPacket.trim()}`,
+          );
+        }
       });
+
+      if (!flushed) {
+        this.logger.warn(
+          `TCP write backpressure detected for deviceUid=${deviceUid} — packet buffered in kernel, not yet flushed to tracker`,
+        );
+      }
+
+      // Set a write timeout: if the socket can't drain within 10s, the connection is likely dead
+      const writeTimeout = setTimeout(() => {
+        if (connection?.socket && !connection.socket.destroyed && connection.socket.writableLength > 0) {
+          this.logger.warn(
+            `TCP write timeout (10s) for deviceUid=${deviceUid}. Socket buffer not drained. Destroying socket.`,
+          );
+          connection.socket.destroy(new Error('TCP write timeout'));
+        }
+      }, 10_000);
+
+      // Clear timeout once the buffer drains successfully
+      connection.socket.once('drain', () => clearTimeout(writeTimeout));
+      // Also clear if socket closes before timeout
+      connection.socket.once('close', () => clearTimeout(writeTimeout));
+
       return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'unknown error';

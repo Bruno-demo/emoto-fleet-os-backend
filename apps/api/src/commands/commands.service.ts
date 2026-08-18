@@ -56,6 +56,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
   private readonly mqttDisabled: boolean;
   private mqttClient: MqttClient | null = null;
   private mqttConnected = false;
+  private commandSweeperInterval: ReturnType<typeof setInterval> | null = null;
   private readonly mqttUser?: string;
   private readonly mqttPassword?: string;
 
@@ -83,6 +84,9 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit(): void {
+    // Start expired command sweeper regardless of MQTT
+    this.startCommandExpirySweeper();
+
     if (this.mqttDisabled) {
       this.logger.log('MQTT is disabled — skipping client initialization');
       return;
@@ -129,7 +133,58 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       });
   }
 
+  // GAP 3 fix: Start periodic sweeper to expire stale PENDING/SENT commands
+  private startCommandExpirySweeper(): void {
+    this.commandSweeperInterval = setInterval(async () => {
+      try {
+        const now = new Date();
+        const staleCommands = await this.prismaService.deviceCommand.findMany({
+          where: {
+            status: { in: ['PENDING', 'SENT'] },
+            expiresAt: { lt: now },
+          },
+          take: 100,
+        });
+
+        for (const cmd of staleCommands) {
+          await this.prismaService.deviceCommand.update({
+            where: { id: cmd.id },
+            data: {
+              status: 'EXPIRED',
+              errorMessage: `Command expired after ${this.commandTtlSeconds}s with no device acknowledgement`,
+            },
+          });
+
+          this.eventsGateway.emitCommandStatus(cmd.fleetId, {
+            commandId: cmd.id,
+            status: 'EXPIRED',
+            ts: now.toISOString(),
+            bikeId: cmd.bikeId ?? undefined,
+            deviceId: cmd.deviceId,
+            action: cmd.type,
+            message: 'Command expired — device did not respond in time',
+          });
+
+          this.metricsService.incrementCommandStatus('EXPIRED', cmd.type);
+        }
+
+        if (staleCommands.length > 0) {
+          this.logger.warn(
+            `Command expiry sweeper transitioned ${staleCommands.length} stale commands to EXPIRED`,
+          );
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Command expiry sweeper failed: ${msg}`);
+      }
+    }, 30_000); // Run every 30 seconds
+  }
+
   async onModuleDestroy(): Promise<void> {
+    if (this.commandSweeperInterval) {
+      clearInterval(this.commandSweeperInterval);
+      this.commandSweeperInterval = null;
+    }
     if (this.mqttClient) {
       await new Promise<void>((resolve) =>
         this.mqttClient!.end(false, {}, () => resolve()),
@@ -236,6 +291,22 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
     if (type === 'LOCK') {
       await this.assertSafeToLock(device.id, latestState);
+    }
+
+    // GAP 7 fix: Debounce — reject if a PENDING/SENT command of same type exists for this bike within last 10s
+    const recentDuplicate = await this.prismaService.deviceCommand.findFirst({
+      where: {
+        bikeId: bike.id,
+        type,
+        status: { in: ['PENDING', 'SENT'] },
+        createdAt: { gte: new Date(Date.now() - 10_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recentDuplicate) {
+      throw new BadRequestException(
+        `A ${type} command is already in progress for this bike (sent ${Math.round((Date.now() - recentDuplicate.createdAt.getTime()) / 1000)}s ago). Please wait.`,
+      );
     }
 
     const command = await this.prismaService.deviceCommand.create({
@@ -412,6 +483,22 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
 
     if (type === 'LOCK') {
       await this.assertSafeToLock(device.id, latestState);
+    }
+
+    // GAP 7 fix: Debounce — reject if a PENDING/SENT command of same type exists for this bike within last 10s
+    const recentDuplicate = await this.prismaService.deviceCommand.findFirst({
+      where: {
+        bikeId: bike.id,
+        type,
+        status: { in: ['PENDING', 'SENT'] },
+        createdAt: { gte: new Date(Date.now() - 10_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recentDuplicate) {
+      throw new BadRequestException(
+        `A ${type} command is already in progress for this bike (sent ${Math.round((Date.now() - recentDuplicate.createdAt.getTime()) / 1000)}s ago). Please wait.`,
+      );
     }
 
     const command = await this.prismaService.deviceCommand.create({
