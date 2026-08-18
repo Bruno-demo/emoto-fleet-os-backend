@@ -521,12 +521,13 @@ export class FinancialsService {
         }
 
         const assignedAt = activeAssignment.assignedAt;
+        const isBikeUnderMaintenance = bike.status === 'MAINTENANCE';
         const msDiff = Date.now() - assignedAt.getTime();
         const daysDiff = Math.max(
           0,
           Math.floor(msDiff / (1000 * 60 * 60 * 24)),
         );
-        const expected = daysDiff * dailyRate;
+        const expected = isBikeUnderMaintenance ? 0 : daysDiff * dailyRate;
         arrears = Math.max(0, expected - dailyPaymentsTotal);
       }
 

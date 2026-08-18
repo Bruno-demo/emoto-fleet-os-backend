@@ -523,7 +523,8 @@ export class MomoGatewayService {
               },
             });
 
-            const newTotalPaid = (cycle.totalPaid || 0) + transaction.amount;
+            const remainingDue = Math.max(0, cycle.totalDue - (cycle.totalPaid || 0));
+            const newTotalPaid = Math.min(cycle.totalDue, (cycle.totalPaid || 0) + transaction.amount);
             const newStatus =
               newTotalPaid >= cycle.totalDue
                 ? BillingCycleStatus.PAID

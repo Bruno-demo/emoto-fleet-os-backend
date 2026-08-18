@@ -2035,9 +2035,10 @@ export class RidersService {
     let expectedPaid = 0;
 
     if (activeAssignment) {
+      const isBikeUnderMaintenance = activeAssignment.bike?.status === 'MAINTENANCE';
       const msDiff = Date.now() - activeAssignment.assignedAt.getTime();
       const daysDiff = Math.max(0, Math.floor(msDiff / (1000 * 60 * 60 * 24)));
-      expectedPaid = daysDiff * leaseDailyRate;
+      expectedPaid = isBikeUnderMaintenance ? 0 : daysDiff * leaseDailyRate;
       arrears = Math.max(0, expectedPaid - dailyPaymentsTotal);
     }
 

@@ -413,7 +413,7 @@ export class BillingCronService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async auditDailyPaygUsage() {
-    this.logger.log('Starting daily PAYG active-day audit cron job...');
+    this.logger.log('Starting daily PAYG active-day audit & reconciliation cron job...');
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const dateStr = yesterday.toISOString().slice(0, 10);
@@ -447,6 +447,17 @@ export class BillingCronService {
             totalDailyChargesRwf: audit.totalPaygSubtotalRwf,
           },
         });
+
+        // Reconcile open/pending cycles for this fleet with latest trips
+        const openCycles = await this.prisma.billingCycle.findMany({
+          where: {
+            fleetId: fleet.id,
+            status: { in: [BillingCycleStatus.PENDING, BillingCycleStatus.PARTIAL] },
+          },
+        });
+        for (const c of openCycles) {
+          await this.billingCycleService.reconcilePaygCycle(c.id);
+        }
       } catch (error) {
         this.logger.error(
           `Failed daily PAYG audit for fleet ${fleet.name} (${fleet.id}):`,
@@ -454,7 +465,7 @@ export class BillingCronService {
         );
       }
     }
-    this.logger.log('Finished daily PAYG active-day audit cron job.');
+    this.logger.log('Finished daily PAYG active-day audit & reconciliation cron job.');
   }
 
   // ── MoMo Cron Jobs ───────────────────────────────────────────────
@@ -531,7 +542,7 @@ export class BillingCronService {
         retryCount: { lt: 3 },
         nextRetryAt: { lte: now },
       },
-      take: 20, // Process in batches
+      take: 50, // Process in batches
     });
 
     for (const tx of failedTxList) {
@@ -557,7 +568,7 @@ export class BillingCronService {
         status: MomoTransactionStatus.PENDING,
         createdAt: { lt: fiveMinutesAgo },
       },
-      take: 50,
+      take: 200,
     });
 
     for (const tx of pendingTxList) {

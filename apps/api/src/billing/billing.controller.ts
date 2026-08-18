@@ -10,6 +10,7 @@ import {
   UseGuards,
   ForbiddenException,
   BadRequestException,
+  Header,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FleetPlan, SubscriptionPlanDuration } from '@prisma/client';
@@ -133,6 +134,24 @@ export class BillingController {
     return cycle;
   }
 
+  @Get('my-cycles/:id/invoice-html')
+  @Header('Content-Type', 'text/html')
+  @ApiOperation({
+    summary: "Get printable HTML invoice statement for the user's own fleet",
+  })
+  async getMyCycleInvoiceHtml(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    const cycle = await this.billingCycleService.getCycle(id);
+    if (cycle.fleetId !== user.fleetId) {
+      throw new ForbiddenException(
+        'You do not have access to this billing cycle',
+      );
+    }
+    return await this.billingCycleService.generateInvoiceHtml(id);
+  }
+
   @Post('validate-discount')
   @ApiOperation({ summary: 'Validate a discount code' })
   async validateDiscount(
@@ -254,6 +273,14 @@ export class BillingController {
   @ApiOperation({ summary: 'HQ: Get a single billing cycle details' })
   async getCycle(@Param('id') id: string) {
     return await this.billingCycleService.getCycle(id);
+  }
+
+  @Get('cycles/:id/invoice-html')
+  @UseGuards(HqGuard)
+  @Header('Content-Type', 'text/html')
+  @ApiOperation({ summary: 'HQ: Get printable HTML invoice statement' })
+  async getCycleInvoiceHtml(@Param('id') id: string) {
+    return await this.billingCycleService.generateInvoiceHtml(id);
   }
 
   @Get('cycles/:id/breakdown')

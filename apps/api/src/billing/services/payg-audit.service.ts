@@ -275,16 +275,28 @@ export class PaygAuditService {
     const impactedFleetIds = new Set<string>();
 
     const enrichedDevices = devices.map((device) => {
-      const lastSeen = device.lastSeenAt ? new Date(device.lastSeenAt).getTime() : new Date(device.createdAt).getTime();
-      const inactiveHours = Math.max(1, Math.floor((now - lastSeen) / (1000 * 60 * 60)));
-      const inactiveDays = Math.max(1, Math.floor(inactiveHours / 24));
+      const isAssigned = !!device.bike;
+      const lastSeen = device.lastSeenAt
+        ? new Date(device.lastSeenAt).getTime()
+        : new Date(device.createdAt).getTime();
+      const inactiveHours = Math.max(
+        1,
+        Math.floor((now - lastSeen) / (1000 * 60 * 60)),
+      );
+      const rawInactiveDays = Math.max(1, Math.floor(inactiveHours / 24));
+      // Cap at 30 days for revenue risk estimation
+      const inactiveDays = Math.min(30, rawInactiveDays);
 
       const dailyRate =
         device.fleet?.type === 'DELIVERY'
-          ? (!device.fleet.emotoPaygRatePerActiveDay || device.fleet.emotoPaygRatePerActiveDay === 350 ? 500 : device.fleet.emotoPaygRatePerActiveDay)
+          ? (!device.fleet.emotoPaygRatePerActiveDay ||
+            device.fleet.emotoPaygRatePerActiveDay === 350
+              ? 500
+              : device.fleet.emotoPaygRatePerActiveDay)
           : (device.fleet?.emotoPaygRatePerActiveDay ?? 350);
 
-      const estimatedLossRwf = inactiveDays * dailyRate;
+      // Only deployed/assigned devices represent actual lost operational revenue
+      const estimatedLossRwf = isAssigned ? inactiveDays * dailyRate : 0;
       totalRevenueLostRwf += estimatedLossRwf;
 
       if (device.fleet?.id) {

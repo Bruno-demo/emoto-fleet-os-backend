@@ -69,6 +69,18 @@ export class BillingPaymentService {
     });
 
     if (newStatus === BillingCycleStatus.PAID) {
+      // Cancel any pending MoMo transactions for this cycle to prevent race condition double deductions
+      await this.prisma.momoTransaction.updateMany({
+        where: {
+          billingCycleId: cycleId,
+          status: 'PENDING',
+        },
+        data: {
+          status: 'CANCELLED',
+          failureReason: 'Invoice settled via direct manual payment',
+        },
+      });
+
       const overdueCycles = await this.prisma.billingCycle.count({
         where: {
           fleetId: cycle.fleetId,

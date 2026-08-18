@@ -136,7 +136,7 @@ export class BillingCycleService {
     }
 
     const config = await this.prisma.billingConfig.findFirst();
-    const cycleDays = config?.billingCycleDays ?? 7;
+    const cycleDays = config?.billingCycleDays ?? 30;
 
     const defaultRate = PricingTierService.getRateForFleetType(fleet.type);
     const tier = await this.pricingTierService.getTierByPlanCode(fleet.plan);
@@ -175,7 +175,7 @@ export class BillingCycleService {
     const periodEnd = new Date(periodStart);
     periodEnd.setDate(periodEnd.getDate() + cycleDays);
 
-    // Set invoice due date to periodEnd (end of billing cycle month) instead of periodStart
+    // Set invoice due date to periodEnd (end of billing cycle period) instead of periodStart
     const dueDate = new Date(periodEnd);
 
     const bikeCount = fleet.bikes.length;
@@ -188,10 +188,12 @@ export class BillingCycleService {
       fleet.billingMode === FleetBillingMode.PAYG_TRIP_VALIDATED;
 
     if (isPayg) {
+      // Audit trips recorded in this period (up to now if period is ongoing)
+      const auditEnd = now < periodEnd ? now : periodEnd;
       const audit = await this.paygAuditService.getPaygAuditForFleet(
         fleetId,
         periodStart.toISOString(),
-        periodEnd.toISOString(),
+        auditEnd.toISOString(),
       );
       effectiveRatePerBike =
         fleet.type === 'DELIVERY' &&
@@ -264,6 +266,78 @@ export class BillingCycleService {
     return cycle;
   }
 
+  /**
+   * Reconciles and finalizes an open/pending PAYG billing cycle with completed GPS active days
+   */
+  async reconcilePaygCycle(cycleId: string): Promise<BillingCycle> {
+    const cycle = await this.prisma.billingCycle.findUnique({
+      where: { id: cycleId },
+      include: { fleet: true },
+    });
+
+    if (
+      !cycle ||
+      cycle.status === BillingCycleStatus.PAID ||
+      cycle.status === BillingCycleStatus.VOID
+    ) {
+      return cycle!;
+    }
+
+    const isPayg =
+      cycle.fleet.plan === 'PAYG' ||
+      cycle.fleet.billingMode === FleetBillingMode.PAYG_TRIP_VALIDATED;
+
+    if (!isPayg) {
+      return cycle;
+    }
+
+    const audit = await this.paygAuditService.getPaygAuditForFleet(
+      cycle.fleetId,
+      cycle.periodStart.toISOString(),
+      cycle.periodEnd.toISOString(),
+    );
+
+    const effectiveRatePerBike =
+      cycle.fleet.type === 'DELIVERY' &&
+      (!cycle.fleet.emotoPaygRatePerActiveDay ||
+        cycle.fleet.emotoPaygRatePerActiveDay === 350)
+        ? 500
+        : (cycle.fleet.emotoPaygRatePerActiveDay ?? 350);
+
+    const subtotal =
+      audit.totalPaygSubtotalRwf ??
+      audit.totalActiveBikeDays * effectiveRatePerBike;
+
+    let discountAmount = 0;
+    if (cycle.discountId) {
+      const discount = await this.prisma.discount.findUnique({
+        where: { id: cycle.discountId },
+      });
+      if (discount) {
+        discountAmount =
+          discount.type === 'PERCENTAGE'
+            ? Math.round(subtotal * (Number(discount.value) / 100))
+            : Math.min(subtotal, Math.round(Number(discount.value)));
+      }
+    }
+
+    const totalDue = Math.max(0, subtotal - discountAmount);
+    const cycleNotes = `Calculated via Active Days (${effectiveRatePerBike} RWF/active day - ${cycle.fleet.type || 'COOP'} Fleet) — ${audit.totalActiveBikeDays} active bike-day(s) recorded across ${cycle.bikeCount} bike(s).`;
+
+    const updated = await this.prisma.billingCycle.update({
+      where: { id: cycleId },
+      data: {
+        subtotal,
+        discountAmount,
+        totalDue,
+        ratePerBike: effectiveRatePerBike,
+        notes: cycleNotes,
+      },
+    });
+
+    return updated;
+  }
+
   async voidCycle(id: string, user: AuthenticatedUser): Promise<BillingCycle> {
     const current = await this.getCycle(id);
 
@@ -279,7 +353,7 @@ export class BillingCycleService {
     await this.auditService.createAuditLog({
       fleetId: current.fleetId,
       actorUserId: user.id,
-      actionType: 'FLEET_PLAN_CHANGED', // Or map to a general void audit log
+      actionType: 'FLEET_PLAN_CHANGED',
       targetType: 'BillingCycle',
       targetId: id,
       metaJson: { before: current, after: updated },
@@ -310,5 +384,139 @@ export class BillingCycleService {
       audit,
       notes: cycle.notes || `Calculated via Active Days (350 RWF/active day)`,
     };
+  }
+
+  /**
+   * Generates a clean, printable HTML invoice statement for official fleet records
+   */
+  async generateInvoiceHtml(cycleId: string): Promise<string> {
+    const cycle = await this.getCycle(cycleId);
+    const issueDate = new Date(cycle.createdAt).toLocaleDateString('en-GB');
+    const periodStartStr = new Date(cycle.periodStart).toLocaleDateString('en-GB');
+    const periodEndStr = new Date(cycle.periodEnd).toLocaleDateString('en-GB');
+    const dueDateStr = new Date(cycle.dueDate).toLocaleDateString('en-GB');
+    const statusColor =
+      cycle.status === 'PAID'
+        ? '#16a34a'
+        : cycle.status === 'OVERDUE'
+          ? '#dc2626'
+          : '#ca8a04';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice #${cycle.cycleNumber} - ${cycle.fleet.name}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; padding: 40px; }
+    .invoice-card { max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 36px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
+    .brand { font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+    .brand-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 12px; text-transform: uppercase; color: #fff; background-color: ${statusColor}; }
+    .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 28px 0; }
+    .meta-box { background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #f1f5f9; }
+    .meta-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .meta-val { font-size: 14px; font-weight: 600; color: #0f172a; }
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+    th { text-align: left; background-color: #f8fafc; padding: 12px; font-size: 12px; text-transform: uppercase; color: #475569; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .total-section { margin-left: auto; width: 300px; margin-top: 16px; }
+    .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+    .total-row.grand { font-size: 18px; font-weight: 800; border-top: 2px solid #0f172a; padding-top: 12px; color: #0f172a; }
+    .settlement-box { margin-top: 36px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px; }
+    .settlement-title { font-size: 14px; font-weight: 700; color: #166534; margin-bottom: 6px; }
+    .settlement-code { font-size: 16px; font-family: monospace; font-weight: 700; color: #15803d; }
+    .print-btn { display: inline-block; margin-top: 24px; padding: 10px 20px; background: #0f172a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; }
+    @media print { .print-btn { display: none; } body { padding: 0; } .invoice-card { border: none; box-shadow: none; padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="invoice-card">
+    <div class="header">
+      <div>
+        <div class="brand">⚡ E-MOTO FLEET OS</div>
+        <div class="brand-sub">Smart Fleet Operations & IoT Telematics • Kigali, Rwanda</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 20px; font-weight: 700; color: #0f172a;">INVOICE #${cycle.cycleNumber}</div>
+        <div class="badge" style="margin-top: 6px;">${cycle.status}</div>
+      </div>
+    </div>
+
+    <div class="details-grid">
+      <div class="meta-box">
+        <div class="meta-label">Billed To</div>
+        <div class="meta-val" style="font-size: 16px;">${cycle.fleet.name}</div>
+        <div class="brand-sub">Plan: ${cycle.fleet.plan} • Fleet OS ID: ${cycle.fleetId.slice(0, 8)}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">Invoice Details</div>
+        <div class="meta-val">Issue Date: ${issueDate}</div>
+        <div class="meta-val">Period: ${periodStartStr} – ${periodEndStr}</div>
+        <div class="meta-val" style="color: #b91c1c;">Due Date: ${dueDateStr}</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="text-align: center;">Bikes / Days</th>
+          <th style="text-align: right;">Rate (RWF)</th>
+          <th style="text-align: right;">Amount (RWF)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <strong>Fleet OS Operations & Telematics</strong><br>
+            <span style="font-size: 12px; color: #64748b;">${cycle.notes || 'Fleet platform subscription'}</span>
+          </td>
+          <td style="text-align: center;">${cycle.bikeCount}</td>
+          <td style="text-align: right;">${cycle.ratePerBike.toLocaleString()}</td>
+          <td style="text-align: right; font-weight: 600;">${cycle.subtotal.toLocaleString()}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="total-section">
+      <div class="total-row">
+        <span>Subtotal:</span>
+        <span>${cycle.subtotal.toLocaleString()} RWF</span>
+      </div>
+      ${
+        cycle.discountAmount > 0
+          ? `<div class="total-row" style="color: #16a34a;">
+              <span>Discount Applied:</span>
+              <span>-${cycle.discountAmount.toLocaleString()} RWF</span>
+            </div>`
+          : ''
+      }
+      <div class="total-row grand">
+        <span>Total Due:</span>
+        <span>${cycle.totalDue.toLocaleString()} RWF</span>
+      </div>
+      <div class="total-row" style="color: #64748b; font-size: 13px;">
+        <span>Amount Paid:</span>
+        <span>${cycle.totalPaid.toLocaleString()} RWF</span>
+      </div>
+    </div>
+
+    <div class="settlement-box">
+      <div class="settlement-title">💳 Official Settlement Instructions</div>
+      <div>MTN Mobile Money Merchant Code:</div>
+      <div class="settlement-code">*182*8*1*1347154# (BRUNO)</div>
+      <div style="font-size: 12px; color: #475569; margin-top: 6px;">
+        Reference: <strong>INV-${cycle.cycleNumber}-${cycle.fleet.name.replace(/\\s+/g, '').toUpperCase().slice(0, 8)}</strong>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+</body>
+</html>`;
   }
 }
