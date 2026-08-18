@@ -594,7 +594,9 @@ export function LiveMapPanel() {
                   {mapStyle === 'standard' && (
                     <TileLayer
                       key="standard"
-                      keepBuffer={4}
+                      keepBuffer={2}
+                      updateWhenIdle={false}
+                      updateWhenZooming={false}
                       attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                       url={resolvedTheme === 'light' 
                         ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
@@ -604,7 +606,9 @@ export function LiveMapPanel() {
                   {mapStyle === 'satellite' && (
                     <TileLayer
                       key="satellite"
-                      keepBuffer={4}
+                      keepBuffer={2}
+                      updateWhenIdle={false}
+                      updateWhenZooming={false}
                       attribution='&copy; Google'
                       url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
                     />
@@ -612,7 +616,9 @@ export function LiveMapPanel() {
                   {mapStyle === 'hybrid' && (
                     <TileLayer
                       key="hybrid"
-                      keepBuffer={4}
+                      keepBuffer={2}
+                      updateWhenIdle={false}
+                      updateWhenZooming={false}
                       attribution='&copy; Google'
                       url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                     />
@@ -622,11 +628,13 @@ export function LiveMapPanel() {
                     centerSignal={centerSignal}
                     target={selectedState ? [selectedState.lat, selectedState.lng] : null}
                   />
-                                  <MapBoundsTracker onViewportChange={handleViewportChange} />
+                  <MapBoundsTracker onViewportChange={handleViewportChange} />
                   {showRoadFeatures && (
                     <RoadFeatureLayer features={roadFeaturesQuery.data ?? []} />
                   )}
                   {showHelpPoints &&
+                    mapViewport &&
+                    mapViewport.zoom >= 13 &&
                     poisQuery.data?.data.map((poi) => (
                       <PoiMarker key={poi.id} poi={poi} />
                     ))}
@@ -1236,58 +1244,17 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
 }) {
   const { t } = useTranslation();
   const markerRef = useRef<L.Marker | null>(null);
-  const lastPosRef = useRef<[number, number]>([state.lat, state.lng]);
-  const lastUpdateRef = useRef<number>(Date.now());
 
   useEffect(() => {
     const marker = markerRef.current;
-    const startLat = lastPosRef.current[0];
-    const startLng = lastPosRef.current[1];
-    const endLat = state.lat;
-    const endLng = state.lng;
-
-    if (Math.abs(startLat - endLat) < 0.000001 && Math.abs(startLng - endLng) < 0.000001) {
-      if (marker) {
-        marker.setLatLng([endLat, endLng]);
-      }
-      return;
+    if (!marker) return;
+    const currentLatLng = marker.getLatLng();
+    if (
+      Math.abs(currentLatLng.lat - state.lat) > 0.000001 ||
+      Math.abs(currentLatLng.lng - state.lng) > 0.000001
+    ) {
+      marker.setLatLng([state.lat, state.lng]);
     }
-
-    const now = Date.now();
-    let currentDuration = 5000;
-    if (lastUpdateRef.current > 0) {
-      const elapsed = now - lastUpdateRef.current;
-      if (elapsed >= 1000 && elapsed <= 45000) {
-        currentDuration = elapsed * 1.05;
-      }
-    }
-    lastUpdateRef.current = now;
-
-    const startTime = performance.now();
-    let animFrameId: number;
-
-    const animate = (currentTime: number) => {
-      const elapsedTime = currentTime - startTime;
-      const progress = Math.min(elapsedTime / currentDuration, 1);
-
-      const currentLat = startLat + (endLat - startLat) * progress;
-      const currentLng = startLng + (endLng - startLng) * progress;
-
-      lastPosRef.current = [currentLat, currentLng];
-      if (markerRef.current) {
-        markerRef.current.setLatLng([currentLat, currentLng]);
-      }
-
-      if (progress < 1) {
-        animFrameId = requestAnimationFrame(animate);
-      }
-    };
-
-    animFrameId = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animFrameId);
-    };
   }, [state.lat, state.lng]);
 
   const icon = useMemo(
@@ -1298,7 +1265,7 @@ const LiveBikeMarker = memo(function LiveBikeMarker({
         moving: state.speedKph >= 5,
         label,
       }),
-    [selected, severity, state.speedKph, label],
+    [selected, severity, state.speedKph >= 5, label],
   );
 
   return (
@@ -1897,7 +1864,11 @@ function isFreshState(ts: string) {
   return Date.now() - Date.parse(ts) <= FRESH_STATE_WINDOW_MS;
 }
 
-// Creates an emphasized marker icon without pulling additional map icon dependencies.
+// Cached marker icons to avoid continuous HTML DOM recreation in Leaflet
+const bikeMarkerIconCache = new Map<string, L.DivIcon>();
+const poiMarkerIconCache = new Map<string, L.DivIcon>();
+
+// Creates an emphasized marker icon with caching to avoid extra memory allocation.
 export function createBikeMarkerIcon({
   selected,
   severity,
@@ -1919,13 +1890,18 @@ export function createBikeMarkerIcon({
           : '#059669';
 
   const size = selected ? 30 : 22;
+  const cacheKey = `${fill}:${size}:${selected ? 1 : 0}:${label}`;
+  const cached = bikeMarkerIconCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
-  return L.divIcon({
+  const icon = L.divIcon({
     className: 'emoto-bike-marker',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     html: `
-      <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; pointer-events: none;">
+      <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; pointer-events: none; will-change: transform;">
         <!-- Bike Circle Pin -->
         <div style="
           width: ${size}px;
@@ -1936,7 +1912,7 @@ export function createBikeMarkerIcon({
           border-radius: 9999px;
           background: ${fill};
           border: 2px solid #ffffff;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1953,16 +1929,15 @@ export function createBikeMarkerIcon({
         
         <!-- Floating Text Label -->
         <div style="
-          background: rgba(15, 23, 42, 0.88);
-          backdrop-filter: blur(4px);
-          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: rgba(15, 23, 42, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           color: #ffffff;
           font-family: system-ui, -apple-system, sans-serif;
           font-size: 10px;
           font-weight: 700;
           padding: 2px 6px;
           border-radius: 5px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.25);
           letter-spacing: 0.02em;
           flex-shrink: 0;
         ">
@@ -1971,6 +1946,12 @@ export function createBikeMarkerIcon({
       </div>
     `,
   });
+
+  if (bikeMarkerIconCache.size > 500) {
+    bikeMarkerIconCache.clear();
+  }
+  bikeMarkerIconCache.set(cacheKey, icon);
+  return icon;
 }
 
 // Truncates identifiers for compact UI labels without exposing full IDs repeatedly.
@@ -2046,7 +2027,7 @@ function getRoadFeatureStyle(feature: RoadFeature): {
   }
 }
 
-// Renders a Point of Interest (POI) marker with a premium dark-themed popup.
+// Renders a Point of Interest (POI) marker with a clean popup.
 const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
   const { t } = useTranslation();
   const icon = useMemo(() => createPoiMarkerIcon(poi.type), [poi.type]);
@@ -2097,22 +2078,18 @@ const PoiMarker = memo(function PoiMarker({ poi }: { poi: Poi }) {
           </div>
         </div>
       </Popup>
-      <Tooltip
-        permanent
-        direction="bottom"
-        offset={[0, 18]}
-        className="!bg-zinc-950/90 !text-white !border-white/10 !shadow-lg backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md"
-      >
-        {poi.name}
-      </Tooltip>
     </Marker>
   );
 });
 
-// Creates a custom, high-contrast Point of Interest (POI) marker icon.
+// Creates a custom, high-contrast Point of Interest (POI) marker icon with caching.
 function createPoiMarkerIcon(type: string) {
   const upperType = (type || 'SWAP').toUpperCase();
-  
+  const cached = poiMarkerIconCache.get(upperType);
+  if (cached) {
+    return cached;
+  }
+
   const emojiMap: Record<string, string> = {
     GARAGE: '🔧',
     SWAP: '🔋',
@@ -2121,37 +2098,40 @@ function createPoiMarkerIcon(type: string) {
   };
 
   const bgMap: Record<string, string> = {
-    GARAGE: '#818cf8', // Indigo
-    SWAP: '#34d399', // Emerald
-    CLINIC: '#f87171', // Rose
-    OTHER: '#a78bfa', // Violet
+    GARAGE: '#818cf8',
+    SWAP: '#34d399',
+    CLINIC: '#f87171',
+    OTHER: '#a78bfa',
   };
 
   const emoji = emojiMap[upperType] || '🔋';
   const bgColor = bgMap[upperType] || '#34d399';
 
-  return L.divIcon({
+  const icon = L.divIcon({
     className: 'emoto-poi-marker',
     html: `
       <div style="
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         border-radius: 999px;
         background: ${bgColor}22;
         border: 2px solid ${bgColor};
-        box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 10px ${bgColor}44;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
-        transition: all 150ms ease;
+        font-size: 14px;
+        will-change: transform;
       ">
         <span>${emoji}</span>
       </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16],
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
   });
+
+  poiMarkerIconCache.set(upperType, icon);
+  return icon;
 }
 

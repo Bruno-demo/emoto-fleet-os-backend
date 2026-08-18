@@ -24,10 +24,17 @@ import { formatTimestamp, formatEnumLabel } from '@/lib/ui';
 import { useTranslation } from '@/components/i18n/LanguageProvider';
 import { apiFetch } from '@/lib/api/client';
 
+const eventMarkerIconCache = new Map<string, L.DivIcon>();
+
 const createEventMarkerIcon = (severity: string) => {
   const isCritical = severity === 'CRITICAL' || severity === 'HIGH';
   const color = isCritical ? '#ef4444' : '#f59e0b';
-  return L.divIcon({
+  const cached = eventMarkerIconCache.get(color);
+  if (cached) {
+    return cached;
+  }
+
+  const icon = L.divIcon({
     className: 'custom-event-marker-icon',
     html: `
       <div style="
@@ -43,6 +50,7 @@ const createEventMarkerIcon = (severity: string) => {
         box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         color: white;
         cursor: pointer;
+        will-change: transform;
       ">
         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="19" x2="12" y2="19"/>
@@ -63,6 +71,9 @@ const createEventMarkerIcon = (severity: string) => {
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
+
+  eventMarkerIconCache.set(color, icon);
+  return icon;
 };
 
 function getEventDescription(

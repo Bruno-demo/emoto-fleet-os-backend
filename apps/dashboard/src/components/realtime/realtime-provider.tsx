@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -85,6 +86,8 @@ const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 
 const MAX_RECENT_EVENTS = 60;
 const MAX_COMMAND_STATUSES = 80;
+const BIKE_STATE_BATCH_FLUSH_MS = 500;
+const EVENT_BATCH_FLUSH_MS = 300;
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -96,6 +99,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   >(() => {
     return typeof window === 'undefined' ? 'offline' : 'connecting';
   });
+
+  // Mutable buffer refs to prevent React state flood on high-frequency telemetry bursts
+  const bikeStatesBufferRef = useRef<Record<string, LiveBikeState>>({});
+  const bikeStatesFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eventsBufferRef = useRef<FleetEvent[]>([]);
+  const eventsFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stores synthetic or websocket-delivered command updates in a capped local stream.
   const recordCommandStatus = useCallback((status: CommandStatusEvent) => {
@@ -111,27 +120,62 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     }
     socket.emit('subscribe_live', {}, () => undefined);
 
-    // Applies per-bike websocket state updates to the in-memory live map cache.
+    const flushBikeStates = () => {
+      const buffer = bikeStatesBufferRef.current;
+      const keys = Object.keys(buffer);
+      if (keys.length === 0) return;
+
+      setBikeStates((currentStates) => {
+        const next = { ...currentStates };
+        for (let i = 0; i < keys.length; i++) {
+          const key = keys[i];
+          next[key] = buffer[key];
+        }
+        return next;
+      });
+      bikeStatesBufferRef.current = {};
+    };
+
+    const flushEvents = () => {
+      const buffer = eventsBufferRef.current;
+      if (buffer.length === 0) return;
+
+      setRecentEvents((currentEvents) =>
+        [...buffer, ...currentEvents].slice(0, MAX_RECENT_EVENTS),
+      );
+      eventsBufferRef.current = [];
+    };
+
+    // Buffers per-bike websocket state updates and flushes in batches to prevent UI freeze
     const onBikeState = (rawPayload: unknown) => {
       const parsed = bikeStateSchema.safeParse(rawPayload);
       if (!parsed.success) {
         return;
       }
-      setBikeStates((currentStates) => ({
-        ...currentStates,
-        [parsed.data.bikeId]: parsed.data,
-      }));
+      bikeStatesBufferRef.current[parsed.data.bikeId] = parsed.data;
+
+      if (!bikeStatesFlushTimerRef.current) {
+        bikeStatesFlushTimerRef.current = setTimeout(() => {
+          bikeStatesFlushTimerRef.current = null;
+          flushBikeStates();
+        }, BIKE_STATE_BATCH_FLUSH_MS);
+      }
     };
 
-    // Stores recent fleet events for map feed and toast notifications.
+    // Buffers recent fleet events for map feed and toast notifications.
     const onNewEvent = (rawPayload: unknown) => {
       const parsed = eventSchema.safeParse(rawPayload);
       if (!parsed.success) {
         return;
       }
-      setRecentEvents((currentEvents) =>
-        [parsed.data, ...currentEvents].slice(0, MAX_RECENT_EVENTS),
-      );
+      eventsBufferRef.current.unshift(parsed.data);
+
+      if (!eventsFlushTimerRef.current) {
+        eventsFlushTimerRef.current = setTimeout(() => {
+          eventsFlushTimerRef.current = null;
+          flushEvents();
+        }, EVENT_BATCH_FLUSH_MS);
+      }
     };
 
     // Stores command status transitions for live command tracking UI.
@@ -176,6 +220,14 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socket.on('fleet_updated', onFleetUpdated);
 
     return () => {
+      if (bikeStatesFlushTimerRef.current) {
+        clearTimeout(bikeStatesFlushTimerRef.current);
+        bikeStatesFlushTimerRef.current = null;
+      }
+      if (eventsFlushTimerRef.current) {
+        clearTimeout(eventsFlushTimerRef.current);
+        eventsFlushTimerRef.current = null;
+      }
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onConnectError);
