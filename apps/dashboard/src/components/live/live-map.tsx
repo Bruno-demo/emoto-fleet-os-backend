@@ -310,41 +310,39 @@ export function LiveMapPanel() {
   );
 
   const selectedBikeLockStatus = useMemo(() => {
-    let action = 'UNLOCK';
-    let status = 'UNLOCKED';
-
+    // 1. Check recent commands stream for explicit transitions
     if (selectedCommandStream.length > 0) {
-      action = selectedCommandStream[0].action ?? 'UNLOCK';
-      status = selectedCommandStream[0].status;
-    } else if (selectedBike?.commands && selectedBike.commands.length > 0) {
-      action = selectedBike.commands[0].type;
-      status = selectedBike.commands[0].status;
-    } else {
-      return 'UNLOCKED';
+      const latest = selectedCommandStream[0];
+      const action = latest.action ?? 'UNLOCK';
+      const status = latest.status;
+
+      if (action === 'LOCK') {
+        if (status === 'ACKED') return 'LOCKED';
+        if (status === 'PENDING' || status === 'SENT' || status === 'QUEUED') {
+          return 'LOCKING';
+        }
+      } else if (action === 'UNLOCK') {
+        if (status === 'ACKED') return 'UNLOCKED';
+        if (status === 'PENDING' || status === 'SENT' || status === 'QUEUED') {
+          return 'UNLOCKING';
+        }
+      }
     }
 
-    if (action === 'LOCK') {
-      if (status === 'ACKED') return 'LOCKED';
-      if (
-        status === 'PENDING' ||
-        status === 'SENT' ||
-        status === 'QUEUED'
-      ) {
-        return 'LOCKING';
-      }
-      return 'UNLOCKED';
-    } else {
-      if (status === 'ACKED') return 'UNLOCKED';
-      if (
-        status === 'PENDING' ||
-        status === 'SENT' ||
-        status === 'QUEUED'
-      ) {
-        return 'UNLOCKING';
-      }
+    // 2. Hardware telemetry fallback: If vehicle main power is cut, mark as LOCKED
+    if (selectedState?.mainPowerCut === true) {
       return 'LOCKED';
     }
-  }, [selectedCommandStream, selectedBike]);
+
+    // 3. Fallback to bike.commands
+    if (selectedBike?.commands && selectedBike.commands.length > 0) {
+      const lastCmd = selectedBike.commands[0];
+      if (lastCmd.type === 'LOCK' && lastCmd.status === 'ACKED') return 'LOCKED';
+      if (lastCmd.type === 'UNLOCK' && lastCmd.status === 'ACKED') return 'UNLOCKED';
+    }
+
+    return 'UNLOCKED';
+  }, [selectedCommandStream, selectedBike, selectedState]);
 
   const onlineCount = throttledStates.filter((state) => isFreshState(state.ts)).length;
   const movingCount = throttledStates.filter((state) => state.speedKph >= 5).length;

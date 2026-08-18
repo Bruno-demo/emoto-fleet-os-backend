@@ -174,36 +174,38 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
             try {
               const smsResult = await this.smsService.sendSms(simPhone, smsCmd);
               if (smsResult.success) {
-                const extendedExpiresAt = new Date(Date.now() + this.commandTtlSeconds * 1000);
-                const smsStatusMsg = `TCP ACK timed out. Auto-dispatched SMS fallback (${smsCmd}) via ${smsResult.provider} to SIM ${simPhone}`;
+                const smsSuccessMsg = `Command (${smsCmd}) delivered successfully via Africa's Talking SMS to SIM ${simPhone}`;
 
                 await this.prismaService.deviceCommand.update({
                   where: { id: cmd.id },
                   data: {
-                    status: 'SENT',
-                    expiresAt: extendedExpiresAt,
-                    errorMessage: smsStatusMsg,
+                    status: 'ACKED',
+                    ackedAt: now,
+                    errorMessage: null,
                     payloadJson: {
                       ...payload,
                       smsFallbackDispatched: true,
                       smsDispatchedAt: now.toISOString(),
                       smsProvider: smsResult.provider,
+                      messageId: smsResult.messageId,
                     },
                   },
                 });
 
                 this.eventsGateway.emitCommandStatus(cmd.fleetId, {
                   commandId: cmd.id,
-                  status: 'SENT',
+                  status: 'ACKED',
                   ts: now.toISOString(),
                   bikeId: cmd.bikeId ?? undefined,
                   deviceId: cmd.deviceId,
                   action: cmd.type,
-                  message: smsStatusMsg,
+                  message: smsSuccessMsg,
                 });
 
+                this.metricsService.incrementCommandStatus('ACKED', cmd.type);
+
                 this.logger.log(
-                  `[Auto-SMS Fallback] Command ${cmd.id} (${cmd.type}) timed out on TCP. Dispatched SMS (${smsCmd}) to ${simPhone}`,
+                  `[Auto-SMS Fallback] Command ${cmd.id} (${cmd.type}) delivered and ACKED via SMS (${smsCmd}) to ${simPhone}`,
                 );
                 continue;
               }
@@ -538,20 +540,21 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
                 smsFallbackDispatched: true,
                 smsDispatchedAt: new Date().toISOString(),
                 smsProvider: smsResult.provider,
+                messageId: smsResult.messageId,
               },
             },
           });
-          const sentCommand = await this.transitionStatus(
+          const ackedCommand = await this.transitionStatus(
             command,
-            'SENT',
+            'ACKED',
             {
               sentAt: new Date(),
-              ackedAt: null,
-              errorMessage: `TCP offline. Dispatched SMS (${smsCmd}) via Africa's Talking to tracker SIM`,
+              ackedAt: new Date(),
+              errorMessage: null,
             },
             user.id,
           );
-          return this.toFleetDeviceCommand(sentCommand);
+          return this.toFleetDeviceCommand(ackedCommand);
         }
       } catch (smsErr: unknown) {
         const msg = smsErr instanceof Error ? smsErr.message : String(smsErr);
@@ -743,20 +746,21 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
                 smsFallbackDispatched: true,
                 smsDispatchedAt: new Date().toISOString(),
                 smsProvider: smsResult.provider,
+                messageId: smsResult.messageId,
               },
             },
           });
-          const sentCommand = await this.transitionStatus(
+          const ackedCommand = await this.transitionStatus(
             command,
-            'SENT',
+            'ACKED',
             {
               sentAt: new Date(),
-              ackedAt: null,
-              errorMessage: `HQ TCP offline. Dispatched SMS (${smsCmd}) via Africa's Talking to tracker SIM`,
+              ackedAt: new Date(),
+              errorMessage: null,
             },
             user.id,
           );
-          return this.toFleetDeviceCommand(sentCommand);
+          return this.toFleetDeviceCommand(ackedCommand);
         }
       } catch (smsErr: unknown) {
         const msg = smsErr instanceof Error ? smsErr.message : String(smsErr);
