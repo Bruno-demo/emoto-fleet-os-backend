@@ -349,6 +349,20 @@ export default function BikesPage() {
     enabled: !!selectedBikeId && selectedBikeId !== 'null',
   });
 
+  const initialCommandsQuery = useQuery({
+    queryKey: ['commands', 'bikes-list'],
+    queryFn: () => apiFetch<CommandStatusEvent[]>('/commands?limit=100'),
+  });
+
+  const selectedBikeCommandsQuery = useQuery({
+    queryKey: ['commands', 'bike-detail', selectedBikeId],
+    queryFn: () =>
+      apiFetch<CommandStatusEvent[]>(
+        `/commands${buildQueryString({ bikeId: selectedBikeId, limit: 10 })}`,
+      ),
+    enabled: !!selectedBikeId && selectedBikeId !== 'null',
+  });
+
   const bikeLiveStateQuery = useQuery({
     queryKey: ['live-states', 'bike', selectedBikeId],
     queryFn: () => apiFetch<LiveBikeState | null>(`/live/bikes/${selectedBikeId}`),
@@ -361,13 +375,17 @@ export default function BikesPage() {
     bikeLiveStateQuery.data?.lng,
   );
 
-  const bikeCommandStatuses = useMemo(
-    () =>
-      commandStatuses
-        .filter((status) => status.bikeId === selectedBikeId)
-        .sort((left, right) => right.ts.localeCompare(left.ts)),
-    [commandStatuses, selectedBikeId],
-  );
+  const bikeCommandStatuses = useMemo(() => {
+    const combined = [
+      ...(selectedBikeCommandsQuery.data ?? []),
+      ...commandStatuses.filter((status) => status.bikeId === selectedBikeId),
+    ];
+    const dedupe = new Map<string, CommandStatusEvent>();
+    for (const status of combined) {
+      dedupe.set(`${status.commandId}-${status.status}-${status.ts}`, status);
+    }
+    return Array.from(dedupe.values()).sort((a, b) => b.ts.localeCompare(a.ts));
+  }, [commandStatuses, selectedBikeCommandsQuery.data, selectedBikeId]);
 
   const bikes = accumulatedBikes;
   const totalAssignedDevices = bikes.filter((bike) => deviceByBikeId.has(bike.id)).length;
@@ -418,19 +436,19 @@ export default function BikesPage() {
   const getBikeLockStatus = useCallback(
     (bike: FleetBike | null | undefined) => {
       if (!bike) return 'UNLOCKED';
-      const bikeCommands = commandStatuses
-        .filter(
-          (status) =>
-            status.bikeId === bike.id && (status.action === 'LOCK' || status.action === 'UNLOCK'),
-        )
+      const allCommands = [
+        ...commandStatuses.filter((s) => s.bikeId === bike.id),
+        ...(initialCommandsQuery.data ?? []).filter((s) => s.bikeId === bike.id),
+      ]
+        .filter((status) => status.action === 'LOCK' || status.action === 'UNLOCK')
         .sort((left, right) => right.ts.localeCompare(left.ts));
 
       let action = 'UNLOCK';
       let status = 'UNLOCKED';
 
-      if (bikeCommands.length > 0) {
-        action = bikeCommands[0].action ?? 'UNLOCK';
-        status = bikeCommands[0].status;
+      if (allCommands.length > 0) {
+        action = allCommands[0].action ?? 'UNLOCK';
+        status = allCommands[0].status;
       } else if (bike.commands && bike.commands.length > 0) {
         action = bike.commands[0].type;
         status = bike.commands[0].status;
@@ -460,7 +478,7 @@ export default function BikesPage() {
         return 'LOCKED';
       }
     },
-    [commandStatuses],
+    [commandStatuses, initialCommandsQuery.data],
   );
 
   const columns = useMemo<Array<DataTableColumn<FleetBike>>>(
@@ -939,45 +957,79 @@ export default function BikesPage() {
                 {(() => {
                   const activeLockStatus = getBikeLockStatus(activeBike);
                   return (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        disabled={
-                          !canSendCommands ||
-                          isSendingCommand ||
-                          activeLockStatus === 'LOCKED' ||
-                          activeLockStatus === 'LOCKING'
-                        }
-                        onClick={() => setCommandIntent('LOCK')}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ background: '#EF4444', color: 'white' }}
-                      >
-                        <Lock size={16} className={activeLockStatus === 'LOCKING' ? 'animate-spin' : ''} />
-                        {activeLockStatus === 'LOCKING' ? t('Locking...') : t('Lock bike')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={
-                          !canSendCommands ||
-                          isSendingCommand ||
-                          activeLockStatus === 'UNLOCKED' ||
-                          activeLockStatus === 'UNLOCKING'
-                        }
-                        onClick={() => setCommandIntent('UNLOCK')}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Unlock size={16} className={activeLockStatus === 'UNLOCKING' ? 'animate-spin' : ''} />
-                        {activeLockStatus === 'UNLOCKING' ? t('Unlocking...') : t('Unlock bike')}
-                      </button>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between rounded-xl border border-line bg-surface-muted px-4 py-3">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                          {t('Current Lock State')}
+                        </span>
+                        {activeLockStatus === 'LOCKED' ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-danger-soft/20 px-3 py-1 text-xs font-bold text-danger-ink">
+                            <Lock size={13} />
+                            {t('LOCKED')}
+                          </span>
+                        ) : activeLockStatus === 'LOCKING' ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-soft/20 px-3 py-1 text-xs font-bold text-warning-ink">
+                            <Lock size={13} className="animate-spin" />
+                            {t('LOCKING...')}
+                          </span>
+                        ) : activeLockStatus === 'UNLOCKING' ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-soft/20 px-3 py-1 text-xs font-bold text-warning-ink">
+                            <Unlock size={13} className="animate-spin" />
+                            {t('UNLOCKING...')}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-success-soft/20 px-3 py-1 text-xs font-bold text-success-ink">
+                            <Unlock size={13} />
+                            {t('UNLOCKED')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          disabled={
+                            !canSendCommands ||
+                            isSendingCommand ||
+                            activeLockStatus === 'LOCKED' ||
+                            activeLockStatus === 'LOCKING'
+                          }
+                          onClick={() => setCommandIntent('LOCK')}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-danger-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
+                          style={{ background: '#EF4444', color: 'white' }}
+                        >
+                          <Lock size={16} className={activeLockStatus === 'LOCKING' ? 'animate-spin' : ''} />
+                          {activeLockStatus === 'LOCKING'
+                            ? t('Locking...')
+                            : activeLockStatus === 'LOCKED'
+                              ? t('Locked')
+                              : t('Lock bike')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            !canSendCommands ||
+                            isSendingCommand ||
+                            activeLockStatus === 'UNLOCKED' ||
+                            activeLockStatus === 'UNLOCKING'
+                          }
+                          onClick={() => setCommandIntent('UNLOCK')}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface-hover px-4 py-3 text-sm font-semibold text-ink transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
+                        >
+                          <Unlock size={16} className={activeLockStatus === 'UNLOCKING' ? 'animate-spin' : ''} />
+                          {activeLockStatus === 'UNLOCKING'
+                            ? t('Unlocking...')
+                            : activeLockStatus === 'UNLOCKED'
+                              ? t('Unlocked')
+                              : t('Unlock bike')}
+                        </button>
+                      </div>
                     </div>
                   );
                 })()}
 
                 {!canUseFeature(currentUser, 'commands') ? (
                   <InlineNotice message={t('Remote lock and unlock controls are available on Delivery Fleet.')} />
-                ) : null}
-                {canSendCommands && bikeLiveStateQuery.data?.ignition === true ? (
-                  <InlineNotice message={t('Cannot lock while ignition is ON')} tone="warning" />
                 ) : null}
                 {commandError ? <InlineNotice message={commandError} /> : null}
               </DashboardCard>

@@ -321,20 +321,17 @@ export function LiveMapPanel() {
         if (status === 'PENDING' || status === 'SENT' || status === 'QUEUED') {
           return 'LOCKING';
         }
+        return 'UNLOCKED';
       } else if (action === 'UNLOCK') {
         if (status === 'ACKED') return 'UNLOCKED';
         if (status === 'PENDING' || status === 'SENT' || status === 'QUEUED') {
           return 'UNLOCKING';
         }
+        return 'LOCKED';
       }
     }
 
-    // 2. Hardware telemetry fallback: If vehicle main power is cut, mark as LOCKED
-    if (selectedState?.mainPowerCut === true) {
-      return 'LOCKED';
-    }
-
-    // 3. Fallback to bike.commands
+    // 2. Fallback to bike.commands if available
     if (selectedBike?.commands && selectedBike.commands.length > 0) {
       const lastCmd = selectedBike.commands[0];
       if (lastCmd.type === 'LOCK' && lastCmd.status === 'ACKED') return 'LOCKED';
@@ -342,7 +339,7 @@ export function LiveMapPanel() {
     }
 
     return 'UNLOCKED';
-  }, [selectedCommandStream, selectedBike, selectedState]);
+  }, [selectedCommandStream, selectedBike]);
 
   const onlineCount = throttledStates.filter((state) => isFreshState(state.ts)).length;
   const movingCount = throttledStates.filter((state) => state.speedKph >= 5).length;
@@ -1054,6 +1051,32 @@ export function LiveMapPanel() {
                 }
               />
               <KeyMetric
+                label={t("Lock status")}
+                value={
+                  selectedBikeLockStatus === 'LOCKED' ? (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-danger-ink">
+                      <Lock size={13} className="text-danger-ink" />
+                      {t('LOCKED')}
+                    </span>
+                  ) : selectedBikeLockStatus === 'LOCKING' ? (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-warning-ink">
+                      <Lock size={13} className="animate-spin text-warning-ink" />
+                      {t('LOCKING...')}
+                    </span>
+                  ) : selectedBikeLockStatus === 'UNLOCKING' ? (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-warning-ink">
+                      <Unlock size={13} className="animate-spin text-warning-ink" />
+                      {t('UNLOCKING...')}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-success-ink">
+                      <Unlock size={13} className="text-success-ink" />
+                      {t('UNLOCKED')}
+                    </span>
+                  )
+                }
+              />
+              <KeyMetric
                 label={t("Current speed")}
                 value={selectedState ? `${selectedState.speedKph.toFixed(1)} ${t('kph')}` : '--'}
               />
@@ -1102,7 +1125,9 @@ export function LiveMapPanel() {
                   label={
                     selectedBikeLockStatus === 'LOCKING' || (isSendingCommand && commandIntent === 'LOCK')
                       ? t('Locking...')
-                      : t('Lock bike')
+                      : selectedBikeLockStatus === 'LOCKED'
+                        ? t('Locked')
+                        : t('Lock bike')
                   }
                   tone="danger"
                   disabled={
@@ -1127,7 +1152,9 @@ export function LiveMapPanel() {
                   label={
                     selectedBikeLockStatus === 'UNLOCKING' || (isSendingCommand && commandIntent === 'UNLOCK')
                       ? t('Unlocking...')
-                      : t('Unlock bike')
+                      : selectedBikeLockStatus === 'UNLOCKED'
+                        ? t('Unlocked')
+                        : t('Unlock bike')
                   }
                   tone="default"
                   disabled={
