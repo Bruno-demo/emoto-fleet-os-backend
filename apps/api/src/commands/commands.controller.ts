@@ -1,4 +1,4 @@
-import { Controller, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -7,6 +7,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RequireSubscriptionFeature } from '../subscription/subscription-feature.decorator';
 import { CommandsService } from './commands.service';
 import { DeviceCommandQueryDto } from './dto/device-command-query.dto';
+import { ListCommandsQueryDto } from './dto/list-commands-query.dto';
 import { FleetDeviceCommand } from './commands.types';
 
 @ApiTags('commands')
@@ -15,6 +16,23 @@ import { FleetDeviceCommand } from './commands.types';
 @RequireSubscriptionFeature('commands')
 export class CommandsController {
   constructor(private readonly commandsService: CommandsService) {}
+
+  @Get()
+  @Roles(
+    UserRole.OWNER,
+    UserRole.ADMIN,
+    UserRole.DISPATCHER,
+    UserRole.TECH,
+    UserRole.INSURER,
+    UserRole.RIDER,
+  )
+  @ApiOperation({ summary: 'List recent command history for caller fleet / bike' })
+  async listCommands(
+    @Query() query: ListCommandsQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.commandsService.listCommandsForUser(user, query);
+  }
 
   @Post('lock')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TECH)

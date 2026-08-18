@@ -15,6 +15,7 @@ import {
   DeviceCommand,
   DeviceCommandStatus,
   DeviceCommandType,
+  Prisma,
 } from '@prisma/client';
 import { timingSafeEqual, randomUUID } from 'crypto';
 import mqtt, { MqttClient } from 'mqtt';
@@ -225,6 +226,60 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
     user: AuthenticatedUser,
   ): Promise<FleetDeviceCommand> {
     return this.requestCommandForBikeHq('UNLOCK', bikeId, user);
+  }
+
+  // Lists recent command history for caller fleet / bike
+  async listCommandsForUser(
+    user: AuthenticatedUser,
+    query: { bikeId?: string; limit?: number },
+  ): Promise<
+    Array<{
+      commandId: string;
+      bikeId?: string;
+      deviceId: string;
+      action: string;
+      status: DeviceCommandStatus;
+      ts: string;
+      message?: string;
+    }>
+  > {
+    const where: Prisma.DeviceCommandWhereInput = {
+      fleetId: user.fleetId,
+    };
+    if (user.role === 'INSURER') {
+      where.bike = { insurerName: user.insurerName };
+    }
+
+    if (query.bikeId) {
+      where.bikeId = query.bikeId;
+    }
+
+    const commands = await this.prismaService.deviceCommand.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: query.limit ? Math.min(query.limit, 100) : 40,
+      select: {
+        id: true,
+        bikeId: true,
+        deviceId: true,
+        type: true,
+        status: true,
+        createdAt: true,
+        sentAt: true,
+        ackedAt: true,
+        errorMessage: true,
+      },
+    });
+
+    return commands.map((c) => ({
+      commandId: c.id,
+      bikeId: c.bikeId ?? undefined,
+      deviceId: c.deviceId,
+      action: c.type,
+      status: c.status,
+      ts: (c.ackedAt ?? c.sentAt ?? c.createdAt).toISOString(),
+      message: c.errorMessage ?? undefined,
+    }));
   }
 
   // Applies command acknowledgement updates from MQTT uplink ack messages.

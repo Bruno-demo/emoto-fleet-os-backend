@@ -167,6 +167,11 @@ export function LiveMapPanel() {
       ),
   });
 
+  const initialCommandsQuery = useQuery({
+    queryKey: ['commands', 'live-feed'],
+    queryFn: () => apiFetch<CommandStatusEvent[]>('/commands?limit=40'),
+  });
+
   const assignmentsEnabled = !!currentUser && canViewAssignments(currentUser.role);
   const assignmentsQuery = useQuery({
     queryKey: ['assignments', 'live-active'],
@@ -191,6 +196,15 @@ export function LiveMapPanel() {
           page: 1,
           pageSize: BIKE_EVENT_LIMIT,
         })}`,
+      ),
+    enabled: !!selectedBikeId,
+  });
+
+  const selectedBikeCommandsQuery = useQuery({
+    queryKey: ['commands', 'bike-drawer', selectedBikeId],
+    queryFn: () =>
+      apiFetch<CommandStatusEvent[]>(
+        `/commands${buildQueryString({ bikeId: selectedBikeId, limit: 10 })}`,
       ),
     enabled: !!selectedBikeId,
   });
@@ -267,8 +281,13 @@ export function LiveMapPanel() {
   }, [feedEvents]);
 
   const commandStream = useMemo(
-    () => mergeCommandStatuses(localCommandStatuses, commandStatuses).slice(0, COMMAND_STREAM_LIMIT),
-    [commandStatuses, localCommandStatuses],
+    () =>
+      mergeCommandStatuses(
+        localCommandStatuses,
+        commandStatuses,
+        initialCommandsQuery.data,
+      ).slice(0, COMMAND_STREAM_LIMIT),
+    [commandStatuses, initialCommandsQuery.data, localCommandStatuses],
   );
 
   const selectedBike = selectedBikeId ? bikesById.get(selectedBikeId) ?? null : null;
@@ -282,8 +301,12 @@ export function LiveMapPanel() {
     ? commandFeatureEnabled && canProvisionDevices(currentUser.role)
     : false;
   const selectedCommandStream = useMemo(
-    () => commandStream.filter((item) => item.bikeId === selectedBikeId).slice(0, 6),
-    [commandStream, selectedBikeId],
+    () =>
+      mergeCommandStatuses(
+        commandStream.filter((item) => item.bikeId === selectedBikeId),
+        selectedBikeCommandsQuery.data,
+      ).slice(0, 6),
+    [commandStream, selectedBikeCommandsQuery.data, selectedBikeId],
   );
 
   const selectedBikeLockStatus = useMemo(() => {
@@ -1169,7 +1192,12 @@ export function LiveMapPanel() {
               title={t("Command history")}
               description={t("Recent command status transitions for the selected bike.")}
             >
-              {selectedCommandStream.length ? (
+              {selectedBikeCommandsQuery.isLoading && !selectedCommandStream.length ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full rounded-[18px]" />
+                  <Skeleton className="h-16 w-full rounded-[18px]" />
+                </div>
+              ) : selectedCommandStream.length ? (
                 <ul className="space-y-2">
                   {selectedCommandStream.map((status) => (
                     <li
@@ -1739,15 +1767,17 @@ function mergeEvents(initialEvents: FleetEvent[], realtimeEvents: FleetEvent[]):
   return Array.from(merged.values()).sort((left, right) => right.ts.localeCompare(left.ts));
 }
 
-// Deduplicates command updates so repeated websocket transitions do not flood the status list.
+// Deduplicates command updates across DB bootstrap, local actions, and live websockets.
 function mergeCommandStatuses(
-  localStatuses: CommandStatusEvent[],
-  realtimeStatuses: CommandStatusEvent[],
+  ...statusArrays: Array<CommandStatusEvent[] | undefined>
 ): CommandStatusEvent[] {
   const merged = new Map<string, CommandStatusEvent>();
-  for (const status of [...(localStatuses ?? []), ...(realtimeStatuses ?? [])]) {
-    const dedupeKey = `${status.commandId}-${status.status}-${status.ts}`;
-    merged.set(dedupeKey, status);
+  for (const array of statusArrays) {
+    if (!array) continue;
+    for (const status of array) {
+      const dedupeKey = `${status.commandId}-${status.status}-${status.ts}`;
+      merged.set(dedupeKey, status);
+    }
   }
 
   return Array.from(merged.values()).sort((left, right) => right.ts.localeCompare(left.ts));
