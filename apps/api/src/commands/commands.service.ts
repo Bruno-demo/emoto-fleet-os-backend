@@ -134,7 +134,7 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
       });
   }
 
-  // GAP 3 fix: Start periodic sweeper to expire stale PENDING/SENT commands
+  // Start periodic sweeper to handle unacknowledged commands with auto SMS fallback before expiry
   private startCommandExpirySweeper(): void {
     this.commandSweeperInterval = setInterval(async () => {
       try {
@@ -144,15 +144,87 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
             status: { in: ['PENDING', 'SENT'] },
             expiresAt: { lt: now },
           },
+          include: {
+            device: {
+              select: {
+                id: true,
+                deviceUid: true,
+                simPhoneNumber: true,
+              },
+            },
+          },
           take: 100,
         });
 
         for (const cmd of staleCommands) {
+          const payload =
+            typeof cmd.payloadJson === 'object' && cmd.payloadJson !== null
+              ? (cmd.payloadJson as Record<string, unknown>)
+              : {};
+          const hasAttemptedSms = Boolean(payload.smsFallbackDispatched);
+          const simPhone = cmd.device?.simPhoneNumber?.trim();
+
+          // If SMS fallback has not been sent yet and the device has a valid SIM number, auto-escalate to SMS
+          if (!hasAttemptedSms && simPhone) {
+            const pwd = (
+              this.configService.get<string>('SINOTRACK_DEVICE_PASSWORD', '0000') || '0000'
+            ).trim();
+            const smsCmd = cmd.type === 'LOCK' ? `940${pwd}` : `941${pwd}`;
+
+            try {
+              const smsResult = await this.smsService.sendSms(simPhone, smsCmd);
+              if (smsResult.success) {
+                const extendedExpiresAt = new Date(Date.now() + this.commandTtlSeconds * 1000);
+                const smsStatusMsg = `TCP ACK timed out. Auto-dispatched SMS fallback (${smsCmd}) via ${smsResult.provider} to SIM ${simPhone}`;
+
+                await this.prismaService.deviceCommand.update({
+                  where: { id: cmd.id },
+                  data: {
+                    status: 'SENT',
+                    expiresAt: extendedExpiresAt,
+                    errorMessage: smsStatusMsg,
+                    payloadJson: {
+                      ...payload,
+                      smsFallbackDispatched: true,
+                      smsDispatchedAt: now.toISOString(),
+                      smsProvider: smsResult.provider,
+                    },
+                  },
+                });
+
+                this.eventsGateway.emitCommandStatus(cmd.fleetId, {
+                  commandId: cmd.id,
+                  status: 'SENT',
+                  ts: now.toISOString(),
+                  bikeId: cmd.bikeId ?? undefined,
+                  deviceId: cmd.deviceId,
+                  action: cmd.type,
+                  message: smsStatusMsg,
+                });
+
+                this.logger.log(
+                  `[Auto-SMS Fallback] Command ${cmd.id} (${cmd.type}) timed out on TCP. Dispatched SMS (${smsCmd}) to ${simPhone}`,
+                );
+                continue;
+              }
+            } catch (smsErr: unknown) {
+              const errStr = smsErr instanceof Error ? smsErr.message : String(smsErr);
+              this.logger.warn(
+                `Auto-SMS fallback failed for command ${cmd.id} on deviceUid=${cmd.device?.deviceUid}: ${errStr}`,
+              );
+            }
+          }
+
+          // If SMS was already attempted (or no SIM phone exists), transition command to EXPIRED
+          const expiryMsg = hasAttemptedSms
+            ? `Command expired after ${this.commandTtlSeconds * 2}s (Both TCP and SMS fallback unacknowledged)`
+            : `Command expired after ${this.commandTtlSeconds}s with no device acknowledgement (no SIM phone configured for SMS fallback)`;
+
           await this.prismaService.deviceCommand.update({
             where: { id: cmd.id },
             data: {
               status: 'EXPIRED',
-              errorMessage: `Command expired after ${this.commandTtlSeconds}s with no device acknowledgement`,
+              errorMessage: expiryMsg,
             },
           });
 
@@ -163,22 +235,22 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
             bikeId: cmd.bikeId ?? undefined,
             deviceId: cmd.deviceId,
             action: cmd.type,
-            message: 'Command expired — device did not respond in time',
+            message: expiryMsg,
           });
 
           this.metricsService.incrementCommandStatus('EXPIRED', cmd.type);
         }
 
         if (staleCommands.length > 0) {
-          this.logger.warn(
-            `Command expiry sweeper transitioned ${staleCommands.length} stale commands to EXPIRED`,
+          this.logger.log(
+            `Command sweeper processed ${staleCommands.length} stale command(s)`,
           );
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.error(`Command expiry sweeper failed: ${msg}`);
       }
-    }, 30_000); // Run every 30 seconds
+    }, 15_000); // Run every 15 seconds
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -459,6 +531,16 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
           this.logger.log(
             `Dispatched SMS fallback command (${smsCmd}) via ${smsResult.provider} to tracker SIM ${device.simPhoneNumber}`,
           );
+          await this.prismaService.deviceCommand.update({
+            where: { id: command.id },
+            data: {
+              payloadJson: {
+                smsFallbackDispatched: true,
+                smsDispatchedAt: new Date().toISOString(),
+                smsProvider: smsResult.provider,
+              },
+            },
+          });
           const sentCommand = await this.transitionStatus(
             command,
             'SENT',
@@ -654,6 +736,16 @@ export class CommandsService implements OnModuleInit, OnModuleDestroy {
           this.logger.log(
             `HQ Dispatched SMS fallback command (${smsCmd}) via ${smsResult.provider} to tracker SIM ${device.simPhoneNumber}`,
           );
+          await this.prismaService.deviceCommand.update({
+            where: { id: command.id },
+            data: {
+              payloadJson: {
+                smsFallbackDispatched: true,
+                smsDispatchedAt: new Date().toISOString(),
+                smsProvider: smsResult.provider,
+              },
+            },
+          });
           const sentCommand = await this.transitionStatus(
             command,
             'SENT',
