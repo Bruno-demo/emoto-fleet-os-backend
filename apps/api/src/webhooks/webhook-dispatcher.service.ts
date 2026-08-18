@@ -78,8 +78,17 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
       );
       return;
     }
-    await this.redis.connect();
-    await this.ensureGroup();
+    try {
+      if (this.redis && this.redis.status !== 'ready' && this.redis.status !== 'connecting' && this.redis.status !== 'connect') {
+        await this.redis.connect();
+      }
+      await this.ensureGroup();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `WebhookDispatcherService initial Redis setup warning: ${msg}. Polling loop will auto-retry.`,
+      );
+    }
     void this.pollLoop();
   }
 
@@ -90,14 +99,19 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
       'REDIS_IN_MEMORY',
       false,
     );
-    if (useInMemory) {
+    if (useInMemory || !this.redis) {
       return;
     }
-    await this.redis.quit();
+    try {
+      await this.redis.quit();
+    } catch {
+      // Ignore disconnect errors on shutdown
+    }
   }
 
   // Creates the Redis consumer group if it does not already exist.
   private async ensureGroup(): Promise<void> {
+    if (!this.redis) return;
     try {
       await this.redis.xgroup(
         'CREATE',
@@ -111,7 +125,9 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
       if (error instanceof Error && error.message.includes('BUSYGROUP')) {
         return;
       }
-      throw error;
+      this.logger.debug(
+        `ensureGroup notice: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -127,31 +143,51 @@ export class WebhookDispatcherService implements OnModuleInit, OnModuleDestroy {
   // Main loop that reads new webhook entries from Redis Streams.
   private async pollLoop(): Promise<void> {
     while (!this.stopped) {
-      const result = (await (
-        this.redis as unknown as {
-          xreadgroup: (...args: string[]) => Promise<unknown>;
+      try {
+        if (!this.redis) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          continue;
         }
-      ).xreadgroup(
-        'GROUP',
-        this.streamGroup,
-        this.streamConsumer,
-        'BLOCK',
-        this.pollMs.toString(),
-        'COUNT',
-        '50',
-        'STREAMS',
-        this.streamKey,
-        '>',
-      )) as Array<[string, Array<[string, string[]]>]> | null;
 
-      if (!result) {
-        continue;
-      }
-
-      for (const [, entries] of result) {
-        for (const [entryId, fields] of entries) {
-          await this.processEntry(entryId, fields);
+        if (this.redis.status !== 'ready' && this.redis.status !== 'connecting' && this.redis.status !== 'connect') {
+          try {
+            await this.redis.connect();
+          } catch {
+            // Ignored - will retry next turn
+          }
         }
+
+        const result = (await (
+          this.redis as unknown as {
+            xreadgroup: (...args: string[]) => Promise<unknown>;
+          }
+        ).xreadgroup(
+          'GROUP',
+          this.streamGroup,
+          this.streamConsumer,
+          'BLOCK',
+          this.pollMs.toString(),
+          'COUNT',
+          '50',
+          'STREAMS',
+          this.streamKey,
+          '>',
+        )) as Array<[string, Array<[string, string[]]>]> | null;
+
+        if (!result) {
+          continue;
+        }
+
+        for (const [, entries] of result) {
+          for (const [entryId, fields] of entries) {
+            await this.processEntry(entryId, fields);
+          }
+        }
+      } catch (pollErr: unknown) {
+        if (this.stopped) break;
+        const msg = pollErr instanceof Error ? pollErr.message : String(pollErr);
+        this.logger.debug(`Webhook stream poll cycle note: ${msg}`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
   }
