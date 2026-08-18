@@ -17,6 +17,9 @@ export class PrismaService
   async onModuleInit(): Promise<void> {
     await this.$connect();
 
+    // Auto-heal missing columns in production database
+    await this.syncDatabaseSchema();
+
     if (
       process.env.RESET_DB === 'true' ||
       process.env.WIPE_DATABASE === 'true'
@@ -32,6 +35,29 @@ export class PrismaService
       } catch (err) {
         this.logger.error('Failed to reset database schema:', err);
       }
+    }
+  }
+
+  // Self-healing schema sync to ensure required columns exist in production Postgres
+  async syncDatabaseSchema(): Promise<void> {
+    try {
+      await this.$executeRawUnsafe(`
+        ALTER TABLE "RiderProfile" ADD COLUMN IF NOT EXISTS "leaseDownPayment" INTEGER NOT NULL DEFAULT 0;
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE "RiderProfile" ADD COLUMN IF NOT EXISTS "paymentSchedule" TEXT DEFAULT 'DAILY';
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE "RiderProfile" ADD COLUMN IF NOT EXISTS "assignedRate" INTEGER;
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE "RiderProfile" ADD COLUMN IF NOT EXISTS "customScheduleDays" INTEGER;
+      `);
+      this.logger.log('Database self-healing schema sync verified.');
+    } catch (err) {
+      this.logger.debug(
+        `Schema sync notice: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
