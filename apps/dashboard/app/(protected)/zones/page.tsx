@@ -137,72 +137,7 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [29.990, -1.865],
     ],
   },
-  // ─── Core Kigali slow / no-go / park zones ───
-  {
-    id: 'kn-cbd',
-    name: 'KN City Centre (CBD)',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Kigali central business district — Muhima, Nyarugenge, Gitega (25 kph)',
-    points: [
-      [30.050, -1.940],
-      [30.072, -1.940],
-      [30.072, -1.960],
-      [30.050, -1.960],
-    ],
-  },
-  {
-    id: 'nyabugogo-terminal',
-    name: 'Nyabugogo Bus Terminal',
-    type: 'SLOW',
-    speedLimitKph: '15',
-    description: 'High-density passenger terminal & congestion zone (15 kph)',
-    points: [
-      [30.040, -1.935],
-      [30.056, -1.935],
-      [30.056, -1.949],
-      [30.040, -1.949],
-    ],
-  },
-  {
-    id: 'kacyiru-diplomatic',
-    name: 'Kacyiru Ministry Quarter',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Government & diplomatic quarter — ministries, embassies (25 kph)',
-    points: [
-      [30.076, -1.930],
-      [30.098, -1.930],
-      [30.098, -1.948],
-      [30.076, -1.948],
-    ],
-  },
-  {
-    id: 'gikondo-industrial',
-    name: 'Gikondo Industrial Area',
-    type: 'SLOW',
-    speedLimitKph: '30',
-    description: 'Heavy-vehicle industrial district — warehouses & factories (30 kph)',
-    points: [
-      [30.062, -1.960],
-      [30.085, -1.960],
-      [30.085, -1.980],
-      [30.062, -1.980],
-    ],
-  },
-  {
-    id: 'nyamirambo-market',
-    name: 'Nyamirambo Commercial Hub',
-    type: 'SLOW',
-    speedLimitKph: '20',
-    description: 'Dense market & residential area — narrow streets (20 kph)',
-    points: [
-      [30.035, -1.965],
-      [30.055, -1.965],
-      [30.055, -1.985],
-      [30.035, -1.985],
-    ],
-  },
+  // ─── Kigali Park & Restricted Zones ───
   {
     id: 'kimironko-market',
     name: 'Kimironko Commercial Market',
@@ -214,19 +149,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [30.138, -1.944],
       [30.138, -1.960],
       [30.118, -1.960],
-    ],
-  },
-  {
-    id: 'remera-it-hub',
-    name: 'Remera / Kisimenti Hub',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Tech hub, restaurants & nightlife corridor (25 kph)',
-    points: [
-      [30.098, -1.948],
-      [30.118, -1.948],
-      [30.118, -1.965],
-      [30.098, -1.965],
     ],
   },
   {
@@ -266,19 +188,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [30.095, -1.850],
       [30.095, -1.895],
       [30.000, -1.895],
-    ],
-  },
-  {
-    id: 'kicukiro-centre',
-    name: 'Kicukiro Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Kicukiro district centre — schools, markets & residential (25 kph)',
-    points: [
-      [30.072, -1.985],
-      [30.098, -1.985],
-      [30.098, -2.010],
-      [30.072, -2.010],
     ],
   },
   {
@@ -336,19 +245,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
     ],
   },
   {
-    id: 'musanze-centre',
-    name: 'Musanze Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Musanze central commercial area — markets, bus park & main streets (25 kph)',
-    points: [
-      [29.620, -1.490],
-      [29.650, -1.490],
-      [29.650, -1.510],
-      [29.620, -1.510],
-    ],
-  },
-  {
     id: 'volcanoes-park-nogo',
     name: 'Volcanoes National Park',
     type: 'NO_GO',
@@ -375,19 +271,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [29.215, -1.740],
     ],
   },
-  {
-    id: 'rubavu-centre',
-    name: 'Gisenyi Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Gisenyi commercial centre — DRC border crossing, market & lakefront (25 kph)',
-    points: [
-      [29.235, -1.690],
-      [29.270, -1.690],
-      [29.270, -1.715],
-      [29.235, -1.715],
-    ],
-  },
   // ─── Huye (Southern Province) ───
   {
     id: 'huye-hub',
@@ -400,19 +283,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [29.790, -2.570],
       [29.790, -2.640],
       [29.710, -2.640],
-    ],
-  },
-  {
-    id: 'huye-centre',
-    name: 'Huye Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Huye central market, university campus & main avenue (25 kph)',
-    points: [
-      [29.730, -2.590],
-      [29.760, -2.590],
-      [29.760, -2.615],
-      [29.730, -2.615],
     ],
   },
   // ─── Muhanga (Southern Province) ───
@@ -429,19 +299,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [29.720, -2.115],
     ],
   },
-  {
-    id: 'muhanga-centre',
-    name: 'Muhanga Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Muhanga commercial centre — main market & bus terminal (25 kph)',
-    points: [
-      [29.740, -2.072],
-      [29.770, -2.072],
-      [29.770, -2.095],
-      [29.740, -2.095],
-    ],
-  },
   // ─── Rusizi (Western Province — DRC border) ───
   {
     id: 'rusizi-hub',
@@ -454,19 +311,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [28.945, -2.455],
       [28.945, -2.520],
       [28.870, -2.520],
-    ],
-  },
-  {
-    id: 'rusizi-centre',
-    name: 'Kamembe Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Kamembe commercial hub — airport road, market & DRC crossing (25 kph)',
-    points: [
-      [28.890, -2.470],
-      [28.920, -2.470],
-      [28.920, -2.498],
-      [28.890, -2.498],
     ],
   },
   // ─── Rwamagana (Eastern Province) ───
@@ -483,19 +327,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [30.400, -1.980],
     ],
   },
-  {
-    id: 'rwamagana-centre',
-    name: 'Rwamagana Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Rwamagana commercial district — main market & RN3 highway junction (25 kph)',
-    points: [
-      [30.420, -1.938],
-      [30.450, -1.938],
-      [30.450, -1.960],
-      [30.420, -1.960],
-    ],
-  },
   // ─── Nyagatare (Eastern Province — Northeast) ───
   {
     id: 'nyagatare-hub',
@@ -510,19 +341,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [30.290, -1.325],
     ],
   },
-  {
-    id: 'nyagatare-centre',
-    name: 'Nyagatare Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Nyagatare main market, bus park & commercial streets (25 kph)',
-    points: [
-      [30.310, -1.282],
-      [30.340, -1.282],
-      [30.340, -1.305],
-      [30.310, -1.305],
-    ],
-  },
   // ─── Karongi / Kibuye (Western Province — Lake Kivu) ───
   {
     id: 'karongi-hub',
@@ -535,19 +353,6 @@ const RWANDA_ZONE_TEMPLATES: ZoneTemplate[] = [
       [29.385, -2.035],
       [29.385, -2.095],
       [29.315, -2.095],
-    ],
-  },
-  {
-    id: 'karongi-centre',
-    name: 'Kibuye Town Centre',
-    type: 'SLOW',
-    speedLimitKph: '25',
-    description: 'Kibuye lakefront commercial area — hotels, market & harbour (25 kph)',
-    points: [
-      [29.335, -2.050],
-      [29.365, -2.050],
-      [29.365, -2.075],
-      [29.335, -2.075],
     ],
   },
 ];
