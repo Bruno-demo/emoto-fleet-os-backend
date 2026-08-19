@@ -24,7 +24,14 @@ import {
 export type BillingCycleWithDetails = Prisma.BillingCycleGetPayload<{
   include: {
     fleet: {
-      select: { name: true; plan: true; monthlyRatePerBike: true };
+      select: {
+        name: true;
+        plan: true;
+        monthlyRatePerBike: true;
+        momoPhoneNumber: true;
+        bankName: true;
+        bankAccountNumber: true;
+      };
     };
     discount: true;
     payments: {
@@ -98,7 +105,14 @@ export class BillingCycleService {
       where: { id },
       include: {
         fleet: {
-          select: { name: true, plan: true, monthlyRatePerBike: true },
+          select: {
+            name: true,
+            plan: true,
+            monthlyRatePerBike: true,
+            momoPhoneNumber: true,
+            bankName: true,
+            bankAccountNumber: true,
+          },
         },
         discount: true,
         payments: {
@@ -178,7 +192,8 @@ export class BillingCycleService {
     // Set invoice due date to periodEnd (end of billing cycle period) instead of periodStart
     const dueDate = new Date(periodEnd);
 
-    const bikeCount = fleet.bikes.length;
+    const totalFleetActiveBikes = fleet.bikes.length;
+    let bikeCount = totalFleetActiveBikes;
     let subtotal = 0;
     let effectiveRatePerBike = ratePerBike;
     let cycleNotes = '';
@@ -186,6 +201,13 @@ export class BillingCycleService {
     const isPayg =
       fleet.plan === 'PAYG' ||
       fleet.billingMode === FleetBillingMode.PAYG_TRIP_VALIDATED;
+
+    const intervalLabel =
+      cycleDays === 7
+        ? 'week'
+        : cycleDays === 30
+          ? 'month'
+          : `${cycleDays} days`;
 
     if (isPayg) {
       // Audit trips recorded in this period (up to now if period is ongoing)
@@ -201,11 +223,20 @@ export class BillingCycleService {
           fleet.emotoPaygRatePerActiveDay === 350)
           ? 500
           : (fleet.emotoPaygRatePerActiveDay ?? 350);
-      cycleNotes = `Calculated via Active Days (${effectiveRatePerBike} RWF/active day - ${fleet.type || 'COOP'} Fleet) — ${audit.totalActiveBikeDays} active bike-day(s) recorded across ${bikeCount} bike(s).`;
-      subtotal = audit.totalPaygSubtotalRwf ?? (audit.totalActiveBikeDays * effectiveRatePerBike);
+
+      // Only count bikes that actually completed >= 1 trip during this billing period
+      const operatingBikesCount = audit.perBikeSummary.filter(
+        (b) => b.activeDays > 0,
+      ).length;
+      bikeCount = operatingBikesCount;
+
+      cycleNotes = `Calculated via Active Days (${effectiveRatePerBike.toLocaleString()} RWF/active day - ${fleet.type || 'COOP'} Fleet) — ${audit.totalActiveBikeDays} active bike-day(s) across ${operatingBikesCount} operating bike(s) (out of ${totalFleetActiveBikes} registered).`;
+      subtotal =
+        audit.totalPaygSubtotalRwf ??
+        audit.totalActiveBikeDays * effectiveRatePerBike;
     } else {
       subtotal = bikeCount * ratePerBike;
-      cycleNotes = `Standard rate per bike (${ratePerBike.toLocaleString()} RWF / month).`;
+      cycleNotes = `Standard rate per bike (${ratePerBike.toLocaleString()} RWF / ${intervalLabel}).`;
     }
 
     // Check if fleet has an active subscription plan for discount
@@ -321,12 +352,17 @@ export class BillingCycleService {
       }
     }
 
+    const operatingBikesCount = audit.perBikeSummary.filter(
+      (b) => b.activeDays > 0,
+    ).length;
+
     const totalDue = Math.max(0, subtotal - discountAmount);
-    const cycleNotes = `Calculated via Active Days (${effectiveRatePerBike} RWF/active day - ${cycle.fleet.type || 'COOP'} Fleet) — ${audit.totalActiveBikeDays} active bike-day(s) recorded across ${cycle.bikeCount} bike(s).`;
+    const cycleNotes = `Calculated via Active Days (${effectiveRatePerBike.toLocaleString()} RWF/active day - ${cycle.fleet.type || 'COOP'} Fleet) — ${audit.totalActiveBikeDays} active bike-day(s) across ${operatingBikesCount} operating bike(s).`;
 
     const updated = await this.prisma.billingCycle.update({
       where: { id: cycleId },
       data: {
+        bikeCount: operatingBikesCount,
         subtotal,
         discountAmount,
         totalDue,
@@ -505,10 +541,22 @@ export class BillingCycleService {
 
     <div class="settlement-box">
       <div class="settlement-title">💳 Official Settlement Instructions</div>
-      <div>MTN Mobile Money Merchant Code:</div>
-      <div class="settlement-code">*182*8*1*1347154# (BRUNO)</div>
+      ${
+        cycle.fleet.momoPhoneNumber
+          ? `<div>MTN / Airtel Mobile Money:</div>
+      <div class="settlement-code">${cycle.fleet.momoPhoneNumber} (${cycle.fleet.name})</div>`
+          : `<div>MTN Mobile Money Merchant Code:</div>
+      <div class="settlement-code">*182*8*1*1347154# (BRUNO)</div>`
+      }
+      ${
+        cycle.fleet.bankName && cycle.fleet.bankAccountNumber
+          ? `<div style="margin-top: 8px; font-size: 13px; color: #166534;">
+        Bank: <strong>${cycle.fleet.bankName}</strong> | Account: <strong>${cycle.fleet.bankAccountNumber}</strong>
+      </div>`
+          : ''
+      }
       <div style="font-size: 12px; color: #475569; margin-top: 6px;">
-        Reference: <strong>INV-${cycle.cycleNumber}-${cycle.fleet.name.replace(/\\s+/g, '').toUpperCase().slice(0, 8)}</strong>
+        Reference: <strong>INV-${cycle.cycleNumber}-${cycle.fleet.name.replace(/\s+/g, '').toUpperCase().slice(0, 8)}</strong>
       </div>
     </div>
 

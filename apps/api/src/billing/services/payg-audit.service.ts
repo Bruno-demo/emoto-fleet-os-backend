@@ -39,6 +39,19 @@ export interface PaygAuditSummary {
 export class PaygAuditService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Formats a date into YYYY-MM-DD in Africa/Kigali (UTC+2) timezone
+   */
+  private toKigaliDateStr(date: Date): string {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Kigali',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(date);
+  }
+
   async getPaygAuditForFleet(
     fleetId: string,
     startDate?: string,
@@ -68,9 +81,14 @@ export class PaygAuditService {
     const start = startDate
       ? new Date(startDate)
       : new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = endDate
+    let end = endDate
       ? new Date(endDate)
       : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // If endDate is provided as a simple 'YYYY-MM-DD' (10 chars), extend to end of day
+    if (endDate && endDate.length === 10) {
+      end = new Date(`${endDate}T23:59:59.999Z`);
+    }
 
     const bikes = fleet.bikes;
 
@@ -96,7 +114,7 @@ export class PaygAuditService {
     >();
 
     for (const trip of trips) {
-      const dateStr = trip.startTs.toISOString().slice(0, 10);
+      const dateStr = this.toKigaliDateStr(trip.startTs);
       const key = `${trip.bikeId}_${dateStr}`;
       const dist = Number(trip.distanceKm || 0);
       const existing = bikeDayMap.get(key) || { distanceKm: 0, tripCount: 0 };
@@ -106,11 +124,17 @@ export class PaygAuditService {
       });
     }
 
+    const startDayStr = this.toKigaliDateStr(start);
+    const endDayStr = this.toKigaliDateStr(end);
     const dayStrings: string[] = [];
     const curr = new Date(start);
-    while (curr < end) {
-      dayStrings.push(curr.toISOString().slice(0, 10));
-      curr.setDate(curr.getDate() + 1);
+    while (this.toKigaliDateStr(curr) <= endDayStr) {
+      const dStr = this.toKigaliDateStr(curr);
+      if (!dayStrings.includes(dStr)) {
+        dayStrings.push(dStr);
+      }
+      curr.setUTCDate(curr.getUTCDate() + 1);
+      if (dayStrings.length > 366) break; // safety guard
     }
 
     const dailyBreakdown: PaygActiveDayRecord[] = [];
@@ -422,21 +446,21 @@ export class PaygAuditService {
       // A bike is active on a date if it made >= 1 trip AND stopped at registered stations > 1 time
       const tripsThisMonth = device.bike?.trips || [];
       
-      // Group trips by calendar date (YYYY-MM-DD)
+      // Group trips by calendar date (YYYY-MM-DD in Kigali time)
       const tripsByDate = new Map<string, number>();
       for (const trip of tripsThisMonth) {
-        const dateStr = new Date(trip.startTs).toISOString().slice(0, 10);
+        const dateStr = this.toKigaliDateStr(trip.startTs);
         tripsByDate.set(dateStr, (tripsByDate.get(dateStr) || 0) + 1);
       }
 
-      // Verified active days MTD: dates where trips >= 1 (verified with station stops)
-      const uniqueActiveDaysMtd = Math.max(1, tripsByDate.size);
+      // Verified active days MTD: dates where trips >= 1
+      const uniqueActiveDaysMtd = tripsByDate.size;
       const mtdRevenueRwf = uniqueActiveDaysMtd * dailyRate;
 
-      // Check if bike worked today (verified trip + station stops today)
-      const todayStr = new Date().toISOString().slice(0, 10);
+      // Check if bike worked today (verified >= 1 trip today)
+      const todayStr = this.toKigaliDateStr(new Date());
       const tripsToday = tripsByDate.get(todayStr) || 0;
-      const isWorkingToday = tripsToday >= 1 || device.lastSeenAt !== null;
+      const isWorkingToday = tripsToday >= 1;
 
       totalDailyRevenueRwf += isWorkingToday ? dailyRate : 0;
       totalMtdRevenueRwf += mtdRevenueRwf;

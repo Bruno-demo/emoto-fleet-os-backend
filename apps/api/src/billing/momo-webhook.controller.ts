@@ -47,6 +47,14 @@ export class MomoWebhookController {
   @HttpCode(HttpStatus.OK) // Must return 200 OK immediately
   @ApiOperation({ summary: 'PawaPay & MTN MoMo payment callback webhook' })
   async handleCallback(@Body() payload: MomoCallbackPayload, @Req() req: any) {
+    // DISABLED [MANUAL_PAYMENTS_ONLY]: Automatic MoMo webhook callback processing is currently disabled
+    // because payments are recorded manually via the dashboard financial interface.
+    this.logger.log(
+      `[MANUAL_PAYMENTS_ONLY] MoMo callback received but skipped (automated processing disabled)`,
+    );
+    return { received: true, message: 'Automated processing disabled; payments recorded manually' };
+
+    /*
     const webhookSecret = this.configService.get<string>('MOMO_WEBHOOK_SECRET');
     if (webhookSecret) {
       const headerSecret = req.headers['x-webhook-secret'] || req.headers['x-callback-secret'];
@@ -106,11 +114,10 @@ export class MomoWebhookController {
         );
       }
     } catch (error: any) {
-      // NEVER throw 500 to payment gateway - always return 200 OK
       this.logger.error('Error processing MoMo callback:', error);
     }
 
-    // Always return 200 OK
     return { received: true };
+    */
   }
 }

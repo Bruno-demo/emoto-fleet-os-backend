@@ -418,17 +418,26 @@ export class BillingController {
     @Param('id') cycleId: string,
     @Body() dto: MomoPayNowDto,
   ) {
+    // DISABLED [MANUAL_PAYMENTS_ONLY]: Automated push payments are disabled.
+    // Invoices are settled via manual payment recorded by fleet admins or HQ.
     const cycle = await this.billingCycleService.getCycle(cycleId);
     if (cycle.fleetId !== user.fleetId) {
       throw new ForbiddenException(
         'You do not have access to this billing cycle',
       );
     }
+    return {
+      success: true,
+      manualPayment: true,
+      message:
+        'Automated MoMo push is disabled. Please settle your invoice via MTN Mobile Money (*182*8*1*1347154#) or Bank Transfer, and HQ will record your payment receipt.',
+    };
+
+    /*
     if (cycle.status === 'PAID') {
       throw new BadRequestException('This invoice is already fully paid');
     }
 
-    // Determine phone number: explicit > fleet default
     const fleet = await this.prisma.fleet.findUnique({
       where: { id: user.fleetId },
       select: { momoPhoneNumber: true },
@@ -453,6 +462,7 @@ export class BillingController {
       transaction,
       message: `A payment prompt has been sent to ${maskedPhone}. Enter your MoMo PIN to complete.`,
     };
+    */
   }
 
   @Get('my-transactions')

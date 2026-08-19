@@ -51,12 +51,6 @@ export class BillingConfigService implements OnModuleInit {
     const count = await this.prisma.billingConfig.count();
     if (count > 0) {
       const config = await this.prisma.billingConfig.findFirst();
-      if (config && config.billingCycleDays !== 7) {
-        return this.prisma.billingConfig.update({
-          where: { id: config.id },
-          data: { billingCycleDays: 7 },
-        });
-      }
       return config!;
     }
 

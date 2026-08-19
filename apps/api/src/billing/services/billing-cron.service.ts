@@ -430,8 +430,8 @@ export class BillingCronService {
       try {
         const audit = await this.paygAuditService.getPaygAuditForFleet(
           fleet.id,
-          dateStr,
-          dateStr,
+          `${dateStr}T00:00:00.000Z`,
+          `${dateStr}T23:59:59.999Z`,
         );
 
         await this.auditService.createAuditLog({
@@ -468,132 +468,90 @@ export class BillingCronService {
     this.logger.log('Finished daily PAYG active-day audit & reconciliation cron job.');
   }
 
-  // ── MoMo Cron Jobs ───────────────────────────────────────────────
+  // ── MoMo Cron Jobs (DISABLED: Fleet OS currently uses manual payment recording) ──────
+  // To re-enable automated MoMo deductions and retries in the future, uncomment these methods.
 
-  @Cron(CronExpression.EVERY_DAY_AT_7AM)
-  async triggerMoMoAutoPay() {
-    this.logger.log('Starting MoMo Auto-Pay cron job...');
-    const triggerWindow = new Date();
-    triggerWindow.setDate(triggerWindow.getDate() + 2); // 2 days before due date
+  // DISABLED [MANUAL_PAYMENTS_ONLY]: Auto-Pay STK push 2 days prior to invoice due date
+  // @Cron(CronExpression.EVERY_DAY_AT_7AM)
+  // async triggerMoMoAutoPay() {
+  //   this.logger.log('Starting MoMo Auto-Pay cron job...');
+  //   const triggerWindow = new Date();
+  //   triggerWindow.setDate(triggerWindow.getDate() + 2);
+  //   const cyclesDue = await this.prisma.billingCycle.findMany({
+  //     where: {
+  //       status: { in: [BillingCycleStatus.PENDING, BillingCycleStatus.PARTIAL] },
+  //       dueDate: { lte: triggerWindow },
+  //       fleet: { autoPayEnabled: true, momoPhoneNumber: { not: null } },
+  //     },
+  //     include: {
+  //       fleet: true,
+  //       momoTransactions: {
+  //         where: { status: { in: [MomoTransactionStatus.PENDING, MomoTransactionStatus.SUCCESSFUL] } },
+  //       },
+  //     },
+  //   });
+  //   for (const cycle of cyclesDue) {
+  //     if (cycle.momoTransactions.length > 0 || !cycle.fleet.momoPhoneNumber) continue;
+  //     const remainingAmount = cycle.totalDue - cycle.totalPaid;
+  //     if (remainingAmount <= 0) continue;
+  //     try {
+  //       await this.momoGatewayService.requestToPay(
+  //         cycle.fleetId,
+  //         cycle.id,
+  //         remainingAmount,
+  //         cycle.fleet.momoPhoneNumber,
+  //       );
+  //     } catch (error) {
+  //       this.logger.error(`Failed auto-pay for fleet ${cycle.fleetId}, cycle ${cycle.id}:`, error);
+  //     }
+  //   }
+  // }
 
-    const cyclesDue = await this.prisma.billingCycle.findMany({
-      where: {
-        status: {
-          in: [BillingCycleStatus.PENDING, BillingCycleStatus.PARTIAL],
-        },
-        dueDate: { lte: triggerWindow },
-        fleet: {
-          autoPayEnabled: true,
-          momoPhoneNumber: { not: null },
-        },
-      },
-      include: {
-        fleet: true,
-        momoTransactions: {
-          where: {
-            status: {
-              in: [
-                MomoTransactionStatus.PENDING,
-                MomoTransactionStatus.SUCCESSFUL,
-              ],
-            },
-          },
-        },
-      },
-    });
+  // DISABLED [MANUAL_PAYMENTS_ONLY]: Automatic retry of failed MoMo payment transactions
+  // @Cron(CronExpression.EVERY_2_HOURS)
+  // async retryFailedMoMoPayments() {
+  //   this.logger.log('Starting MoMo failed payment retry cron job...');
+  //   const now = new Date();
+  //   const failedTxList = await this.prisma.momoTransaction.findMany({
+  //     where: {
+  //       status: MomoTransactionStatus.FAILED,
+  //       retryCount: { lt: 3 },
+  //       nextRetryAt: { lte: now },
+  //     },
+  //     take: 50,
+  //   });
+  //   for (const tx of failedTxList) {
+  //     try {
+  //       await this.momoGatewayService.retryFailedPayment(tx.id);
+  //     } catch (error) {
+  //       this.logger.error(`Retry attempt failed for MoMo tx ${tx.id}:`, error);
+  //     }
+  //   }
+  // }
 
-    for (const cycle of cyclesDue) {
-      if (cycle.momoTransactions.length > 0) {
-        continue; // Already has a pending or successful transaction
-      }
-      if (!cycle.fleet.momoPhoneNumber) continue;
-
-      const remainingAmount = cycle.totalDue - cycle.totalPaid;
-      if (remainingAmount <= 0) continue;
-
-      try {
-        this.logger.log(
-          `Triggering auto-pay for fleet ${cycle.fleet.name} (${cycle.fleet.id}), cycle ${cycle.id}, amount ${remainingAmount} RWF`,
-        );
-        await this.momoGatewayService.requestToPay(
-          cycle.fleetId,
-          cycle.id,
-          remainingAmount,
-          cycle.fleet.momoPhoneNumber,
-        );
-      } catch (error) {
-        this.logger.error(
-          `Failed auto-pay for fleet ${cycle.fleetId}, cycle ${cycle.id}:`,
-          error,
-        );
-      }
-    }
-    this.logger.log('Finished MoMo Auto-Pay cron job.');
-  }
-
-  @Cron(CronExpression.EVERY_2_HOURS)
-  async retryFailedMoMoPayments() {
-    this.logger.log('Starting MoMo failed payment retry cron job...');
-    const now = new Date();
-
-    const failedTxList = await this.prisma.momoTransaction.findMany({
-      where: {
-        status: MomoTransactionStatus.FAILED,
-        retryCount: { lt: 3 },
-        nextRetryAt: { lte: now },
-      },
-      take: 50, // Process in batches
-    });
-
-    for (const tx of failedTxList) {
-      try {
-        this.logger.log(
-          `Retrying failed MoMo tx ${tx.id} for fleet ${tx.fleetId} (attempt ${tx.retryCount + 1})`,
-        );
-        await this.momoGatewayService.retryFailedPayment(tx.id);
-      } catch (error) {
-        this.logger.error(`Retry attempt failed for MoMo tx ${tx.id}:`, error);
-      }
-    }
-    this.logger.log('Finished MoMo failed payment retry cron job.');
-  }
-
-  @Cron('0 */15 * * * *')
-  async pollPendingMoMoTransactions() {
-    this.logger.log('Starting MoMo pending transaction polling cron job...');
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-    const pendingTxList = await this.prisma.momoTransaction.findMany({
-      where: {
-        status: MomoTransactionStatus.PENDING,
-        createdAt: { lt: fiveMinutesAgo },
-      },
-      take: 200,
-    });
-
-    for (const tx of pendingTxList) {
-      try {
-        const result = await this.momoGatewayService.checkTransactionStatus(
-          tx.referenceId,
-        );
-        if (result?.status === 'SUCCESSFUL') {
-          await this.momoGatewayService.processSuccessfulPayment(
-            tx,
-            result.financialTransactionId || '',
-          );
-        } else if (result?.status === 'FAILED') {
-          await this.momoGatewayService.processFailedPayment(
-            tx,
-            result.reason || 'FAILED',
-          );
-        }
-      } catch (error) {
-        this.logger.error(
-          `Failed to poll status for pending MoMo tx ${tx.id}:`,
-          error,
-        );
-      }
-    }
-    this.logger.log('Finished MoMo pending transaction polling cron job.');
-  }
+  // DISABLED [MANUAL_PAYMENTS_ONLY]: Polling gateway for pending transactions older than 5 min
+  // @Cron('0 */15 * * * *')
+  // async pollPendingMoMoTransactions() {
+  //   this.logger.log('Starting MoMo pending transaction polling cron job...');
+  //   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  //   const pendingTxList = await this.prisma.momoTransaction.findMany({
+  //     where: {
+  //       status: MomoTransactionStatus.PENDING,
+  //       createdAt: { lt: fiveMinutesAgo },
+  //     },
+  //     take: 200,
+  //   });
+  //   for (const tx of pendingTxList) {
+  //     try {
+  //       const result = await this.momoGatewayService.checkTransactionStatus(tx.referenceId);
+  //       if (result?.status === 'SUCCESSFUL') {
+  //         await this.momoGatewayService.processSuccessfulPayment(tx, result.financialTransactionId || '');
+  //       } else if (result?.status === 'FAILED') {
+  //         await this.momoGatewayService.processFailedPayment(tx, result.reason || 'FAILED');
+  //       }
+  //     } catch (error) {
+  //       this.logger.error(`Failed to poll status for pending MoMo tx ${tx.id}:`, error);
+  //     }
+  //   }
+  // }
 }
